@@ -504,5 +504,11 @@
       "0064_brokers_fase3_comisiones.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0065_brokers_tenant_scope.sql",
+    "sha256": "5b8a4cf0909e4df7c578bdd601a56cdb49bd8cc41738bc21e55081bd5e849b89",
+    "replays": ["0065_brokers_tenant_scope.sql"],
+    "scope": "isolated-ci"
   }
 ]

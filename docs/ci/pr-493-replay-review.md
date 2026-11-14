@@ -25,3 +25,17 @@ La prueba histórica de limpieza demo ahora detecta explícitamente esa forma
 incompatible con el guard antiguo, exige su rechazo y comprueba además el bloqueo
 incondicional vigente antes del lock y de cualquier escritura. No se agrega una
 excepción global ni se modifica el seed o su migración.
+
+## Corrección forward 0065
+
+La reconstrucción real detectó que las cuatro tablas de Brokers carecían del
+candado Ola16 de super admin por tenant activo.0065 agrega cuatro políticas
+RESTRICTIVE FOR ALL TO authenticated con el mismo predicado y WITH CHECK de0036.
+El predicado mantiene las políticas permisivas previas como requisito y sólo
+acota al super admin mediante `rls_tenant_scope_ok`; el broker externo conserva
+sus organizaciones y RPC. No modifica roles, grants, funciones ni datos.
+
+Se registra una nueva migración y su copia aislada; el journal anterior queda
+intacto. La suite obligatoria `brokers_tenant_scope` verifica las cuatro políticas
+y acceso real sin tenant, con tenant activo, admin de organización y broker.
+El deployment web no aplica esta migración a una base remota.

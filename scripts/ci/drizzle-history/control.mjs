@@ -56,6 +56,7 @@ export const HISTORY = [
   { file: '0062_brokers_fase2.sql', sha256: '057122277de7e92edcfcad6c67511f384207b9769b9275fb999af88a66807e84', eligibleName: '20261114050000_replay_brokers_fase2.sql' },
   { file: '0063_brokers_fase2_lecturas.sql', sha256: '8a8df55a3159251618bb2e6b2c82769827e959b7b7d06015f70b47c0eca9e1a7', eligibleName: '20261114060000_replay_brokers_fase2_lecturas.sql' },
   { file: '0064_brokers_fase3_comisiones.sql', sha256: 'f4a4e3b36bdeb884554a340ed686bf1d9c746b8e851c6ce39e4a5aac2cdbcc51', eligibleName: '20261114070000_replay_brokers_fase3_comisiones.sql' },
+  { file: '0065_brokers_tenant_scope.sql', sha256: '5b8a4cf0909e4df7c578bdd601a56cdb49bd8cc41738bc21e55081bd5e849b89', eligibleName: '20261114221500_brokers_tenant_scope.sql' },
 ];
 const ARCHIVED_METADATA = [
   [`${ARCHIVE}/meta/0022_snapshot.json`, '002a1cff39197fe3431f23193a4229e1c845cbcd0ab5eaa074efded812b0081d'],
