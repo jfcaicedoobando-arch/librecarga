@@ -62,3 +62,10 @@ export const alertasSistema = {
 export const demoLeads = {
   all: ['admin', 'demo-leads'] as const,
 } as const;
+
+export const brokers = {
+  all: ["admin", "brokers"] as const,
+  list: (orgId: string | null) => ["admin", "brokers", orgId] as const,
+  comisiones: (orgId: string | null) => ["admin", "brokers", "comisiones", orgId] as const,
+  liquidaciones: (orgId: string | null) => ["admin", "brokers", "liquidaciones", orgId] as const,
+} as const;

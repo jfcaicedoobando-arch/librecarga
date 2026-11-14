@@ -20,6 +20,7 @@ import { useNuevaOportunidadSubmit } from "@/features/crm/hooks/useNuevaOportuni
 import { useOrigenClienteForzado } from "@/features/crm/hooks/useOrigenClienteForzado";
 import { faltantesOportunidadForm } from "@/features/crm/domain/oportunidadFormPayload";
 import type { RefRow } from "@/features/crm/services/objetosCrm";
+import type { Moneda } from "@/features/crm/services/oportunidades";
 
 interface Props {
   open: boolean;
@@ -33,7 +34,7 @@ interface Props {
   empresaInicial?: RefRow | null;
   /** Importe precapturado en el alta express. */
   valorEstimadoInicial?: string | null;
-  monedaInicial?: "MXN" | "USD" | "EUR" | null;
+  monedaInicial?: Moneda | null;
   /** Etapa prefijada por el CTA de una columna del Kanban (sólo si abierta). */
   etapaInicialId?: string | null;
 }

@@ -62,17 +62,36 @@ describe("forward demo cleanup fail-closed tenant graph contract", () => {
       expect(globals.has(mutation[1]), `core mutates a shared endpoint: ${mutation[1]}`).toBe(false);
     }
   });
-  it("supports every reviewed baseline graph table and UUID FK key without blind unscoped exceptions", () => {
+  it("rejects the newly unsupported graph shape without treating tenant children as global tables", () => {
     expect(graph.size).toBeGreaterThan(80);
     expect([...globals].sort()).toEqual(["navieras", "organizations", "puertos", "tipos_contenedor"]);
+    const unsupported: string[] = [];
     for (const name of graph) {
       const table = tables.get(name);
       expect(table, name).toBeDefined();
       if (globals.has(name)) {
         expect(table).not.toMatch(/\borganization_id\b/);
         expect(table).toMatch(/\bid uuid\b/);
-      } else expect(table, name).toMatch(/\borganization_id uuid\b/);
+      } else if (!/\borganization_id uuid\b/.test(table!)) unsupported.push(name);
     }
+    //0052 derives tenant ownership through proformas. The historical cleanup
+    // must reject it, never whitelist it as global or silently skip the child.
+    expect(unsupported).toEqual(["proforma_email_intentos"]);
+    expect(edges).toContainEqual(expect.objectContaining({
+      child: "proforma_email_intentos", childKeys: ["proforma_id"], parent: "proformas", parentKeys: ["id"],
+    }));
+    const shapeGate = sql.slice(sql.indexOf("-- Repeat shape checks under locks"), sql.indexOf("-- Repeat shape checks under locks") + 1800);
+    expect(shapeGate).toContain("v_relation.oid = ANY(v_scoped)");
+    expect(shapeGate).toContain("a.attname = 'organization_id'");
+    expect(shapeGate).toContain("a.atttypid = 'uuid'::regtype AND NOT a.attisdropped");
+    expect(shapeGate).toContain("LC_SEED_DEMO_TENANT_UNSAFE: forma de tabla no soportada");
+    // The current release is stricter still: it stops unconditionally before
+    // reaching the historical graph or any business write.
+    const current = extractDumpFunction(baseline, "public.seed_demo_organization_guarded").body;
+    const stop = current.indexOf("RAISE EXCEPTION 'LC_SEED_DEMO_CONSERVACION_PENDIENTE");
+    expect(stop).toBeGreaterThan(0);
+    expect(stop).toBeLessThan(current.indexOf("PERFORM pg_advisory_xact_lock"));
+    expect(current.slice(0, stop)).not.toMatch(/(?:UPDATE|DELETE FROM|INSERT INTO|TRUNCATE)\s+public\./);
     for (const edge of edges.filter((edge) => graph.has(edge.child) && graph.has(edge.parent))) {
       expect(globals.has(edge.child), `global child: ${edge.name}`).toBe(false);
       for (const [table, keys] of [[edge.child, edge.childKeys], [edge.parent, edge.parentKeys]] as const) {

@@ -1,4 +1,8 @@
 export const crm = {
+  brokerSolicitudes: {
+    all: ["crm", "broker-solicitudes"] as const,
+    list: (orgId: string | null) => ["crm", "broker-solicitudes", orgId] as const,
+  },
   resumenPricing: (organizationId: string | null, userId?: string) => ["crm", "pricing", "resumen", organizationId, userId] as const,
   origenEmpresa: (id: string) => ["crm", "origen-empresa", id] as const,
   adjuntoUrl: (path: string) => ["crm", "pricing", "adjunto-url", path] as const,

@@ -76,7 +76,16 @@ const REVIEWED_FORWARD_FIXES: ReadonlyArray<readonly [string, string]> = [
   ["0053_provision_membresia_atomica.sql", "4b519d836748bf04174aae1353f1ab160996904ff6d180b001e587c4b492231e"],
   ["0054_conteos_sidebar.sql", "3a3ffebc64c70e50b1619e24a2b7746975ff677477360d5b9fffe2ddee0ce1f8"],
   ["0055_embarques_paginacion_filtros.sql", "5cfc15700522c72741948cd7de594b9e573a1d0dbbd30a43cb67411be62ba9d1"],
-  ["0056_facturacion_bandejas_ligeras.sql", "454907329cdf6a2b40f3937ebc9b0b3980af07bb1c9326e88e39d7d5493bad62"]
+  ["0056_facturacion_bandejas_ligeras.sql", "454907329cdf6a2b40f3937ebc9b0b3980af07bb1c9326e88e39d7d5493bad62"],
+  // Pricing fingerprints/validation and broker objects do not redefine either0035 target.
+  ["0057_pricing_vinculo_huella_rls_initplan.sql", "418eb056e2e30a488be88bf711259f462216fd1f16cb29feb1392237d5e5a7fd"],
+  ["0058_pricing_faltantes_texto.sql", "3b0196cb6c7c9bcfd88a6b0622e90db76a17bcf36a0e8100313c3f6a69739686"],
+  ["0059_broker_rol.sql", "d80bad1a5b76ba0e876b8b7c4622d2a26f7eda8bb3ea663b1d494f1cff86762c"],
+  ["0060_brokers_fase1.sql", "fcf2fcc01c4c71d80224d962976f784bc682489b1a1531dee93834f1a4091084"],
+  ["0061_broker_fuente_lead.sql", "f1fbf03a094b69149fc3d14286a3b7ecb2f7be64c718fbd1691a0109ffd2c60f"],
+  ["0062_brokers_fase2.sql", "057122277de7e92edcfcad6c67511f384207b9769b9275fb999af88a66807e84"],
+  ["0063_brokers_fase2_lecturas.sql", "8a8df55a3159251618bb2e6b2c82769827e959b7b7d06015f70b47c0eca9e1a7"],
+  ["0064_brokers_fase3_comisiones.sql", "f4a4e3b36bdeb884554a340ed686bf1d9c746b8e851c6ce39e4a5aac2cdbcc51"],
 ];
 
 function verificarOrdenJournal(sources: ReadonlyMap<string, string>, journal: JournalEntry[]): void {

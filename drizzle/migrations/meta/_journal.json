@@ -414,6 +414,48 @@
       "when": 1794444261956,
       "tag": "0058_pricing_faltantes_texto",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1794616551175,
+      "tag": "0059_broker_rol",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1794616577269,
+      "tag": "0060_brokers_fase1",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1794617563479,
+      "tag": "0061_broker_fuente_lead",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1794617631993,
+      "tag": "0062_brokers_fase2",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1794617696030,
+      "tag": "0063_brokers_fase2_lecturas",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1794618412429,
+      "tag": "0064_brokers_fase3_comisiones",
+      "breakpoints": true
     }
   ]
 }
