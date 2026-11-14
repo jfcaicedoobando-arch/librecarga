@@ -2,6 +2,13 @@
 
 ## [13.824.87] - Unreleased
 
+### Accesibilidad de clientes y compatibilidad de Brokers con CI
+
+- Hace accesible por teclado la carga de CSF, evita desbordes con nombres largos y anuncia los campos obligatorios.
+- Reutiliza las tablas, estados vacíos, fechas, formatos y claves de consulta compartidos en Brokers; conserva los RPC, montos y alcances existentes.
+- Completa el replay aislado 0057–0064 y sus controles de integridad, y verifica la moneda del alta rápida y el bloqueo vigente de demo.
+- Agrega la migración forward 0065 para restringir al super admin a su organización activa en las cuatro tablas de Brokers, conservando las políticas previas y el acceso del portal. Incluye una nueva suite SQL obligatoria; su presencia no acredita aplicación remota.
+
 ### Protección de la historia financiera al dar de baja embarques
 
 - Prepara una validación compartida del diagnóstico y la baja que reconoce vínculos financieros directos e indirectos, conserva sus documentos y muestra conteos completos con ejemplos separados, incluidos los motivos de cierre y comisiones.

@@ -5,6 +5,7 @@
 import { Building2 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { CargaGuard } from "@/components/shared/states/CargaGuard";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useDocumentTitle } from "@/hooks/shared";
@@ -30,7 +31,7 @@ export default function BrokerInicio() {
         errorDescription="Revisa tu conexión y vuelve a intentar."
       >
         {empresas.length === 0 ? (
-          <p className="text-body-sm text-muted-foreground">Aún no tienes empresas asignadas.</p>
+          <EmptyStateInline message="Aún no tienes empresas asignadas." />
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {empresas.map((e) => (
@@ -42,7 +43,7 @@ export default function BrokerInicio() {
                   </div>
                   <p className="text-body-sm text-muted-foreground">{e.organizacion}</p>
                   {e.oportunidades.length === 0 ? (
-                    <p className="text-body-sm text-muted-foreground">Sin oportunidades todavía.</p>
+                    <EmptyStateInline density="compact" message="Sin oportunidades todavía." />
                   ) : (
                     <ul className="space-y-1">
                       {e.oportunidades.map((o, i) => (

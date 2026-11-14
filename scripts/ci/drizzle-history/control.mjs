@@ -47,6 +47,16 @@ export const HISTORY = [
   { file: '0054_conteos_sidebar.sql', sha256: '3a3ffebc64c70e50b1619e24a2b7746975ff677477360d5b9fffe2ddee0ce1f8', eligibleName: '20261111153000_conteos_sidebar.sql' },
   { file: '0055_embarques_paginacion_filtros.sql', sha256: '5cfc15700522c72741948cd7de594b9e573a1d0dbbd30a43cb67411be62ba9d1', eligibleName: '20261111160000_embarques_paginacion_filtros.sql' },
   { file: '0056_facturacion_bandejas_ligeras.sql', sha256: '454907329cdf6a2b40f3937ebc9b0b3980af07bb1c9326e88e39d7d5493bad62', eligibleName: '20261111162000_facturacion_bandejas_ligeras.sql' },
+  // Reviewed literal sources 0057–0064, used only in disposable CI replay.
+  { file: '0057_pricing_vinculo_huella_rls_initplan.sql', sha256: '418eb056e2e30a488be88bf711259f462216fd1f16cb29feb1392237d5e5a7fd', eligibleName: '20261114000000_replay_pricing_vinculo_huella_rls_initplan.sql' },
+  { file: '0058_pricing_faltantes_texto.sql', sha256: '3b0196cb6c7c9bcfd88a6b0622e90db76a17bcf36a0e8100313c3f6a69739686', eligibleName: '20261114010000_replay_pricing_faltantes_texto.sql' },
+  { file: '0059_broker_rol.sql', sha256: 'd80bad1a5b76ba0e876b8b7c4622d2a26f7eda8bb3ea663b1d494f1cff86762c', eligibleName: '20261114020000_replay_broker_rol.sql' },
+  { file: '0060_brokers_fase1.sql', sha256: 'fcf2fcc01c4c71d80224d962976f784bc682489b1a1531dee93834f1a4091084', eligibleName: '20261114030000_replay_brokers_fase1.sql' },
+  { file: '0061_broker_fuente_lead.sql', sha256: 'f1fbf03a094b69149fc3d14286a3b7ecb2f7be64c718fbd1691a0109ffd2c60f', eligibleName: '20261114040000_replay_broker_fuente_lead.sql' },
+  { file: '0062_brokers_fase2.sql', sha256: '057122277de7e92edcfcad6c67511f384207b9769b9275fb999af88a66807e84', eligibleName: '20261114050000_replay_brokers_fase2.sql' },
+  { file: '0063_brokers_fase2_lecturas.sql', sha256: '8a8df55a3159251618bb2e6b2c82769827e959b7b7d06015f70b47c0eca9e1a7', eligibleName: '20261114060000_replay_brokers_fase2_lecturas.sql' },
+  { file: '0064_brokers_fase3_comisiones.sql', sha256: 'f4a4e3b36bdeb884554a340ed686bf1d9c746b8e851c6ce39e4a5aac2cdbcc51', eligibleName: '20261114070000_replay_brokers_fase3_comisiones.sql' },
+  { file: '0065_brokers_tenant_scope.sql', sha256: '5b8a4cf0909e4df7c578bdd601a56cdb49bd8cc41738bc21e55081bd5e849b89', eligibleName: '20261114221500_brokers_tenant_scope.sql' },
 ];
 const ARCHIVED_METADATA = [
   [`${ARCHIVE}/meta/0022_snapshot.json`, '002a1cff39197fe3431f23193a4229e1c845cbcd0ab5eaa074efded812b0081d'],

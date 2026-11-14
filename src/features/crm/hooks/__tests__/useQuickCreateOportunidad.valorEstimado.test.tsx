@@ -89,11 +89,35 @@ describe("useQuickCreateOportunidad · borrador hacia Más campos", () => {
       origen: ORIGEN,
       etapaId: "e-neg",
       valorEstimado: texto,
+      moneda: "MXN",
     });
 
     if (!listo) {
       await act(async () => { await result.current.submit(); });
       expect(mutateAsync).not.toHaveBeenCalled();
     }
+  });
+
+  it.each(["USD", "EUR"] as const)("conserva %s al ampliar y al enviar el alta", async (moneda) => {
+    const { result } = montar();
+    act(() => {
+      result.current.setNombre("Importación");
+      result.current.setEmpresa(EMPRESA);
+      result.current.setEtapaId("e-neg");
+      result.current.setValorEstimado("1500.25");
+      result.current.setMoneda(moneda);
+    });
+    await waitFor(() => expect(result.current.listo).toBe(true));
+    expect(result.current.construirBorrador()).toEqual({
+      nombre: "Importación", empresa: EMPRESA, origen: ORIGEN,
+      etapaId: "e-neg", valorEstimado: "1500.25", moneda,
+    });
+    await act(async () => { await result.current.submit(); });
+    expect(mutateAsync).toHaveBeenCalledExactlyOnceWith({
+      nombre: "Importación", empresa_id: EMPRESA.id, cliente_id: null,
+      cliente_nombre: ORIGEN.nombre, lead_id: ORIGEN.id, etapa_id: "e-neg",
+      moneda, probabilidad: 60, monto_meta: 1500.25,
+      vendedor_id: ORIGEN.vendedorId, vendedor_email: ORIGEN.vendedorEmail,
+    });
   });
 });

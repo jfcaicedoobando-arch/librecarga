@@ -79,6 +79,22 @@ describe("bounded Drizzle0035 dynamic replay model", () => {
     expect(auditarIndiceReplayMirror(changed, aplicarDrizzle0035(historical, sources, journal), []).violaciones).toHaveLength(2);
   });
 
+  it.each([
+    "0057_pricing_vinculo_huella_rls_initplan.sql",
+    "0058_pricing_faltantes_texto.sql",
+    "0059_broker_rol.sql",
+    "0060_brokers_fase1.sql",
+    "0061_broker_fuente_lead.sql",
+    "0062_brokers_fase2.sql",
+    "0063_brokers_fase2_lecturas.sql",
+    "0064_brokers_fase3_comisiones.sql",
+    "0065_brokers_tenant_scope.sql",
+  ])("rejects a changed newly reviewed source %s", key => {
+    const changed = new Map(sources);
+    changed.set(key, sources.get(key)! + "\n-- altered bytes");
+    expect(() => aplicarDrizzle0035(historical, changed, journal)).toThrow(/later source/);
+  });
+
   it("requires the missing canonical terminator rather than weakening the parser", () => {
     const sql = mirrors.get("supabase/schema/embarques/sync_cotizacion_embarque_link.sql")!;
     expect(extraerFunciones(sql)).toHaveLength(1);

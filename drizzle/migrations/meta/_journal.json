@@ -456,6 +456,13 @@
       "when": 1794618412429,
       "tag": "0064_brokers_fase3_comisiones",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1794694500000,
+      "tag": "0065_brokers_tenant_scope",
+      "breakpoints": true
     }
   ]
 }

@@ -31,7 +31,7 @@ export function CsfDropZone({ parsingCsf, fileName, onFile }: CsfDropZoneProps) 
         onFile(e.dataTransfer.files?.[0] ?? null);
       }}
       className={cn(
-        "block rounded-lg border-2 border-dashed px-4 py-5 text-center cursor-pointer transition-colors",
+        "block rounded-lg border-2 border-dashed px-4 py-5 text-center cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
         fileName
           ? "border-primary/40 bg-primary/5"
           : "border-muted-foreground/25 hover:border-muted-foreground/50",
@@ -40,7 +40,8 @@ export function CsfDropZone({ parsingCsf, fileName, onFile }: CsfDropZoneProps) 
       <input
         type="file"
         accept="application/pdf"
-        className="hidden"
+        className="sr-only"
+        aria-label="Seleccionar Constancia de Situación Fiscal (PDF)"
         onChange={(e) => {
           onFile(e.target.files?.[0] ?? null);
           e.target.value = "";
@@ -52,10 +53,10 @@ export function CsfDropZone({ parsingCsf, fileName, onFile }: CsfDropZoneProps) 
           <Skeleton className="h-4 w-32" />
         </SkeletonGroup>
       ) : fileName ? (
-        <div className="flex items-center justify-center gap-2 text-sm">
-          <FileText className="h-4 w-4 text-primary" />
-          <span className="font-medium">{fileName}</span>
-          <CheckCircle2 className="h-4 w-4 text-success" />
+        <div className="flex min-w-0 items-center justify-center gap-2 text-sm">
+          <FileText className="h-4 w-4 shrink-0 text-primary" />
+          <span className="min-w-0 break-all text-left font-medium">{fileName}</span>
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
         </div>
       ) : (
         <div className="flex flex-col items-center gap-1 text-sm text-muted-foreground">
@@ -150,7 +151,7 @@ export function ClienteField({
     <div className={className}>
       <Label size="sm" className="flex items-center" htmlFor={inputId}>
         {label}
-        {required && <span className="text-destructive ml-0.5">*</span>}
+        {required && <span aria-hidden="true" className="text-destructive ml-0.5">*</span>}
         {prefilledFromCsf && value && <PrellenadoBadge />}
       </Label>
       <Input
@@ -159,6 +160,7 @@ export function ClienteField({
         placeholder={placeholder}
         onChange={(e) => onChange(field, e.target.value)}
         onBlur={() => setTocado(true)}
+        aria-required={required}
         aria-invalid={errorMsg ? true : undefined}
         aria-describedby={errorMsg ? errorId : undefined}
         className={cn("mt-1", errorMsg && "border-destructive focus-visible:ring-destructive")}

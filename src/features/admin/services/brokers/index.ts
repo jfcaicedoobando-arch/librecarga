@@ -1,6 +1,7 @@
 /** Servicio de brokers: listado (RLS) y alta por invitación (edge). */
 import { supabase } from "@/integrations/supabase/client";
 import { invokeUserManagement } from "@/services/userManagement/invoke";
+import { CAP_LISTA } from "@/constants/queryCaps";
 
 export interface BrokerFila {
   id: string;
@@ -26,7 +27,7 @@ export async function listarBrokers(organizationId: string): Promise<BrokerFila[
     .select("id, nombre, email, comision_pct, comision_kam_pct, activo, user_id, created_at")
     .eq("organization_id", organizationId)
     .order("nombre")
-    .limit(500);
+    .limit(CAP_LISTA);
   if (error) throw error;
   return (data ?? []) as BrokerFila[];
 }
@@ -43,7 +44,7 @@ export interface LiquidacionBroker { id: string; broker_id: string; periodo: str
 
 export async function setPorcentajesBroker(id: string, brokerPct: number, kamPct: number | null): Promise<void> {
   const { error } = await supabase.rpc("crm_broker_set_porcentajes", {
-    // SAFE-CAST: NULL es válido en SQL (el KAM conserva su % normal); los tipos generados no lo reflejan.
+    // SAFE-CAST: 0064 admite NULL explícito en p_kam_pct para conservar el % normal del KAM.
     p_broker_id: id, p_broker_pct: brokerPct, p_kam_pct: kamPct as number,
   });
   if (error) throw error;

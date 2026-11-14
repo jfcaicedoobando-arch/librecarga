@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Check, Handshake, X } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { CargaGuard } from "@/components/shared/states/CargaGuard";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { ReasonDialog } from "@/components/shared/ReasonDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,7 +28,7 @@ export default function BrokerSolicitudes() {
       <CargaGuard isLoading={q.isLoading} isError={q.isError} onRetry={q.refetch}
         errorTitle="No se pudieron cargar las solicitudes" errorDescription="Revisa tu conexión y vuelve a intentar.">
         {filas.length === 0 ? (
-          <p className="text-body-sm text-muted-foreground">No hay solicitudes pendientes.</p>
+          <EmptyStateInline message="No hay solicitudes pendientes." />
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {filas.map((s) => (
@@ -40,10 +41,10 @@ export default function BrokerSolicitudes() {
                   <p><span className="text-muted-foreground">Cierre estimado:</span> {s.tiempo_cierre}</p>
                   <div className="flex gap-2 pt-1">
                     <Button size="sm" onClick={() => m.mutate({ id: s.id, autorizar: true })} disabled={m.isPending}>
-                      <Check className="h-4 w-4" /> Autorizar
+                      <Check className="size-4" /> Autorizar
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setRechazar(s.id)} disabled={m.isPending}>
-                      <X className="h-4 w-4" /> Rechazar
+                      <X className="size-4" /> Rechazar
                     </Button>
                   </div>
                 </CardContent>

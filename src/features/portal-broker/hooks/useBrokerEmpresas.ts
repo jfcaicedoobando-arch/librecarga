@@ -1,16 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { agruparEmpresas, type FilaBrokerEmpresa } from "../domain/agruparEmpresas";
+import { misEmpresas } from "../services/brokerPortal";
+import { broker } from "../queryKeys";
 
 /** Empresas del broker con la etapa actual de sus oportunidades. */
 export function useBrokerEmpresas() {
   return useQuery({
-    queryKey: ["broker", "mis-empresas"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("broker_mis_empresas");
-      if (error) throw error;
-      return agruparEmpresas((data ?? []) as FilaBrokerEmpresa[]);
-    },
+    queryKey: broker.empresas,
+    queryFn: misEmpresas,
     refetchInterval: 60_000,
   });
 }

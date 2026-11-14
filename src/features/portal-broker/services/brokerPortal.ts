@@ -2,6 +2,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ContactoBroker, EmpresaBroker } from "../domain/altaProspecto";
 import { payloadAlta } from "../domain/altaProspecto";
+import { agruparEmpresas } from "../domain/agruparEmpresas";
+
+export async function misEmpresas() {
+  const { data, error } = await supabase.rpc("broker_mis_empresas");
+  if (error) throw error;
+  return agruparEmpresas(data ?? []);
+}
 
 export interface OrgBroker { broker_id: string; organizacion: string }
 export interface EmpresaEncontrada { empresa_id: string; nombre: string; tipo: string; etapa: string | null; es_mia: boolean }
