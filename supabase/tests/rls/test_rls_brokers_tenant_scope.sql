@@ -23,7 +23,8 @@ BEGIN
 
   INSERT INTO public.organizations(id, nombre) VALUES (org_a, 'BROKER SCOPE A'), (org_b, 'BROKER SCOPE B');
   INSERT INTO public.organization_members(organization_id, user_id, role) VALUES (org_a, admin_a, 'admin_org');
-  INSERT INTO public.user_roles(user_id, role) VALUES (admin_a, 'admin_org'), (sa, 'super_admin'), (broker_user, 'broker');
+  INSERT INTO public.user_roles(user_id, role) VALUES (admin_a, 'admin_org'), (sa, 'super_admin'), (broker_user, 'broker')
+    ON CONFLICT (user_id) DO UPDATE SET role = EXCLUDED.role;
   INSERT INTO public.crm_brokers(id, organization_id, user_id, nombre, email, comision_pct) VALUES
     (broker_a, org_a, broker_user, 'BROKER A', 'broker-a@example.test', 25),
     (broker_b, org_b, broker_user, 'BROKER B', 'broker-b@example.test', 25);
