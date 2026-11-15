@@ -12,6 +12,8 @@ project_id = "eorqadkulqtneqjbsblk"
     verify_jwt = false
   [functions.facturapi-webhook]
     verify_jwt = false
+  [functions.facturapi-perfil-fiscal]
+    verify_jwt = true
   [functions.preview-transactional-email]
     verify_jwt = false
   [functions.sentry-tunnel]

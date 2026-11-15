@@ -60,7 +60,7 @@ export default function Facturacion() {
   const { canEmitirFactura } = usePermissions();
   const [openFacturaManual, setOpenFacturaManual] = useState(false);
 
-  const { setRango, limpiar, isInRange, desdeIso, hastaIso } = useFacturacionDateRange();
+  const { setRango, desdeIso, hastaIso } = useFacturacionDateRange();
 
   const bandejaUrlRaw = searchParams.get("bandeja");
   const bandejaAliased = bandejaUrlRaw && BANDEJA_ALIASES[bandejaUrlRaw]
@@ -81,10 +81,9 @@ export default function Facturacion() {
     const d = new Date(`${iso}T00:00:00`);
     return Number.isNaN(d.getTime()) ? null : d;
   };
-  // Los filtros de fecha son client-side sobre la página cargada: al cambiarlos
-  // hay que volver a la página 0 o el usuario queda en una página fuera de rango.
-  const setFechaDesde = (v: string) => { setRango({ desde: v ? parseIso(v) : null }); setPage(0); };
-  const setFechaHasta = (v: string) => { setRango({ hasta: v ? parseIso(v) : null }); setPage(0); };
+  // El rango cambia la consulta completa; el hook reinicia la página en la misma URL.
+  const setFechaDesde = (v: string) => { setRango({ desde: v ? parseIso(v) : null }); };
+  const setFechaHasta = (v: string) => { setRango({ hasta: v ? parseIso(v) : null }); };
 
   const {
     search, setSearch,
@@ -94,12 +93,14 @@ export default function Facturacion() {
     loadingFacturas,
     errorFacturas,
     refetchFacturas,
-    clientesDisponibles,
+    clientesDisponibles, loadingClientes, errorClientes, refetchClientes,
     exportarFacturasCsv, exportarLayoutContable,
-  } = useFacturacionPageController({ isInRange, activeTab: activeBandeja });
+  } = useFacturacionPageController({ fechaDesde: desdeIso, fechaHasta: hastaIso, activeTab: activeBandeja });
 
   const clearFiltros = () => {
-    setSearch(""); setFilter("estado", "todos"); setFilter("cliente", "todos"); limpiar(); setPage(0);
+    const params = new URLSearchParams(searchParams);
+    for (const key of ["q", "estado", "cliente", "desde", "hasta", "page"]) params.delete(key);
+    setSearchParams(params, { replace: true });
   };
 
   const facturaColumns = useMemo(() => buildFacturaColumns(), []);
@@ -119,7 +120,7 @@ export default function Facturacion() {
               desdeIso={desdeIso} hastaIso={hastaIso}
               // Igual que los inputs manuales: un preset cambia el universo,
               // así que hay que volver a la página 0 o el usuario cae en vacío.
-              onChange={(r) => { setRango(r); setPage(0); }}
+              onChange={setRango}
             />
             {canEmitirFactura && (
               <Button onClick={() => setOpenFacturaManual(true)}>
@@ -144,6 +145,7 @@ export default function Facturacion() {
                 fechaDesde: desdeIso ?? "", setFechaDesde,
                 fechaHasta: hastaIso ?? "", setFechaHasta,
                 clientes: clientesDisponibles,
+                loadingClientes, errorClientes, onRetryClientes: refetchClientes,
                 onClear: clearFiltros,
               },
               tabla: {

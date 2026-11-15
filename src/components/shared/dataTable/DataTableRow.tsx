@@ -45,6 +45,7 @@ export function DataTableRow<T extends object>({
   const href = seleccionable ? null : (getRowHref?.(item) ?? null);
   const navigable = !!href;
   const clickable = navigable || !!onRowClick || seleccionable;
+  const rowRole = getRowRole(navigable, seleccionable, Boolean(onRowClick));
 
   const behavior: RowBehavior<T> = {
     item, href, seleccionable, navigable, navigate, onRowClick,
@@ -53,11 +54,11 @@ export function DataTableRow<T extends object>({
 
   return (
     <TableRow
-      className={cn(rowClasses({ clickable, navigable, seleccionable, striped, hoverable }), rowClassName?.(item))}
-      role={navigable ? "link" : undefined}
-      tabIndex={navigable || seleccionable ? 0 : undefined}
+      className={cn(rowClasses({ clickable, striped, hoverable }), rowClassName?.(item))}
+      role={rowRole}
+      tabIndex={clickable ? 0 : undefined}
       aria-selected={seleccionable ? row.getIsSelected() : undefined}
-      aria-label={navigable ? getRowAriaLabel?.(item) : undefined}
+      aria-label={rowRole ? getRowAriaLabel?.(item) : undefined}
       onClick={buildRowClickHandler(behavior)}
       onKeyDown={buildRowKeyDownHandler(behavior)}
       onAuxClick={buildRowAuxClickHandler(behavior)}
@@ -70,18 +71,23 @@ export function DataTableRow<T extends object>({
   );
 }
 
+/** La selección conserva semántica de fila; las otras acciones anuncian su destino. */
+function getRowRole(navigable: boolean, seleccionable: boolean, hasCallback: boolean) {
+  if (navigable) return "link";
+  if (!seleccionable && hasCallback) return "button";
+  return undefined;
+}
+
 interface RowClassArgs {
   clickable: boolean;
-  navigable: boolean;
-  seleccionable: boolean;
   striped: boolean;
   hoverable: boolean;
 }
 
-function rowClasses({ clickable, navigable, seleccionable, striped, hoverable }: RowClassArgs) {
+function rowClasses({ clickable, striped, hoverable }: RowClassArgs) {
   return cn(
     clickable && "cursor-pointer",
-    (navigable || seleccionable)
+    clickable
       && "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
     !striped && "even:bg-transparent",
     !hoverable && "hover:bg-transparent",

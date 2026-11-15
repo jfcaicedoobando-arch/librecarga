@@ -5,6 +5,21 @@
  * Se consume desde `lcCodeMessages.ts` (índice).
  */
 export const LC_CODE_MESSAGES_FINANCIERO: Record<string, string> = {
+  // Perfil fiscal del emisor: contexto, versión y confirmación explícita.
+  LC_PERFIL_FISCAL_AMBIENTE_INVALIDO:
+    "Selecciona un ambiente válido de Facturapi: sandbox o producción.",
+  LC_PERFIL_FISCAL_CONFIG_CAMBIO:
+    "La conexión de Facturapi cambió. Recarga y sincroniza nuevamente los datos fiscales.",
+  LC_PERFIL_FISCAL_DATOS_INVALIDOS:
+    "Los datos fiscales recibidos no son válidos. Revisa la conexión y sincroniza nuevamente.",
+  LC_PERFIL_FISCAL_FECHA_FUTURA:
+    "La fecha de vigencia no puede ser futura.",
+  LC_PERFIL_FISCAL_REQUIERE_REVISION:
+    "Corrige las diferencias fiscales antes de confirmar el perfil del emisor.",
+  LC_PERFIL_FISCAL_SIN_PERMISO:
+    "No tienes permiso para administrar el perfil fiscal de la organización seleccionada.",
+  LC_PERFIL_FISCAL_VERSION_CAMBIO:
+    "El perfil fiscal cambió. Recarga y revisa la última versión antes de confirmar.",
   // ── Rentabilidad · acceso a información financiera ─────────────────────
   LC_PROFIT_ROLE_REQUIRED:
     "No tienes permisos para consultar Rentabilidad. Contacta a un administrador si necesitas acceso.",

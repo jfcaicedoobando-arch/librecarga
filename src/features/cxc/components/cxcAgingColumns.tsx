@@ -29,7 +29,7 @@ export function buildCxcAgingColumns(moneda = "MXN"): ColumnDef<CxcAgingRow, unk
       enableSorting: true,
     },
     {
-      id: "num_facturas",
+      id: "facturas",
       header: "Facturas",
       accessorKey: "num_facturas",
       cell: ({ row }) => <span className="tabular-nums">{row.original.num_facturas}</span>,
@@ -77,7 +77,7 @@ export function buildCxcAgingColumns(moneda = "MXN"): ColumnDef<CxcAgingRow, unk
       meta: { align: "right" },
     },
     {
-      id: "saldo_total",
+      id: "saldo",
       header: "Total",
       accessorKey: "saldo_total",
       cell: ({ row }) => (

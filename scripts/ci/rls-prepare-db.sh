@@ -220,6 +220,8 @@ fi
 "${PSQL[@]}" -f supabase/tests/rls/_ci_check_cotizacion_margen_acl.sql || exit 1
 "${PSQL[@]}" -f supabase/tests/rls/_ci_check_cotizacion_especial_acl.sql || exit 1
 "${PSQL[@]}" -f supabase/tests/rls/_ci_check_coordinador_acl.sql || exit 1
+"${PSQL[@]}" -f supabase/tests/rls/_ci_check_facturas_filtros_acl.sql || exit 1
+"${PSQL[@]}" -f supabase/tests/rls/_ci_check_perfil_fiscal_acl.sql || exit 1
 replay_profile_begin replay_final_check
 
 if [[ "${AUD54_CI:-}" == 1 && "$audit54_runtime_checked" != 1 ]]; then

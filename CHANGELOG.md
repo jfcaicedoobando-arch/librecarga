@@ -1,5 +1,16 @@
 # Changelog
 
+## [13.824.90] - Unreleased
+
+### Perfil fiscal del emisor e integración de correcciones
+
+- Integra la etapa 1 de RESICO en Configuración → Facturación: consulta, sincronización y confirmación del perfil fiscal, con versiones por organización y ambiente. Cada emisor conserva sus credenciales de Facturapi y sus empleados fiscales autorizados comparten el perfil.
+- Revalida permisos, organización activa, RFC, conexión y versión antes de guardar o confirmar. Protege cambios simultáneos y respuestas tardías de otra organización, ambiente o usuario; rechaza fechas de calendario inválidas.
+- Agrega la migración nueva 0068 y su replay aislado; mantiene inmutable la 0065 de brokers ya integrada en main. Las correcciones locales de facturas y ACL de triggers, aún no publicadas, pasan a 0066 y 0067. No incorpora el antiguo borrador fiscal 0059 ni una segunda ruta de aplicación Supabase.
+- Conserva las cinco correcciones de interfaz: carga segura al editar embarques, filtros globales de facturas, ordenamiento de antigüedad, navegación por teclado y contraste de etiquetas de éxito.
+- Valida el perfil con PostgreSQL 17.9 y una lectura real de Facturapi sandbox; genera sus tipos desde la base aislada. Esta etapa no activa el cálculo automático de ISR, no emite CFDI y no acredita despliegue remoto.
+- Completa los mensajes fiscales y el monitoreo seguro de Edge; valida la respuesta paginada de facturas antes de mostrar importes y conserva filtros y navegación al separar sus etiquetas activas.
+
 ## [13.824.87] - Unreleased
 
 ### Accesibilidad de clientes y compatibilidad de Brokers con CI

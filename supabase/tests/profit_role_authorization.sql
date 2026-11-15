@@ -179,7 +179,13 @@ BEGIN
       IF c.label LIKE 'role/%' THEN denied_roles := denied_roles + 1; END IF;
     END IF;
   END LOOP;
-  IF allowed_roles <> 10 OR denied_roles <> 8 THEN
+  -- Broker is an external portal identity, never an internal Profit reader.
+  -- Keep the new enum case explicit instead of accepting arbitrary enum growth.
+  IF NOT EXISTS (SELECT 1 FROM profit_auth_cases
+      WHERE label = 'role/broker' AND tenant_role = 'broker' AND allowed = false) THEN
+    RAISE EXCEPTION 'FAIL: explicit broker denial case missing or allowed';
+  END IF;
+  IF allowed_roles <> 10 OR denied_roles <> 9 THEN
     RAISE EXCEPTION 'FAIL: enum role coverage changed: % allowed, % denied', allowed_roles, denied_roles;
   END IF;
   RAISE NOTICE 'Role matrix executed: % allowed, % denied (direct + wrapper)', allowed_roles, denied_roles;

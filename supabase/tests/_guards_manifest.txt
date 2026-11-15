@@ -291,3 +291,6 @@ supabase/tests/proforma_email_recuperable.sql
 supabase/tests/sidebar_conteos.sql
 supabase/tests/embarques_paginacion_filtros.sql
 supabase/tests/facturacion_bandejas_ligeras.sql
+supabase/tests/facturas_filtros_globales.sql
+supabase/tests/broker_trigger_acl.sql
+supabase/tests/brokers_tenant_scope.sql

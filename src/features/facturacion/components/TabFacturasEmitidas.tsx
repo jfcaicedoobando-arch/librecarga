@@ -21,7 +21,7 @@ import { FacturaEmitidaMobileCard } from "@/features/facturacion/components/Fact
 import EmptyState from "@/components/empty/EmptyState";
 import { usePermissions } from "@/hooks/shared";
 import type { Factura } from "@/features/facturacion/routes/facturacionColumns";
-import type { ChipItem } from "@/hooks/shared/useTableFilters";
+import { buildFacturasEmitidasChips } from "./facturasEmitidasChips";
 import type { Database } from "@/types/db";
 import { rangoLabel } from "@/lib/ui/rangoFechasCopy";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
@@ -50,19 +50,8 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Props
     [t.columns],
   );
 
-  const chips = useMemo<ChipItem[]>(() => {
-    const c: ChipItem[] = [];
-    if (f.filterEstado && f.filterEstado !== "todos") {
-      c.push({ key: "estado", label: `Estado: ${f.filterEstado}`, onRemove: () => f.setFilter("estado", "todos") });
-    }
-    if (f.filterCliente && f.filterCliente !== "todos") {
-      const cl = f.clientes.find((x) => x.id === f.filterCliente);
-      c.push({ key: "cliente", label: `Cliente: ${cl?.nombre ?? f.filterCliente}`, onRemove: () => f.setFilter("cliente", "todos") });
-    }
-    if (f.fechaDesde) c.push({ key: "desde", label: `Desde: ${f.fechaDesde}`, onRemove: () => f.setFechaDesde("") });
-    if (f.fechaHasta) c.push({ key: "hasta", label: `Hasta: ${f.fechaHasta}`, onRemove: () => f.setFechaHasta("") });
-    return c;
-  }, [f]);
+  const chips = useMemo(() => buildFacturasEmitidasChips(f), [f]);
+  const hayFiltros = Boolean(f.search || chips.length);
   const primarySlot = (
     <>
       <Select value={f.filterEstado} onValueChange={(v) => f.setFilter("estado", v)}>
@@ -74,9 +63,9 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Props
           {ESTADOS_FACTURA.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
         </SelectContent>
       </Select>
-      <Select value={f.filterCliente} onValueChange={(v) => f.setFilter("cliente", v)}>
+      <Select value={f.filterCliente} onValueChange={(v) => f.setFilter("cliente", v)} disabled={f.loadingClientes || f.errorClientes}>
         <SelectTrigger className={FILTRO_ANCHO.lgAuto} aria-label="Cliente">
-          <SelectValue placeholder="Cliente" />
+          <SelectValue placeholder={f.loadingClientes ? "Cargando clientes…" : "Cliente"} />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="todos">Todos los clientes</SelectItem>
@@ -85,6 +74,9 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Props
           ))}
         </SelectContent>
       </Select>
+      {f.errorClientes && <div role="alert" className="text-body-sm text-destructive">
+        No se pudieron cargar los clientes. <Button variant="link" size="sm" onClick={f.onRetryClientes}>Reintentar</Button>
+      </div>}
     </>
   );
   const rangoFecha = (etiqueta: "desde" | "hasta", value: string, onChange: (v: string) => void) => (
@@ -129,9 +121,9 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Props
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={a.exportarFacturasCsv}>CSV de facturas</DropdownMenuItem>
+                <DropdownMenuItem onClick={a.exportarFacturasCsv}>CSV de página actual</DropdownMenuItem>
                 <DropdownMenuItem onClick={a.exportarLayoutContable} title="Layout contable con RFC, subtotal, IVA y total">
-                  Layout contable
+                  Layout de página actual
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setZipMesOpen(true)} title="Paquete PDF+XML de todos los CFDI del mes, generado por el PAC">
                   ZIP del mes (PAC)
@@ -140,10 +132,9 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Props
             </DropdownMenu>
           </div>
           <div className="text-body-sm text-muted-foreground">
-            {/* El listado es server-side: lo visible es la página (menos los
-                filtros cliente/fecha, que sólo aplican a esa página). */}
+            {/* El conteo usa los mismos filtros que la página. */}
             <strong className="text-foreground">{t.facturasFiltradas.length}</strong> filas visibles
-            {" · "}{t.totalFacturas} facturas en total (servidor)
+            {" · "}{t.totalFacturas} facturas con los filtros actuales
           </div>
         </CardContent>
       </Card>
@@ -166,9 +157,9 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Props
             emptyState={
               <EmptyState
                 icon={Receipt}
-                title={f.search ? "No se encontraron facturas" : "Aún no hay facturas emitidas"}
-                description={f.search ? "Ajusta los filtros o busca con otro término." : "Las facturas emitidas desde embarques o proformas aparecerán aquí."}
-                primaryAction={!f.search && canEmitirFactura && a.onCreateNew ? { label: "Nueva factura", onClick: a.onCreateNew } : undefined}
+                title={hayFiltros ? "No se encontraron facturas" : "Aún no hay facturas"}
+                description={hayFiltros ? "Ajusta los filtros o busca con otro término." : "Las facturas creadas desde embarques o proformas aparecerán aquí."}
+                primaryAction={hayFiltros ? { label: "Limpiar filtros", onClick: f.onClear } : canEmitirFactura && a.onCreateNew ? { label: "Nueva factura", onClick: a.onCreateNew } : undefined}
               />
             }
             rowKey={(f) => f.id}

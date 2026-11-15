@@ -63,8 +63,11 @@ describe("isolated Drizzle history is not deployment-eligible", () => {
       "0063_brokers_fase2_lecturas.sql",
       "0064_brokers_fase3_comisiones.sql",
       "0065_brokers_tenant_scope.sql",
+      "0066_facturas_filtros_globales.sql",
+      "0067_broker_trigger_acl.sql",
+      "0068_perfil_fiscal_emisor.sql",
     ]);
-    expect(readIsolatedDrizzleReplay().size).toBe(43);
+    expect(readIsolatedDrizzleReplay().size).toBe(46);
     const archive = paths[1].replace("0022_refacturar_proforma_abre_edicion.sql", "meta/_journal.json");
     expect(JSON.parse(read(archive)).entries[22]).toMatchObject({ idx: 22, when: 1792518064767, tag: "0022_refacturar_proforma_abre_edicion" });
     expect(JSON.parse(read("drizzle/migrations/meta/_journal.json")).entries[22].tag).toBe("0022_cotizacion_comercial");
@@ -105,7 +108,7 @@ describe("isolated Drizzle history is not deployment-eligible", () => {
     expect(journal[36].tag).toBe("0036_cotizacion_handover_tenant_scope");
     expect(journal[36].idx).toBe(36);
     expect(journal[36].when).toBeGreaterThan(journal[35].when);
-    expect(read("supabase/tests/_guards_manifest.txt").split("\n")).toContain(
+    expect(read("supabase/tests/_guards_manifest.txt").split(/\r?\n/)).toContain(
       "supabase/tests/cotizacion_aceptada_hasta_confirmar.sql",
     );
   });
@@ -135,7 +138,7 @@ describe("isolated Drizzle history is not deployment-eligible", () => {
       tag: "0039_cotizacion_margen_moneda_homogenea", breakpoints: true });
     expect(journal[38].when).toBeGreaterThan(journal[37].when);
     expect(journal[39].when).toBeGreaterThan(journal[38].when);
-    expect(read("supabase/tests/_guards_manifest.txt").split("\n")).toContain(
+    expect(read("supabase/tests/_guards_manifest.txt").split(/\r?\n/)).toContain(
       "supabase/tests/cotizacion_margen_mxn_sin_tc.sql",
     );
   });

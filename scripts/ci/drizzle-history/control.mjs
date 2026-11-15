@@ -57,6 +57,9 @@ export const HISTORY = [
   { file: '0063_brokers_fase2_lecturas.sql', sha256: '8a8df55a3159251618bb2e6b2c82769827e959b7b7d06015f70b47c0eca9e1a7', eligibleName: '20261114060000_replay_brokers_fase2_lecturas.sql' },
   { file: '0064_brokers_fase3_comisiones.sql', sha256: 'f4a4e3b36bdeb884554a340ed686bf1d9c746b8e851c6ce39e4a5aac2cdbcc51', eligibleName: '20261114070000_replay_brokers_fase3_comisiones.sql' },
   { file: '0065_brokers_tenant_scope.sql', sha256: '5b8a4cf0909e4df7c578bdd601a56cdb49bd8cc41738bc21e55081bd5e849b89', eligibleName: '20261114221500_brokers_tenant_scope.sql' },
+  { file: '0066_facturas_filtros_globales.sql', sha256: 'ac331d449940dae8b2b2e80d1771e66d3c3d6157c9925080b18daa5c7fee4d2f', eligibleName: '20261115100000_facturas_filtros_globales.sql' },
+  { file: '0067_broker_trigger_acl.sql', sha256: 'c1e04873d1bdb4a5d89fbb4837f6a0dcc33c07bb241b9d7963ba63e80aebdad9', eligibleName: '20261115110000_broker_trigger_acl.sql' },
+  { file: '0068_perfil_fiscal_emisor.sql', sha256: 'b9ff6b1ea3bcfd3add4fe4829a4ff8f7731a8181181e8fd06a8acb5ade3c7cd1', eligibleName: '20261115120000_perfil_fiscal_emisor.sql' },
 ];
 const ARCHIVED_METADATA = [
   [`${ARCHIVE}/meta/0022_snapshot.json`, '002a1cff39197fe3431f23193a4229e1c845cbcd0ab5eaa074efded812b0081d'],

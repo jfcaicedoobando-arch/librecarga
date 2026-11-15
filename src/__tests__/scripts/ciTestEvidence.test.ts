@@ -63,6 +63,50 @@ describe("CI catalog: effective discovery", () => {
     expect(source(guard)).not.toMatch(/^COMMIT;/m);
   });
 
+  it("classifies invoice and broker ACL preflights separately from their behavioral guards", () => {
+    const invoices = "supabase/tests/rls/_ci_check_facturas_filtros_acl.sql";
+    const brokers = "supabase/tests/rls/_ci_check_broker_trigger_acl.sql";
+    for (const file of [invoices, brokers]) {
+      expect(catalog.entries).toContainEqual(expect.objectContaining({ path: file, lane: "sql-support", mode: "support" }));
+    }
+    for (const file of ["supabase/tests/facturas_filtros_globales.sql", "supabase/tests/broker_trigger_acl.sql"]) {
+      expect(catalog.entries).toContainEqual(expect.objectContaining({ path: file, lane: "sql-guards" }));
+    }
+    for (const preparer of ["scripts/ci/rls-prepare-db.sh", "scripts/db/local-verify.sh"]) {
+      const script = source(preparer);
+      const check = script.indexOf(`-f ${invoices} || exit 1`);
+      expect(check).toBeGreaterThan(script.indexOf("done <<< \"$isolated_history\""));
+      expect(check).toBeLessThan(script.indexOf(preparer.includes("rls-prepare")
+        ? "replay_profile_begin replay_final_check"
+        : "run_sql supabase/tests/rls/_ci_post_migrate.sql", check));
+    }
+    const post = source("supabase/tests/rls/_ci_post_migrate.sql");
+    expect(post.indexOf("\\ir _ci_check_broker_trigger_acl.sql")).toBeGreaterThanOrEqual(0);
+    expect(post.indexOf("\\ir _ci_check_broker_trigger_acl.sql")).toBeLessThan(
+      post.indexOf("GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated, service_role;"));
+  });
+
+  it("preserves historical broker helper ACLs before and after artificial grants", () => {
+    const acl = "supabase/tests/rls/_ci_check_broker_helper_acl.sql";
+    expect(catalog.entries).toContainEqual(expect.objectContaining({ path: acl, lane: "sql-support" }));
+    const post = source("supabase/tests/rls/_ci_post_migrate.sql");
+    const check = "\\ir _ci_check_broker_helper_acl.sql";
+    const grant = post.indexOf("GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated, service_role;");
+    expect(post.indexOf(check)).toBeGreaterThanOrEqual(0);
+    expect(post.indexOf(check)).toBeLessThan(grant);
+    expect(post.split(check)).toHaveLength(4);
+    for (const signature of ["public._broker_actual(uuid)", "public._broker_de_pago(uuid, uuid, uuid)"]) {
+      const undo = post.indexOf(`REVOKE EXECUTE ON FUNCTION ${signature} FROM authenticated, service_role;`);
+      expect(undo).toBeGreaterThan(grant);
+      expect(undo).toBeLessThan(post.indexOf(check, grant));
+    }
+    expect(source("supabase/tests/broker_trigger_acl.sql")).toContain("\\ir rls/_ci_check_broker_helper_acl.sql");
+    expect(source(acl)).toContain("proc.prorettype <> 'public.crm_brokers'::regtype");
+    expect(source(acl)).toContain("ARRAY['search_path=public']::text[]");
+    expect(source(acl)).toContain("pg_catalog.has_function_privilege(client_role, fn, 'EXECUTE')");
+    expect(source(acl)).not.toMatch(/^(?:GRANT|REVOKE|CREATE FUNCTION)/m);
+  });
+
   it("preserves the margin helper owner-only ACL around blanket CI grants", () => {
     const acl = "supabase/tests/rls/_ci_check_cotizacion_margen_acl.sql";
     expect(catalog.entries).toContainEqual(expect.objectContaining({ path: acl, lane: "sql-support" }));
@@ -257,10 +301,10 @@ describe("RLS runner: discovery and red controls without a database", () => {
       const suites = path.join(root, "supabase/tests/rls");
       fs.mkdirSync(suites, { recursive: true });
       for (const name of names) fs.writeFileSync(path.join(suites, name), "BEGIN;\nROLLBACK;\n");
-      fs.writeFileSync(path.join(root, "psql"), `#!/bin/sh\nexit ${fail ? 3 : 0}\n`, { mode: 0o700 });
+      fs.writeFileSync(path.join(root, "psql"), `#!/usr/bin/env bash\nexit ${fail ? 3 : 0}\n`, { mode: 0o700 });
       const result = spawnSync("bash", [runner], {
         cwd: root, encoding: "utf8",
-        env: { ...process.env, PATH: `${root}:${process.env.PATH}`, LOG_DIR: path.join(root, "logs"), GITHUB_STEP_SUMMARY: "/dev/null" },
+        env: { ...process.env, PATH: `${root}${path.delimiter}${process.env.PATH}`, LOG_DIR: path.join(root, "logs"), GITHUB_STEP_SUMMARY: "/dev/null" },
       });
       const evidence = path.join(root, "logs/execution.tsv");
       return { status: result.status, output: result.stdout + result.stderr, evidence: fs.existsSync(evidence) ? fs.readFileSync(evidence, "utf8") : "" };

@@ -16,6 +16,7 @@ const CRITICAL = [
   // Fase C (13.62.0)
   "supabase/functions/facturapi-emitir/index.ts",
   "supabase/functions/facturapi-cancelar/index.ts",
+  "supabase/functions/facturapi-perfil-fiscal/index.ts",
   // 13.114.18 — REP fiscal (complementos de pago)
   "supabase/functions/facturapi-emitir-rep/index.ts",
   "supabase/functions/facturapi-cancelar-rep/index.ts",

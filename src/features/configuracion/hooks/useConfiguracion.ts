@@ -8,6 +8,7 @@ import {
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 import { useOrgActiva } from "@/hooks/shared/useOrgActiva";
 import { getErrorMessage } from "@/lib/errors";
+import { perfilFiscalEmisorKeys } from "../queryKeys";
 
 export type { ConfigItem };
 
@@ -55,6 +56,7 @@ export function useUpdateConfiguracion() {
       // key nueva y las de useConfiguracionByOrg (impersonación).
       queryClient.invalidateQueries({ queryKey: queryKeys.configuracion.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.facturacion.emisorEmpresa });
+      queryClient.invalidateQueries({ queryKey: perfilFiscalEmisorKeys.all });
     },
     onSuccess: () => {
       notifySuccess(undefined, { title: "Configuración guardada" });

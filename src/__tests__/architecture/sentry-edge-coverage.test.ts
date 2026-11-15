@@ -35,6 +35,7 @@ const MANUAL_COVERAGE = [
 const WRAPPED_COVERAGE = [
   "supabase/functions/facturapi-emitir/index.ts",
   "supabase/functions/facturapi-cancelar/index.ts",
+  "supabase/functions/facturapi-perfil-fiscal/index.ts",
   "supabase/functions/facturapi-emitir-rep/index.ts",
   "supabase/functions/facturapi-cancelar-rep/index.ts",
   "supabase/functions/enviar-cotizacion-email/index.ts",

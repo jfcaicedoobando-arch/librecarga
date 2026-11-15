@@ -39,13 +39,15 @@ vi.mock(
   "@/features/facturacion/components/bandejas/FacturacionBandejasTabs",
   () => ({
     FacturacionBandejasTabs: ({
-      setActiveBandeja,
+      setActiveBandeja, emitidas,
     }: {
       setActiveBandeja: (id: string) => void;
+      emitidas: { filtros: { onClear: () => void } };
     }) => (
-      <button onClick={() => setActiveBandeja("vencidas")}>
-        Abrir vencidas
-      </button>
+      <>
+        <button onClick={() => setActiveBandeja("vencidas")}>Abrir vencidas</button>
+        <button onClick={emitidas.filtros.onClear}>Limpiar filtros</button>
+      </>
     ),
   }),
 );
@@ -78,4 +80,11 @@ describe("Facturacion bucket URL pagination", () => {
     expect(params.get("q")).toBe("cliente");
     expect(params.get("moneda")).toBe("EUR");
   });
+});
+
+
+it("limpia todos los filtros de una vez conservando bandeja y tamaño", async () => {
+  render(<MemoryRouter initialEntries={["/facturacion?bandeja=emitidas&page=3&ps=50&q=ACME&cliente=ACME&estado=Emitida&desde=2026-10-01&hasta=2026-10-31"]}><Facturacion /><CurrentUrl /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
+  await waitFor(() => expect(screen.getByTestId("url").textContent).toBe("?bandeja=emitidas&ps=50"));
 });

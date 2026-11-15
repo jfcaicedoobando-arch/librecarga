@@ -1,0 +1,51 @@
+{
+  "projectId": "341dfc00-0308-4aba-9246-e4b2041e31f1",
+  "observedServer": "17.6",
+  "isolatedValidationServer": "17.9",
+  "priorLedgerCount": 67,
+  "priorLedgerFingerprint": "b8db6f1bb5404bc8fa7fb6b9061690bff29f4f07f455b8ed9f2c502b93f3c7e3",
+  "sources": [
+    {
+      "path": "drizzle/migrations/0066_facturas_filtros_globales.sql",
+      "sha256": "ac331d449940dae8b2b2e80d1771e66d3c3d6157c9925080b18daa5c7fee4d2f",
+      "journalWhen": 1794694500001
+    },
+    {
+      "path": "drizzle/migrations/0067_broker_trigger_acl.sql",
+      "sha256": "c1e04873d1bdb4a5d89fbb4837f6a0dcc33c07bb241b9d7963ba63e80aebdad9",
+      "journalWhen": 1794694500002
+    },
+    {
+      "path": "drizzle/migrations/0068_perfil_fiscal_emisor.sql",
+      "sha256": "b9ff6b1ea3bcfd3add4fe4829a4ff8f7731a8181181e8fd06a8acb5ade3c7cd1",
+      "journalWhen": 1794694500003
+    }
+  ],
+  "applicationSha256": "d1831f8a5cdd575077c6a40d1f431592f200601bc6e5554bcb0f59a29a52182d",
+  "newFunctionBodyHashes": [
+    [
+      "facturas_listado_pagina(uuid,text,text,date,date,integer,integer,text)",
+      "a7269c003938ae1c833c0abe628005ed20c38016dd11f98fa424213342175200"
+    ],
+    [
+      "facturas_clientes_listado(uuid)",
+      "a0956b8023d5a1bf0136aaf1d4d77f6864339096291da90708910d2ba772738f"
+    ],
+    [
+      "_perfil_fiscal_emisor_resultado(public.perfiles_fiscales_emisor,public.facturapi_credenciales,text)",
+      "300029ad3862b57cc50fb71035803e8e4f1cdf89cf6455987893481b8f656d43"
+    ],
+    [
+      "obtener_perfil_fiscal_emisor(uuid,text)",
+      "da5e78d9ed85571a10c232bb1d1a6090d28de39fcd633897e3a126a86d2eb97a"
+    ],
+    [
+      "registrar_perfil_fiscal_emisor(uuid,text,uuid,timestamptz,integer,jsonb)",
+      "7dd215e003341c9936df40626bed3faa50480ae042b08b1b5b4fc057c507dd9b"
+    ],
+    [
+      "confirmar_perfil_fiscal_emisor(uuid,text,uuid,date)",
+      "0009ac90e5038784187e9f7bb09c694bc97ca5baaf8b229300d170c151c6f735"
+    ]
+  ]
+}

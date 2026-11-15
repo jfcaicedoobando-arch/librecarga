@@ -463,6 +463,27 @@
       "when": 1794694500000,
       "tag": "0065_brokers_tenant_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1794694500001,
+      "tag": "0066_facturas_filtros_globales",
+      "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1794694500002,
+      "tag": "0067_broker_trigger_acl",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1794694500003,
+      "tag": "0068_perfil_fiscal_emisor",
+      "breakpoints": true
     }
   ]
 }
