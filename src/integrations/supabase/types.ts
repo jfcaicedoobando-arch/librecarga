@@ -1696,6 +1696,9 @@ export type Database = {
       }
       conceptos_venta: {
         Row: {
+          evaluacion_fiscal: Json | null
+          tasa_ret_isr: number | null
+          monto_ret_isr: number | null
           aplica_iva: boolean
           cantidad: number
           contenedor_id: string | null
@@ -1717,6 +1720,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          evaluacion_fiscal?: Json | null
+          tasa_ret_isr?: number | null
+          monto_ret_isr?: number | null
           aplica_iva?: boolean
           cantidad?: number
           contenedor_id?: string | null
@@ -1738,6 +1744,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          evaluacion_fiscal?: Json | null
+          tasa_ret_isr?: number | null
+          monto_ret_isr?: number | null
           aplica_iva?: boolean
           cantidad?: number
           contenedor_id?: string | null
@@ -2957,6 +2966,7 @@ export type Database = {
       }
       cotizaciones: {
         Row: {
+          evaluacion_fiscal: Json | null
           aceptada_en: string | null
           aceptada_por: string | null
           agente_id: string | null
@@ -3058,6 +3068,7 @@ export type Database = {
           volumen_m3: number
         }
         Insert: {
+          evaluacion_fiscal?: Json | null
           aceptada_en?: string | null
           aceptada_por?: string | null
           agente_id?: string | null
@@ -3159,6 +3170,7 @@ export type Database = {
           volumen_m3?: number
         }
         Update: {
+          evaluacion_fiscal?: Json | null
           aceptada_en?: string | null
           aceptada_por?: string | null
           agente_id?: string | null
@@ -8183,6 +8195,9 @@ export type Database = {
       }
       proforma_conceptos_consolidados: {
         Row: {
+          evaluacion_fiscal: Json | null
+          tasa_ret_isr: number | null
+          monto_ret_isr: number | null
           aplica_iva: boolean
           cantidad: number
           contenedor: string | null
@@ -8204,6 +8219,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          evaluacion_fiscal?: Json | null
+          tasa_ret_isr?: number | null
+          monto_ret_isr?: number | null
           aplica_iva?: boolean
           cantidad?: number
           contenedor?: string | null
@@ -8225,6 +8243,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          evaluacion_fiscal?: Json | null
+          tasa_ret_isr?: number | null
+          monto_ret_isr?: number | null
           aplica_iva?: boolean
           cantidad?: number
           contenedor?: string | null
@@ -13237,6 +13258,17 @@ export type Database = {
           uso_cfdi: string
         }[]
       }
+      evaluar_isr_resico: {
+        Args: {
+          p_org_id: string
+          p_cliente_id: string
+          p_ambiente: string
+          p_cantidad: number
+          p_precio_unitario: number
+          p_tipo_iva: string
+        }
+        Returns: Json
+      }
       obtener_perfil_fiscal_emisor: {
         Args: { p_ambiente: string; p_org_id: string }
         Returns: Json
@@ -13506,6 +13538,15 @@ export type Database = {
       recalc_factura_retenciones: {
         Args: { p_factura_id: string }
         Returns: undefined
+      }
+      _totales_factura_resico_agrupados: {
+        Args: { p_factura_id: string }
+        Returns: {
+          subtotal: number
+          iva: number
+          ret_isr: number
+          ret_iva: number
+        }[]
       }
       recalc_factura_totales: {
         Args: { p_factura_id: string }

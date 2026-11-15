@@ -1,5 +1,3 @@
--- Auditoría26: IVA sobre la base redondeada de cada línea, igual que preview y payload.
--- No recalcula documentos históricos; sólo cambia operaciones futuras.
 CREATE OR REPLACE FUNCTION public.recalc_factura_totales(p_factura_id uuid)
 RETURNS void
 LANGUAGE plpgsql
@@ -7,6 +5,8 @@ SET search_path TO 'public'
 AS $$
 DECLARE
   v_n        int;
+  v_resico boolean;
+  v_editable boolean;
   v_subtotal numeric;
   v_iva      numeric;
   v_isr      numeric;
@@ -20,6 +20,14 @@ BEGIN
   IF NOT FOUND THEN
     RETURN;
   END IF;
+
+  SELECT EXISTS(SELECT 1 FROM public.conceptos_factura c WHERE c.factura_id=f.id
+      AND c.deleted_at IS NULL AND c.tasa_ret_isr=0.0125),
+    f.estado IN ('Borrador','Por timbrar') AND f.snapshot_emision IS NULL
+      AND NULLIF(btrim(f.uuid_fiscal),'') IS NULL
+  INTO v_resico,v_editable FROM public.facturas f WHERE f.id=p_factura_id;
+  -- A fiscal snapshot/issued invoice must never be reinterpreted by this rule.
+  IF v_resico AND NOT v_editable THEN RETURN; END IF;
 
   SELECT
     count(*),
@@ -37,6 +45,11 @@ BEGIN
   FROM public.conceptos_factura c
   WHERE c.factura_id = p_factura_id
     AND c.deleted_at IS NULL;
+
+  IF v_resico AND v_editable THEN
+    SELECT t.subtotal,t.iva,t.ret_isr,t.ret_iva INTO v_subtotal,v_iva,v_isr,v_iva_ret
+    FROM public._totales_factura_resico_agrupados(p_factura_id) t;
+  END IF;
 
   IF v_n = 0 THEN
     -- QA-R2 D-05: factura sin renglones vivos -> totales en cero (antes se

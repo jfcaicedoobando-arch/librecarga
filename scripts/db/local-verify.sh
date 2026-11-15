@@ -292,6 +292,8 @@ if [ "$REUSE" != "1" ]; then
   "${PSQL[@]}" -f supabase/tests/rls/_ci_check_coordinador_acl.sql || exit 1
   "${PSQL[@]}" -f supabase/tests/rls/_ci_check_facturas_filtros_acl.sql || exit 1
   "${PSQL[@]}" -f supabase/tests/rls/_ci_check_perfil_fiscal_acl.sql || exit 1
+  "${PSQL[@]}" -f supabase/tests/rls/_ci_check_isr_resico_acl.sql || exit 1
+  "${PSQL[@]}" -f supabase/tests/rls/_ci_check_factura_resico_totales_acl.sql || exit 1
 
 
 

@@ -33,4 +33,15 @@ describe("AUD118: retenciones del documento emitido", () => {
     expect(screen.queryByText("Retención ISR")).not.toBeInTheDocument();
     expect(screen.queryByText("Retención IVA")).not.toBeInTheDocument();
   });
+  it("muestra el ISR agrupado de la factura aunque difiera de sumar los renglones redondeados", () => {
+    const linea = {
+      ...live, precio_unitario: 100.4, total: 100.4,
+      tasa_ret_isr: 0.0125, monto_ret_isr: 1.26, tasa_ret_iva: 0, monto_ret_iva: 0,
+    };
+    render(<FacturaConceptosTable snapshot={null} moneda="MXN" conceptos={[linea, linea]}
+      subtotal={200.8} iva={32.13} total={230.42} retIsr={2.51} retIva={0} />);
+    expect(screen.getByText(formatCurrency(-2.51, "MXN"))).toBeInTheDocument();
+    expect(screen.getByText(formatCurrency(230.42, "MXN"))).toBeInTheDocument();
+    expect(screen.queryByText(formatCurrency(-2.52, "MXN"))).not.toBeInTheDocument();
+  });
 });

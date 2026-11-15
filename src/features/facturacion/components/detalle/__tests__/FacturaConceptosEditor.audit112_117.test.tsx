@@ -8,10 +8,12 @@ import { queryKeys } from "@/lib/query";
 import { conceptosFacturaKey } from "../../../hooks/useConceptosFactura";
 
 const { update, add, remove } = vi.hoisted(() => ({ update: vi.fn(), add: vi.fn(), remove: vi.fn() }));
+const { evaluar } = vi.hoisted(() => ({ evaluar: vi.fn() }));
 vi.mock("@/features/facturacion/services/conceptosFacturaCrud", () => ({
   actualizarConceptoFactura: update, agregarConceptoFactura: add, eliminarConceptoFactura: remove,
 }));
 vi.mock("@/features/configuracion", () => ({ useIvaFronteraHabilitada: () => false }));
+vi.mock("@/features/facturacion/services/evaluarIsrResico", () => ({ evaluarIsrResico: evaluar }));
 vi.mock("@/hooks/shared/useDirtyGuard", () => ({ useDirtyGuard: () => ({ guardDialog: null }) }));
 const row: ConceptoFacturaRow = {
   id: "concepto1", factura_id: "f1", descripcion: "Gestión documental", cantidad: 1,
@@ -23,7 +25,7 @@ const keys = [queryKeys.facturas.detail("f1"), queryKeys.facturas.saldoServidor(
 function setup() {
   const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   keys.forEach((key) => qc.setQueryData(key, { value: "before" }));
-  render(<QueryClientProvider client={qc}><FacturaConceptosEditor facturaId="f1" organizationId="org1" moneda="MXN"
+  render(<QueryClientProvider client={qc}><FacturaConceptosEditor facturaId="f1" organizationId="org1" clienteId="cliente1" moneda="MXN"
     conceptos={[row, { ...row, id: "concepto2", descripcion: "Segunda partida" }]} /></QueryClientProvider>);
   return qc;
 }
@@ -52,6 +54,22 @@ describe("AUD112/117: editor independiente y consultas coherentes", () => {
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     await waitFor(() => keys.forEach((key) => expect(qc.getQueryState(key)?.isInvalidated).toBe(true)));
     expect(update).toHaveBeenCalledWith(expect.objectContaining({ conceptoId: "concepto1", input: expect.objectContaining({ descripcion: "Actualizado", tipo_iva: "tasa_0", precio_unitario: 1 }) }));
+    qc.clear();
+  });
+
+  it("consulta la retención del servidor y retira la estimación si cambia la base", async () => {
+    evaluar.mockResolvedValue({ estado: "aplica", motivo: "pf_resico_receptor_moral", monto_ret_isr: 1.26 });
+    const qc = setup();
+    expect(screen.queryByRole("button", { name: "Estimar ISR RESICO" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "Editar" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Estimar ISR RESICO" }));
+    expect(await screen.findByText(/Retención estimada.*1\.26/)).toBeInTheDocument();
+    expect(evaluar.mock.calls[0]?.[0]).toEqual({
+      organizationId: "org1", clienteId: "cliente1", cantidad: 1, precioUnitario: 1, tipoIva: "tasa_0",
+    });
+    expect(update).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("Precio unitario"), { target: { value: "2" } });
+    expect(screen.queryByText(/Retención estimada/)).not.toBeInTheDocument();
     qc.clear();
   });
 });

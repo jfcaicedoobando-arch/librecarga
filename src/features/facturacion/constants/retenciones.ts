@@ -5,7 +5,7 @@
  * Se pueden combinar (típico autotransporte: ISR 10% + IVA 4%).
  */
 
-export type RetencionIsrKey = "ninguna" | "isr_10";
+export type RetencionIsrKey = "ninguna" | "isr_1_25" | "isr_10";
 export type RetencionIvaKey = "ninguna" | "iva_4" | "iva_10_67";
 
 export interface RetencionOption<K extends string> {
@@ -16,6 +16,7 @@ export interface RetencionOption<K extends string> {
 
 export const RET_ISR_OPTIONS: RetencionOption<RetencionIsrKey>[] = [
   { key: "ninguna", label: "Sin ISR", tasa: 0 },
+  { key: "isr_1_25", label: "ISR 1.25% (RESICO)", tasa: 0.0125 },
   { key: "isr_10", label: "ISR 10%", tasa: 0.10 },
 ];
 
@@ -26,7 +27,10 @@ export const RET_IVA_OPTIONS: RetencionOption<RetencionIvaKey>[] = [
 ];
 
 export function isrKeyFromTasa(tasa: number | null | undefined): RetencionIsrKey {
-  return Number(tasa ?? 0) >= 0.0999 ? "isr_10" : "ninguna";
+  const t = Number(tasa ?? 0);
+  // Reconocer el valor guardado sin convertir otras tasas bajas en RESICO.
+  if (Math.abs(t - 0.0125) < 1e-9) return "isr_1_25";
+  return t >= 0.0999 ? "isr_10" : "ninguna";
 }
 
 export function ivaKeyFromTasa(tasa: number | null | undefined): RetencionIvaKey {

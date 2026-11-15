@@ -1,5 +1,13 @@
 # Changelog
 
+## [13.824.91] - Unreleased
+
+### ISR RESICO y cuadre con Facturapi
+
+- Agrega el cálculo de ISR RESICO 1.25% en el servidor según el perfil fiscal confirmado y el receptor de la organización activa. El editor de conceptos permite estimar la retención y conserva la selección de 1.25% al guardar y reabrir.
+- Agrega la migración 0069 con persistencia de evaluaciones en cotizaciones y conceptos. Los documentos evaluados permanecen en borrador hasta integrar su salida a los documentos fiscales posteriores.
+- La migración 0070 agrupa los impuestos por tasa antes de redondear los totales de facturas pendientes de timbrado con ISR de 1.25%. El control previo a Facturapi verifica también los importes de cada retención.
+
 ## [13.824.90] - Unreleased
 
 ### Perfil fiscal del emisor e integración de correcciones

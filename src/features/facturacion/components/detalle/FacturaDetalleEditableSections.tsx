@@ -25,6 +25,7 @@ export function FacturaDetalleEditableSections({
       <FacturaConceptosEditor
         facturaId={factura.id}
         organizationId={factura.organization_id}
+        clienteId={factura.cliente_id}
         moneda={factura.moneda}
         conceptos={conceptosVivos}
       />

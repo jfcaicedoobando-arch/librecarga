@@ -11,11 +11,11 @@
 
 export interface ConceptoCuadre {
   descripcion: string;
-  cantidad: number;
-  precio_unitario: number;
+  cantidad: number | string;
+  precio_unitario: number | string;
   tipo_iva?: string | null;
   tasa_iva?: number | null;
-  tasa_ret_isr?: number | null;
+  tasa_ret_isr?: number | string | null;
   tasa_ret_iva?: number | null;
 }
 
@@ -31,6 +31,8 @@ export interface CabeceraCuadre {
   subtotal?: number | string | null;
   iva?: number | string | null;
   total?: number | string | null;
+  ret_isr?: number | string | null;
+  ret_iva?: number | string | null;
 }
 
 function round2(n: number): number {

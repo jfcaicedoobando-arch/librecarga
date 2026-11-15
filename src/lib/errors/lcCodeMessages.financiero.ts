@@ -5,6 +5,14 @@
  * Se consume desde `lcCodeMessages.ts` (índice).
  */
 export const LC_CODE_MESSAGES_FINANCIERO: Record<string, string> = {
+  LC_ISR_AMBIENTE_INVALIDO: "Selecciona el ambiente de la conexión de Facturapi.",
+  LC_ISR_IMPORTES_INVALIDOS: "Revisa cantidad y precio: usa importes válidos con máximo seis decimales.",
+  LC_ISR_SIN_PERMISO: "No tienes permiso para evaluar impuestos de esta organización.",
+  LC_ISR_REVISION_REQUERIDA: "El documento conserva una evaluación fiscal. Requiere revisión antes de cambiar su origen o eliminarlo.",
+  LC_ISR_NO_DESACTIVAR: "No se puede eliminar la evaluación fiscal del documento.",
+  LC_ISR_EVALUACION_REQUERIDA: "Solicita una evaluación fiscal antes de guardar retenciones en este concepto.",
+  LC_ISR_FLUJO_NO_HABILITADO: "Este borrador contiene una evaluación fiscal. Su envío y conversión estarán disponibles al completar el flujo fiscal.",
+  LC_ISR_PADRE_INVALIDO: "El concepto no corresponde a un borrador válido de esta organización.",
   // Perfil fiscal del emisor: contexto, versión y confirmación explícita.
   LC_PERFIL_FISCAL_AMBIENTE_INVALIDO:
     "Selecciona un ambiente válido de Facturapi: sandbox o producción.",
@@ -163,7 +171,6 @@ export const LC_CODE_MESSAGES_FINANCIERO: Record<string, string> = {
     "Los conceptos de venta sólo se pueden facturar en MXN o USD. Cambia la moneda de los conceptos antes de continuar.",
   LC_VENTA_EUR_NO_SOPORTADA:
     "La venta sólo se registra en MXN o USD. Captura el concepto en pesos o dólares.",
-
 
   LC_TC_FUERA_DE_BANDA:
     "El tipo de cambio está fuera de la banda razonable (5 a 40 pesos por divisa), normalmente por un error de captura. Corrígelo con el valor del DOF del día.",

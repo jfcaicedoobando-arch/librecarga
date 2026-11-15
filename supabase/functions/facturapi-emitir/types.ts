@@ -27,6 +27,10 @@ export interface FacturaRow {
   /** P1 · Auditoría fiscal — IVA trasladado guardado; se coteja antes del PAC. */
   iva?: number | string | null;
   total?: number | string | null;
+  ret_isr?: number | string | null;
+  ret_iva?: number | string | null;
+  snapshot_emision?: unknown;
+  uuid_fiscal?: string | null;
 }
 
 /**
@@ -35,7 +39,7 @@ export interface FacturaRow {
  * devuelvan EXACTAMENTE la misma forma de fila.
  */
 export const FACTURA_COLUMNS =
-  "id, numero, serie, estado, moneda, fecha_emision, tipo_cambio, uso_cfdi, forma_pago, metodo_pago, cliente_id, rfc_cliente, organization_id, proforma_id, facturapi_id, sustituye_a, embarque_id, expediente, referencia_bl, subtotal, iva, total";
+  "id, numero, serie, estado, moneda, fecha_emision, tipo_cambio, uso_cfdi, forma_pago, metodo_pago, cliente_id, rfc_cliente, organization_id, proforma_id, facturapi_id, sustituye_a, embarque_id, expediente, referencia_bl, subtotal, iva, total, ret_isr, ret_iva, snapshot_emision, uuid_fiscal";
 
 export interface Claim { claimTag: string; claimAt: string; release: () => Promise<void> }
 

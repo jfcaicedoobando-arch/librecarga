@@ -155,7 +155,7 @@ export const LC_CODE_MESSAGES_PAGOS: Record<string, string> = {
     "La factura tiene notas de crédito vivas. Cancélalas antes de borrar la factura.",
   LC_FACTURA_DELETE_EMITIDA:
     "La factura ya fue emitida: cancélala ante el SAT antes de borrarla del sistema.",
-
+  LC_FACTURA_TOTALES_DESCUADRE: "Los totales no coinciden con el desglose fiscal. Revisa y guarda el borrador antes de emitir.",
   LC_FACTURA_INMUTABLE:
     "La factura ya está timbrada: sus datos fiscales y conceptos no se pueden modificar. Emite una nota de crédito o una sustitución.",
   LC_NC_FECHA_INVALIDA:

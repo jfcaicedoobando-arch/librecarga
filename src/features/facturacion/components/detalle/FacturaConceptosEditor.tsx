@@ -12,15 +12,17 @@ import { useDirtyGuard } from "@/hooks/shared/useDirtyGuard";
 import { ConceptoRow, NuevoRow } from "./FacturaConceptosEditorRows";
 import type { ConceptoFacturaRow } from "@/features/facturacion/services/conceptosFacturaCrud";
 import type { Moneda } from "@/features/facturacion/types";
+import { FacturaEstimacionIsrResico } from "./FacturaEstimacionIsrResico";
 
 interface Props {
   facturaId: string;
   organizationId: string;
+  clienteId?: string | null;
   moneda: Moneda;
   conceptos: ConceptoFacturaRow[];
 }
 
-export function FacturaConceptosEditor({ facturaId, organizationId, moneda, conceptos }: Props) {
+export function FacturaConceptosEditor({ facturaId, organizationId, clienteId, moneda, conceptos }: Props) {
   const {
     editingId,
     draft,
@@ -79,6 +81,17 @@ export function FacturaConceptosEditor({ facturaId, organizationId, moneda, conc
             onCancel={() => { setShowNew(false); setDraft(EMPTY); }}
             onSave={() => addMut.mutate(draft)}
             busy={busy}
+          />
+        )}
+        {(showNew || editingId !== null) && clienteId && draft.tipo_iva
+          && draft.cantidad > 0 && draft.precio_unitario >= 0 && (
+          <FacturaEstimacionIsrResico
+            key={JSON.stringify([organizationId, clienteId, draft.cantidad, draft.precio_unitario, draft.tipo_iva])}
+            datos={{
+              organizationId, clienteId, cantidad: draft.cantidad,
+              precioUnitario: draft.precio_unitario, tipoIva: draft.tipo_iva,
+            }}
+            moneda={moneda}
           />
         )}
       </CardContent>

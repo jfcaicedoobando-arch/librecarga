@@ -1,6 +1,6 @@
 # Plan de retención de ISR RESICO en LibreCarga
 
-Propuesta inicial del 13 de noviembre de 2026; etapa 1 integrada localmente el 15 de noviembre de 2026 sobre `38015309fbca49e72fe2f12da160e4b8029dfacc`. Alcance: organizaciones de LibreCarga que emiten como persona física RESICO, desde la cotización hasta el cobro. La lectura remota de esa fecha confirmó que el perfil fiscal aún no está desplegado. La migración candidata es la 0068; su integración y validación se documentan en [Perfil fiscal del emisor](perfil-fiscal-emisor.md).
+Propuesta inicial del 13 de noviembre de 2026. La etapa 1 se publicó el 15 de noviembre en LibreCarga 13.824.90 mediante el [PR #494](https://github.com/jfcaicedoobando-arch/librecarga/pull/494). La etapa 2 se implementó localmente sobre esa versión. El alcance del plan comprende desde la cotización hasta el cobro de organizaciones que emiten como persona física RESICO.
 
 El resultado esperado es que el cliente vea el importe correcto a pagar desde los documentos comerciales y que ese mismo desglose llegue al CFDI, a cuentas por cobrar y al complemento de pago. La retención se calcula con los datos fiscales de la organización emisora y del receptor.
 
@@ -44,9 +44,9 @@ Esta entrega incluye la convivencia con las retenciones de IVA existentes. La cl
 
 | Área | Evidencia en el código | Trabajo necesario |
 | --- | --- | --- |
-| Perfil emisor | [Tarjeta fiscal](../src/features/configuracion/components/DatosFiscalesEmisorCard.tsx), [adaptador](../supabase/functions/facturapi-perfil-fiscal/handler.ts), [migración 0068](../drizzle/migrations/0068_perfil_fiscal_emisor.sql) | Etapa 1 integrada y validada localmente; pendiente de despliegue |
+| Perfil emisor | [Tarjeta fiscal](../src/features/configuracion/components/DatosFiscalesEmisorCard.tsx), [adaptador](../supabase/functions/facturapi-perfil-fiscal/handler.ts), [migración 0068](../drizzle/migrations/0068_perfil_fiscal_emisor.sql) | Etapa 1 publicada y validada en Chino Cochino sandbox |
 | Receptor | [ClienteFiscalSelects](../src/features/cliente/components/ClienteFiscalSelects.tsx) | Reutilizar los datos del cliente y validar identidad/tipo de persona |
-| Selector ISR | [retenciones.ts](../src/features/facturacion/constants/retenciones.ts) solo ofrece 0% y 10% | Añadir `isr_1_25` y corregir `isrKeyFromTasa`; hoy 0.0125 se representa como «Sin ISR» |
+| Selector ISR | [retenciones.ts](../src/features/facturacion/constants/retenciones.ts) ofrece 0%, 1.25% y 10% | Etapa 2 conserva la selección de 1.25% al reabrir y editar |
 | Cotización | [conceptos de venta](../src/features/cotizacion/domain/cotizacion.conceptos.ts), [resumen](../src/features/cotizacion/components/ResumenTotalesCotizacion.tsx) | Propagar evaluación fiscal y desglosar retención por moneda |
 | Embarque y proforma | `conceptos_venta` carece de columnas de retención; la conversión normal y consolidada no las copia | Persistir cálculo y procedencia, completar ambos caminos de conversión |
 | Factura | `conceptos_factura` ya guarda tasas e importes; `recalc_factura_totales` descuenta las retenciones | Reutilizar columnas y validar aplicación automática en servidor |
@@ -55,13 +55,13 @@ Esta entrega incluye la convivencia con las retenciones de IVA existentes. La cl
 
 Las funciones y columnas SQL citadas se encuentran en el [baseline versionado](../supabase/schema/baseline.sql). Su existencia no certifica la definición remota actual.
 
-Hay dos puntos que deben resolverse expresamente. Primero, la edición de un concepto «No objeto» pone sus retenciones en cero y el emisor rechaza retenciones con ObjetoImp 01. Si la evaluación RESICO requiere ISR en un concepto así clasificado, debe quedar pendiente de corrección fiscal; no debe desaparecer el impuesto silenciosamente ni relajarse el guard de timbrado.
+La edición de un concepto «No objeto» pone sus retenciones en cero y el emisor rechaza retenciones con ObjetoImp 01. Si la evaluación RESICO requiere ISR en un concepto así clasificado, la línea queda pendiente de revisión fiscal.
 
-Segundo, `calc_concepto_retenciones` multiplica cantidad por precio antes de redondear el impuesto, mientras [cuadreFiscal.ts](../supabase/functions/facturapi-emitir/cuadreFiscal.ts) redondea primero el importe. El contrato de precisión debe unificarse y contrastarse con Facturapi antes de activar la función. Un caso de prueba útil es cantidad 1, precio 100.3996: las dos secuencias pueden producir ISR de 1.25 o 1.26.
+El cuadre de facturas con ISR de 1.25% conserva los importes por renglón para el desglose y calcula la cabecera sobre bases exactas. PostgreSQL y [cuadreFacturapi.ts](../supabase/functions/facturapi-emitir/cuadreFacturapi.ts) usan esa misma aritmética para borradores y facturas por timbrar sin UUID ni snapshot fiscal.
 
 ## Etapa 1 Perfil fiscal del emisor
 
-**Estado al 2026-11-15:** integrada en `codex/perfil-fiscal-integrado` con migración 0068, replay PostgreSQL 17.9 y lectura real de Facturapi sandbox aprobados; pendiente de despliegue. Ver [contrato, validación y preparación del backend](perfil-fiscal-emisor.md). Cada emisor tiene su propia organización y credenciales; sus empleados autorizados comparten ese perfil.
+**Estado al 2026-11-15:** publicada con la migración 0068. Se comprobaron consulta, sincronización, confirmación y persistencia en Chino Cochino sandbox. Cada emisor tiene su propia organización y credenciales. Sus empleados autorizados comparten ese perfil. [PR #494](https://github.com/jfcaicedoobando-arch/librecarga/pull/494)
 
 Agregar una tarjeta **Configuración → Facturación → Datos fiscales del emisor** con RFC, razón social, tipo de persona, régimen, código postal, ambiente, última sincronización y estado de confirmación. Incluir la acción **Sincronizar desde Facturapi** y acceso a la configuración del proveedor para corregir los datos en su origen.
 
@@ -77,6 +77,14 @@ Sandbox y producción conservarán su procedencia separada. Una configuración d
 
 ## Etapa 2 Regla central y almacenamiento
 
+**Implementada localmente en la migración 0069.** La evaluación usa el perfil confirmado de la organización activa, el ambiente de su conexión y el cliente registrado. Devuelve `aplica`, `no_aplica` o `pendiente`, con motivo, base, tasa, importe y versión. Para aplicar a una operación PF 626 con receptor moral se exige fecha de vigencia del perfil. El emisor 601 confirmado queda fuera de la regla aun sin fecha de vigencia.
+
+En el editor de conceptos de una factura borrador, **Estimar ISR RESICO** muestra la decisión del servidor para los importes que se están editando. Cotizaciones, conceptos de venta y conceptos consolidados ya pueden guardar evaluaciones calculadas por el servidor cuando la escritura solicita ese cálculo. Los controles detienen el envío o la conversión de esos borradores hasta que las etapas 3 a 5 puedan conservar el desglose.
+
+La [migración 0070](../drizzle/migrations/0070_factura_resico_totales_agrupados.sql) suma las bases exactas de los conceptos vigentes y redondea el subtotal una vez. Agrupa IVA trasladado, ISR retenido e IVA retenido por impuesto y tasa, y redondea cada grupo a dos decimales. El control previo a Facturapi exige coincidencia exacta del subtotal, IVA, ambas retenciones y total con la cabecera guardada.
+
+Con dos renglones de 100.40, el subtotal es 200.80, el IVA agrupado 32.13 y el ISR retenido 2.51. El total de 230.42 coincide con la vista previa de Facturapi sandbox de Chino Cochino. Los nueve casos probados incluyeron bases con más de dos decimales, cantidad fraccionaria, tasas mixtas y retenciones de ISR e IVA simultáneas. Los totales comparados se obtuvieron de vistas previas PDF. El perfil del emisor disponible en Chino Cochino es persona moral 601. La elegibilidad PF 626 se comprobó en la base aislada. [Referencia de Facturapi](https://docs.facturapi.io/api/)
+
 Crear una evaluación fiscal común con tres resultados: `aplica`, `no_aplica` y `pendiente`. Devolver tasa, motivo, base e identificador de versión del perfil/regla. La UI podrá mostrar una previsualización; las escrituras calcularán y validarán en el servidor usando los registros de la organización y del cliente, sin confiar en tasas o importes enviados por el navegador.
 
 Añadir `isr_1_25` al catálogo y su conversión de ida y vuelta. Conservar las opciones existentes para sus casos válidos. Cuando la regla determine ISR RESICO, impedir su eliminación o sustitución arbitraria por 10%; un caso especial se resuelve mediante revisión fiscal registrada.
@@ -85,7 +93,7 @@ Extender `conceptos_venta` con tasa e importe ISR y metadatos de evaluación. Ll
 
 Los documentos legados sin evaluación se identificarán como tales. No asignarles automáticamente una evaluación «no aplica», ni recalcularlos en masa. Mantener `conceptos_factura.total` como importe base del renglón y diferenciarlo del total neto del documento.
 
-Para nuevos documentos, acordar una única secuencia de precisión decimal, redondeo por concepto y suma de impuestos. Usar los mismos vectores de prueba en PostgreSQL, frontend y Edge, con contraste del resultado del proveedor. Los descuentos que ya estén reflejados en el precio no se restarán dos veces; no se incorpora un nuevo módulo de descuentos.
+Al integrar la conversión y el timbrado del flujo automático, conservar las bases exactas y aplicar el mismo cuadre documental a los importes aprobados. Incluir el contraste con el CFDI emitido en las pruebas de la etapa 5.
 
 **Criterio de salida:** la tasa 0.0125 sobrevive a guardar, abrir y editar; el backend rechaza manipulaciones y todos los cálculos coinciden al centavo en los casos admitidos.
 
@@ -156,4 +164,4 @@ La aplicación remota se preparará con su paquete de cambios y validaciones par
 5. Facturas, cobros, REP, notas de crédito y regresiones de historial.
 6. Validación integral en entorno aislado, revisión fiscal de los casos previstos y liberación por organización.
 
-La etapa 1 ya está integrada y validada localmente. Después de revisar y desplegar su backend y frontend, el siguiente desarrollo es la etapa 2: regla central, precisión decimal y persistencia. La sincronización del perfil por sí sola no activa retenciones automáticas.
+La etapa 1 está publicada. La etapa 2 incluye motor, estimación en borrador y persistencia controlada. El siguiente desarrollo lleva la evaluación y el desglose a la cotización y el embarque.

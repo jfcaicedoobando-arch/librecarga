@@ -294,3 +294,4 @@ supabase/tests/facturacion_bandejas_ligeras.sql
 supabase/tests/facturas_filtros_globales.sql
 supabase/tests/broker_trigger_acl.sql
 supabase/tests/brokers_tenant_scope.sql
+supabase/tests/factura_resico_totales_agrupados.sql
