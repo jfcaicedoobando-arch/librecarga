@@ -1,7 +1,7 @@
-import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/formatters";
-import { evaluarIsrResico, type DatosEstimacionIsr } from "../../services/evaluarIsrResico";
+import { useEstimarIsrResico } from "../../hooks/useEstimarIsrResico";
+import type { DatosEstimacionIsr } from "../../services/evaluarIsrResico";
 import type { Moneda } from "../../types";
 
 const MOTIVOS: Record<string, string> = {
@@ -19,7 +19,7 @@ export function FacturaEstimacionIsrResico({ datos, moneda }: {
   datos: DatosEstimacionIsr;
   moneda: Moneda;
 }) {
-  const estimacion = useMutation({ mutationFn: evaluarIsrResico });
+  const estimacion = useEstimarIsrResico();
   const resultado = estimacion.isSuccess ? estimacion.data : null;
   return (
     <div className="flex flex-wrap items-center gap-2 px-2 pb-2">
