@@ -25,7 +25,7 @@ import {
 
 import { useRegisterBreadcrumbLabel } from "@/lib/contexts/BreadcrumbContext";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { ErrorState } from "@/components/shared/states/ErrorState";
+import { EditarEmbarqueError } from "@/features/embarques/components/EditarEmbarqueError";
 
 export default function EditarEmbarque() {
   const { id } = useParams();
@@ -34,7 +34,7 @@ export default function EditarEmbarque() {
   const { canEdit, canEditCostosEmbarque } = usePermissions();
   const volver = useVolver("/embarques");
   const {
-    embarque, isLoading, isError, refetch, methods, currentStep, setCurrentStep,
+    embarque, isLoading, isError, errorCarga, refetch, methods, currentStep, setCurrentStep,
     clientes, proveedoresDb, contactos, selectedCliente,
     handleMsdsUpload, handleSave, isPending, navigate, conceptosForm,
     validateStep, cotizacionVinculada, cotizacionesAceptadas,
@@ -91,9 +91,8 @@ export default function EditarEmbarque() {
 
   if (isError) {
     return (
-      <PageContainer>
-        <ErrorState onRetry={() => void refetch()} />
-      </PageContainer>
+      <EditarEmbarqueError description={errorCarga} onRetry={() => void refetch()}
+        isDirty={hayCambiosSinGuardar && !isPending} />
     );
   }
 

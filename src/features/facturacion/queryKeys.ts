@@ -82,10 +82,14 @@ export const facturas = {
   notasCreditoRecientes: (filtros?: unknown) => ['factura_notas_credito', 'recientes', filtros ?? null] as const,
   envios: (facturaId?: string | null) => ['factura-envios', facturaId] as const,
   historial: (facturaId?: string | null) => ['facturas', 'historial', facturaId] as const,
+  clientesListado: (organizationId?: string | null) => ["facturas", "clientes-listado", organizationId ?? null] as const,
   listado: (filtros: {
     organizationId?: string | null;
     search?: string;
     estado?: string;
+    clienteNombre?: string;
+    fechaDesde?: string;
+    fechaHasta?: string;
     page?: number;
     pageSize?: number;
   }) =>
@@ -96,6 +100,9 @@ export const facturas = {
       filtros.estado ?? 'todos',
       filtros.page ?? 0,
       filtros.pageSize ?? 100,
+      filtros.clienteNombre ?? '',
+      filtros.fechaDesde ?? '',
+      filtros.fechaHasta ?? '',
     ] as const,
 } as const;
 

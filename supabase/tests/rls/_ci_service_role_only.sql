@@ -25,6 +25,8 @@
 DROP TABLE IF EXISTS pg_temp._ci_service_role_only;
 CREATE TEMP TABLE _ci_service_role_only (fn text);
 INSERT INTO _ci_service_role_only (fn) VALUES
+  ('public.registrar_perfil_fiscal_emisor(uuid, text, uuid, timestamptz, integer, jsonb)'),
+  ('public._perfil_fiscal_emisor_resultado(public.perfiles_fiscales_emisor, public.facturapi_credenciales, text)'),
   ('public.reservar_evento_facturapi_webhook(uuid, text, jsonb)'),
   ('public.finalizar_evento_facturapi_webhook(uuid, uuid, text, text, text, uuid, timestamptz, text, jsonb, text)'),
   ('public.purgar_facturapi_webhook_eventos()'),

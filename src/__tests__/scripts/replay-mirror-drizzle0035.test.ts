@@ -89,6 +89,9 @@ describe("bounded Drizzle0035 dynamic replay model", () => {
     "0063_brokers_fase2_lecturas.sql",
     "0064_brokers_fase3_comisiones.sql",
     "0065_brokers_tenant_scope.sql",
+    "0066_facturas_filtros_globales.sql",
+    "0067_broker_trigger_acl.sql",
+    "0068_perfil_fiscal_emisor.sql",
   ])("rejects a changed newly reviewed source %s", key => {
     const changed = new Map(sources);
     changed.set(key, sources.get(key)! + "\n-- altered bytes");

@@ -1,14 +1,8 @@
 import { useCallback, useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import {
-  useEmbarque,
-  useEmbarqueConceptosVenta,
-  useEmbarqueConceptosCosto,
-  useProveedoresForSelect,
-  useUpdateEmbarque,
-} from "@/features/embarques/hooks/useEmbarques";
-import { useContenedoresEmbarque } from "@/features/embarques/hooks/useContenedoresEmbarque";
-import { useClientesForSelect, useContactosCliente } from "@/features/cliente/hooks/useClientes";
+import { useUpdateEmbarque } from "@/features/embarques/hooks/useEmbarques";
+import { useContactosCliente } from "@/features/cliente/hooks/useClientes";
+import { useDatosEditarEmbarque } from "./useDatosEditarEmbarque";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useRegistrarActividad } from "@/hooks/shared";
 import {
@@ -34,12 +28,8 @@ export function useEditarEmbarqueWizard(id: string | undefined) {
   const { user, effectiveRole } = useAuth();
   const margenMinimoPct = useMargenMinimo();
 
-  const { data: embarque, isLoading, isError, refetch } = useEmbarque(id);
-  const { data: conceptosVentaDb = [], isLoading: cargandoVenta } = useEmbarqueConceptosVenta(id);
-  const { data: conceptosCostoDb = [], isLoading: cargandoCosto } = useEmbarqueConceptosCosto(id);
-  const { data: contenedoresDb = [], isLoading: cargandoContenedores } = useContenedoresEmbarque(id);
-  const { data: clientes = [] } = useClientesForSelect();
-  const { data: proveedoresDb = [] } = useProveedoresForSelect();
+  const carga = useDatosEditarEmbarque(id);
+  const { embarque, conceptosVentaDb, conceptosCostoDb, contenedoresDb, clientes, proveedoresDb } = carga;
   // v13.303.23 — Hidratamos la cotización vinculada al embarque para que el
   // wizard de edición muestre el badge verde en lugar del banner "Cotización
   // requerida" y no obligue a re-seleccionar. Incluye estado `En operación`.
@@ -80,6 +70,7 @@ export function useEditarEmbarqueWizard(id: string | undefined) {
 
   useHidratacionEditarEmbarque({
     initialized,
+    datosListos: carga.listo,
     hidratoContactos,
     hidratoContenedores,
     hidratoVenta,
@@ -92,7 +83,6 @@ export function useEditarEmbarqueWizard(id: string | undefined) {
     contactos,
     selectedClienteNombre: clientes.find((c) => c.id === clienteId)?.nombre,
     contenedoresDb,
-    cargandoContenedores,
     conceptosVentaDb,
     conceptosCostoDb,
     proveedoresDb,
@@ -123,34 +113,46 @@ export function useEditarEmbarqueWizard(id: string | undefined) {
     return true;
   }, [methods]);
 
-  const handleSave = () => ejecutarGuardarEmbarque({
-    id,
-    embarque,
-    methods,
-    buildEmbarquePayload,
-    buildConceptosVentaPayload,
-    buildConceptosCostoPayload,
-    contactos,
-    selectedClienteNombre: selectedCliente?.nombre,
-    userEmail: user?.email,
-    conceptosVenta,
-    conceptosCosto,
-    conceptosVentaDb,
-    conceptosCostoDb,
-    proveedoresDb,
-    updateEmbarque,
-    registrarActividad,
-    setCurrentStep,
-    navigate,
-    margenMinimoPct,
-    puedeAutorizarMargen: puedeAutorizarMargenBajo(effectiveRole),
-  });
+  const hidratado = initialized && hidratoVenta && hidratoCosto && hidratoContenedores;
+  const handleSave = async () => {
+    if (!carga.listo || !hidratado) {
+      notifyError(undefined, {
+        title: "No se puede guardar todavía",
+        description: carga.errorCarga ?? "Espera a que termine de cargar la información del embarque.",
+        method: "HANDLE_SAVE",
+      });
+      return;
+    }
+    await ejecutarGuardarEmbarque({
+      id,
+      embarque,
+      methods,
+      buildEmbarquePayload,
+      buildConceptosVentaPayload,
+      buildConceptosCostoPayload,
+      contactos,
+      selectedClienteNombre: selectedCliente?.nombre,
+      userEmail: user?.email,
+      conceptosVenta,
+      conceptosCosto,
+      conceptosVentaDb,
+      conceptosCostoDb,
+      proveedoresDb,
+      updateEmbarque,
+      registrarActividad,
+      setCurrentStep,
+      navigate,
+      margenMinimoPct,
+      puedeAutorizarMargen: puedeAutorizarMargenBajo(effectiveRole),
+    });
+  };
 
   return {
     embarque,
-    isLoading: isLoading || cargandoVenta || cargandoCosto || cargandoContenedores,
-    isError,
-    refetch,
+    isLoading: !carga.isError && (carga.isLoading || Boolean(embarque && !hidratado)),
+    isError: carga.isError,
+    errorCarga: carga.errorCarga,
+    refetch: carga.refetch,
     methods,
     currentStep,
     setCurrentStep,

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, useLocation } from "react-router";
 import React from "react";
 import { useFacturacionDateRange } from "../useFacturacionDateRange";
 
@@ -40,4 +40,19 @@ describe("useFacturacionDateRange", () => {
     expect(result.current.desdeIso).toBe("2024-03-01");
     expect(result.current.hastaIso).toBe("2024-03-31");
   });
+});
+
+
+it("cambiar el periodo reinicia página en la misma URL sin perder búsqueda o cliente", () => {
+  const { result } = renderHook(() => ({ rango: useFacturacionDateRange(), location: useLocation() }), {
+    wrapper: makeWrapper(["/?page=4&q=F-123&cliente=ACME&estado=Emitida&ps=50"]),
+  });
+  act(() => result.current.rango.setRango({ desde: new Date("2026-10-01"), hasta: new Date("2026-10-31") }));
+  const params = new URLSearchParams(result.current.location.search);
+  expect(params.has("page")).toBe(false);
+  expect(params.get("q")).toBe("F-123");
+  expect(params.get("cliente")).toBe("ACME");
+  expect(params.get("estado")).toBe("Emitida");
+  expect(params.get("desde")).toBe("2026-10-01");
+  expect(params.get("hasta")).toBe("2026-10-31");
 });

@@ -77,7 +77,8 @@ DECLARE
     --    infraestructura global (email, logs, webhooks), no documentos tenant.
     'email_queue_dispatch',
     'detectar_alertas_app_logs',
-    'purgar_facturapi_webhook_eventos',
+    -- Drizzle 0051 closed this job to service_role; the CI ACL catalog
+    -- preserves that boundary, so purgar_facturapi_webhook_eventos is no debt.
     'expirar_cotizaciones_job',
     'seed_demo_organization',
     -- ── D. Cálculo puro / conversión / estado derivado: reciben IDs o

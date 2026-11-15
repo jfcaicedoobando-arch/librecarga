@@ -3,6 +3,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { notifyError } from "@/lib/ui/appFeedback";
+import { facturapiCredencialesKeys, perfilFiscalEmisorKeys } from "../queryKeys";
 import {
   fetchFacturapiCredenciales,
   upsertFacturapiCredenciales,
@@ -14,7 +15,7 @@ import {
   type FacturapiCredencialesRow,
 } from "@/features/configuracion/services/facturapiCredenciales";
 
-const KEY = (orgId: string) => ["facturapi_credenciales", orgId] as const;
+const KEY = facturapiCredencialesKeys.byOrg;
 
 export function useFacturapiCredenciales(orgId: string | null | undefined) {
   return useQuery<FacturapiCredencialesRow | null>({
@@ -34,6 +35,7 @@ export function useUpsertFacturapiCredenciales(orgId: string | null | undefined)
     },
     onSuccess: () => {
       if (orgId) qc.invalidateQueries({ queryKey: KEY(orgId) });
+      qc.invalidateQueries({ queryKey: perfilFiscalEmisorKeys.all });
     },
     onError: (error) => {
       notifyError(undefined, {
@@ -54,6 +56,7 @@ export function useSetFacturapiApiKey(orgId: string | null | undefined) {
     },
     onSuccess: () => {
       if (orgId) qc.invalidateQueries({ queryKey: KEY(orgId) });
+      qc.invalidateQueries({ queryKey: perfilFiscalEmisorKeys.all });
     },
     onError: (error) => {
       notifyError(undefined, {
@@ -74,6 +77,7 @@ export function useClearFacturapiApiKey(orgId: string | null | undefined) {
     },
     onSuccess: () => {
       if (orgId) qc.invalidateQueries({ queryKey: KEY(orgId) });
+      qc.invalidateQueries({ queryKey: perfilFiscalEmisorKeys.all });
     },
     onError: (error) => {
       notifyError(undefined, {

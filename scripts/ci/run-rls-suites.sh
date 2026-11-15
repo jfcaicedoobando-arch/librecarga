@@ -32,20 +32,9 @@ if [ "${#SUITES[@]}" -eq 0 ]; then
   exit 1
 fi
 
-# Aislamiento: BEGIN al inicio y ROLLBACK al final, sin COMMIT de nivel superior.
-mal_aisladas=()
-for suite in "${SUITES[@]}"; do
-  tiene_begin=$(grep -cE '^BEGIN;' "$suite" || true)
-  tiene_rollback=$(grep -cE '^ROLLBACK;' "$suite" || true)
-  tiene_commit=$(grep -cE '^COMMIT;' "$suite" || true)
-  if [ "$tiene_begin" -eq 0 ] || [ "$tiene_rollback" -eq 0 ] || [ "$tiene_commit" -gt 0 ]; then
-    mal_aisladas+=("$(basename "$suite")")
-  fi
-done
-if [ "${#mal_aisladas[@]}" -gt 0 ]; then
-  for s in "${mal_aisladas[@]}"; do
-    echo "::error::$s no cumple el aislamiento BEGIN…ROLLBACK (o hace COMMIT)."
-  done
+# Validate ordinary transactions and include-only wrappers before opening psql.
+VALIDATOR="$(dirname "${BASH_SOURCE[0]}")/validate-rls-isolation.mjs"
+if ! node "$VALIDATOR" "${SUITES[@]}"; then
   exit 1
 fi
 

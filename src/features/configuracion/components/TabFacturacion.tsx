@@ -1,4 +1,5 @@
 import FacturapiCredencialesCard from "@/features/configuracion/components/FacturapiCredencialesCard";
+import DatosFiscalesEmisorCard from "@/features/configuracion/components/DatosFiscalesEmisorCard";
 import { CatalogoClavesSATCard } from "@/features/configuracion/components/CatalogoClavesSATCard";
 import CierrePeriodoCard from "@/features/configuracion/components/CierrePeriodoCard";
 import IvaFronteraCard from "@/features/configuracion/components/IvaFronteraCard";
@@ -15,6 +16,7 @@ export default function TabFacturacion() {
   return (
     <div className="space-y-4">
       <FacturapiCredencialesCard />
+      <DatosFiscalesEmisorCard />
       <CierrePeriodoCard />
       <IvaFronteraCard />
 

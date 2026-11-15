@@ -24,6 +24,7 @@ interface ConceptoCostoDb {
 
 interface Params<TForm extends FieldValues> {
   initialized: boolean;
+  datosListos: boolean;
   hidratoContactos: boolean;
   hidratoContenedores: boolean;
   hidratoVenta: boolean;
@@ -36,7 +37,6 @@ interface Params<TForm extends FieldValues> {
   contactos: Parameters<typeof resolverValorContactoDesdeTexto>[1];
   selectedClienteNombre?: string;
   contenedoresDb: Parameters<typeof rowAContenedorBorrador>[0][];
-  cargandoContenedores: boolean;
   conceptosVentaDb: ConceptoVentaDb[];
   conceptosCostoDb: ConceptoCostoDb[];
   /** Catálogo de proveedores para resolver el nombre heredado → id. */
@@ -60,10 +60,12 @@ export function useHidratacionEditarEmbarque<TForm extends FieldValues>(p: Param
 
   // Conceptos venta — hidratar UNA sola vez; después el estado local manda.
   useEffect(() => {
-    if (!p.initialized || p.hidratoVenta || p.conceptosVentaDb.length === 0) return;
-    inicializarVentaRef.current(p.conceptosVentaDb.map(mapConceptoVentaDbAFila));
+    if (!p.initialized || !p.datosListos || p.hidratoVenta) return;
+    if (p.conceptosVentaDb.length > 0) {
+      inicializarVentaRef.current(p.conceptosVentaDb.map(mapConceptoVentaDbAFila));
+    }
     setHidratoVentaRef.current(true);
-  }, [p.initialized, p.hidratoVenta, p.conceptosVentaDb]);
+  }, [p.initialized, p.datosListos, p.hidratoVenta, p.conceptosVentaDb]);
 
   // Conceptos costo — hidratar UNA sola vez.
   // v13.509.0 — Si el costo trae nombre de proveedor pero no id (costos
@@ -71,9 +73,8 @@ export function useHidratacionEditarEmbarque<TForm extends FieldValues>(p: Param
   // conservamos el nombre para no perderlo al guardar.
   const proveedoresDb = useMemo(() => p.proveedoresDb ?? [], [p.proveedoresDb]);
   useEffect(() => {
-    if (!p.initialized || p.hidratoCosto || p.conceptosCostoDb.length === 0) return;
-    if (proveedoresDb.length === 0) return;
-    inicializarCostoRef.current(p.conceptosCostoDb.map((c, i) => ({
+    if (!p.initialized || !p.datosListos || p.hidratoCosto) return;
+    if (p.conceptosCostoDb.length > 0) inicializarCostoRef.current(p.conceptosCostoDb.map((c, i) => ({
       id: i + 1,
       dbId: c.id, // v13.207.0 — preservamos UUID para merge en RPC
       proveedorId: c.proveedor_id ?? resolverProveedorIdPorNombre(c.proveedor_nombre, proveedoresDb),
@@ -85,7 +86,7 @@ export function useHidratacionEditarEmbarque<TForm extends FieldValues>(p: Param
       estadoLiquidacion: c.estado_liquidacion ?? null,
     })));
     setHidratoCostoRef.current(true);
-  }, [p.initialized, p.hidratoCosto, p.conceptosCostoDb, proveedoresDb]);
+  }, [p.initialized, p.datosListos, p.hidratoCosto, p.conceptosCostoDb, proveedoresDb]);
 
   // Contactos shipper/consignatario
   useEffect(() => {
@@ -107,7 +108,7 @@ export function useHidratacionEditarEmbarque<TForm extends FieldValues>(p: Param
 
   // Contenedores
   useEffect(() => {
-    if (!p.initialized || p.hidratoContenedores || p.cargandoContenedores) return;
+    if (!p.initialized || !p.datosListos || p.hidratoContenedores) return;
     // SAFE-CAST: setValue genérico.
     const setVal = p.methods.setValue as unknown as (n: string, v: unknown, o?: { shouldDirty?: boolean }) => void;
     setVal("contenedores", p.contenedoresDb.map(rowAContenedorBorrador), { shouldDirty: false });

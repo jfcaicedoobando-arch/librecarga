@@ -1,3 +1,4 @@
+\ir _ci_check_perfil_fiscal_acl.sql
 -- Verify the real replay state before any harness grant can mask drift.
 \ir _ci_check_global_catalog_acl.sql
 
@@ -5,6 +6,12 @@
 \ir _ci_check_pricing_lineage_acl.sql
 
 \ir _ci_check_cotizacion_vendedor_acl.sql
+
+-- 0066 must already have closed both trigger-only broker helpers.
+\ir _ci_check_broker_trigger_acl.sql
+
+-- Historical private lookup helpers must be closed before CI touches ACLs.
+\ir _ci_check_broker_helper_acl.sql
 
 -- Drizzle 0017 trigger helpers are owner-only, including for service_role.
 -- Check the replay BEFORE any CI grant/revoke can hide an existing leak.
@@ -103,6 +110,14 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authentic
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated, service_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated, service_role;
+-- Restore the historical helper boundary; never change product definitions.
+REVOKE EXECUTE ON FUNCTION public._broker_actual(uuid) FROM authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public._broker_de_pago(uuid, uuid, uuid) FROM authenticated, service_role;
+\ir _ci_check_broker_helper_acl.sql
+-- Undo only harness-added EXECUTE; no service-role-only capability is granted.
+REVOKE EXECUTE ON FUNCTION public._comision_kam_broker() FROM authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public._comision_broker_sync() FROM authenticated, service_role;
+\ir _ci_check_broker_trigger_acl.sql
 -- 0031 keeps this data-by-ID helper owner-only; undo only the two grants
 -- introduced above, then reassert the same ACL checked before the harness.
 REVOKE EXECUTE ON FUNCTION public._cotizacion_margen_pct(uuid) FROM authenticated, service_role;
@@ -330,3 +345,10 @@ SELECT pg_temp._ci_check_crm_empresa_owner_acl();
 DROP FUNCTION pg_temp._ci_check_crm_empresa_owner_acl();
 
 \ir _ci_check_cotizacion_vendedor_acl.sql
+\ir _ci_check_broker_trigger_acl.sql
+\ir _ci_check_broker_helper_acl.sql
+
+-- Restore the exact fiscal table ACL after CI blanket grants.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN
+  ON public.perfiles_fiscales_emisor FROM authenticated, service_role;
+\ir _ci_check_perfil_fiscal_acl.sql

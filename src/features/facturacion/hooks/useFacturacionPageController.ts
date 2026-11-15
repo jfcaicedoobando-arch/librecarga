@@ -2,7 +2,7 @@ import { useMemo, useCallback } from "react";
 import { useListPageState, useDebounce } from "@/hooks/shared";
 import { exportToCsv } from "@/generators/exportCsv";
 import { exportarLayoutContable } from "@/generators/layoutContable";
-import { useFacturasListado } from "@/features/facturacion/hooks/useFacturas";
+import { useFacturasListado, useClientesFacturas } from "@/features/facturacion/hooks/useFacturas";
 import { useRegistrarActividad } from "@/hooks/shared";
 import { usePermissions } from "@/hooks/shared";
 
@@ -14,17 +14,14 @@ import { todayLocalISO } from "@/lib/date/today";
  * Encapsula filtros, búsqueda, paginación, mutaciones y export CSV.
  *
  * v13.317.3 (P7) — paginación server-side vía `useFacturasListado`.
- * El RPC `facturas_listado` filtra `search` y `estado` en SQL; los filtros
- * de cliente y rango de fechas se aplican client-side sobre la página
- * (limitación asumida: solo aplican a las filas visibles).
+ * Todos los filtros y el conteo se aplican en SQL antes de paginar.
  */
 export function useFacturacionPageController(opts?: {
-  isInRange?: (fecha: string | null | undefined) => boolean;
+  fechaDesde?: string | null;
+  fechaHasta?: string | null;
   activeTab?: string;
 }) {
-  const optsIsInRange = opts?.isInRange;
   const activeTab = opts?.activeTab;
-  const isInRange = useMemo(() => optsIsInRange ?? (() => true), [optsIsInRange]);
   const {
     search, filters, page, pageSize,
     setSearch, setFilter, setPage, setPageSize,
@@ -48,6 +45,9 @@ export function useFacturacionPageController(opts?: {
     pageSize,
     search: debouncedSearch,
     estado: filterEstado,
+    clienteNombre: filterCliente === "todos" ? undefined : filterCliente,
+    fechaDesde: opts?.fechaDesde || undefined,
+    fechaHasta: opts?.fechaHasta || undefined,
     enabled: facturasEnabled,
   });
   const facturas = useMemo(() => listado?.data ?? [], [listado]);
@@ -55,30 +55,10 @@ export function useFacturacionPageController(opts?: {
   const { canEdit } = usePermissions();
   const registrarActividad = useRegistrarActividad();
 
-  // Lista de clientes derivada de la página actual (limitación conocida:
-  // solo refleja los clientes visibles). Se mantiene para compatibilidad;
-  // si se necesita el catálogo completo, hacerlo con una query aparte.
-  const clientesDisponibles = useMemo(() => {
-    const set = new Map<string, string>();
-    for (const f of facturas) {
-      if (f.cliente_nombre) set.set(f.cliente_nombre, f.cliente_nombre);
-    }
-    return Array.from(set.values())
-      .sort((a, b) => a.localeCompare(b, "es"))
-      .map((n) => ({ id: n, nombre: n }));
-  }, [facturas]);
-
-  // Filtros que siguen client-side (cliente y rango de fechas) — se aplican
-  // sobre la página ya paginada por el server.
-  const filtered = useMemo(() => {
-    return facturas.filter((factura) => {
-      const matchCliente = filterCliente === "todos" || factura.cliente_nombre === filterCliente;
-      const matchFecha = isInRange(factura.fecha_emision);
-      return matchCliente && matchFecha;
-    });
-  }, [filterCliente, facturas, isInRange]);
-
-  const paginatedFacturas = filtered;
+  const clientesQuery = useClientesFacturas(facturasEnabled);
+  const clientesDisponibles = useMemo(() => (clientesQuery.data ?? []).map((nombre) => ({ id: nombre, nombre })), [clientesQuery.data]);
+  const filtered = facturas;
+  const paginatedFacturas = facturas;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
 
@@ -138,6 +118,9 @@ export function useFacturacionPageController(opts?: {
     totalPages,
     totalCount,
     clientesDisponibles,
+    loadingClientes: clientesQuery.isLoading,
+    errorClientes: clientesQuery.isError,
+    refetchClientes: () => void clientesQuery.refetch(),
 
     loadingFacturas,
     // P1-1: la tabla debe pintar error + retry, no un empty-state engañoso.

@@ -88,6 +88,11 @@ const REVIEWED_FORWARD_FIXES: ReadonlyArray<readonly [string, string]> = [
   ["0064_brokers_fase3_comisiones.sql", "f4a4e3b36bdeb884554a340ed686bf1d9c746b8e851c6ce39e4a5aac2cdbcc51"],
   //0065 only adds the four restrictive tenant policies.
   ["0065_brokers_tenant_scope.sql", "5b8a4cf0909e4df7c578bdd601a56cdb49bd8cc41738bc21e55081bd5e849b89"],
+  // Independent invoice reads, trigger ACL closure and the fiscal-profile domain;
+  // none redefines either quotation/shipment function modeled by this module.
+  ["0066_facturas_filtros_globales.sql", "ac331d449940dae8b2b2e80d1771e66d3c3d6157c9925080b18daa5c7fee4d2f"],
+  ["0067_broker_trigger_acl.sql", "c1e04873d1bdb4a5d89fbb4837f6a0dcc33c07bb241b9d7963ba63e80aebdad9"],
+  ["0068_perfil_fiscal_emisor.sql", "b9ff6b1ea3bcfd3add4fe4829a4ff8f7731a8181181e8fd06a8acb5ade3c7cd1"],
 ];
 
 function verificarOrdenJournal(sources: ReadonlyMap<string, string>, journal: JournalEntry[]): void {

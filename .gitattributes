@@ -7,5 +7,17 @@ docs/ci/workflow-archive/closed-labs-20261016/*.yml.txt -text
 
 # Executed CI scripts and workflow definitions must also work from Windows checkouts.
 /scripts/ci/*.sh text eol=lf
+/scripts/**/*.sh text eol=lf
 /.github/workflows/*.yml text eol=lf
+
+# SQL/replay admissions hash the exact reviewed Git bytes, including function bodies.
+# Prevent Windows autocrlf from changing those inputs; do not normalize audit hashes.
+/supabase/migrations/*.sql text eol=lf
+/supabase/schema/**/*.sql text eol=lf
+/supabase/tests/**/*.sql text eol=lf
+/supabase/schema/squash/*.env text eol=lf
+/supabase/schema/squash/*.txt text eol=lf
+/drizzle/migrations/*.sql text eol=lf
+/scripts/ci/drizzle-history/**/*.sql text eol=lf
+/scripts/ci/drizzle-history/**/*.json text eol=lf
 

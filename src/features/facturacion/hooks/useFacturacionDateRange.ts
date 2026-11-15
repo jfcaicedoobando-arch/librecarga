@@ -60,6 +60,7 @@ export function useFacturacionDateRange() {
       const hastaIso = toIsoDate(merged.hasta);
       if (desdeIso) params.set("desde", desdeIso); else params.delete("desde");
       if (hastaIso) params.set("hasta", hastaIso); else params.delete("hasta");
+      params.delete("page");
       setSearchParams(params, { replace: true });
     },
     [range, searchParams, setSearchParams],
@@ -69,6 +70,7 @@ export function useFacturacionDateRange() {
     const params = new URLSearchParams(searchParams);
     params.delete("desde");
     params.delete("hasta");
+    params.delete("page");
     setSearchParams(params, { replace: true });
   }, [searchParams, setSearchParams]);
 

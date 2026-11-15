@@ -25,6 +25,9 @@ export interface FacturasEmitidasFiltros {
   fechaHasta: string;
   setFechaHasta: (v: string) => void;
   clientes: ClienteOption[];
+  loadingClientes?: boolean;
+  errorClientes?: boolean;
+  onRetryClientes?: () => void;
   onClear: () => void;
 }
 

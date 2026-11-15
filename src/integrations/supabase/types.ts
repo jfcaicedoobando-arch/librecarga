@@ -6716,6 +6716,7 @@ export type Database = {
           webhook_verificado_live_at: string | null
           webhook_verificado_sandbox_at: string | null
         }
+        ComputedFields: never
         Insert: {
           ambiente?: string
           api_key_live_last4?: string | null
@@ -7999,6 +8000,75 @@ export type Database = {
             columns: ["proveedor_id"]
             isOneToOne: false
             referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      perfiles_fiscales_emisor: {
+        Row: {
+          ambiente: string
+          codigo_postal: string | null
+          confirmado_at: string | null
+          confirmado_por: string | null
+          credenciales_actualizadas_at: string
+          facturapi_org_id: string
+          id: string
+          organization_id: string
+          origen: string
+          razon_social: string | null
+          regimen_fiscal: string | null
+          rfc: string | null
+          sincronizado_at: string
+          sincronizado_por: string
+          tipo_persona: string | null
+          version: number
+          vigente_desde: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          ambiente: string
+          codigo_postal?: string | null
+          confirmado_at?: string | null
+          confirmado_por?: string | null
+          credenciales_actualizadas_at: string
+          facturapi_org_id: string
+          id?: string
+          organization_id: string
+          origen?: string
+          razon_social?: string | null
+          regimen_fiscal?: string | null
+          rfc?: string | null
+          sincronizado_at?: string
+          sincronizado_por: string
+          tipo_persona?: string | null
+          version: number
+          vigente_desde?: string | null
+        }
+        Update: {
+          ambiente?: string
+          codigo_postal?: string | null
+          confirmado_at?: string | null
+          confirmado_por?: string | null
+          credenciales_actualizadas_at?: string
+          facturapi_org_id?: string
+          id?: string
+          organization_id?: string
+          origen?: string
+          razon_social?: string | null
+          regimen_fiscal?: string | null
+          rfc?: string | null
+          sincronizado_at?: string
+          sincronizado_por?: string
+          tipo_persona?: string | null
+          version?: number
+          vigente_desde?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfiles_fiscales_emisor_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -10624,6 +10694,20 @@ export type Database = {
         }
         Returns: number
       }
+      _perfil_fiscal_emisor_resultado: {
+        Args: {
+          p_cred: Omit<
+            Database["public"]["Tables"]["facturapi_credenciales"]["Row"],
+            Database["public"]["Tables"]["facturapi_credenciales"]["ComputedFields"]
+          >
+          p_perfil: Omit<
+            Database["public"]["Tables"]["perfiles_fiscales_emisor"]["Row"],
+            Database["public"]["Tables"]["perfiles_fiscales_emisor"]["ComputedFields"]
+          >
+          p_rfc_empresa: string
+        }
+        Returns: Json
+      }
       _puede_asignar_coordinador: { Args: { p_org: string }; Returns: boolean }
       _recalc_anticipo_saldo: {
         Args: { p_anticipo_id: string }
@@ -11474,6 +11558,15 @@ export type Database = {
       }
       conciliar_tesoreria_proveedor: {
         Args: { p_factura_id?: string; p_proveedor_id?: string }
+        Returns: Json
+      }
+      confirmar_perfil_fiscal_emisor: {
+        Args: {
+          p_ambiente: string
+          p_org_id: string
+          p_perfil_id: string
+          p_vigente_desde?: string
+        }
         Returns: Json
       }
       consolidar_proformas: {
@@ -12611,6 +12704,20 @@ export type Database = {
           total: number
         }[]
       }
+      facturas_clientes_listado: { Args: { p_organization_id?: string }; Returns: Json }
+      facturas_listado_pagina: {
+        Args: {
+          p_organization_id?: string
+          p_search?: string
+          p_estado?: string
+          p_fecha_desde?: string
+          p_fecha_hasta?: string
+          p_offset?: number
+          p_limit?: number
+          p_cliente_nombre?: string
+        }
+        Returns: Json
+      }
       facturas_listado: {
         Args: {
           p_estado?: string
@@ -13135,6 +13242,10 @@ export type Database = {
           uso_cfdi: string
         }[]
       }
+      obtener_perfil_fiscal_emisor: {
+        Args: { p_ambiente: string; p_org_id: string }
+        Returns: Json
+      }
       obtener_top_tarifas: {
         Args: {
           p_fecha?: string
@@ -13638,6 +13749,17 @@ export type Database = {
       }
       registrar_pago_proveedor_lote: {
         Args: { p_payload: Json }
+        Returns: string
+      }
+      registrar_perfil_fiscal_emisor: {
+        Args: {
+          p_actor: string
+          p_ambiente: string
+          p_credenciales_actualizadas_at: string
+          p_datos: Json
+          p_org_id: string
+          p_version_esperada: number
+        }
         Returns: string
       }
       registrar_traspaso_bancario: {

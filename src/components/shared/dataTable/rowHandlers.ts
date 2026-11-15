@@ -42,7 +42,15 @@ export function buildRowKeyDownHandler<T>(b: RowBehavior<T>) {
       }
       return;
     }
-    if (b.navigable && b.href) handleRowKeyDown(e, { href: b.href, navigate: b.navigate });
+    if (b.navigable && b.href) {
+      handleRowKeyDown(e, { href: b.href, navigate: b.navigate });
+      return;
+    }
+    if (b.onRowClick && !e.defaultPrevented && !isInteractiveDescendant(e.target)
+      && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      b.onRowClick(b.item);
+    }
   };
 }
 

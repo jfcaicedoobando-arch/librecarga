@@ -10,6 +10,7 @@ const { useFacturasListadoMock } = vi.hoisted(() => ({ useFacturasListadoMock: v
 
 vi.mock("@/features/facturacion/hooks/useFacturas", () => ({
   useFacturasListado: (args: unknown) => useFacturasListadoMock(args),
+  useClientesFacturas: () => ({ data: ["ACME", "Beta", "Cliente histórico"] }),
 }));
 vi.mock("@/hooks/shared", () => ({
   useListPageState: () => ({
@@ -30,7 +31,7 @@ beforeEach(() => {
 });
 
 const run = (activeTab: string) =>
-  renderHook(() => useFacturacionPageController({ isInRange: () => true, activeTab }), {
+  renderHook(() => useFacturacionPageController({ activeTab }), {
     wrapper: createWrapper(),
   });
 
