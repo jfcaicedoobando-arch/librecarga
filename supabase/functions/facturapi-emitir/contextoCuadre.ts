@@ -1,8 +1,7 @@
 /**
  * P1 · Auditoría fiscal — preflight de cuadre ERP↔CFDI (respuestas 422).
- * La aritmética vive en `cuadreFiscal.ts`; aquí sólo se traduce a la respuesta
- * HTTP con un mensaje accionable. Extraído de `contexto.ts` para respetar el
- * límite de líneas por archivo.
+ * `cuadreFiscal.ts` calcula el cuadre por concepto y `cuadreFacturapi.ts`
+ * calcula los totales agrupados por impuesto y tasa.
  */
 import { jsonResponse } from "../_shared/response.ts";
 import {
@@ -11,6 +10,7 @@ import {
   toleranciaCentavos,
   type ConceptoCuadre,
 } from "./cuadreFiscal.ts";
+import { usaCuadreFacturapi, diferenciasCuadreFacturapi } from "./cuadreFacturapi.ts";
 import type { FacturaContext } from "./helpers.ts";
 import type { FacturaRow } from "./types.ts";
 
@@ -18,6 +18,13 @@ interface ConceptoImporte {
   descripcion: string;
   cantidad: number | string;
   precio_unitario: number | string;
+  tasa_ret_isr?: number | string | null;
+}
+
+function usaModoAgrupado(conceptos: ConceptoImporte[], factura: FacturaRow): boolean {
+  return (factura.estado === "Borrador" || factura.estado === "Por timbrar")
+    && factura.snapshot_emision == null && !factura.uuid_fiscal?.trim()
+    && usaCuadreFacturapi(conceptos);
 }
 
 /**
@@ -27,6 +34,9 @@ interface ConceptoImporte {
  * (un centavo por renglón, por la acumulación del redondeo).
  */
 export function validarCuadreSubtotal(conceptos: ConceptoImporte[], factura: FacturaRow): Response | null {
+  // Full classified fiscal validation below enforces exact totals for this mode.
+  // Do not reject its aggregate subtotal with the legacy per-line calculation first.
+  if (usaModoAgrupado(conceptos, factura)) return null;
   const subtotalHeader = factura.subtotal != null ? Number(factura.subtotal) : null;
   if (subtotalHeader == null || !Number.isFinite(subtotalHeader)) return null;
   const suma = recalcularTotalesConceptos(
@@ -65,10 +75,13 @@ export function validarCuadreFiscal(
     tasa_ret_isr: c.tasa_ret_isr ?? null,
     tasa_ret_iva: c.tasa_ret_iva ?? null,
   }));
-  const detalles = diferenciasCuadreFiscal(filas, {
+  const comparar = usaModoAgrupado(filas, factura) ? diferenciasCuadreFacturapi : diferenciasCuadreFiscal;
+  const detalles = comparar(filas, {
     subtotal: factura.subtotal,
     iva: factura.iva,
     total: factura.total,
+    ret_isr: factura.ret_isr,
+    ret_iva: factura.ret_iva,
   });
   if (detalles.length === 0) return null;
   return jsonResponse({

@@ -37,7 +37,9 @@ const WHITELIST = new Set<string>([
   // `usePaso2Handler` (conflicto / "Error al guardar costos", que cubre
   // Nueva y Editar cotización)—. Un onError aquí produciría doble toast.
   "src/features/cotizacion/hooks/useCotizacionCostos.ts",
-
+  // La estimación es una consulta bajo demanda. FacturaEstimacionIsrResico
+  // muestra el error junto al botón en una región accesible mientras se edita.
+  "src/features/facturacion/hooks/useEstimarIsrResico.ts",
 ]);
 
 function findUseMutationsWithoutOnError(filePath: string): number[] {

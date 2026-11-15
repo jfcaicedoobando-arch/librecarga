@@ -66,8 +66,10 @@ describe("isolated Drizzle history is not deployment-eligible", () => {
       "0066_facturas_filtros_globales.sql",
       "0067_broker_trigger_acl.sql",
       "0068_perfil_fiscal_emisor.sql",
+      "0069_isr_resico_contrato.sql",
+      "0070_factura_resico_totales_agrupados.sql",
     ]);
-    expect(readIsolatedDrizzleReplay().size).toBe(46);
+    expect(readIsolatedDrizzleReplay().size).toBe(48);
     const archive = paths[1].replace("0022_refacturar_proforma_abre_edicion.sql", "meta/_journal.json");
     expect(JSON.parse(read(archive)).entries[22]).toMatchObject({ idx: 22, when: 1792518064767, tag: "0022_refacturar_proforma_abre_edicion" });
     expect(JSON.parse(read("drizzle/migrations/meta/_journal.json")).entries[22].tag).toBe("0022_cotizacion_comercial");

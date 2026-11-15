@@ -1,3 +1,5 @@
+\ir _ci_check_isr_resico_acl.sql
+\ir _ci_check_factura_resico_totales_acl.sql
 \ir _ci_check_perfil_fiscal_acl.sql
 -- Verify the real replay state before any harness grant can mask drift.
 \ir _ci_check_global_catalog_acl.sql
@@ -352,3 +354,9 @@ DROP FUNCTION pg_temp._ci_check_crm_empresa_owner_acl();
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN
   ON public.perfiles_fiscales_emisor FROM authenticated, service_role;
 \ir _ci_check_perfil_fiscal_acl.sql
+
+-- Restore exact stage-2 ACL after blanket CI grants.
+REVOKE ALL ON FUNCTION public._evaluar_isr_resico(uuid,uuid,text,numeric,numeric,text), public._isr_guard_concepto(), public._isr_guard_cotizacion(), public._isr_guard_padre(), public._isr_guard_conversion_factura() FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.evaluar_isr_resico(uuid,uuid,text,numeric,numeric,text) FROM PUBLIC,anon,service_role;
+\ir _ci_check_isr_resico_acl.sql
+\ir _ci_check_factura_resico_totales_acl.sql

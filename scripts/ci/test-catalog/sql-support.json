@@ -31,5 +31,7 @@
   "supabase/tests/rls/_ci_check_facturas_filtros_acl.sql": "Drizzle0066 invoker function metadata and product EXECUTE grants checked by rls-prepare-db.sh and local-verify.sh before blanket CI grants",
   "supabase/tests/rls/_ci_check_broker_trigger_acl.sql": "Drizzle0067 private broker trigger ACL boundary checked before and after blanket CI grants in _ci_post_migrate.sql and included by broker_trigger_acl guard",
   "supabase/tests/rls/_ci_check_broker_helper_acl.sql": "Historical Drizzle0062/0064 owner-only broker lookup helpers checked before and after undoing only artificial CI EXECUTE grants",
-  "supabase/tests/rls/_ci_check_perfil_fiscal_acl.sql": "Fiscal profile table/function ACL assertion before and after CI blanket grants; included in RLS suite"
+  "supabase/tests/rls/_ci_check_perfil_fiscal_acl.sql": "Fiscal profile table/function ACL assertion before and after CI blanket grants; included in RLS suite",
+  "supabase/tests/rls/_ci_check_isr_resico_acl.sql": "Drizzle0069 private evaluator/trigger ACL assertion before and after blanket CI grants; included in RLS suite",
+  "supabase/tests/rls/_ci_check_factura_resico_totales_acl.sql": "Drizzle0070 invoker/RLS totals helper and existing writer ACL assertions before/after CI grants; included in financial guard"
 }
