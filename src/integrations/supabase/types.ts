@@ -6716,7 +6716,6 @@ export type Database = {
           webhook_verificado_live_at: string | null
           webhook_verificado_sandbox_at: string | null
         }
-        ComputedFields: never
         Insert: {
           ambiente?: string
           api_key_live_last4?: string | null
@@ -8024,7 +8023,6 @@ export type Database = {
           version: number
           vigente_desde: string | null
         }
-        ComputedFields: never
         Insert: {
           ambiente: string
           codigo_postal?: string | null
@@ -10696,14 +10694,8 @@ export type Database = {
       }
       _perfil_fiscal_emisor_resultado: {
         Args: {
-          p_cred: Omit<
-            Database["public"]["Tables"]["facturapi_credenciales"]["Row"],
-            Database["public"]["Tables"]["facturapi_credenciales"]["ComputedFields"]
-          >
-          p_perfil: Omit<
-            Database["public"]["Tables"]["perfiles_fiscales_emisor"]["Row"],
-            Database["public"]["Tables"]["perfiles_fiscales_emisor"]["ComputedFields"]
-          >
+          p_cred: Database["public"]["Tables"]["facturapi_credenciales"]["Row"]
+          p_perfil: Database["public"]["Tables"]["perfiles_fiscales_emisor"]["Row"]
           p_rfc_empresa: string
         }
         Returns: Json
@@ -12704,18 +12696,8 @@ export type Database = {
           total: number
         }[]
       }
-      facturas_clientes_listado: { Args: { p_organization_id?: string }; Returns: Json }
-      facturas_listado_pagina: {
-        Args: {
-          p_organization_id?: string
-          p_search?: string
-          p_estado?: string
-          p_fecha_desde?: string
-          p_fecha_hasta?: string
-          p_offset?: number
-          p_limit?: number
-          p_cliente_nombre?: string
-        }
+      facturas_clientes_listado: {
+        Args: { p_organization_id?: string }
         Returns: Json
       }
       facturas_listado: {
@@ -12748,6 +12730,19 @@ export type Database = {
           total: number
           total_count: number
         }[]
+      }
+      facturas_listado_pagina: {
+        Args: {
+          p_cliente_nombre?: string
+          p_estado?: string
+          p_fecha_desde?: string
+          p_fecha_hasta?: string
+          p_limit?: number
+          p_offset?: number
+          p_organization_id?: string
+          p_search?: string
+        }
+        Returns: Json
       }
       fecha_negocio_mx: { Args: never; Returns: string }
       finalizar_evento_facturapi_webhook: {
