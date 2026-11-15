@@ -1696,9 +1696,6 @@ export type Database = {
       }
       conceptos_venta: {
         Row: {
-          evaluacion_fiscal: Json | null
-          tasa_ret_isr: number | null
-          monto_ret_isr: number | null
           aplica_iva: boolean
           cantidad: number
           contenedor_id: string | null
@@ -1708,21 +1705,21 @@ export type Database = {
           descripcion: string
           embarque_id: string
           estado_facturacion: string
+          evaluacion_fiscal: Json | null
           id: string
           moneda: Database["public"]["Enums"]["moneda"]
+          monto_ret_isr: number | null
           organization_id: string
           origen: string
           precio_unitario: number
           proforma_id: string | null
           tasa_iva_aplicada: number
+          tasa_ret_isr: number | null
           tipo_iva: string | null
           total: number
           updated_at: string | null
         }
         Insert: {
-          evaluacion_fiscal?: Json | null
-          tasa_ret_isr?: number | null
-          monto_ret_isr?: number | null
           aplica_iva?: boolean
           cantidad?: number
           contenedor_id?: string | null
@@ -1732,21 +1729,21 @@ export type Database = {
           descripcion: string
           embarque_id: string
           estado_facturacion?: string
+          evaluacion_fiscal?: Json | null
           id?: string
           moneda?: Database["public"]["Enums"]["moneda"]
+          monto_ret_isr?: number | null
           organization_id?: string
           origen?: string
           precio_unitario?: number
           proforma_id?: string | null
           tasa_iva_aplicada?: number
+          tasa_ret_isr?: number | null
           tipo_iva?: string | null
           total?: number
           updated_at?: string | null
         }
         Update: {
-          evaluacion_fiscal?: Json | null
-          tasa_ret_isr?: number | null
-          monto_ret_isr?: number | null
           aplica_iva?: boolean
           cantidad?: number
           contenedor_id?: string | null
@@ -1756,13 +1753,16 @@ export type Database = {
           descripcion?: string
           embarque_id?: string
           estado_facturacion?: string
+          evaluacion_fiscal?: Json | null
           id?: string
           moneda?: Database["public"]["Enums"]["moneda"]
+          monto_ret_isr?: number | null
           organization_id?: string
           origen?: string
           precio_unitario?: number
           proforma_id?: string | null
           tasa_iva_aplicada?: number
+          tasa_ret_isr?: number | null
           tipo_iva?: string | null
           total?: number
           updated_at?: string | null
@@ -2966,7 +2966,6 @@ export type Database = {
       }
       cotizaciones: {
         Row: {
-          evaluacion_fiscal: Json | null
           aceptada_en: string | null
           aceptada_por: string | null
           agente_id: string | null
@@ -2998,6 +2997,7 @@ export type Database = {
             | Database["public"]["Enums"]["estado_cotizacion"]
             | null
           estado_revalidacion: string
+          evaluacion_fiscal: Json | null
           fecha_aceptacion: string | null
           fecha_envio: string | null
           fecha_rechazo: string | null
@@ -3068,7 +3068,6 @@ export type Database = {
           volumen_m3: number
         }
         Insert: {
-          evaluacion_fiscal?: Json | null
           aceptada_en?: string | null
           aceptada_por?: string | null
           agente_id?: string | null
@@ -3100,6 +3099,7 @@ export type Database = {
             | Database["public"]["Enums"]["estado_cotizacion"]
             | null
           estado_revalidacion?: string
+          evaluacion_fiscal?: Json | null
           fecha_aceptacion?: string | null
           fecha_envio?: string | null
           fecha_rechazo?: string | null
@@ -3170,7 +3170,6 @@ export type Database = {
           volumen_m3?: number
         }
         Update: {
-          evaluacion_fiscal?: Json | null
           aceptada_en?: string | null
           aceptada_por?: string | null
           agente_id?: string | null
@@ -3202,6 +3201,7 @@ export type Database = {
             | Database["public"]["Enums"]["estado_cotizacion"]
             | null
           estado_revalidacion?: string
+          evaluacion_fiscal?: Json | null
           fecha_aceptacion?: string | null
           fecha_envio?: string | null
           fecha_rechazo?: string | null
@@ -8195,9 +8195,6 @@ export type Database = {
       }
       proforma_conceptos_consolidados: {
         Row: {
-          evaluacion_fiscal: Json | null
-          tasa_ret_isr: number | null
-          monto_ret_isr: number | null
           aplica_iva: boolean
           cantidad: number
           contenedor: string | null
@@ -8206,22 +8203,22 @@ export type Database = {
           deleted_by: string | null
           descripcion: string
           embarque_id: string | null
+          evaluacion_fiscal: Json | null
           id: string
           iva: number
           moneda: Database["public"]["Enums"]["moneda"]
+          monto_ret_isr: number | null
           organization_id: string
           precio_unitario: number
           proforma_id: string
           tasa_iva_aplicada: number | null
+          tasa_ret_isr: number | null
           tipo_contenedor: string | null
           tipo_iva: string | null
           total: number
           updated_at: string | null
         }
         Insert: {
-          evaluacion_fiscal?: Json | null
-          tasa_ret_isr?: number | null
-          monto_ret_isr?: number | null
           aplica_iva?: boolean
           cantidad?: number
           contenedor?: string | null
@@ -8230,22 +8227,22 @@ export type Database = {
           deleted_by?: string | null
           descripcion: string
           embarque_id?: string | null
+          evaluacion_fiscal?: Json | null
           id?: string
           iva?: number
           moneda?: Database["public"]["Enums"]["moneda"]
+          monto_ret_isr?: number | null
           organization_id?: string
           precio_unitario?: number
           proforma_id: string
           tasa_iva_aplicada?: number | null
+          tasa_ret_isr?: number | null
           tipo_contenedor?: string | null
           tipo_iva?: string | null
           total?: number
           updated_at?: string | null
         }
         Update: {
-          evaluacion_fiscal?: Json | null
-          tasa_ret_isr?: number | null
-          monto_ret_isr?: number | null
           aplica_iva?: boolean
           cantidad?: number
           contenedor?: string | null
@@ -8254,13 +8251,16 @@ export type Database = {
           deleted_by?: string | null
           descripcion?: string
           embarque_id?: string | null
+          evaluacion_fiscal?: Json | null
           id?: string
           iva?: number
           moneda?: Database["public"]["Enums"]["moneda"]
+          monto_ret_isr?: number | null
           organization_id?: string
           precio_unitario?: number
           proforma_id?: string
           tasa_iva_aplicada?: number | null
+          tasa_ret_isr?: number | null
           tipo_contenedor?: string | null
           tipo_iva?: string | null
           total?: number
@@ -10629,6 +10629,17 @@ export type Database = {
         Returns: Json
       }
       _es_rol_interno: { Args: never; Returns: boolean }
+      _evaluar_isr_resico: {
+        Args: {
+          p_ambiente: string
+          p_cantidad: number
+          p_cliente_id: string
+          p_org_id: string
+          p_precio_unitario: number
+          p_tipo_iva: string
+        }
+        Returns: Json
+      }
       _h14_assert_actor_baja_embarque: {
         Args: { p_embarque_id: string }
         Returns: string
@@ -10770,6 +10781,15 @@ export type Database = {
       _tipo_iva_desde_tasa: {
         Args: { _aplica_iva: boolean; _tasa: number }
         Returns: string
+      }
+      _totales_factura_resico_agrupados: {
+        Args: { p_factura_id: string }
+        Returns: {
+          iva: number
+          ret_isr: number
+          ret_iva: number
+          subtotal: number
+        }[]
       }
       _venta_facturada_por_embarque: {
         Args: { p_org: string }
@@ -12685,6 +12705,17 @@ export type Database = {
         Args: { p_cuenta_bancaria_id: string; p_desde: string; p_hasta: string }
         Returns: Json
       }
+      evaluar_isr_resico: {
+        Args: {
+          p_ambiente: string
+          p_cantidad: number
+          p_cliente_id: string
+          p_org_id: string
+          p_precio_unitario: number
+          p_tipo_iva: string
+        }
+        Returns: Json
+      }
       expirar_cotizaciones_job: { Args: never; Returns: Json }
       facturacion_por_emitir: {
         Args: never
@@ -13258,17 +13289,6 @@ export type Database = {
           uso_cfdi: string
         }[]
       }
-      evaluar_isr_resico: {
-        Args: {
-          p_org_id: string
-          p_cliente_id: string
-          p_ambiente: string
-          p_cantidad: number
-          p_precio_unitario: number
-          p_tipo_iva: string
-        }
-        Returns: Json
-      }
       obtener_perfil_fiscal_emisor: {
         Args: { p_ambiente: string; p_org_id: string }
         Returns: Json
@@ -13538,15 +13558,6 @@ export type Database = {
       recalc_factura_retenciones: {
         Args: { p_factura_id: string }
         Returns: undefined
-      }
-      _totales_factura_resico_agrupados: {
-        Args: { p_factura_id: string }
-        Returns: {
-          subtotal: number
-          iva: number
-          ret_isr: number
-          ret_iva: number
-        }[]
       }
       recalc_factura_totales: {
         Args: { p_factura_id: string }
