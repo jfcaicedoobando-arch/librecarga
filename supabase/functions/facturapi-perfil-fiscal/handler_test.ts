@@ -7,7 +7,7 @@ const userId = "00000000-0000-4000-8000-000000000002";
 
 function harness(options: { denied?: boolean; rpcError?: boolean; authError?: boolean } = {}) {
   let syncs = 0; let calls = 0;
-  const client = createClient("https://example.invalid", "test-key", { auth: { persistSession: false }, global: {
+  const client = createClient("https://example.invalid", "test-key", { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: {
     fetch: () => { calls++; return Promise.resolve(new Response(JSON.stringify(options.rpcError
       ? { code: "42501", message: "internal-details" }
       : { version: 0, perfil: null, estado: "sin_sincronizar", problemas: [], ambiente: "sandbox" }), {
@@ -20,7 +20,7 @@ function harness(options: { denied?: boolean; rpcError?: boolean; authError?: bo
       return { userId, authHeader: "Bearer test", adminClient: client, anonClient: client };
     },
     authorizeOrgRole: () => Promise.resolve(!options.denied),
-    sincronizarPerfil: (_admin, target, ambiente, actor, version) => {
+    sincronizarPerfil: (_admin, { orgId: target, ambiente, actor, version }) => {
       assertEquals([target, ambiente, actor, version], [orgId, "sandbox", userId, 0]); syncs++;
       return Promise.resolve();
     },
@@ -62,7 +62,7 @@ Deno.test("valida calendario real antes de confirmar, incluidos bisiestos y lím
 
 Deno.test("un conflicto concurrente no relee ni responde éxito y no filtra detalles", async () => {
   let reads = 0;
-  const client = createClient("https://example.invalid", "test-key", { global: { fetch: () => {
+  const client = createClient("https://example.invalid", "test-key", { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: { fetch: () => {
     reads++;
     return Promise.resolve(new Response(JSON.stringify({ version: 1 }), { headers: { "Content-Type": "application/json" } }));
   } } });
@@ -76,4 +76,41 @@ Deno.test("un conflicto concurrente no relee ni responde éxito y no filtra deta
   }) }));
   assertEquals(response.status, 409);
   assertEquals(reads, 1);
+});
+
+function handlerConError(error: unknown, reportar: Parameters<typeof crearHandler>[1]) {
+  return crearHandler({
+    authenticate: () => Promise.reject(error),
+    authorizeOrgRole: () => Promise.resolve(false),
+    sincronizarPerfil: () => Promise.resolve(),
+  }, reportar);
+}
+
+Deno.test("reporta fallos 5xx sin datos originales y conserva respuesta si falla telemetría", async () => {
+  for (const [error, status] of [[new Error("sensitive-provider-body"), 503],
+    [new DOMException("sensitive-timeout", "TimeoutError"), 504]] as const) {
+    let reports = 0;
+    const handler = handlerConError(error, (reported, context) => {
+      reports++;
+      assertEquals(reported instanceof Error && reported.message, `perfil_fiscal_http_${status}`);
+      assertEquals(reported instanceof Error && reported.cause, undefined);
+      assertEquals(context, { fn: "facturapi-perfil-fiscal", status_code: status });
+      return Promise.reject(new Error("telemetry unavailable"));
+    });
+    const response = await handler(new Request("https://local.test", { method: "POST" }));
+    assertEquals(response.status, status);
+    assertEquals((await response.text()).includes("sensitive"), false);
+    assertEquals(reports, 1);
+  }
+});
+
+Deno.test("errores esperados de autorización y conflicto no generan eventos Sentry", async () => {
+  for (const error of [new Error("401:invalid"), new PerfilFiscalError(403, "sin_permiso", "Sin permiso"),
+    new PerfilFiscalError(409, "perfil_cambio", "Recarga")]) {
+    let reports = 0;
+    const handler = handlerConError(error, () => { reports++; return Promise.resolve(); });
+    const response = await handler(new Request("https://local.test", { method: "POST" }));
+    assertEquals(response.status < 500, true);
+    assertEquals(reports, 0);
+  }
 });

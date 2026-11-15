@@ -1,10 +1,14 @@
 import { authenticate, authorizeOrgRole, ROLES_EMISOR_FISCAL } from "../_shared/auth.ts";
 import { handlePreflightStrict } from "../_shared/cors.ts";
 import { makeJson } from "../_shared/response.ts";
+import { captureEdgeException } from "../_shared/sentry.ts";
 import { PerfilFiscalError } from "./proveedor.ts";
 import { errorRpc, sincronizarPerfil } from "./sincronizar.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function esUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID.test(value);
+}
 interface Body {
   organization_id: string;
   ambiente: "sandbox" | "live";
@@ -22,10 +26,10 @@ function esFechaCalendario(value: unknown): boolean {
 export function parseBody(value: unknown): Body {
   if (!value || typeof value !== "object") throw new PerfilFiscalError(400, "invalid_body", "Solicitud inválida.");
   const b = value as Record<string, unknown>;
-  if (typeof b.organization_id !== "string" || !UUID.test(b.organization_id)
+  if (!esUuid(b.organization_id)
     || (b.ambiente !== "sandbox" && b.ambiente !== "live")
     || (b.accion !== "consultar" && b.accion !== "sincronizar" && b.accion !== "confirmar")
-    || (b.accion === "confirmar" && (typeof b.perfil_id !== "string" || !UUID.test(b.perfil_id)))
+    || (b.accion === "confirmar" && !esUuid(b.perfil_id))
     || (b.vigente_desde != null && !esFechaCalendario(b.vigente_desde))) {
     throw new PerfilFiscalError(400, "invalid_body", "Revisa la organización, ambiente y datos de la solicitud.");
   }
@@ -41,7 +45,17 @@ function versionDe(data: unknown): number {
 }
 
 const defaults = { authenticate, authorizeOrgRole, sincronizarPerfil };
-export function crearHandler(deps = defaults) {
+
+function responderError(error: unknown, json: ReturnType<typeof makeJson>): Response {
+  if (error instanceof PerfilFiscalError) return json({ error: error.code, message: error.message }, error.status);
+  if (error instanceof SyntaxError) return json({ error: "invalid_body", message: "Solicitud inválida." }, 400);
+  const message = error instanceof Error ? error.message : "";
+  if (message.startsWith("401:")) return json({ error: "unauthorized", message: "Inicia sesión para consultar el perfil fiscal." }, 401);
+  const timeout = error instanceof DOMException && ["TimeoutError", "AbortError"].includes(error.name);
+  return json({ error: timeout ? "facturapi_timeout" : "perfil_no_disponible",
+    message: timeout ? "Facturapi tardó demasiado. Intenta nuevamente." : "No se pudo consultar el perfil fiscal. Intenta nuevamente." }, timeout ? 504 : 503);
+}
+export function crearHandler(deps = defaults, reportar = captureEdgeException) {
   return async (req: Request): Promise<Response> => {
     const preflight = handlePreflightStrict(req);
     if (preflight) return preflight;
@@ -59,8 +73,8 @@ export function crearHandler(deps = defaults) {
       if (current.error) errorRpc(current.error);
       if (body.accion === "consultar") return json(current.data);
       if (body.accion === "sincronizar") {
-        await deps.sincronizarPerfil(auth.adminClient, body.organization_id,
-          body.ambiente, auth.userId, versionDe(current.data));
+        await deps.sincronizarPerfil(auth.adminClient, { orgId: body.organization_id,
+          ambiente: body.ambiente, actor: auth.userId, version: versionDe(current.data) });
         const result = await read();
         if (result.error) errorRpc(result.error);
         return json(result.data);
@@ -71,13 +85,15 @@ export function crearHandler(deps = defaults) {
       if (confirmed.error) errorRpc(confirmed.error);
       return json(confirmed.data);
     } catch (error) {
-      if (error instanceof PerfilFiscalError) return json({ error: error.code, message: error.message }, error.status);
-      if (error instanceof SyntaxError) return json({ error: "invalid_body", message: "Solicitud inválida." }, 400);
-      const message = error instanceof Error ? error.message : "";
-      if (message.startsWith("401:")) return json({ error: "unauthorized", message: "Inicia sesión para consultar el perfil fiscal." }, 401);
-      const timeout = error instanceof DOMException && ["TimeoutError", "AbortError"].includes(error.name);
-      return json({ error: timeout ? "facturapi_timeout" : "perfil_no_disponible",
-        message: timeout ? "Facturapi tardó demasiado. Intenta nuevamente." : "No se pudo consultar el perfil fiscal. Intenta nuevamente." }, timeout ? 504 : 503);
+      const response = responderError(error, json);
+      if (response.status >= 500) {
+        // Report only the resulting HTTP class, never provider bodies, keys,
+        // fiscal data or the original exception/cause.
+        await reportar(new Error(`perfil_fiscal_http_${response.status}`), {
+          fn: "facturapi-perfil-fiscal", status_code: response.status,
+        }).catch(() => undefined);
+      }
+      return response;
     }
   };
 }

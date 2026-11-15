@@ -21,7 +21,7 @@ import { FacturaEmitidaMobileCard } from "@/features/facturacion/components/Fact
 import EmptyState from "@/components/empty/EmptyState";
 import { usePermissions } from "@/hooks/shared";
 import type { Factura } from "@/features/facturacion/routes/facturacionColumns";
-import type { ChipItem } from "@/hooks/shared/useTableFilters";
+import { buildFacturasEmitidasChips } from "./facturasEmitidasChips";
 import type { Database } from "@/types/db";
 import { rangoLabel } from "@/lib/ui/rangoFechasCopy";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
@@ -50,19 +50,7 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Props
     [t.columns],
   );
 
-  const chips = useMemo<ChipItem[]>(() => {
-    const c: ChipItem[] = [];
-    if (f.filterEstado && f.filterEstado !== "todos") {
-      c.push({ key: "estado", label: `Estado: ${f.filterEstado}`, onRemove: () => f.setFilter("estado", "todos") });
-    }
-    if (f.filterCliente && f.filterCliente !== "todos") {
-      const cl = f.clientes.find((x) => x.id === f.filterCliente);
-      c.push({ key: "cliente", label: `Cliente: ${cl?.nombre ?? f.filterCliente}`, onRemove: () => f.setFilter("cliente", "todos") });
-    }
-    if (f.fechaDesde) c.push({ key: "desde", label: `Desde: ${f.fechaDesde}`, onRemove: () => f.setFechaDesde("") });
-    if (f.fechaHasta) c.push({ key: "hasta", label: `Hasta: ${f.fechaHasta}`, onRemove: () => f.setFechaHasta("") });
-    return c;
-  }, [f]);
+  const chips = useMemo(() => buildFacturasEmitidasChips(f), [f]);
   const hayFiltros = Boolean(f.search || chips.length);
   const primarySlot = (
     <>

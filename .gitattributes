@@ -20,4 +20,5 @@ docs/ci/workflow-archive/closed-labs-20261016/*.yml.txt -text
 /drizzle/migrations/*.sql text eol=lf
 /scripts/ci/drizzle-history/**/*.sql text eol=lf
 /scripts/ci/drizzle-history/**/*.json text eol=lf
+/docs/deployment/perfil-fiscal-etapa1-20261115/*.sql text eol=lf
 

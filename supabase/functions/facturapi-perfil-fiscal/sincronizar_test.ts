@@ -5,7 +5,7 @@ import { PerfilFiscalError } from "./proveedor.ts";
 
 function cliente(options: { readError?: boolean; saveError?: boolean } = {}) {
   const writes: unknown[] = [];
-  const admin = createClient("https://example.invalid", "test-key", { auth: { persistSession: false }, global: {
+  const admin = createClient("https://example.invalid", "test-key", { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: {
     fetch: async (input, init) => {
       const rpc = String(input).includes("/rpc/");
       if (rpc) writes.push(JSON.parse(String(init?.body)));
@@ -26,7 +26,7 @@ Deno.test("sincroniza con la llave del ambiente solicitado y registra la procede
   try {
     for (const ambiente of ["sandbox", "live"] as const) {
       const { admin, writes } = cliente();
-      await sincronizarPerfil(admin, "org-a", ambiente, "actor-a", 2, (key) => {
+      await sincronizarPerfil(admin, { orgId: "org-a", ambiente, actor: "actor-a", version: 2 }, (key) => {
         assertEquals(key, ambiente === "live" ? "sk_live_fixture" : "sk_test_fixture"); return Promise.resolve(perfil);
       });
       assertEquals(writes, [{ p_org_id: "org-a", p_ambiente: ambiente, p_actor: "actor-a",
@@ -38,21 +38,21 @@ Deno.test("una llave de otro ambiente bloquea la consulta del proveedor", async 
   Deno.env.set("PERFIL_QA_TEST_KEY", "sk_live_fixture");
   try {
     let requests = 0;
-    const error = await assertRejects(() => sincronizarPerfil(cliente().admin, "org", "sandbox", "actor", 0,
+    const error = await assertRejects(() => sincronizarPerfil(cliente().admin, { orgId: "org", ambiente: "sandbox", actor: "actor", version: 0 },
       () => { requests++; return Promise.resolve(perfil); }), PerfilFiscalError);
     assertEquals(error.status, 412); assertEquals(requests, 0);
   } finally { Deno.env.delete("PERFIL_QA_TEST_KEY"); }
 });
 Deno.test("fallo al leer credenciales no llama al proveedor", async () => {
   let requests = 0;
-  await assertRejects(() => sincronizarPerfil(cliente({ readError: true }).admin, "org", "live", "actor", 0,
+  await assertRejects(() => sincronizarPerfil(cliente({ readError: true }).admin, { orgId: "org", ambiente: "live", actor: "actor", version: 0 },
     () => { requests++; return Promise.resolve(perfil); }), PerfilFiscalError);
   assertEquals(requests, 0);
 });
 Deno.test("un conflicto al persistir no se presenta como sincronización exitosa", async () => {
   Deno.env.set("PERFIL_QA_TEST_KEY", "sk_test_fixture");
   try {
-    const error = await assertRejects(() => sincronizarPerfil(cliente({ saveError: true }).admin, "org", "sandbox", "actor", 0,
+    const error = await assertRejects(() => sincronizarPerfil(cliente({ saveError: true }).admin, { orgId: "org", ambiente: "sandbox", actor: "actor", version: 0 },
       () => Promise.resolve(perfil)), PerfilFiscalError);
     assertEquals(error.status, 409);
   } finally { Deno.env.delete("PERFIL_QA_TEST_KEY"); }
@@ -63,7 +63,7 @@ Deno.test("cada organización resuelve su propia llave sin reutilizar la de otro
   Deno.env.set(secrets["org-a"], "sk_test_emisor_a");
   Deno.env.set(secrets["org-b"], "sk_test_emisor_b");
   const writes: string[] = [];
-  const admin = createClient("https://example.invalid", "test-key", { auth: { persistSession: false }, global: {
+  const admin = createClient("https://example.invalid", "test-key", { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: {
     fetch: async (input, init) => {
       const url = new URL(String(input));
       if (url.pathname.endsWith("/rpc/registrar_perfil_fiscal_emisor")) {
@@ -80,7 +80,7 @@ Deno.test("cada organización resuelve su propia llave sin reutilizar la de otro
   } });
   try {
     await Promise.all([["org-a", "sk_test_emisor_a"], ["org-b", "sk_test_emisor_b"]].map(async ([org, key]) => {
-      await sincronizarPerfil(admin, org, "sandbox", "actor", 0, (actual) => {
+      await sincronizarPerfil(admin, { orgId: org, ambiente: "sandbox", actor: "actor", version: 0 }, (actual) => {
         assertEquals(actual, key); return Promise.resolve({ ...perfil, facturapi_org_id: org });
       });
     }));
@@ -91,7 +91,7 @@ Deno.test("cada organización resuelve su propia llave sin reutilizar la de otro
 Deno.test("respuestas concurrentes usan versión esperada: sólo una se acepta", async () => {
   Deno.env.set("PERFIL_QA_RACE_KEY", "sk_test_race_fixture");
   let version = 0; let providerCalls = 0; let saves = 0;
-  const admin = createClient("https://example.invalid", "test-key", { auth: { persistSession: false }, global: {
+  const admin = createClient("https://example.invalid", "test-key", { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: {
     fetch: (input, init) => {
       if (String(input).includes("/rpc/registrar_perfil_fiscal_emisor")) {
         const payload = JSON.parse(String(init?.body));
@@ -110,8 +110,8 @@ Deno.test("respuestas concurrentes usan versión esperada: sólo una se acepta",
   try {
     const provider = () => { providerCalls++; return Promise.resolve(perfil); };
     const results = await Promise.allSettled([
-      sincronizarPerfil(admin, "org-a", "sandbox", "actor-a", 0, provider),
-      sincronizarPerfil(admin, "org-a", "sandbox", "actor-a", 0, provider),
+      sincronizarPerfil(admin, { orgId: "org-a", ambiente: "sandbox", actor: "actor-a", version: 0 }, provider),
+      sincronizarPerfil(admin, { orgId: "org-a", ambiente: "sandbox", actor: "actor-a", version: 0 }, provider),
     ]);
     assertEquals(providerCalls, 2); assertEquals(saves, 1);
     assertEquals(results.filter((r) => r.status === "fulfilled").length, 1);
@@ -125,7 +125,7 @@ Deno.test("rotación durante la consulta conserva timestamp original y reporta c
   try {
     const { admin, writes } = cliente({ saveError: true });
     let consulted = false;
-    const error = await assertRejects(() => sincronizarPerfil(admin, "org-a", "sandbox", "actor-a", 7, () => {
+    const error = await assertRejects(() => sincronizarPerfil(admin, { orgId: "org-a", ambiente: "sandbox", actor: "actor-a", version: 7 }, () => {
       consulted = true;
       return Promise.resolve(perfil);
     }), PerfilFiscalError);

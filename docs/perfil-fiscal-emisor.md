@@ -81,8 +81,9 @@ hashes y admisiones de 0066–0068 están registrados por separado.
 - Frontend fiscal: **23 pruebas** focales. Regresión de los flujos existentes:
   **133 pruebas en 19 suites** sobre el código actualizado, sin skips ni fallos
   (Embarques, Facturación, DataTable y antigüedad de CxC/CxP).
-  Edge: **19 pruebas**, más **3 del runner**,
-  sin permitir red durante las pruebas unitarias.
+  Edge y runner sandbox: **22 pruebas** (8 de handler, 4 de proveedor,
+  7 de sincronización y 3 del runner), sin permitir red durante las pruebas
+  unitarias y con sanitizadores de operaciones y recursos habilitados.
 - Contratos de historia/modelo: **125 pruebas**. Auditores de migraciones,
   espejos, funciones canónicas, columnas, RPC y manifest aprobados.
 - Contratos del catálogo, evidencia y aislamiento de CI y preservación SQL de

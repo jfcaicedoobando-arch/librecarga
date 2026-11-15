@@ -19,8 +19,15 @@ export function errorRpc(error: { code?: string; message?: string }): never {
   throw new PerfilFiscalError(503, "perfil_no_disponible", "No se pudo guardar o consultar el perfil fiscal. Intenta nuevamente.");
 }
 
+interface SolicitudSincronizacion {
+  orgId: string;
+  ambiente: FacturapiAmbiente;
+  actor: string;
+  version: number;
+}
+
 export async function sincronizarPerfil(
-  admin: SupabaseClient, orgId: string, ambiente: FacturapiAmbiente, actor: string, version: number,
+  admin: SupabaseClient, { orgId, ambiente, actor, version }: SolicitudSincronizacion,
   consultar = consultarPerfilProveedor,
 ) {
   const { data: cred, error } = await admin.from("facturapi_credenciales")

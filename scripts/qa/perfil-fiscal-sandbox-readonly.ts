@@ -6,6 +6,10 @@
  */
 import { consultarPerfilProveedor } from "../../supabase/functions/facturapi-perfil-fiscal/proveedor.ts";
 
+function esLlaveSandbox(key: string | undefined): key is string {
+  return !!key && key.trim() === key && /^sk_test_\S+$/.test(key);
+}
+
 export async function verificarSandbox(
   key: string | undefined,
   consultar = consultarPerfilProveedor,
@@ -13,7 +17,7 @@ export async function verificarSandbox(
 ) {
   const failed = { ambiente: "sandbox", org_match: false, rfc_masked: null, regimen: null, tipo_perfil: "no_identificado", success: false };
   // Fail closed before any request; never fall back to a live/global key.
-  if (!key || key.trim() !== key || !/^sk_test_\S+$/.test(key)
+  if (!esLlaveSandbox(key)
     || !expectedOrgId || expectedOrgId.trim() !== expectedOrgId || expectedOrgId.length > 100) return failed;
   try {
     const profile = await consultar(key);
