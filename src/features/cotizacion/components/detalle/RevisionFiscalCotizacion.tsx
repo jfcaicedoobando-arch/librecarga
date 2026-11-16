@@ -17,24 +17,19 @@ type Props = { cotizacion: CotizacionRow; fiscal: SnapshotFiscalCotizacion };
 export function RevisionFiscalCotizacion(props: Props) {
   const [abierta, setAbierta] = useState(false);
   const disparador = useRef<HTMLButtonElement>(null);
-  const restaurarFoco = (event: Event) => {
-    if (disparador.current) {
-      event.preventDefault();
-      disparador.current.focus();
-    }
+  const cerrar = () => {
+    setAbierta(false);
+    requestAnimationFrame(() => disparador.current?.focus());
   };
   return (
     <>
       <Button ref={disparador} variant="outline" size="sm" onClick={() => setAbierta(true)}>Revisar ISR RESICO</Button>
-      {abierta && <DialogoRevision {...props} cerrar={() => setAbierta(false)} restaurarFoco={restaurarFoco} />}
+      {abierta && <DialogoRevision {...props} cerrar={cerrar} />}
     </>
   );
 }
 
-function DialogoRevision({ cotizacion, fiscal, cerrar, restaurarFoco }: Props & {
-  cerrar: () => void;
-  restaurarFoco: (event: Event) => void;
-}) {
+function DialogoRevision({ cotizacion, fiscal, cerrar }: Props & { cerrar: () => void }) {
   const [motivo, setMotivo] = useState("");
   const revision = useRevisionFiscalCotizacion(cotizacion.id);
   const scope = usePricingScope();
@@ -48,7 +43,6 @@ function DialogoRevision({ cotizacion, fiscal, cerrar, restaurarFoco }: Props & 
     <FormDialogShell
       open
       onOpenChange={(open) => { if (!open && !revision.isPending) cerrar(); }}
-      onCloseAutoFocus={restaurarFoco}
       icon={FileCheck2}
       title="Revisión fiscal de la cotización"
       description="Compara el desglose aprobado con el vigente. La cotización volverá a borrador para autorizar los importes de nuevo."

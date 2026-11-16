@@ -33,7 +33,6 @@ export type FormDialogBusyState = {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCloseAutoFocus?: (event: Event) => void;
   icon: LucideIcon;
   title: ReactNode;
   description?: ReactNode;
@@ -78,7 +77,6 @@ interface Props {
 export function FormDialogShell({
   open,
   onOpenChange,
-  onCloseAutoFocus,
   icon: Icon,
   title,
   description,
@@ -128,7 +126,6 @@ export function FormDialogShell({
 
           alto disponible: antes el cuerpo scrolleable quedaba en ~290 px. */}
       <DialogContent
-        onCloseAutoFocus={onCloseAutoFocus}
         className={cn(
           dialogSize[size],
           "max-h-[92vh] short:max-h-[calc(100dvh-1.5rem)] flex flex-col gap-0 p-0",
