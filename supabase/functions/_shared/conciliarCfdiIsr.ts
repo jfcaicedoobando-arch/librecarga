@@ -1,6 +1,7 @@
 import { Decimal } from "npm:decimal.js@10.6.0";
-import { decodeXmlEntities, parseCfdi } from "./cfdiParser.ts";
+import { parseCfdi } from "./cfdiParser.ts";
 import { normalizarUsoCfdi } from "./usoCfdiEfectivo.ts";
+import { atributo, importe, nodos } from "./xmlConciliacionCfdi.ts";
 
 export interface TotalesIsr {
   moneda: string;
@@ -34,20 +35,6 @@ export interface DocumentoFacturapiIsr {
   series?: string;
   currency?: string;
   total?: number;
-}
-
-function atributo(nodo: string, nombre: string): string | null {
-  const valor = new RegExp(`\\s${nombre}\\s*=\\s*(["'])([^"'<>]*?)\\1`, "i").exec(nodo)?.[2];
-  return valor == null ? null : decodeXmlEntities(valor);
-}
-
-function importe(valor: string | number | null | undefined): Decimal {
-  if (valor == null || !/^\d+(?:\.\d+)?$/.test(String(valor))) throw new Error("importe_cfdi_invalido");
-  return new Decimal(valor);
-}
-
-function nodos(xml: string, nombre: string): string[] {
-  return xml.match(new RegExp(`<(?:[\\w.-]+:)?${nombre}(?=[\\s/>])[^>]*>`, "gi")) ?? [];
 }
 
 function impuestosRaiz(xml: string) {

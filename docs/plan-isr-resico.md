@@ -151,6 +151,8 @@ El REP y la nota de crédito usan el receptor guardado en el CFDI original y ver
 
 La 0080 concilia y recupera notas de crédito. La nota conserva la reserva hasta comprobar el XML y el UUID de la factura relacionada. Se revisan el subtotal, el IVA, ambas retenciones, el total y la identidad fiscal antes de aplicar el crédito a cartera. Un XML discordante conserva el mismo intento. Se verificó la recuperación, el rechazo definitivo y el registro idempotente con datos sintéticos. La cancelación usa el ambiente guardado en la nota y, si se solicita una sustitución, exige que el comprobante sustituto pertenezca a esa organización y ambiente.
 
+El verificador del REP ya comprueba el intento, la identidad fiscal, la parcialidad y los saldos en un XML de Pagos 2.0. Valida los impuestos en moneda de la factura y del pago, además de los totales en MXN. Las pruebas con XML sintético obtuvieron $1.81 de IVA retenido en la parcialidad de $50 MXN y $1.44 en la parcialidad de $2 USD aplicada por $40 MXN. Cartera estimaba $1.80 y $1.45. Falta integrar el verificador a la emisión y recuperación, y registrar en cartera las retenciones del XML verificado.
+
 1. Usar el neto aprobado en cartera y distinguir efectivo recibido de ISR retenido. Revisar `calc_pago_retenciones` con pagos parciales PPD, complemento de pago (REP), liquidación final, otra moneda y residuos de centavos. El pago toma los datos fiscales de la factura origen.
 2. Preservar tasas y `concepto_factura_id` en notas de crédito, limitar el crédito disponible y comprobar el efecto en cartera antes y después de un pago. Probar coexistencia de retenciones de ISR e IVA, cancelación y sustitución a partir de los datos fiscales de los CFDI originales.
 
