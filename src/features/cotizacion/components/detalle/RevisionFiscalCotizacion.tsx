@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FileCheck2 } from "lucide-react";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { SectionHeading } from "@/components/shared/SectionHeading";
@@ -16,15 +16,25 @@ type Props = { cotizacion: CotizacionRow; fiscal: SnapshotFiscalCotizacion };
 
 export function RevisionFiscalCotizacion(props: Props) {
   const [abierta, setAbierta] = useState(false);
+  const disparador = useRef<HTMLButtonElement>(null);
+  const restaurarFoco = (event: Event) => {
+    if (disparador.current) {
+      event.preventDefault();
+      disparador.current.focus();
+    }
+  };
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setAbierta(true)}>Revisar ISR RESICO</Button>
-      {abierta && <DialogoRevision {...props} cerrar={() => setAbierta(false)} />}
+      <Button ref={disparador} variant="outline" size="sm" onClick={() => setAbierta(true)}>Revisar ISR RESICO</Button>
+      {abierta && <DialogoRevision {...props} cerrar={() => setAbierta(false)} restaurarFoco={restaurarFoco} />}
     </>
   );
 }
 
-function DialogoRevision({ cotizacion, fiscal, cerrar }: Props & { cerrar: () => void }) {
+function DialogoRevision({ cotizacion, fiscal, cerrar, restaurarFoco }: Props & {
+  cerrar: () => void;
+  restaurarFoco: (event: Event) => void;
+}) {
   const [motivo, setMotivo] = useState("");
   const revision = useRevisionFiscalCotizacion(cotizacion.id);
   const scope = usePricingScope();
@@ -38,6 +48,7 @@ function DialogoRevision({ cotizacion, fiscal, cerrar }: Props & { cerrar: () =>
     <FormDialogShell
       open
       onOpenChange={(open) => { if (!open && !revision.isPending) cerrar(); }}
+      onCloseAutoFocus={restaurarFoco}
       icon={FileCheck2}
       title="Revisión fiscal de la cotización"
       description="Compara el desglose aprobado con el vigente. La cotización volverá a borrador para autorizar los importes de nuevo."
