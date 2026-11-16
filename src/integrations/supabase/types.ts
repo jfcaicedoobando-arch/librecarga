@@ -1698,6 +1698,7 @@ export type Database = {
         Row: {
           aplica_iva: boolean
           cantidad: number
+          cotizacion_concepto_origen_id: string | null
           contenedor_id: string | null
           created_at: string
           deleted_at: string | null
@@ -1722,6 +1723,7 @@ export type Database = {
         Insert: {
           aplica_iva?: boolean
           cantidad?: number
+          cotizacion_concepto_origen_id?: string | null
           contenedor_id?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -1746,6 +1748,7 @@ export type Database = {
         Update: {
           aplica_iva?: boolean
           cantidad?: number
+          cotizacion_concepto_origen_id?: string | null
           contenedor_id?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -12705,6 +12708,13 @@ export type Database = {
         Args: { p_cuenta_bancaria_id: string; p_desde: string; p_hasta: string }
         Returns: Json
       }
+      evaluar_documento_isr_resico: {
+        Args: { p_org_id: string; p_cliente_id: string | null; p_conceptos: Json; p_cotizacion_id?: string; p_embarque_id?: string }
+        Returns: Json
+      }
+      obtener_evaluacion_fiscal_embarque: { Args: { p_embarque_id: string }; Returns: Json }
+      revisar_cotizacion_fiscal: { Args: { p_cotizacion_id: string; p_expected_fingerprint: string; p_motivo: string }; Returns: Json }
+      validar_cotizacion_fiscal_envio: { Args: { p_cotizacion_id: string; p_expected_fingerprint: string | null; p_usuario_id: string }; Returns: Json }
       evaluar_isr_resico: {
         Args: {
           p_ambiente: string

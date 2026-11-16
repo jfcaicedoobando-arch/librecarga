@@ -498,6 +498,13 @@
       "when": 1794694500005,
       "tag": "0070_factura_resico_totales_agrupados",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1794694500006,
+      "tag": "0071_isr_resico_cotizacion_embarque",
+      "breakpoints": true
     }
   ]
 }

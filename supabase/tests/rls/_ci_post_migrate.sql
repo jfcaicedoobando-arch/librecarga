@@ -1,5 +1,6 @@
 \ir _ci_check_isr_resico_acl.sql
 \ir _ci_check_factura_resico_totales_acl.sql
+\ir _ci_check_isr_resico_comercial_acl.sql
 \ir _ci_check_perfil_fiscal_acl.sql
 -- Verify the real replay state before any harness grant can mask drift.
 \ir _ci_check_global_catalog_acl.sql
@@ -358,5 +359,16 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN
 -- Restore exact stage-2 ACL after blanket CI grants.
 REVOKE ALL ON FUNCTION public._evaluar_isr_resico(uuid,uuid,text,numeric,numeric,text), public._isr_guard_concepto(), public._isr_guard_cotizacion(), public._isr_guard_padre(), public._isr_guard_conversion_factura() FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.evaluar_isr_resico(uuid,uuid,text,numeric,numeric,text) FROM PUBLIC,anon,service_role;
+-- Restore stage-3 fiscal history and RPC boundaries after blanket grants.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN
+  ON public.cotizacion_revisiones_fiscales FROM authenticated, service_role;
+REVOKE ALL ON FUNCTION public._isr_documento_habilitado(uuid),
+  public._isr_snapshot_documento(uuid,uuid,text,jsonb),
+  public._evaluar_documento_isr_resico(uuid,uuid,jsonb) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.evaluar_documento_isr_resico(uuid,uuid,jsonb,uuid,uuid),
+  public.obtener_evaluacion_fiscal_embarque(uuid), public.revisar_cotizacion_fiscal(uuid,text,text)
+  FROM PUBLIC,anon,service_role;
+REVOKE ALL ON FUNCTION public.validar_cotizacion_fiscal_envio(uuid,text,uuid) FROM PUBLIC,anon,authenticated;
 \ir _ci_check_isr_resico_acl.sql
 \ir _ci_check_factura_resico_totales_acl.sql
+\ir _ci_check_isr_resico_comercial_acl.sql

@@ -103,10 +103,11 @@ BEGIN
   bloqueado:=false;
   BEGIN UPDATE public.conceptos_venta SET embarque_id=embarque WHERE id=legado_otro; EXCEPTION WHEN check_violation THEN bloqueado:=true; END;
   PERFORM pg_temp.assert(bloqueado,'cannot move legacy replacement into evaluated parent');
-  bloqueado:=false;
-  BEGIN INSERT INTO public.conceptos_venta(organization_id,embarque_id,descripcion,cantidad,precio_unitario,total)
-    VALUES(org_a,embarque,'replacement legacy',1,200,200); EXCEPTION WHEN check_violation THEN bloqueado:=true; END;
-  PERFORM pg_temp.assert(bloqueado,'cannot append unevaluated replacement to evaluated parent');
+  INSERT INTO public.conceptos_venta(organization_id,embarque_id,descripcion,cantidad,precio_unitario,total,tipo_iva)
+    VALUES(org_a,embarque,'replacement legacy',1,200,200,'gravado_16');
+  PERFORM pg_temp.assert((SELECT evaluacion_fiscal->>'estado'='aplica' AND monto_ret_isr=2.50
+    FROM public.conceptos_venta WHERE embarque_id=embarque AND descripcion='replacement legacy'),
+    'new sibling of an evaluated concept is automatically evaluated');
   bloqueado:=false;
   BEGIN UPDATE public.embarques SET cliente_id=pf WHERE id=embarque; EXCEPTION WHEN check_violation THEN bloqueado:=true; END;
   PERFORM pg_temp.assert(bloqueado,'cannot change receiver behind snapshot');

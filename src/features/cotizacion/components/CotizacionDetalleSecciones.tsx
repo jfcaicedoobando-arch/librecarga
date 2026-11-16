@@ -44,6 +44,7 @@ interface AccionesProps {
   /** P0 — la conversión exige oportunidad ligada (cotización ganadora). */
   tieneOportunidad?: boolean;
   autorizacionInterna?: AutorizacionInterna;
+  fiscalPendiente?: boolean;
 
 }
 
@@ -100,14 +101,14 @@ export function CotizacionDetalleAcciones(props: AccionesProps) {
 
 function resolverAcciones({ estado, total, rol, creadaPor, usuarioActual, esProspecto,
   requiereAutorizacionCliente = true, tieneEmbarquesVinculados = false,
-  puedeAltaCliente = false, tieneOportunidad = false, autorizacionInterna = {},
+  puedeAltaCliente = false, tieneOportunidad = false, autorizacionInterna = {}, fiscalPendiente = false,
 }: AccionesProps) {
   const { clienteEspecial = false, autorizadaAt = null } = autorizacionInterna;
   const base = accionesCotizacionPermitidas(estado, total, rol, { creadaPor, usuarioActual }, requiereAutorizacionCliente);
   // Sin autorización interna no se envía ni se acepta desde captura (la base también lo bloquea).
   const bloqueada = !clienteEspecial && requiereAutorizacionParaAvanzar(estado, autorizadaAt);
   // Fase 3b: un prospecto no sale de borrador; primero se da de alta como cliente.
-  const frenada = bloqueada || esProspecto;
+  const frenada = bloqueada || esProspecto || fiscalPendiente;
   const acciones = { ...base, enviar: base.enviar && !frenada, aceptar: base.aceptar && !frenada };
   const visibilidad = visibilidadAcciones({
     estado,
@@ -118,7 +119,7 @@ function resolverAcciones({ estado, total, rol, creadaPor, usuarioActual, esPros
     puedeAltaCliente,
     tieneOportunidad,
     tieneVenta: Number(total) > 0,
-    puedeCrearEmbarque: acciones.crearEmbarque,
+    puedeCrearEmbarque: acciones.crearEmbarque && !fiscalPendiente,
     puedeRecotizar: puedeEscribirCotizaciones(rol),
   });
 

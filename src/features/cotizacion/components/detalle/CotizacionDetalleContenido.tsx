@@ -6,8 +6,6 @@
 import { EnviarCotizacionDialog } from "@/features/cotizacion/components/detalle/EnviarCotizacionDialog";
 import { HistorialEnviosCard } from "@/features/cotizacion/components/detalle/HistorialEnviosCard";
 import SeccionCostosInternosPLUnificado from "@/features/cotizacion/components/SeccionCostosInternosPLUnificado";
-import TablaConceptosGenerico from "@/features/cotizacion/components/TablaConceptosGenerico";
-import ResumenTotalesCotizacion from "@/features/cotizacion/components/ResumenTotalesCotizacion";
 import DialogConvertirProspecto from "@/features/cotizacion/components/DialogConvertirProspecto";
 import SeccionMercanciaCotizacionDetalle from "@/features/cotizacion/components/SeccionMercanciaCotizacionDetalle";
 import { CotizacionDetalleEmbarques, CotizacionDetalleAcciones } from "@/features/cotizacion/components/CotizacionDetalleSecciones";
@@ -24,6 +22,8 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { useClienteAutorizacion } from "@/features/cliente/hooks/useClienteAutorizacion";
 import { usePermissions } from "@/hooks/shared";
 import { CotizacionHandover } from "./CotizacionHandover";
+import { CotizacionDetalleResumen } from "./CotizacionDetalleResumen";
+import { fiscalDetalleCotizacion } from "../../domain/fiscalDetalleCotizacion";
 import type { CotizacionDetalleContenidoProps as Props } from "./cotizacionDetalleContenido.types";
 
 function datosAutorizacion(cotizacion: Props["cotizacion"], clienteEspecial: boolean) {
@@ -47,7 +47,7 @@ export function CotizacionDetalleContenido({
 
   const {
     tasaIva, conceptosVentaUSD, conceptosVentaMXN,
-    totalUSD, subtotalUSD, ivaUSD, subtotalMXN, ivaMXN, totalMXN, conceptosDescartados,
+    totalUSD, totalMXN, conceptosDescartados,
   } = totales;
   const { showConvertir, setShowConvertir, enviarOpen, setEnviarOpen } = dialogos;
   const {
@@ -59,6 +59,8 @@ export function CotizacionDetalleContenido({
   const { autorizacion } = useClienteAutorizacion(
     (cotizacion as { cliente_id?: string | null }).cliente_id ?? null,
   );
+  const { fiscal, fiscalPendiente, permiteRevision } =
+    fiscalDetalleCotizacion(cotizacion, effectiveRole, canWriteCotizaciones, embarquesVinculados.length > 0);
   return (
     <>
       <CotizacionInactivaBanner
@@ -92,7 +94,8 @@ export function CotizacionDetalleContenido({
           tieneEmbarquesVinculados={embarquesVinculados.length > 0 || !!cotizacion.embarque_id}
           onCambiarEstado={handleCambiarEstado}
           onAbrirConvertir={abrirDialogConvertir}
-          total={totalUSD + totalMXN}
+          total={Math.max(totalUSD, totalMXN)}
+          fiscalPendiente={fiscalPendiente}
           rol={effectiveRole}
           usuarioActual={user?.id ?? null}
           requiereAutorizacionCliente={autorizacion.requiereAutorizacionCotizacion}
@@ -127,17 +130,7 @@ export function CotizacionDetalleContenido({
         conceptosValidos={conceptosVentaUSD.length + conceptosVentaMXN.length}
       />
 
-      {/* VIS-CE-251-06: el detalle USD ahora explica subtotal/IVA igual que MXN. */}
-      <TablaConceptosGenerico moneda="USD" conceptos={conceptosVentaUSD} subtotal={subtotalUSD} iva={ivaUSD} total={totalUSD} showTotal={false} />
-      <TablaConceptosGenerico moneda="MXN" conceptos={conceptosVentaMXN} subtotal={subtotalMXN} iva={ivaMXN} total={totalMXN} showTotal={false} />
-      <ResumenTotalesCotizacion
-        totalUSD={totalUSD}
-        totalMXN={totalMXN}
-        ivaUSD={ivaUSD}
-        ivaMXN={ivaMXN}
-        mostrarUSD={conceptosVentaUSD.length > 0}
-        mostrarMXN={conceptosVentaMXN.length > 0}
-      />
+      <CotizacionDetalleResumen totales={totales} fiscal={fiscal} cotizacion={cotizacion} permiteRevision={permiteRevision} />
 
       {canEdit && (
         <SeccionCostosInternosPLUnificado

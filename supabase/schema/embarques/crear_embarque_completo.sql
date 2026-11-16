@@ -9,6 +9,8 @@ DECLARE
   nuevo_id uuid := gen_random_uuid();
   v_org_id uuid; v_resp jsonb;
   v_cot_id uuid;
+  v_cot public.cotizaciones;
+  v_aprobada jsonb;
   cv jsonb; cc jsonb; doc jsonb; ct jsonb;
 BEGIN
   PERFORM public._assert_medidas_embarque(p_embarque);
@@ -25,6 +27,24 @@ BEGIN
   v_resp := public.idempotency_claim(p_request_id, 'crear_embarque_completo');
   IF v_resp IS NOT NULL THEN RETURN v_resp; END IF;
   PERFORM public._assert_cotizacion_convertible(v_cot_id, v_org_id);
+  SELECT * INTO v_cot FROM public.cotizaciones WHERE id = v_cot_id;
+  IF v_cot.evaluacion_fiscal IS NOT NULL THEN
+    -- El alta por formulario debe copiar la misma venta que la conversión.
+    IF v_cot.evaluacion_fiscal->>'estado' IS DISTINCT FROM 'confirmado'
+      OR v_cot.cliente_id IS DISTINCT FROM NULLIF(p_embarque->>'cliente_id','')::uuid
+      OR (public._evaluar_documento_isr_resico(v_org_id, v_cot.cliente_id, v_cot.conceptos_venta)->'conceptos')
+        IS DISTINCT FROM v_cot.conceptos_venta THEN
+      RAISE EXCEPTION 'LC_ISR_REVISION_REQUERIDA' USING ERRCODE = '23514';
+    END IF;
+    IF jsonb_typeof(p_conceptos_venta) IS DISTINCT FROM 'array'
+      OR jsonb_array_length(p_conceptos_venta) <> jsonb_array_length(v_cot.conceptos_venta)
+      OR EXISTS (
+        SELECT 1 FROM jsonb_array_elements(p_conceptos_venta) c
+        GROUP BY c->>'cotizacion_concepto_origen_id' HAVING count(*) > 1
+      ) THEN
+      RAISE EXCEPTION 'LC_ISR_LINAJE_INVALIDO' USING ERRCODE = '23514';
+    END IF;
+  END IF;
   IF NULLIF(p_embarque->>'tarifa_id', '') IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM public.costeo_tarifas t
     WHERE t.id = (p_embarque->>'tarifa_id')::uuid AND t.organization_id = v_org_id
@@ -82,14 +102,35 @@ BEGIN
     NULLIF(p_embarque->>'notas', '')
   );
   FOR cv IN SELECT * FROM jsonb_array_elements(p_conceptos_venta) LOOP
+    IF COALESCE((cv->>'tasa_ret_iva')::numeric, 0) <> 0 THEN
+      RAISE EXCEPTION 'LC_ISR_RETENCION_NO_SOPORTADA' USING ERRCODE = '22023';
+    END IF;
+    IF v_cot.evaluacion_fiscal IS NOT NULL THEN
+      SELECT c INTO v_aprobada FROM jsonb_array_elements(v_cot.conceptos_venta) c
+        WHERE c->>'id' = cv->>'cotizacion_concepto_origen_id';
+      IF v_aprobada IS NULL
+        OR (cv->>'descripcion', (cv->>'cantidad')::numeric, (cv->>'precio_unitario')::numeric,
+            cv->>'moneda', NULLIF(cv->>'tipo_iva', ''))
+          IS DISTINCT FROM
+           (v_aprobada->>'descripcion', (v_aprobada->>'cantidad')::numeric,
+            (v_aprobada->>'precio_unitario')::numeric, v_aprobada->>'moneda', v_aprobada->>'tipo_iva') THEN
+        RAISE EXCEPTION 'LC_ISR_LINAJE_INVALIDO' USING ERRCODE = '23514';
+      END IF;
+      cv := v_aprobada || jsonb_build_object(
+        'total', round((v_aprobada->>'cantidad')::numeric * (v_aprobada->>'precio_unitario')::numeric, 2)
+      );
+    END IF;
     INSERT INTO conceptos_venta (embarque_id, descripcion, cantidad, precio_unitario, moneda, total,
-                                 aplica_iva, tasa_iva_aplicada, tipo_iva, organization_id)
+                                 aplica_iva, tasa_iva_aplicada, tipo_iva, organization_id,
+                                 evaluacion_fiscal, origen, cotizacion_concepto_origen_id)
     VALUES (nuevo_id, cv->>'descripcion', (cv->>'cantidad')::numeric, (cv->>'precio_unitario')::numeric,
             (cv->>'moneda')::moneda, (cv->>'total')::numeric,
             COALESCE((cv->>'aplica_iva')::boolean, false),
             COALESCE((cv->>'tasa_iva_aplicada')::numeric, 0.16),
             NULLIF(cv->>'tipo_iva', ''),
-            v_org_id);
+            v_org_id, v_aprobada->'evaluacion_fiscal',
+            CASE WHEN v_aprobada IS NOT NULL THEN 'cotizacion' ELSE 'manual' END,
+            v_aprobada->>'id');
   END LOOP;
   FOR cc IN SELECT * FROM jsonb_array_elements(p_conceptos_costo) LOOP
     INSERT INTO conceptos_costo (embarque_id, concepto, proveedor_nombre, proveedor_id, moneda, monto, organization_id)

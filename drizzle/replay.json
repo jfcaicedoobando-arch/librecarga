@@ -552,5 +552,13 @@
       "0070_factura_resico_totales_agrupados.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0071_isr_resico_cotizacion_embarque.sql",
+    "sha256": "685e1ec8bc30f56771d8284089f37fa0a363df8d71a2b0d0da389f0411f14104",
+    "replays": [
+      "0071_isr_resico_cotizacion_embarque.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

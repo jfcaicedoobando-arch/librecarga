@@ -77,13 +77,15 @@ export function parseSendBody(body: Record<string, unknown>): SendBodyParsed {
 export async function resolverPdfPath(
   admin: AdminClient,
   cot: Cotizacion,
+  fingerprint?: string,
 ): Promise<string | null> {
   const prefijo = `${cot.organization_id}/${cot.id}`;
   const { data: archivos, error } = await admin
     .storage.from(BUCKET_PDF)
     .list(prefijo, { limit: 20, sortBy: { column: 'created_at', order: 'desc' } });
   if (error || !archivos || archivos.length === 0) return null;
-  const pdf = archivos.find((a) => a.name.toLowerCase().endsWith('.pdf'));
+  const pdf = archivos.find((a) => a.name.toLowerCase().endsWith('.pdf')
+    && (fingerprint ? a.name.startsWith(`fiscal-${fingerprint}-`) : !a.name.startsWith("fiscal-")));
   return pdf ? `${prefijo}/${pdf.name}` : null;
 }
 

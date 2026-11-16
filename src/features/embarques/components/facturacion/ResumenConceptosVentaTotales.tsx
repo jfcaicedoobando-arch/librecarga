@@ -13,6 +13,7 @@ interface TotalCurrency {
 }
 
 interface Props {
+  ocultarImportes?: boolean;
   totales: {
     pendiente: TotalCurrency;
     enProforma: TotalCurrency;
@@ -31,6 +32,7 @@ interface Props {
 }
 
 interface ColumnaProps {
+  ocultarImportes?: boolean;
   titulo: string;
   count: number;
   total: TotalCurrency;
@@ -42,7 +44,7 @@ interface ColumnaProps {
   alcance?: string;
 }
 
-function ColumnaTotal({ titulo, count, total, cardClass, badgeClass, icon, emptyText, incluyeIva, alcance }: ColumnaProps) {
+function ColumnaTotal({ titulo, count, total, cardClass, badgeClass, icon, emptyText, incluyeIva, alcance, ocultarImportes }: ColumnaProps) {
   const vacio = total.totalMxn === 0 && total.totalUsd === 0;
   return (
     <div className={`rounded-md border p-3 ${cardClass}`}>
@@ -51,12 +53,12 @@ function ColumnaTotal({ titulo, count, total, cardClass, badgeClass, icon, empty
         <div>
           <div className="text-body font-semibold">{titulo}</div>
           <div className="text-2xs text-muted-foreground">
-            {alcance ?? (incluyeIva ? "Total · IVA incluido" : "Total")}
+            {ocultarImportes ? "Conceptos vinculados" : alcance ?? (incluyeIva ? "Total · IVA incluido" : "Total")}
           </div>
         </div>
         <Badge className={`ml-auto ${badgeClass}`}>{count}</Badge>
       </div>
-      <div className="text-body space-y-0.5">
+      {!ocultarImportes && <div className="text-body space-y-0.5">
         {total.totalMxn > 0 && (
           <div className="flex justify-between"><span className="text-muted-foreground">MXN:</span><span className="font-semibold">{formatCurrency(total.totalMxn, "MXN")}</span></div>
         )}
@@ -64,17 +66,18 @@ function ColumnaTotal({ titulo, count, total, cardClass, badgeClass, icon, empty
           <div className="flex justify-between"><span className="text-muted-foreground">USD:</span><span className="font-semibold">{formatCurrency(total.totalUsd, "USD")}</span></div>
         )}
         {vacio && <span className="text-muted-foreground text-body-sm">{emptyText}</span>}
-      </div>
+      </div>}
     </div>
   );
 }
 
 export function ResumenConceptosVentaTotales({
-  totales, pendientesCount, enProformaCount, facturadosCount, gruposConIva, ivaPendienteCount = 0, detalleEnFactura,
+  totales, pendientesCount, enProformaCount, facturadosCount, gruposConIva, ivaPendienteCount = 0, detalleEnFactura, ocultarImportes,
 }: Props) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 border-t bg-muted/30">
       <ColumnaTotal
+        ocultarImportes={ocultarImportes}
         titulo="Pendientes de proforma"
         count={pendientesCount}
         total={totales.pendiente}
@@ -86,6 +89,7 @@ export function ResumenConceptosVentaTotales({
         alcance={ivaPendienteCount > 0 ? `Total provisional · ${ivaPendienteCount} con IVA por confirmar` : undefined}
       />
       <ColumnaTotal
+        ocultarImportes={ocultarImportes}
         titulo="Conceptos en proforma"
         count={enProformaCount}
         total={totales.enProforma}
@@ -97,6 +101,7 @@ export function ResumenConceptosVentaTotales({
         alcance={gruposConIva.enProforma ? "Conceptos vinculados · IVA incluido" : "Conceptos vinculados"}
       />
       <ColumnaTotal
+        ocultarImportes={ocultarImportes}
         titulo="Conceptos en factura"
         count={facturadosCount}
         total={totales.facturado}

@@ -101,7 +101,18 @@ BEGIN
      WHERE elem ? 'id' AND elem->>'id' IS NOT NULL AND elem->>'id' <> ''
   );
   FOR cv IN SELECT * FROM jsonb_array_elements(p_conceptos_venta) LOOP
+    IF COALESCE((cv->>'tasa_ret_iva')::numeric, 0) <> 0 THEN
+      RAISE EXCEPTION 'LC_ISR_RETENCION_NO_SOPORTADA' USING ERRCODE = '22023';
+    END IF;
     IF cv ? 'id' AND cv->>'id' IS NOT NULL AND cv->>'id' <> '' THEN
+      IF cv ? 'cotizacion_concepto_origen_id' AND EXISTS (
+        SELECT 1 FROM public.conceptos_venta c
+         WHERE c.id = (cv->>'id')::uuid AND c.embarque_id = p_embarque_id
+           AND c.cotizacion_concepto_origen_id IS DISTINCT FROM cv->>'cotizacion_concepto_origen_id'
+      ) THEN
+        RAISE EXCEPTION 'LC_ISR_LINAJE_INVALIDO' USING ERRCODE = '23514';
+      END IF;
+      -- El trigger conserva el vínculo y calcula el ISR con los datos vigentes.
       UPDATE conceptos_venta SET
         descripcion = COALESCE(cv->>'descripcion', descripcion),
         cantidad = COALESCE((cv->>'cantidad')::numeric, cantidad),

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeCotizacionRow } from "@/test/fixtures/cotizacionFactory";
 import { setAuthSnapshot } from "@/lib/auth/authSnapshot";
 import { syncActiveOrganizationScope } from "@/lib/auth/authOperationScope";
+import { fiscalCotizacionFixture } from "@/test/fixtures/snapshotFiscalCotizacion";
 
 const mocks = vi.hoisted(() => ({ request: vi.fn(), session: vi.fn(), emisor: vi.fn(), render: vi.fn(), blob: vi.fn(), upload: vi.fn() }));
 vi.mock("../_networkRetry", () => ({ fetchConReintento: mocks.request, OFFLINE_MSG: "offline" }));
@@ -38,6 +39,21 @@ beforeEach(() => {
 });
 
 describe("PDF adjunto: identidad del documento", () => {
+  it.each([fiscalCotizacionFixture({ estado: "pendiente" }), { ambiente: "sandbox", regla_version: "v1" }, {}])("bloquea fiscal incompleto antes de prepare, aun sin marcar enviada", async (fiscal) => {
+    await expect(enviarCotizacionPorEmail({ ...INPUT, cotizacion: { ...INPUT.cotizacion, cliente_id: null,
+      estado: "Borrador", evaluacion_fiscal: fiscal } })).rejects.toThrow(/fiscal/);
+    expect(mocks.request).not.toHaveBeenCalled();
+    expect(mocks.upload).not.toHaveBeenCalled();
+  });
+  it("adjunta la revisión canónica y sustituye totales falsificados del formulario", async () => {
+    const fiscal = fiscalCotizacionFixture();
+    await enviarCotizacionPorEmail({ ...INPUT, cotizacion: { ...INPUT.cotizacion, cliente_id: null, evaluacion_fiscal: fiscal },
+      totales: { mxn: "0.01" } });
+    expect(mocks.render.mock.calls[0][0].props.cotizacion.evaluacion_fiscal).toEqual(fiscal);
+    const bodies = mocks.request.mock.calls.map((call) => JSON.parse(call[1].body));
+    expect(bodies.map((body) => body.fiscal_fingerprint)).toEqual([fiscal.conceptos_fingerprint, fiscal.conceptos_fingerprint]);
+    expect(bodies[1].totales.mxn).toContain("230.42");
+  });
   it("el correo usa la misma org y marca comercial que la descarga", async () => {
     await enviarCotizacionPorEmail(INPUT);
     expect(mocks.emisor).toHaveBeenCalledWith("org-a");

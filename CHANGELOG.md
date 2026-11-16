@@ -1,5 +1,10 @@
 # Changelog
 
+## Pendiente de publicación
+
+- Integra la evaluación fiscal por organización con los borradores de cotización y embarque. La migración 0071 conserva el cálculo agrupado y el origen de los renglones al convertir una cotización aprobada.
+- El detalle, el PDF y el correo de la cotización leen el desglose fiscal aprobado. La revisión de una cotización enviada conserva la versión anterior y vuelve a solicitar autorización.
+
 ## [13.824.91] - Unreleased
 
 ### ISR RESICO y cuadre con Facturapi
