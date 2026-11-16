@@ -42,6 +42,12 @@ export const LC_CODE_MESSAGES: Record<string, string> = {
     "Revisa que las proformas fiscales correspondan al mismo embarque, cliente y perfil fiscal vigente.",
   LC_ISR_CONSOLIDACION_APROBACION:
     "Actualiza el detalle de la proforma y revisa los importes antes de aprobar el ajuste.",
+  LC_ISR_CONVERSION_REVISION:
+    "Revisa el perfil fiscal, el RFC del receptor y los importes aprobados antes de convertir la proforma.",
+  LC_ISR_CONVERSION_REQUIERE_CONSOLIDAR:
+    "Consolida las proformas fiscales compatibles y obtén su aprobación antes de crear un borrador conjunto.",
+  LC_ISR_TIMBRADO_PENDIENTE:
+    "El borrador conserva su desglose fiscal. El timbrado está pendiente de habilitación.",
   LC_ANTICIPO_APLICACION_INCONSISTENTE:
     "No se pudo confirmar la aplicación del anticipo. Revisa el vínculo entre factura, pago y anticipo antes de continuar.",
   LC_ANTICIPO_MOVIMIENTO_INCONSISTENTE:

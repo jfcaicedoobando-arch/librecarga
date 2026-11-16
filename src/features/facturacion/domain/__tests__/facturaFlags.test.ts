@@ -52,6 +52,15 @@ describe("deriveFacturaFlags", () => {
     expect(r.puedeSustituirCfdi).toBe(true);
   });
 
+  it("el borrador de una proforma fiscal conserva lectura y baja controlada", () => {
+    const flags = deriveFacturaFlags({
+      deleted_at: null, estado: "Borrador", fecha_emision: POST, evaluacion_fiscal: { estado: "confirmado" },
+    }, true);
+    expect(flags).toMatchObject({
+      esBorrador: true, puedeEditarBorrador: false, puedeEliminarBorrador: true, puedeTimbrarDesdeSistema: false,
+    });
+  });
+
   it("Timbrada + Vencida + canEdit → puede cancelar y sustituir CFDI", () => {
     const r = deriveFacturaFlags(
       { deleted_at: null, estado: "Vencida", uuid_fiscal: "UUID-1", fecha_emision: POST },

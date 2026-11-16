@@ -117,7 +117,9 @@ El margen se calcula sobre la venta base y los costos. Una venta de $10,000 con 
 
 **Avance local 4A.** La 0073 guarda el desglose por moneda y los renglones de la proforma normal. Las pruebas cubren $2.51 de ISR y $230.42 de neto, USD sin duplicar su equivalente en MXN, respuesta por token, cancelación y regeneración.
 
-**Avance local 4B.** La 0074 consolida proformas fiscales del mismo embarque y conserva las bases exactas y el origen de cada renglón. En el caso de prueba, dos proformas suman $230.40 y el cálculo agrupado da $230.42. El sistema exige aprobar los $0.02 de diferencia antes de publicar el consolidado. PostgreSQL 17.9 validó los permisos, la trazabilidad y los importes del portal y correo. Las pruebas de interfaz y PDF reprodujeron la revisión y los importes guardados. La conversión fiscal a factura corresponde a 4C.
+**Avance local 4B.** La 0074 consolida proformas fiscales del mismo embarque y conserva las bases exactas y el origen de cada renglón. En el caso de prueba, dos proformas suman $230.40 y el cálculo agrupado da $230.42. El sistema exige aprobar los $0.02 de diferencia antes de publicar el consolidado. PostgreSQL 17.9 validó los permisos, la trazabilidad y los importes del portal y correo. Las pruebas de interfaz y PDF reprodujeron la revisión y los importes guardados.
+
+**Avance local 4C.** La 0075 convierte la proforma aceptada en un borrador por moneda. PostgreSQL 17.9 comprobó $230.42 MXN con $2.51 de ISR y un borrador separado de $114.75 USD. Los borradores conservan la revisión del perfil y el origen de los conceptos. La conversión exige revisar si cambió el RFC del receptor. El módulo de emisión y la base de datos bloquean el timbrado mientras se integra la validación de la etapa 5.
 
 1. **Proforma normal.** Extender `crear_proforma_atomica` para calcular desde los conceptos elegibles y guardar el desglose aprobado por moneda. Distinguir importes en moneda original de la equivalencia en MXN que ya calcula la proforma.
 2. **Consolidación.** Extender `consolidar_proformas` para conservar conceptos origen, bases exactas y grupos compatibles de IVA y retenciones. Recalcular el documento consolidado por moneda, impuesto y tasa. Si el redondeo cambia el importe frente a los documentos aprobados, mostrar la diferencia y obtener nueva aprobación antes de convertir.
@@ -176,4 +178,4 @@ Ejecutar pruebas de dominio, UI, PDF con el renderizador real, Deno y PostgreSQL
 
 ## Siguiente entrega
 
-Continuar con **4C**. Convertir la proforma aprobada a un borrador por moneda que conserve ISR, importes y procedencia. El timbrado de prueba de la etapa 5 requiere una identidad PF 626 aceptada por Facturapi sandbox y las credenciales de esa organización.
+Continuar con **5A**. Integrar la evaluación del servidor en la factura manual y cotejar el perfil de Facturapi, el desglose de impuestos y los intentos de emisión de ambos flujos. El timbrado de prueba requiere una identidad PF 626 aceptada por Facturapi sandbox y la llave de prueba de esa organización.

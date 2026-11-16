@@ -7,6 +7,7 @@
 - La migración 0072 permite que Administración o Contabilidad revise el cliente o los importes fiscales de un embarque. El guardado compara los montos mostrados por moneda, conserva la procedencia de los renglones y registra la revisión en la misma transacción.
 - La migración 0073 guarda el desglose fiscal y los conceptos seleccionados al crear una proforma normal. Detalle, PDF y portal leen el total neto por moneda. El rechazo y la cancelación liberan las ventas y conservan los importes y renglones del documento histórico.
 - La migración 0074 permite consolidar proformas fiscales compatibles y conserva el origen de cada concepto. Las diferencias de redondeo por moneda requieren aprobación de Administración o Contabilidad antes de enviar la nueva proforma al cliente.
+- La migración 0075 convierte una proforma fiscal aceptada en un borrador de factura por moneda. Conserva totales, retenciones y origen de los conceptos, y bloquea el timbrado hasta habilitar la validación fiscal de emisión.
 
 ## [13.824.91] - Unreleased
 

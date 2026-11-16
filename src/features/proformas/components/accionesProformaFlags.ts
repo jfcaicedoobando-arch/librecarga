@@ -37,7 +37,7 @@ export function computarFlags(
     puedePublicar,
     tokenPublico: publicacionSuspendida ? null : proforma.token_publico ?? null,
     puedeConvertir:
-      clienteAcepto && !facturada && !cancelada && !proforma.factura_id && proforma.evaluacion_fiscal == null && canEmitirFactura,
+      clienteAcepto && !facturada && puedePublicar && !proforma.factura_id && canEmitirFactura,
     puedeResponder:
       !facturada && puedePublicar && estadoCliente === "pendiente" && canResponderProformaManual,
     mostrarHint: !clienteAcepto && !facturada && puedePublicar,

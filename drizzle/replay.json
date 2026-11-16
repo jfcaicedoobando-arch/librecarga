@@ -584,5 +584,13 @@
       "0074_isr_resico_consolidacion_proformas.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0075_isr_resico_conversion_proforma.sql",
+    "sha256": "c9d7455fbc7373c50577ac5fb6e715d28467b4508c2effd4ecf75f93a9ae7b9e",
+    "replays": [
+      "0075_isr_resico_conversion_proforma.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

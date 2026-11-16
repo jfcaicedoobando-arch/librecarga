@@ -47,7 +47,7 @@ export type FacturaDetalle = Pick<
   | "cancelacion_vence_en"
   | "sustituye_a"
   | "sustituida_por"
-> & Partial<Pick<Tables<"facturas">, "ret_isr" | "ret_iva">> & {
+> & Partial<Pick<Tables<"facturas">, "ret_isr" | "ret_iva" | "evaluacion_fiscal">> & {
   proformas: { numero: string } | null;
   sustituida_por_ref: { id: string; numero: string | null; estado: string | null } | null;
 };

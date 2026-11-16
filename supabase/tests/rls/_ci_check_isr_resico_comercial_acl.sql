@@ -23,7 +23,10 @@ BEGIN
     'public._liberar_conceptos_proforma_portal(uuid,uuid)', 'public._h14_lock_grafo_baja_embarque(uuid,boolean)',
     'public._isr_armar_consolidacion_proformas(uuid[],uuid,uuid,uuid)',
     'public._isr_guard_concepto_consolidado()', 'public._isr_insertar_grupos_consolidacion(uuid,uuid,uuid,jsonb)',
-    'public._isr_consolidar_proformas(uuid,uuid,uuid,uuid[])', 'public.aprobar_ajuste_consolidacion_proforma(uuid,text)'
+    'public._isr_consolidar_proformas(uuid,uuid,uuid,uuid[])', 'public.aprobar_ajuste_consolidacion_proforma(uuid,text)',
+    'public._isr_validar_conversion_proforma(uuid)', 'public._isr_insertar_conceptos_factura(uuid,uuid,uuid,boolean,public.moneda)',
+    'public._isr_convertir_proforma_a_facturas(uuid,uuid,text,text,text,integer,text,date)',
+    'public._isr_guard_borrador_convertido()', 'public._isr_guard_concepto_factura_convertida()'
   ]) LOOP
     oid_fn := to_regprocedure(fn);
     IF oid_fn IS NULL OR NOT EXISTS (SELECT 1 FROM pg_proc WHERE oid=oid_fn AND proowner='postgres'::regrole) THEN

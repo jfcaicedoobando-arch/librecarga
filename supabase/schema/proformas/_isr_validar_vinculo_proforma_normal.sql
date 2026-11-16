@@ -36,6 +36,12 @@ BEGIN
     AND (v_proforma.estado_proforma = 'cancelada' OR v_proforma.estado_cliente = 'rechazada') THEN
     RETURN;
   END IF;
+  IF v_anterior = v_nuevo AND v_proforma.estado_proforma = 'facturada'
+    AND p_anterior->>'estado_facturacion' = 'en_proforma' AND p_nuevo->>'estado_facturacion' = 'facturado'
+    AND v_proforma.deleted_at IS NULL AND v_proforma.estado_cliente = 'aceptada'
+    AND COALESCE(v_proforma.factura_id, v_proforma.factura_secundaria_id) IS NOT NULL THEN
+    RETURN;
+  END IF;
   IF (v_anterior IS NULL OR v_anterior = v_nuevo) AND v_nuevo IS NOT NULL
     AND (v_anterior IS NOT NULL OR NOT v_proforma.es_consolidada)
     AND p_nuevo->>'estado_facturacion' = 'en_proforma' AND v_proforma.deleted_at IS NULL

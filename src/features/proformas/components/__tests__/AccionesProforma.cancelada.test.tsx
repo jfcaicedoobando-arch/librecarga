@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AccionesProforma } from "../AccionesProforma";
 import { RevisionConsolidacionProforma } from "../detalle/RevisionConsolidacionProforma";
@@ -7,12 +7,13 @@ import { fiscalCotizacionFixture } from "@/test/fixtures/snapshotFiscalCotizacio
 import type { ProformaDetalleFull } from "../../services";
 
 const aprobarAjuste = vi.fn();
+const convertir = vi.fn();
 vi.mock("../../hooks/useConsolidacionProforma", () => ({
   useAprobarAjusteConsolidacion: () => ({ puedeAprobar: true, aprobar: aprobarAjuste, isPending: false }),
 }));
 
 vi.mock("@/hooks/shared", () => ({ usePermissions: () => ({ canEmitirFactura: true, canResponderProformaManual: true, canEditarProforma: true }) }));
-vi.mock("@/features/proformas/hooks/useConvertirProformaDirecto", () => ({ useConvertirProformaDirecto: () => ({ convertir: vi.fn() }) }));
+vi.mock("@/features/proformas/hooks/useConvertirProformaDirecto", () => ({ useConvertirProformaDirecto: () => ({ convertir }) }));
 vi.mock("@/features/proformas/hooks/useAprobarProformaInterna", () => ({ useAprobarProformaInterna: () => ({ aprobar: vi.fn() }) }));
 vi.mock("@/features/cliente/hooks/useClienteAutorizacion", () => ({ useClienteAutorizacion: () => ({ autorizacion: { requiereAutorizacionProforma: false } }) }));
 vi.mock("@/features/cliente/hooks/useValidarLimiteCredito", () => ({ useValidarLimiteCredito: () => vi.fn(), registrarExcesoCredito: vi.fn() }));
@@ -21,7 +22,7 @@ vi.mock("@/features/proformas/components/RespuestaClienteManualDialog", () => ({
 vi.mock("@/features/proformas/components/AlertaLimiteCreditoDialog", () => ({ AlertaLimiteCreditoDialog: () => null }));
 vi.mock("@/features/proformas/components/RefacturarProformaAccion", () => ({ RefacturarProformaAccion: () => null }));
 vi.mock("@/components/shared/BadgeClienteDeCasa", () => ({ BadgeClienteDeCasa: () => null }));
-vi.mock("@/components/shared/DetalleActionBar", () => ({ DetalleActionBar: ({ primary, secondary }: { primary: { label: string } | null; secondary: { id: string; label: string }[] }) => <>{primary && <button>{primary.label}</button>}{secondary.map(i => <button key={i.id}>{i.label}</button>)}</> }));
+vi.mock("@/components/shared/DetalleActionBar", () => ({ DetalleActionBar: ({ primary, secondary }: { primary: { label: string; onClick: () => void } | null; secondary: { id: string; label: string }[] }) => <>{primary && <button onClick={primary.onClick}>{primary.label}</button>}{secondary.map(i => <button key={i.id}>{i.label}</button>)}</> }));
 
 describe("detalle histórico cancelado", () => {
   it.each(["pendiente", "aceptada"])("mantiene PDF sin enviar, aprobar o facturar (%s)", estado_cliente => {
@@ -36,7 +37,7 @@ describe("detalle histórico cancelado", () => {
 });
 
 describe("revisión de proforma fiscal consolidada", () => {
-  it("muestra ambos importes y autoriza el ajuste con la huella guardada", () => {
+  it("autoriza el ajuste con la huella guardada y convierte tras la aceptación", async () => {
     const fiscal = fiscalCotizacionFixture({ cliente_id: "pm-qa" });
     const proforma: ProformaDetalleFull = {
       ...makeProforma({
@@ -69,5 +70,12 @@ describe("revisión de proforma fiscal consolidada", () => {
     );
     expect(screen.getByText("Ajuste aprobado.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Enviar al cliente/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Crear borrador de factura" })).toBeNull();
+    vista.rerender(<AccionesProforma proforma={{ ...aprobada, estado_cliente: "aceptada" }}
+      downloadingId={null} onDescargar={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Crear borrador de factura" }));
+    await waitFor(() => expect(convertir).toHaveBeenCalledWith(expect.objectContaining({
+      proformaIds: [proforma.id], organizationId: proforma.organization_id, fiscal: true,
+    })));
   });
 });

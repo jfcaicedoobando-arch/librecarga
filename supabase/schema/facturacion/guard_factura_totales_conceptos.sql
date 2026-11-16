@@ -10,7 +10,7 @@ DECLARE
   v_isr      numeric;
   v_iva_ret  numeric;
 BEGIN
-  IF EXISTS(SELECT 1 FROM public.conceptos_factura c WHERE c.factura_id=NEW.id
+  IF NEW.evaluacion_fiscal IS NOT NULL OR EXISTS(SELECT 1 FROM public.conceptos_factura c WHERE c.factura_id=NEW.id
     AND c.deleted_at IS NULL AND c.tasa_ret_isr=0.0125) THEN
     IF OLD.estado NOT IN ('Borrador','Por timbrar') OR OLD.snapshot_emision IS NOT NULL
       OR NULLIF(btrim(OLD.uuid_fiscal),'') IS NOT NULL THEN

@@ -3,6 +3,9 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp 
 DECLARE
   v_proforma_id uuid := (to_jsonb(NEW)->>CASE WHEN TG_TABLE_NAME = 'facturas' THEN 'proforma_id' ELSE 'proforma_id_origen' END)::uuid;
 BEGIN
+  -- Separate invoker triggers authenticate and freeze rows carrying the evaluated conversion.
+  IF (TG_TABLE_NAME = 'facturas' AND to_jsonb(NEW)->>'evaluacion_fiscal' IS NOT NULL)
+    OR (TG_TABLE_NAME = 'conceptos_factura' AND to_jsonb(NEW)->>'origen_fiscal' IS NOT NULL) THEN RETURN NEW; END IF;
   IF v_proforma_id IS NULL THEN RETURN NEW; END IF;
   IF TG_TABLE_NAME = 'conceptos_factura' THEN
     PERFORM 1 FROM public.proformas WHERE id=v_proforma_id FOR NO KEY UPDATE;

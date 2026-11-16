@@ -1599,6 +1599,7 @@ export type Database = {
           monto_ret_isr: number
           monto_ret_iva: number
           organization_id: string
+          origen_fiscal: Json | null
           precio_unitario: number
           proforma_id_origen: string | null
           tasa_iva_aplicada: number | null
@@ -1623,6 +1624,7 @@ export type Database = {
           monto_ret_isr?: number
           monto_ret_iva?: number
           organization_id?: string
+          origen_fiscal?: Json | null
           precio_unitario?: number
           proforma_id_origen?: string | null
           tasa_iva_aplicada?: number | null
@@ -1647,6 +1649,7 @@ export type Database = {
           monto_ret_isr?: number
           monto_ret_iva?: number
           organization_id?: string
+          origen_fiscal?: Json | null
           precio_unitario?: number
           proforma_id_origen?: string | null
           tasa_iva_aplicada?: number | null
@@ -6924,6 +6927,7 @@ export type Database = {
           embarque_id: string | null
           enviada_cliente_at: string | null
           estado: Database["public"]["Enums"]["estado_factura"]
+          evaluacion_fiscal: Json | null
           expediente: string
           factura_pdf_url: string | null
           factura_xml_backup_path: string | null
@@ -6987,6 +6991,7 @@ export type Database = {
           embarque_id?: string | null
           enviada_cliente_at?: string | null
           estado?: Database["public"]["Enums"]["estado_factura"]
+          evaluacion_fiscal?: Json | null
           expediente?: string
           factura_pdf_url?: string | null
           factura_xml_backup_path?: string | null
@@ -7050,6 +7055,7 @@ export type Database = {
           embarque_id?: string | null
           enviada_cliente_at?: string | null
           estado?: Database["public"]["Enums"]["estado_factura"]
+          evaluacion_fiscal?: Json | null
           expediente?: string
           factura_pdf_url?: string | null
           factura_xml_backup_path?: string | null

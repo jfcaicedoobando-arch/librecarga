@@ -20,6 +20,7 @@ export interface FilaPorTimbrar {
   total: number;
   moneda: string;
   fecha_emision: string;
+  revision_fiscal_pendiente?: boolean;
 }
 
 
@@ -37,7 +38,7 @@ export interface FilaRepPendiente {
 export async function fetchFacturasPorTimbrar(orgId: string): Promise<FilaPorTimbrar[]> {
   const { data, error } = await supabase
     .from("facturas")
-    .select("id, numero, cliente_nombre, total, moneda, fecha_emision")
+    .select("id, numero, cliente_nombre, total, moneda, fecha_emision, evaluacion_fiscal")
     .eq("organization_id", orgId)
     .eq("estado", "Borrador")
     .is("facturapi_id", null)
@@ -47,7 +48,10 @@ export async function fetchFacturasPorTimbrar(orgId: string): Promise<FilaPorTim
     .limit(LIMITE_POR_TIMBRAR);
   if (error) throw error;
   warnIfTruncated(data, LIMITE_POR_TIMBRAR, "facturacion.fetchFacturasPorTimbrar");
-  return (data ?? []) as FilaPorTimbrar[];
+  return (data ?? []).map(({ evaluacion_fiscal, ...fila }) => ({
+    ...fila,
+    revision_fiscal_pendiente: evaluacion_fiscal != null,
+  }));
 }
 
 

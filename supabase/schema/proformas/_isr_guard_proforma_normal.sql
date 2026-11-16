@@ -37,9 +37,24 @@ BEGIN
       OLD.proformas_origen, OLD.embarques_ids, OLD.cliente_nombre) THEN
     RAISE EXCEPTION 'LC_ISR_PROFORMA_REVISION' USING ERRCODE = '23514';
   END IF;
-  IF NEW.estado_proforma = 'facturada' OR NEW.factura_id IS NOT NULL OR NEW.factura_secundaria_id IS NOT NULL
-    OR NEW.folio_factura_externa IS NOT NULL THEN
+  IF NEW.folio_factura_externa IS NOT NULL THEN
     RAISE EXCEPTION 'LC_ISR_FLUJO_NO_HABILITADO' USING ERRCODE = '23514';
+  END IF;
+  IF (NEW.estado_proforma, NEW.factura_id, NEW.factura_secundaria_id) IS DISTINCT FROM
+      (OLD.estado_proforma, OLD.factura_id, OLD.factura_secundaria_id)
+    AND (NEW.estado_proforma = 'facturada' OR OLD.estado_proforma = 'facturada'
+      OR NEW.factura_id IS NOT NULL OR NEW.factura_secundaria_id IS NOT NULL) THEN
+    IF NOT v_propietario OR OLD.estado_proforma = 'cancelada' OR NEW.estado_cliente <> 'aceptada'
+      OR NOT ((NEW.estado_proforma = 'facturada' AND COALESCE(NEW.factura_id, NEW.factura_secundaria_id) IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM unnest(ARRAY[NEW.factura_id, NEW.factura_secundaria_id]) AS vinculo(id)
+          LEFT JOIN public.facturas f ON f.id = vinculo.id
+          WHERE vinculo.id IS NOT NULL AND (f.proforma_id IS DISTINCT FROM NEW.id
+            OR f.organization_id IS DISTINCT FROM NEW.organization_id OR f.deleted_at IS NOT NULL
+            OR f.evaluacion_fiscal->'conceptos_fingerprint' IS DISTINCT FROM NEW.evaluacion_fiscal->'conceptos_fingerprint')))
+        OR (OLD.estado_proforma = 'facturada' AND NEW.estado_proforma = 'pendiente'
+          AND NEW.factura_id IS NULL AND NEW.factura_secundaria_id IS NULL)) THEN
+      RAISE EXCEPTION 'LC_ISR_FLUJO_NO_HABILITADO' USING ERRCODE = '23514';
+    END IF;
   END IF;
   IF NEW.consolidada_en IS DISTINCT FROM OLD.consolidada_en THEN
     IF NOT v_propietario OR OLD.es_consolidada OR OLD.consolidada_en IS NOT NULL

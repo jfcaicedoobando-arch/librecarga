@@ -50,6 +50,10 @@ export async function loadFactura(supabase: SupabaseClient, facturaId: string): 
  * directa no puede timbrar una factura en un estado no timbrable.
  */
 export function validarEstadoTimbrable(factura: FacturaRow): Response | null {
+  if (factura.evaluacion_fiscal != null) return jsonResponse({
+    error: "isr_timbrado_pendiente",
+    message: "El timbrado de este borrador requiere habilitar la validación fiscal de la organización.",
+  }, 409);
   const estado = factura.estado ?? "";
   if (ESTADOS_FACTURA_TIMBRABLES.includes(estado)) return null;
   return jsonResponse({

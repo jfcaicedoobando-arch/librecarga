@@ -117,7 +117,7 @@ BEGIN
   bloqueado:=false;
   BEGIN UPDATE public.proformas SET estado_proforma='facturada' WHERE id=normal.id;
   EXCEPTION WHEN check_violation THEN bloqueado:=SQLERRM='LC_ISR_FLUJO_NO_HABILITADO'; END;
-  PERFORM pg_temp.assert(bloqueado,'invoice conversion remains blocked in stage 4A');
+  PERFORM pg_temp.assert(bloqueado,'direct status updates cannot convert a fiscal proforma');
   bloqueado:=false;
   BEGIN INSERT INTO public.facturas(numero,organization_id,cliente_id,cliente_nombre,fecha_vencimiento,proforma_id)
     VALUES('FACTURA-DIRECTA-73',fx.org_a,cliente,'PM QA',CURRENT_DATE,normal.id);

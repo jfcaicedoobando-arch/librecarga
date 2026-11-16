@@ -32,6 +32,7 @@ const COLUMNS = [
   "factura_pdf_url",
   "factura_xml_url",
   "snapshot_emision",
+  "evaluacion_fiscal",
   "organization_id",
   "rfc_cliente",
   "uso_cfdi",

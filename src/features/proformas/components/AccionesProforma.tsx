@@ -62,6 +62,7 @@ export function AccionesProforma({ proforma, downloadingId, onDescargar }: Props
     convertir({
       proformaIds: [proforma.id],
       organizationId: proforma.organization_id,
+      fiscal: proforma.evaluacion_fiscal != null,
       diasCredito: resolverDiasCredito(
         proforma.dias_credito,
         proforma.cliente_full?.dias_credito,
