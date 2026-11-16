@@ -73,7 +73,8 @@ describe("registrarActividad", () => {
   it("conserva la empresa explícita del destino sin enviar identidad de actor", async () => {
     await registrarActividad({ modulo: "facturacion", accion: "actualizar_datos_timbrado_factura", entidadId: "f1", organizationId: "org1" });
     expect(supabase.rpc).toHaveBeenCalledWith("registrar_bitacora", expect.objectContaining({ p_organization_id: "org1", p_entidad_id: "f1" }));
-    const args = vi.mocked(supabase.rpc).mock.calls[0][1];
+    const rpcMock = supabase.rpc as unknown as { mock: { calls: unknown[][] } };
+    const args = rpcMock.mock.calls[0][1];
     expect(args).not.toHaveProperty("p_usuario_id");
   });
 
