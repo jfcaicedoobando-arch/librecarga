@@ -14,15 +14,30 @@ DECLARE
   v_incoming_costo_ids uuid[];
   v_new_id uuid;
   v_current_updated_at timestamptz;
-  v_cliente_actual uuid;
+  v_embarque_actual public.embarques;
+  v_cliente_nuevo uuid;
+  v_plan_fiscal jsonb;
+  v_confirmacion_fiscal jsonb := p_embarque->'revision_fiscal';
+  v_revision_id uuid;
+  v_lineas_guardadas jsonb;
+  v_lineas_confirmadas jsonb;
 BEGIN
-  SELECT organization_id, updated_at, cliente_id
-    INTO v_org_id, v_current_updated_at, v_cliente_actual
+  SELECT * INTO v_embarque_actual
     FROM embarques
    WHERE id = p_embarque_id
    FOR UPDATE;
+  v_org_id := v_embarque_actual.organization_id;
+  v_current_updated_at := v_embarque_actual.updated_at;
+  v_cliente_nuevo := COALESCE(NULLIF(p_embarque->>'cliente_id','')::uuid, v_embarque_actual.cliente_id);
   IF v_org_id IS NULL THEN RAISE EXCEPTION 'Embarque no encontrado'; END IF;
   PERFORM public._assert_writer(v_org_id);
+  v_resp := public.idempotency_claim(p_request_id, 'actualizar_embarque_completo');
+  IF v_resp IS NOT NULL THEN
+    IF v_resp->>'embarque_id' IS DISTINCT FROM p_embarque_id::text THEN
+      RAISE EXCEPTION 'LC_ISR_REVISION_REQUERIDA' USING ERRCODE = '23514';
+    END IF;
+    RETURN v_resp;
+  END IF;
   IF p_expected_updated_at IS NOT NULL
      AND v_current_updated_at IS DISTINCT FROM p_expected_updated_at THEN
     RAISE EXCEPTION 'LC_CONFLICTO_CONCURRENCIA: otro usuario modificó este embarque. Recarga y vuelve a intentar.'
@@ -34,12 +49,27 @@ BEGIN
   END IF;
   PERFORM public._assert_relaciones_embarque(
     v_org_id,
-    COALESCE(NULLIF(p_embarque->>'cliente_id','')::uuid, v_cliente_actual),
+    v_cliente_nuevo,
     NULLIF(p_embarque->>'cotizacion_id','')::uuid,
     p_conceptos_costo
   );
-  v_resp := public.idempotency_claim(p_request_id, 'actualizar_embarque_completo');
-  IF v_resp IS NOT NULL THEN RETURN v_resp; END IF;
+  v_plan_fiscal := public._isr_plan_revision_embarque(p_embarque_id, v_cliente_nuevo, p_conceptos_venta);
+  IF v_plan_fiscal IS NOT NULL OR v_confirmacion_fiscal IS NOT NULL THEN
+    IF v_org_id IS DISTINCT FROM public.org_scope() OR NOT public.has_any_role_in_org_exact(auth.uid(),
+      ARRAY['admin','admin_org','contador']::public.app_role[], v_org_id) THEN
+      RAISE EXCEPTION 'LC_ISR_REVISION_SIN_PERMISO' USING ERRCODE = '42501';
+    END IF;
+    IF v_plan_fiscal IS NULL OR v_embarque_actual.deleted_at IS NOT NULL OR p_expected_updated_at IS NULL
+      OR v_confirmacion_fiscal->>'huella' IS DISTINCT FROM v_plan_fiscal->>'huella'
+      OR length(btrim(COALESCE(v_confirmacion_fiscal->>'motivo', ''))) NOT BETWEEN 10 AND 500 THEN
+      RAISE EXCEPTION 'LC_ISR_REVISION_REQUERIDA' USING ERRCODE = '23514';
+    END IF;
+    INSERT INTO public.embarque_revisiones_fiscales (organization_id, embarque_id, actor_id, transaccion,
+      motivo, snapshot_anterior, snapshot_nuevo, conceptos_anteriores)
+    VALUES (v_org_id, p_embarque_id, auth.uid(), txid_current(), btrim(v_confirmacion_fiscal->>'motivo'),
+      v_plan_fiscal->'antes', v_plan_fiscal->'despues', v_plan_fiscal->'conceptos_anteriores')
+    RETURNING id INTO v_revision_id;
+  END IF;
   IF NULLIF(p_embarque->>'tarifa_id', '') IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM public.costeo_tarifas t
     WHERE t.id = (p_embarque->>'tarifa_id')::uuid AND t.organization_id = v_org_id
@@ -139,6 +169,7 @@ BEGIN
         END
       WHERE id = (cv->>'id')::uuid
         AND embarque_id = p_embarque_id
+        AND deleted_at IS NULL
         AND estado_facturacion IN ('pendiente', 'en_proforma');
     ELSE
       INSERT INTO conceptos_venta (
@@ -172,6 +203,20 @@ BEGIN
      AND deleted_at IS NULL
      AND estado_facturacion = 'pendiente'
      AND NOT (id = ANY(v_incoming_venta_ids));
+  IF v_revision_id IS NOT NULL THEN
+    -- Reconcile the approved fiscal inputs with the exact data saved by the normal writer.
+    SELECT COALESCE(jsonb_agg(datos ORDER BY datos), '[]') INTO v_lineas_guardadas
+    FROM (SELECT public._isr_base_revision_venta(to_jsonb(c)) ||
+        jsonb_build_object('evaluacion_fiscal', c.evaluacion_fiscal) datos
+      FROM public.conceptos_venta c WHERE c.embarque_id = p_embarque_id AND c.deleted_at IS NULL) guardadas;
+    SELECT COALESCE(jsonb_agg(datos ORDER BY datos), '[]') INTO v_lineas_confirmadas
+    FROM (SELECT public._isr_base_revision_venta(l) || jsonb_build_object('evaluacion_fiscal', l->'evaluacion_fiscal') datos
+      FROM jsonb_array_elements(v_plan_fiscal->'conceptos_nuevos') l) confirmadas;
+    IF v_lineas_guardadas IS DISTINCT FROM v_lineas_confirmadas THEN
+      RAISE EXCEPTION 'LC_ISR_REVISION_REQUERIDA' USING ERRCODE = '23514';
+    END IF;
+    UPDATE public.embarque_revisiones_fiscales SET aplicada_at = clock_timestamp() WHERE id = v_revision_id;
+  END IF;
   v_incoming_costo_ids := ARRAY(
     SELECT (elem->>'id')::uuid
       FROM jsonb_array_elements(p_conceptos_costo) elem

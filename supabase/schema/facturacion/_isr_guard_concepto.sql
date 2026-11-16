@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public._isr_guard_concepto() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE v_cliente uuid; v_eval jsonb; v_parent_org uuid; v_opt_in boolean; v_ambiente text; v_origen jsonb; v_cot public.cotizaciones;
+  v_revision boolean := false;
+  v_linea jsonb;
 BEGIN
   IF TG_OP = 'DELETE' THEN
     IF OLD.evaluacion_fiscal IS NOT NULL THEN
@@ -11,10 +13,19 @@ BEGIN
   IF TG_OP = 'UPDATE' AND OLD.evaluacion_fiscal IS NOT NULL AND NEW.evaluacion_fiscal IS NULL THEN
     RAISE EXCEPTION 'LC_ISR_NO_DESACTIVAR' USING ERRCODE = '23514';
   END IF;
+  IF TG_TABLE_NAME = 'conceptos_venta' THEN
+    -- An authenticated writer cannot create an open audit row or reuse a completed review.
+    SELECT EXISTS (SELECT 1 FROM public.embarque_revisiones_fiscales r
+      WHERE r.embarque_id = NEW.embarque_id AND r.organization_id = NEW.organization_id
+        AND r.transaccion = txid_current() AND r.actor_id = auth.uid() AND r.aplicada_at IS NULL)
+      INTO v_revision;
+  END IF;
   IF TG_OP = 'UPDATE' AND OLD.evaluacion_fiscal IS NOT NULL AND (
-    (to_jsonb(NEW)->'organization_id',to_jsonb(NEW)->'embarque_id',to_jsonb(NEW)->'proforma_id',to_jsonb(NEW)->'deleted_at')
+    (to_jsonb(NEW)->'organization_id',to_jsonb(NEW)->'embarque_id',to_jsonb(NEW)->'proforma_id')
       IS DISTINCT FROM
-    (to_jsonb(OLD)->'organization_id',to_jsonb(OLD)->'embarque_id',to_jsonb(OLD)->'proforma_id',to_jsonb(OLD)->'deleted_at')
+    (to_jsonb(OLD)->'organization_id',to_jsonb(OLD)->'embarque_id',to_jsonb(OLD)->'proforma_id')
+    OR (NEW.deleted_at IS DISTINCT FROM OLD.deleted_at
+      AND NOT (v_revision AND OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL))
   ) THEN
     RAISE EXCEPTION 'LC_ISR_REVISION_REQUERIDA' USING ERRCODE='23514';
   END IF;
@@ -78,18 +89,25 @@ BEGIN
   IF v_parent_org IS DISTINCT FROM NEW.organization_id OR v_parent_org IS NULL THEN
     RAISE EXCEPTION 'LC_ISR_PADRE_INVALIDO' USING ERRCODE = '23514';
   END IF;
+  IF v_revision AND NEW.deleted_at IS NULL THEN
+    v_linea := public._evaluar_documento_isr_resico(NEW.organization_id, v_cliente, jsonb_build_array(to_jsonb(NEW)))
+      ->'conceptos'->0;
+    NEW.tipo_iva := v_linea->>'tipo_iva';
+    NEW.total := round(NEW.cantidad * NEW.precio_unitario, 2);
+    NEW.evaluacion_fiscal := v_linea->'evaluacion_fiscal';
+    NEW.tasa_ret_isr := (v_linea->>'tasa_ret_isr')::numeric;
+    NEW.monto_ret_isr := (v_linea->>'monto_ret_isr')::numeric;
+    RETURN NEW;
+  END IF;
   IF TG_TABLE_NAME='conceptos_venta' AND TG_OP='UPDATE' AND OLD.evaluacion_fiscal IS NOT NULL THEN
-    IF (NEW.cantidad, NEW.precio_unitario, NEW.moneda, NEW.tipo_iva, NEW.tasa_iva_aplicada, NEW.aplica_iva)
-      IS NOT DISTINCT FROM
-       (OLD.cantidad, OLD.precio_unitario, OLD.moneda, OLD.tipo_iva, OLD.tasa_iva_aplicada, OLD.aplica_iva) THEN
-      NEW.evaluacion_fiscal := OLD.evaluacion_fiscal;
-      NEW.tasa_ret_isr := OLD.tasa_ret_isr;
-      NEW.monto_ret_isr := OLD.monto_ret_isr;
-      RETURN NEW;
-    END IF;
-    IF OLD.cotizacion_concepto_origen_id IS NOT NULL THEN
+    IF public._isr_base_revision_venta(to_jsonb(NEW)) IS DISTINCT FROM public._isr_base_revision_venta(to_jsonb(OLD))
+      OR NEW.total IS DISTINCT FROM OLD.total THEN
       RAISE EXCEPTION 'LC_ISR_REVISION_REQUERIDA' USING ERRCODE = '23514';
     END IF;
+    NEW.evaluacion_fiscal := OLD.evaluacion_fiscal;
+    NEW.tasa_ret_isr := OLD.tasa_ret_isr;
+    NEW.monto_ret_isr := OLD.monto_ret_isr;
+    RETURN NEW;
   END IF;
   SELECT ambiente INTO v_ambiente FROM public.facturapi_credenciales WHERE organization_id=NEW.organization_id;
   IF TG_TABLE_NAME='conceptos_venta' AND TG_OP='INSERT' AND to_jsonb(NEW)->>'cotizacion_concepto_origen_id' IS NOT NULL THEN

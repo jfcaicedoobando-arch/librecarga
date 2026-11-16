@@ -505,6 +505,13 @@
       "when": 1794694500006,
       "tag": "0071_isr_resico_cotizacion_embarque",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1794694500007,
+      "tag": "0072_isr_resico_revision_embarque",
+      "breakpoints": true
     }
   ]
 }

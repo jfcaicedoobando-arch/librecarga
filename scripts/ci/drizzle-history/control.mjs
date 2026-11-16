@@ -63,6 +63,7 @@ export const HISTORY = [
   { file: '0069_isr_resico_contrato.sql', sha256: '7975e33aa3d03aaaa4838aef8cf56aeb77472843aa67347f2d9b540358f83aae', eligibleName: '20261115130000_isr_resico_contrato.sql' },
   { file: '0070_factura_resico_totales_agrupados.sql', sha256: '04a26c4b1d084b4a98d7d41f5a71db0f15d6f30a34933e4c6b4c7899be3f956c', eligibleName: '20261115140000_factura_resico_totales_agrupados.sql' },
   { file: '0071_isr_resico_cotizacion_embarque.sql', sha256: '685e1ec8bc30f56771d8284089f37fa0a363df8d71a2b0d0da389f0411f14104', eligibleName: '20261115150000_isr_resico_cotizacion_embarque.sql' },
+  { file: '0072_isr_resico_revision_embarque.sql', sha256: '5204233d11421deda09b914b71e746b2607e89ac5a849f00e0633e26b58a3871', eligibleName: '20261115160000_isr_resico_revision_embarque.sql' },
 ];
 const ARCHIVED_METADATA = [
   [`${ARCHIVE}/meta/0022_snapshot.json`, '002a1cff39197fe3431f23193a4229e1c845cbcd0ab5eaa074efded812b0081d'],

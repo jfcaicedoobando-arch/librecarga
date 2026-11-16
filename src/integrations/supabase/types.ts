@@ -5944,6 +5944,63 @@ export type Database = {
           },
         ]
       }
+      embarque_revisiones_fiscales: {
+        Row: {
+          actor_id: string
+          aplicada_at: string | null
+          conceptos_anteriores: Json
+          created_at: string
+          embarque_id: string
+          id: string
+          motivo: string
+          organization_id: string
+          snapshot_anterior: Json
+          snapshot_nuevo: Json
+          transaccion: number
+        }
+        Insert: {
+          actor_id: string
+          aplicada_at?: string | null
+          conceptos_anteriores: Json
+          created_at?: string
+          embarque_id: string
+          id?: string
+          motivo: string
+          organization_id: string
+          snapshot_anterior: Json
+          snapshot_nuevo: Json
+          transaccion: number
+        }
+        Update: {
+          actor_id?: string
+          aplicada_at?: string | null
+          conceptos_anteriores?: Json
+          created_at?: string
+          embarque_id?: string
+          id?: string
+          motivo?: string
+          organization_id?: string
+          snapshot_anterior?: Json
+          snapshot_nuevo?: Json
+          transaccion?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "embarque_revisiones_fiscales_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "embarques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "embarque_revisiones_fiscales_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       embarques: {
         Row: {
           aerolinea: string | null
@@ -12713,6 +12770,10 @@ export type Database = {
         Returns: Json
       }
       obtener_evaluacion_fiscal_embarque: { Args: { p_embarque_id: string }; Returns: Json }
+      preparar_revision_fiscal_embarque: {
+        Args: { p_embarque_id: string; p_cliente_id: string | null; p_conceptos_venta: Json; p_expected_updated_at: string }
+        Returns: Json
+      }
       revisar_cotizacion_fiscal: { Args: { p_cotizacion_id: string; p_expected_fingerprint: string; p_motivo: string }; Returns: Json }
       validar_cotizacion_fiscal_envio: { Args: { p_cotizacion_id: string; p_expected_fingerprint: string | null; p_usuario_id: string }; Returns: Json }
       evaluar_isr_resico: {

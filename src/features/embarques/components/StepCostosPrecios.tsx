@@ -41,11 +41,7 @@ interface Props {
   costosBloqueados?: boolean;
 }
 
-// VIS-CE-251-01: `minmax(0,1fr)` permite que la rejilla se ajuste al ancho
-// del card (los `1fr` forzaban mínimos intrínsecos y los importes se
-// recortaban). R257 · VIS-CE-251-01: el ancho mayor (150px) va a la columna
-// de Total (última antes del botón) para que quepan el importe y el indicador
-// FX; la de Contenedor usa 110px.
+// `minmax(0,1fr)` evita recortes. La columna Total reserva espacio para el importe y el indicador FX.
 const COSTO_COLS_BASE = "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_88px_150px_36px]";
 const COSTO_COLS_CONT = "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_88px_110px_150px_36px]";
 const VENTA_COLS_BASE = "lg:grid-cols-[minmax(0,1fr)_72px_120px_88px_150px_36px]";

@@ -76,6 +76,7 @@ export interface ActualizarEmbarqueRpcInput {
    * RPC devuelve `LC_CONFLICTO_CONCURRENCIA` para que la UI pida recargar.
    */
   expectedUpdatedAt?: string | null;
+  revisionFiscal?: { huella: string; motivo: string };
 }
 
 export async function actualizarEmbarqueRpc(input: ActualizarEmbarqueRpcInput): Promise<void> {
@@ -87,7 +88,9 @@ export async function actualizarEmbarqueRpc(input: ActualizarEmbarqueRpcInput): 
   await run(
     supabase.rpc('actualizar_embarque_con_contenedores', {
       p_embarque_id: input.id,
-      p_embarque: toDbJson(embarqueSinCreador),
+      p_embarque: toDbJson(input.revisionFiscal
+        ? { ...embarqueSinCreador, revision_fiscal: input.revisionFiscal }
+        : embarqueSinCreador),
       p_conceptos_venta: toDbJson(input.conceptosVenta),
       p_conceptos_costo: toDbJson(input.conceptosCosto),
       p_request_id: input.requestId,

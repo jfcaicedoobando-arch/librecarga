@@ -1,13 +1,11 @@
-/**
- * Mensajes `LC_*` del dominio financiero: facturas de cliente y proveedor,
- * notas de crédito, pagos, REP, movimientos bancarios y anticipos.
- * Se consume desde `lcCodeMessages.ts` (índice).
- */
+/** Mensajes `LC_*` de facturación, pagos y movimientos financieros. */
 export const LC_CODE_MESSAGES_FINANCIERO: Record<string, string> = {
   LC_ISR_AMBIENTE_INVALIDO: "Selecciona el ambiente de la conexión de Facturapi.",
   LC_ISR_IMPORTES_INVALIDOS: "Revisa cantidad y precio: usa importes válidos con máximo seis decimales.",
   LC_ISR_SIN_PERMISO: "No tienes permiso para evaluar impuestos de esta organización.",
   LC_ISR_REVISION_REQUERIDA: "Revisa la evaluación fiscal y vuelve a autorizar el documento antes de continuar.",
+  LC_ISR_REVISION_SIN_PERMISO: "Pide a Administración o Contabilidad que autorice la revisión fiscal del embarque.",
+  LC_ISR_EMBARQUE_CON_DOCUMENTOS: "El embarque tiene ventas vinculadas a documentos. Revisa esos documentos antes de cambiar el cliente o los importes.",
   LC_ISR_NO_DESACTIVAR: "No se puede eliminar la evaluación fiscal del documento.",
   LC_ISR_EVALUACION_REQUERIDA: "Solicita una evaluación fiscal antes de guardar retenciones en este concepto.",
   LC_ISR_FLUJO_NO_HABILITADO: "Este borrador contiene una evaluación fiscal. Su envío y conversión estarán disponibles al completar el flujo fiscal.",

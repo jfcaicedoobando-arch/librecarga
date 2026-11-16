@@ -560,5 +560,13 @@
       "0071_isr_resico_cotizacion_embarque.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0072_isr_resico_revision_embarque.sql",
+    "sha256": "5204233d11421deda09b914b71e746b2607e89ac5a849f00e0633e26b58a3871",
+    "replays": [
+      "0072_isr_resico_revision_embarque.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

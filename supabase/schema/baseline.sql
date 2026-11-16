@@ -6011,6 +6011,14 @@ BEGIN
   END LOOP;
 END;
 $_$;
+CREATE FUNCTION public._isr_base_revision_venta(p_linea jsonb) RETURNS jsonb
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+  SELECT jsonb_build_object('moneda', p_linea->'moneda', 'cantidad', p_linea->'cantidad',
+    'precio_unitario', p_linea->'precio_unitario', 'tipo_iva', p_linea->'tipo_iva',
+    'aplica_iva', p_linea->'aplica_iva', 'tasa_iva_aplicada', p_linea->'tasa_iva_aplicada');
+$$;
 CREATE FUNCTION public._isr_documento_habilitado(p_org_id uuid) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public', 'pg_temp'
@@ -6023,6 +6031,8 @@ CREATE FUNCTION public._isr_guard_concepto() RETURNS trigger
     SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
 DECLARE v_cliente uuid; v_eval jsonb; v_parent_org uuid; v_opt_in boolean; v_ambiente text; v_origen jsonb; v_cot public.cotizaciones;
+  v_revision boolean := false;
+  v_linea jsonb;
 BEGIN
   IF TG_OP = 'DELETE' THEN
     IF OLD.evaluacion_fiscal IS NOT NULL THEN
@@ -6033,10 +6043,19 @@ BEGIN
   IF TG_OP = 'UPDATE' AND OLD.evaluacion_fiscal IS NOT NULL AND NEW.evaluacion_fiscal IS NULL THEN
     RAISE EXCEPTION 'LC_ISR_NO_DESACTIVAR' USING ERRCODE = '23514';
   END IF;
+  IF TG_TABLE_NAME = 'conceptos_venta' THEN
+    -- An authenticated writer cannot create an open audit row or reuse a completed review.
+    SELECT EXISTS (SELECT 1 FROM public.embarque_revisiones_fiscales r
+      WHERE r.embarque_id = NEW.embarque_id AND r.organization_id = NEW.organization_id
+        AND r.transaccion = txid_current() AND r.actor_id = auth.uid() AND r.aplicada_at IS NULL)
+      INTO v_revision;
+  END IF;
   IF TG_OP = 'UPDATE' AND OLD.evaluacion_fiscal IS NOT NULL AND (
-    (to_jsonb(NEW)->'organization_id',to_jsonb(NEW)->'embarque_id',to_jsonb(NEW)->'proforma_id',to_jsonb(NEW)->'deleted_at')
+    (to_jsonb(NEW)->'organization_id',to_jsonb(NEW)->'embarque_id',to_jsonb(NEW)->'proforma_id')
       IS DISTINCT FROM
-    (to_jsonb(OLD)->'organization_id',to_jsonb(OLD)->'embarque_id',to_jsonb(OLD)->'proforma_id',to_jsonb(OLD)->'deleted_at')
+    (to_jsonb(OLD)->'organization_id',to_jsonb(OLD)->'embarque_id',to_jsonb(OLD)->'proforma_id')
+    OR (NEW.deleted_at IS DISTINCT FROM OLD.deleted_at
+      AND NOT (v_revision AND OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL))
   ) THEN
     RAISE EXCEPTION 'LC_ISR_REVISION_REQUERIDA' USING ERRCODE='23514';
   END IF;
@@ -6100,18 +6119,25 @@ BEGIN
   IF v_parent_org IS DISTINCT FROM NEW.organization_id OR v_parent_org IS NULL THEN
     RAISE EXCEPTION 'LC_ISR_PADRE_INVALIDO' USING ERRCODE = '23514';
   END IF;
+  IF v_revision AND NEW.deleted_at IS NULL THEN
+    v_linea := public._evaluar_documento_isr_resico(NEW.organization_id, v_cliente, jsonb_build_array(to_jsonb(NEW)))
+      ->'conceptos'->0;
+    NEW.tipo_iva := v_linea->>'tipo_iva';
+    NEW.total := round(NEW.cantidad * NEW.precio_unitario, 2);
+    NEW.evaluacion_fiscal := v_linea->'evaluacion_fiscal';
+    NEW.tasa_ret_isr := (v_linea->>'tasa_ret_isr')::numeric;
+    NEW.monto_ret_isr := (v_linea->>'monto_ret_isr')::numeric;
+    RETURN NEW;
+  END IF;
   IF TG_TABLE_NAME='conceptos_venta' AND TG_OP='UPDATE' AND OLD.evaluacion_fiscal IS NOT NULL THEN
-    IF (NEW.cantidad, NEW.precio_unitario, NEW.moneda, NEW.tipo_iva, NEW.tasa_iva_aplicada, NEW.aplica_iva)
-      IS NOT DISTINCT FROM
-       (OLD.cantidad, OLD.precio_unitario, OLD.moneda, OLD.tipo_iva, OLD.tasa_iva_aplicada, OLD.aplica_iva) THEN
-      NEW.evaluacion_fiscal := OLD.evaluacion_fiscal;
-      NEW.tasa_ret_isr := OLD.tasa_ret_isr;
-      NEW.monto_ret_isr := OLD.monto_ret_isr;
-      RETURN NEW;
-    END IF;
-    IF OLD.cotizacion_concepto_origen_id IS NOT NULL THEN
+    IF public._isr_base_revision_venta(to_jsonb(NEW)) IS DISTINCT FROM public._isr_base_revision_venta(to_jsonb(OLD))
+      OR NEW.total IS DISTINCT FROM OLD.total THEN
       RAISE EXCEPTION 'LC_ISR_REVISION_REQUERIDA' USING ERRCODE = '23514';
     END IF;
+    NEW.evaluacion_fiscal := OLD.evaluacion_fiscal;
+    NEW.tasa_ret_isr := OLD.tasa_ret_isr;
+    NEW.monto_ret_isr := OLD.monto_ret_isr;
+    RETURN NEW;
   END IF;
   SELECT ambiente INTO v_ambiente FROM public.facturapi_credenciales WHERE organization_id=NEW.organization_id;
   IF TG_TABLE_NAME='conceptos_venta' AND TG_OP='INSERT' AND to_jsonb(NEW)->>'cotizacion_concepto_origen_id' IS NOT NULL THEN
@@ -6237,7 +6263,14 @@ CREATE FUNCTION public._isr_guard_padre() RETURNS trigger
 BEGIN
   IF TG_TABLE_NAME='embarques' THEN
     IF (NEW.cliente_id,NEW.organization_id) IS DISTINCT FROM (OLD.cliente_id,OLD.organization_id)
-      AND EXISTS (SELECT 1 FROM public.conceptos_venta WHERE embarque_id=OLD.id AND evaluacion_fiscal IS NOT NULL) THEN
+      AND EXISTS (SELECT 1 FROM public.conceptos_venta WHERE embarque_id=OLD.id AND evaluacion_fiscal IS NOT NULL)
+      AND (NEW.organization_id IS DISTINCT FROM OLD.organization_id OR NOT EXISTS (
+        SELECT 1 FROM public.embarque_revisiones_fiscales r
+        WHERE r.embarque_id = OLD.id AND r.organization_id = OLD.organization_id
+          AND r.transaccion = txid_current() AND r.actor_id = auth.uid() AND r.aplicada_at IS NULL
+          AND (r.snapshot_anterior->>'cliente_id')::uuid IS NOT DISTINCT FROM OLD.cliente_id
+          AND (r.snapshot_nuevo->>'cliente_id')::uuid IS NOT DISTINCT FROM NEW.cliente_id
+      )) THEN
       RAISE EXCEPTION 'LC_ISR_REVISION_REQUERIDA' USING ERRCODE='23514';
     END IF;
   ELSE
@@ -6250,6 +6283,79 @@ BEGIN
     END IF;
   END IF;
   RETURN NEW;
+END;
+$$;
+CREATE FUNCTION public._isr_plan_revision_embarque(p_embarque_id uuid, p_cliente_id uuid, p_conceptos_venta jsonb) RETURNS jsonb
+    LANGUAGE plpgsql STABLE
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_embarque public.embarques;
+  v_anteriores jsonb;
+  v_ambiente text;
+  v_entrada jsonb;
+  v_linea jsonb;
+  v_actual jsonb;
+  v_candidatas jsonb := '[]';
+  v_ids uuid[] := '{}';
+  v_id uuid;
+  v_aplica_iva boolean;
+  v_antes jsonb;
+  v_nuevo jsonb;
+BEGIN
+  SELECT * INTO v_embarque FROM public.embarques WHERE id = p_embarque_id;
+  SELECT COALESCE(jsonb_agg(to_jsonb(c) ORDER BY c.created_at, c.id), '[]') INTO v_anteriores
+  FROM public.conceptos_venta c
+  WHERE c.embarque_id = p_embarque_id AND c.organization_id = v_embarque.organization_id AND c.deleted_at IS NULL;
+  SELECT l->'evaluacion_fiscal'->>'ambiente' INTO v_ambiente
+  FROM jsonb_array_elements(v_anteriores) l WHERE l->'evaluacion_fiscal' <> 'null'::jsonb LIMIT 1;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  IF jsonb_typeof(p_conceptos_venta) IS DISTINCT FROM 'array' OR jsonb_array_length(p_conceptos_venta) > 1000 THEN
+    RAISE EXCEPTION 'LC_ISR_IMPORTES_INVALIDOS' USING ERRCODE = '22023';
+  END IF;
+  FOR v_entrada IN SELECT value FROM jsonb_array_elements(p_conceptos_venta) LOOP
+    IF jsonb_typeof(v_entrada) <> 'object' THEN
+      RAISE EXCEPTION 'LC_ISR_IMPORTES_INVALIDOS' USING ERRCODE = '22023';
+    END IF;
+    v_id := NULLIF(v_entrada->>'id', '')::uuid;
+    SELECT l INTO v_actual FROM jsonb_array_elements(v_anteriores) l WHERE l->>'id' = v_id::text;
+    IF v_id IS NOT NULL AND (v_actual IS NULL OR v_id = ANY(v_ids)) THEN
+      RAISE EXCEPTION 'LC_ISR_LINAJE_INVALIDO' USING ERRCODE = '23514';
+    END IF;
+    IF v_id IS NOT NULL THEN v_ids := array_append(v_ids, v_id); END IF;
+    v_aplica_iva := COALESCE((v_entrada->>'aplica_iva')::boolean, (v_actual->>'aplica_iva')::boolean, false);
+    -- Resolve omitted fields the same way as the shipment writer.
+    v_linea := jsonb_build_object('id', v_id,
+      'cantidad', COALESCE((v_entrada->>'cantidad')::numeric, (v_actual->>'cantidad')::numeric, 1),
+      'precio_unitario', COALESCE((v_entrada->>'precio_unitario')::numeric, (v_actual->>'precio_unitario')::numeric, 0),
+      'moneda', COALESCE(v_entrada->>'moneda', v_actual->>'moneda', 'MXN'),
+      'aplica_iva', v_aplica_iva,
+      'tipo_iva', CASE WHEN v_entrada ? 'tipo_iva' THEN NULLIF(v_entrada->>'tipo_iva', '') ELSE v_actual->>'tipo_iva' END,
+      'tasa_iva_aplicada', CASE WHEN v_aplica_iva THEN COALESCE(NULLIF((v_entrada->>'tasa_iva_aplicada')::numeric, 0),
+        NULLIF((v_actual->>'tasa_iva_aplicada')::numeric, 0), .16) ELSE 0 END,
+      'tasa_ret_iva', COALESCE((v_entrada->>'tasa_ret_iva')::numeric, 0));
+    IF v_actual->>'estado_facturacion' = 'facturado' THEN
+      v_linea := jsonb_build_object('id', v_id) || public._isr_base_revision_venta(v_actual);
+    END IF;
+    v_candidatas := v_candidatas || jsonb_build_array(v_linea);
+  END LOOP;
+  v_candidatas := v_candidatas || COALESCE((SELECT jsonb_agg(jsonb_build_object('id', l->'id') || public._isr_base_revision_venta(l))
+    FROM jsonb_array_elements(v_anteriores) l WHERE l->>'estado_facturacion' <> 'pendiente'
+      AND NOT ((l->>'id')::uuid = ANY(v_ids))), '[]');
+  IF p_cliente_id IS NOT DISTINCT FROM v_embarque.cliente_id AND NOT EXISTS (
+    SELECT 1 FROM jsonb_array_elements(v_anteriores) a
+    FULL JOIN jsonb_array_elements(v_candidatas) b ON a->>'id' = b->>'id'
+    WHERE public._isr_base_revision_venta(a) IS DISTINCT FROM public._isr_base_revision_venta(b)
+  ) THEN RETURN NULL; END IF;
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_anteriores) l
+    WHERE l->>'estado_facturacion' <> 'pendiente' OR l->>'proforma_id' IS NOT NULL) THEN
+    RAISE EXCEPTION 'LC_ISR_EMBARQUE_CON_DOCUMENTOS' USING ERRCODE = '23514';
+  END IF;
+  v_antes := public._isr_snapshot_documento(v_embarque.organization_id, v_embarque.cliente_id, v_ambiente, v_anteriores);
+  v_nuevo := public._evaluar_documento_isr_resico(v_embarque.organization_id, p_cliente_id, v_candidatas);
+  RETURN jsonb_build_object('antes', v_antes, 'despues', v_nuevo->'snapshot', 'conceptos_anteriores', v_anteriores,
+    'conceptos_nuevos', v_nuevo->'conceptos', 'huella', encode(sha256(convert_to(jsonb_build_array(
+      p_embarque_id, v_embarque.updated_at, v_antes, v_nuevo)::text, 'UTF8')), 'hex'));
 END;
 $$;
 CREATE FUNCTION public._isr_snapshot_documento(p_org_id uuid, p_cliente_id uuid, p_ambiente text, p_conceptos jsonb) RETURNS jsonb
@@ -8913,15 +9019,30 @@ DECLARE
   v_incoming_costo_ids uuid[];
   v_new_id uuid;
   v_current_updated_at timestamptz;
-  v_cliente_actual uuid;
+  v_embarque_actual public.embarques;
+  v_cliente_nuevo uuid;
+  v_plan_fiscal jsonb;
+  v_confirmacion_fiscal jsonb := p_embarque->'revision_fiscal';
+  v_revision_id uuid;
+  v_lineas_guardadas jsonb;
+  v_lineas_confirmadas jsonb;
 BEGIN
-  SELECT organization_id, updated_at, cliente_id
-    INTO v_org_id, v_current_updated_at, v_cliente_actual
+  SELECT * INTO v_embarque_actual
     FROM embarques
    WHERE id = p_embarque_id
    FOR UPDATE;
+  v_org_id := v_embarque_actual.organization_id;
+  v_current_updated_at := v_embarque_actual.updated_at;
+  v_cliente_nuevo := COALESCE(NULLIF(p_embarque->>'cliente_id','')::uuid, v_embarque_actual.cliente_id);
   IF v_org_id IS NULL THEN RAISE EXCEPTION 'Embarque no encontrado'; END IF;
   PERFORM public._assert_writer(v_org_id);
+  v_resp := public.idempotency_claim(p_request_id, 'actualizar_embarque_completo');
+  IF v_resp IS NOT NULL THEN
+    IF v_resp->>'embarque_id' IS DISTINCT FROM p_embarque_id::text THEN
+      RAISE EXCEPTION 'LC_ISR_REVISION_REQUERIDA' USING ERRCODE = '23514';
+    END IF;
+    RETURN v_resp;
+  END IF;
   IF p_expected_updated_at IS NOT NULL
      AND v_current_updated_at IS DISTINCT FROM p_expected_updated_at THEN
     RAISE EXCEPTION 'LC_CONFLICTO_CONCURRENCIA: otro usuario modificó este embarque. Recarga y vuelve a intentar.'
@@ -8933,12 +9054,27 @@ BEGIN
   END IF;
   PERFORM public._assert_relaciones_embarque(
     v_org_id,
-    COALESCE(NULLIF(p_embarque->>'cliente_id','')::uuid, v_cliente_actual),
+    v_cliente_nuevo,
     NULLIF(p_embarque->>'cotizacion_id','')::uuid,
     p_conceptos_costo
   );
-  v_resp := public.idempotency_claim(p_request_id, 'actualizar_embarque_completo');
-  IF v_resp IS NOT NULL THEN RETURN v_resp; END IF;
+  v_plan_fiscal := public._isr_plan_revision_embarque(p_embarque_id, v_cliente_nuevo, p_conceptos_venta);
+  IF v_plan_fiscal IS NOT NULL OR v_confirmacion_fiscal IS NOT NULL THEN
+    IF v_org_id IS DISTINCT FROM public.org_scope() OR NOT public.has_any_role_in_org_exact(auth.uid(),
+      ARRAY['admin','admin_org','contador']::public.app_role[], v_org_id) THEN
+      RAISE EXCEPTION 'LC_ISR_REVISION_SIN_PERMISO' USING ERRCODE = '42501';
+    END IF;
+    IF v_plan_fiscal IS NULL OR v_embarque_actual.deleted_at IS NOT NULL OR p_expected_updated_at IS NULL
+      OR v_confirmacion_fiscal->>'huella' IS DISTINCT FROM v_plan_fiscal->>'huella'
+      OR length(btrim(COALESCE(v_confirmacion_fiscal->>'motivo', ''))) NOT BETWEEN 10 AND 500 THEN
+      RAISE EXCEPTION 'LC_ISR_REVISION_REQUERIDA' USING ERRCODE = '23514';
+    END IF;
+    INSERT INTO public.embarque_revisiones_fiscales (organization_id, embarque_id, actor_id, transaccion,
+      motivo, snapshot_anterior, snapshot_nuevo, conceptos_anteriores)
+    VALUES (v_org_id, p_embarque_id, auth.uid(), txid_current(), btrim(v_confirmacion_fiscal->>'motivo'),
+      v_plan_fiscal->'antes', v_plan_fiscal->'despues', v_plan_fiscal->'conceptos_anteriores')
+    RETURNING id INTO v_revision_id;
+  END IF;
   IF NULLIF(p_embarque->>'tarifa_id', '') IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM public.costeo_tarifas t
     WHERE t.id = (p_embarque->>'tarifa_id')::uuid AND t.organization_id = v_org_id
@@ -9038,6 +9174,7 @@ BEGIN
         END
       WHERE id = (cv->>'id')::uuid
         AND embarque_id = p_embarque_id
+        AND deleted_at IS NULL
         AND estado_facturacion IN ('pendiente', 'en_proforma');
     ELSE
       INSERT INTO conceptos_venta (
@@ -9071,6 +9208,20 @@ BEGIN
      AND deleted_at IS NULL
      AND estado_facturacion = 'pendiente'
      AND NOT (id = ANY(v_incoming_venta_ids));
+  IF v_revision_id IS NOT NULL THEN
+    -- Reconcile the approved fiscal inputs with the exact data saved by the normal writer.
+    SELECT COALESCE(jsonb_agg(datos ORDER BY datos), '[]') INTO v_lineas_guardadas
+    FROM (SELECT public._isr_base_revision_venta(to_jsonb(c)) ||
+        jsonb_build_object('evaluacion_fiscal', c.evaluacion_fiscal) datos
+      FROM public.conceptos_venta c WHERE c.embarque_id = p_embarque_id AND c.deleted_at IS NULL) guardadas;
+    SELECT COALESCE(jsonb_agg(datos ORDER BY datos), '[]') INTO v_lineas_confirmadas
+    FROM (SELECT public._isr_base_revision_venta(l) || jsonb_build_object('evaluacion_fiscal', l->'evaluacion_fiscal') datos
+      FROM jsonb_array_elements(v_plan_fiscal->'conceptos_nuevos') l) confirmadas;
+    IF v_lineas_guardadas IS DISTINCT FROM v_lineas_confirmadas THEN
+      RAISE EXCEPTION 'LC_ISR_REVISION_REQUERIDA' USING ERRCODE = '23514';
+    END IF;
+    UPDATE public.embarque_revisiones_fiscales SET aplicada_at = clock_timestamp() WHERE id = v_revision_id;
+  END IF;
   v_incoming_costo_ids := ARRAY(
     SELECT (elem->>'id')::uuid
       FROM jsonb_array_elements(p_conceptos_costo) elem
@@ -29805,6 +29956,31 @@ BEGIN
      AND deleted_at IS NULL;
 END;
 $$;
+CREATE FUNCTION public.preparar_revision_fiscal_embarque(p_embarque_id uuid, p_cliente_id uuid, p_conceptos_venta jsonb, p_expected_updated_at timestamp with time zone) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_embarque public.embarques;
+  v_plan jsonb;
+BEGIN
+  SELECT * INTO v_embarque FROM public.embarques WHERE id = p_embarque_id AND deleted_at IS NULL;
+  IF v_embarque.id IS NULL OR v_embarque.organization_id IS DISTINCT FROM public.org_scope() THEN
+    RAISE EXCEPTION 'LC_ISR_SIN_PERMISO' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public._assert_writer(v_embarque.organization_id);
+  IF v_embarque.updated_at IS DISTINCT FROM p_expected_updated_at THEN
+    RAISE EXCEPTION 'LC_CONFLICTO_CONCURRENCIA' USING ERRCODE = '40001';
+  END IF;
+  PERFORM public._assert_relaciones_embarque(v_embarque.organization_id,
+    COALESCE(p_cliente_id, v_embarque.cliente_id), NULL, '[]');
+  v_plan := public._isr_plan_revision_embarque(p_embarque_id, COALESCE(p_cliente_id, v_embarque.cliente_id), p_conceptos_venta);
+  IF v_plan IS NULL THEN RETURN NULL; END IF;
+  RETURN jsonb_build_object('antes', v_plan->'antes', 'despues', v_plan->'despues', 'huella', v_plan->'huella',
+    'puede_autorizar', public.has_any_role_in_org_exact(auth.uid(), ARRAY['admin','admin_org','contador']::public.app_role[],
+      v_embarque.organization_id));
+END;
+$$;
 CREATE FUNCTION public.profit_por_cliente(_fecha_desde date DEFAULT NULL::date, _fecha_hasta date DEFAULT NULL::date, _modo text DEFAULT NULL::text, _cliente_id uuid DEFAULT NULL::uuid) RETURNS TABLE(cliente_id uuid, cliente_nombre text, total_embarques bigint, venta_usd numeric, costo_usd numeric, venta_mxn numeric, costo_mxn numeric, embarques_sin_tc bigint)
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public'
@@ -40520,6 +40696,21 @@ CREATE TABLE public.embarque_garantias_historial (
     changed_by uuid,
     changed_at timestamp with time zone DEFAULT now() NOT NULL
 );
+CREATE TABLE public.embarque_revisiones_fiscales (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    organization_id uuid NOT NULL,
+    embarque_id uuid NOT NULL,
+    actor_id uuid NOT NULL,
+    transaccion bigint NOT NULL,
+    motivo text NOT NULL,
+    snapshot_anterior jsonb NOT NULL,
+    snapshot_nuevo jsonb NOT NULL,
+    conceptos_anteriores jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    aplicada_at timestamp with time zone,
+    CONSTRAINT embarque_revisiones_fiscales_motivo_check CHECK (((length(btrim(motivo)) >= 10) AND (length(btrim(motivo)) <= 500)))
+);
+ALTER TABLE ONLY public.embarque_revisiones_fiscales FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.embarques (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     expediente text,
@@ -41665,6 +41856,8 @@ ALTER TABLE ONLY public.embarque_garantias_contenedor
     ADD CONSTRAINT embarque_garantias_contenedor_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.embarque_garantias_historial
     ADD CONSTRAINT embarque_garantias_historial_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.embarque_revisiones_fiscales
+    ADD CONSTRAINT embarque_revisiones_fiscales_pkey PRIMARY KEY (id);
 ALTER TABLE public.embarques
     ADD CONSTRAINT embarques_expediente_formato_valido CHECK (((expediente IS NULL) OR (expediente ~ '^EL[A-Z]{3}[0-9]+$'::text) OR (expediente ~ '^DEMO-[0-9]{4}-[0-9]+$'::text))) NOT VALID;
 ALTER TABLE ONLY public.embarques
@@ -41872,6 +42065,8 @@ CREATE INDEX crm_scoring_reglas_objeto_idx ON public.crm_scoring_reglas USING bt
 CREATE INDEX crm_solicitudes_pricing_estado_idx ON public.crm_solicitudes_pricing USING btree (organization_id, estado);
 CREATE INDEX crm_solicitudes_pricing_op_idx ON public.crm_solicitudes_pricing USING btree (oportunidad_id);
 CREATE UNIQUE INDEX documentos_embarque_unico_por_nombre ON public.documentos_embarque USING btree (embarque_id, nombre) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX embarque_revisiones_fiscales_abierta_idx ON public.embarque_revisiones_fiscales USING btree (embarque_id, transaccion) WHERE (aplicada_at IS NULL);
+CREATE INDEX embarque_revisiones_fiscales_embarque_idx ON public.embarque_revisiones_fiscales USING btree (embarque_id, created_at);
 CREATE UNIQUE INDEX embarques_cotizacion_unica_viva ON public.embarques USING btree (cotizacion_id) WHERE ((cotizacion_id IS NOT NULL) AND (deleted_at IS NULL));
 CREATE UNIQUE INDEX embarques_expediente_org_unico ON public.embarques USING btree (organization_id, expediente) WHERE (deleted_at IS NULL);
 CREATE INDEX facturapi_webhook_por_procesar ON public.facturapi_webhook_eventos USING btree (procesamiento_disponible_en, id) WHERE (procesamiento_estado = ANY (ARRAY['procesando'::text, 'reintentable'::text]));
@@ -42987,6 +43182,12 @@ ALTER TABLE ONLY public.embarque_garantias_historial
     ADD CONSTRAINT embarque_garantias_historial_garantia_id_fkey FOREIGN KEY (garantia_id) REFERENCES public.embarque_garantias_contenedor(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.embarque_garantias_historial
     ADD CONSTRAINT embarque_garantias_historial_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.embarque_revisiones_fiscales
+    ADD CONSTRAINT embarque_revisiones_fiscales_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES auth.users(id);
+ALTER TABLE ONLY public.embarque_revisiones_fiscales
+    ADD CONSTRAINT embarque_revisiones_fiscales_embarque_id_fkey FOREIGN KEY (embarque_id) REFERENCES public.embarques(id);
+ALTER TABLE ONLY public.embarque_revisiones_fiscales
+    ADD CONSTRAINT embarque_revisiones_fiscales_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
 ALTER TABLE ONLY public.embarques
     ADD CONSTRAINT embarques_agente_id_fkey FOREIGN KEY (agente_id) REFERENCES public.costeo_agentes(id) ON DELETE SET NULL;
 ALTER TABLE ONLY public.embarques
@@ -43856,6 +44057,7 @@ ALTER TABLE public.embarque_facturas_entrantes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.embarque_facturas_entrantes_conceptos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.embarque_garantias_contenedor ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.embarque_garantias_historial ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.embarque_revisiones_fiscales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.embarques ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.eventos_embarque ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.factura_embarques ENABLE ROW LEVEL SECURITY;
@@ -43867,7 +44069,9 @@ ALTER TABLE public.facturapi_credenciales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.facturapi_webhook_eventos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.facturas ENABLE ROW LEVEL SECURITY;
 CREATE POLICY fiscal_revision_read ON public.cotizacion_revisiones_fiscales FOR SELECT TO authenticated USING (((organization_id = public.org_scope()) AND public.has_any_role_in_org_exact(auth.uid(), ARRAY['admin'::public.app_role, 'admin_org'::public.app_role, 'contador'::public.app_role, 'gerente_comercial'::public.app_role, 'vendedor'::public.app_role], organization_id)));
+CREATE POLICY fiscal_revision_read ON public.embarque_revisiones_fiscales FOR SELECT TO authenticated USING (((organization_id = public.org_scope()) AND public.has_any_role_in_org_exact(auth.uid(), ARRAY['admin'::public.app_role, 'admin_org'::public.app_role, 'contador'::public.app_role], organization_id)));
 CREATE POLICY fiscal_revision_scope ON public.cotizacion_revisiones_fiscales AS RESTRICTIVE TO authenticated USING (public.rls_tenant_scope_ok(organization_id)) WITH CHECK (public.rls_tenant_scope_ok(organization_id));
+CREATE POLICY fiscal_revision_scope ON public.embarque_revisiones_fiscales AS RESTRICTIVE TO authenticated USING (public.rls_tenant_scope_ok(organization_id)) WITH CHECK (public.rls_tenant_scope_ok(organization_id));
 ALTER TABLE public.folio_secuencias ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "folio_secuencias lectura org" ON public.folio_secuencias FOR SELECT TO authenticated USING ((organization_id = ( SELECT public.current_user_org_id() AS current_user_org_id)));
 CREATE POLICY "gestionar credenciales facturapi de su org" ON public.facturapi_credenciales TO authenticated USING ((public.is_org_admin(( SELECT auth.uid() AS uid), organization_id) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'contador'::public.app_role) AS has_role))) WITH CHECK ((public.is_org_admin(( SELECT auth.uid() AS uid), organization_id) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'contador'::public.app_role) AS has_role)));
@@ -44261,11 +44465,13 @@ REVOKE ALL ON FUNCTION public._h14_mutex_baja_embarque(p_org uuid, p_esperar boo
 REVOKE ALL ON FUNCTION public._h14_proformas_baja_embarque(p_embarque_id uuid, p_org uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._h14_validar_actor_org_baja(p_org uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._h14_validar_fila_org_baja(p_org uuid, p_tabla text, p_fila jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._isr_base_revision_venta(p_linea jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_documento_habilitado(p_org_id uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_concepto() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_conversion_factura() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_cotizacion() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_padre() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._isr_plan_revision_embarque(p_embarque_id uuid, p_cliente_id uuid, p_conceptos_venta jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_snapshot_documento(p_org_id uuid, p_cliente_id uuid, p_ambiente text, p_conceptos jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._liquidacion_guard_estado() FROM PUBLIC;
 GRANT ALL ON FUNCTION public._liquidacion_guard_estado() TO service_role;
@@ -45442,6 +45648,8 @@ GRANT ALL ON FUNCTION public.portal_solicitar_cotizacion_v2(p_cliente_id uuid, p
 REVOKE ALL ON FUNCTION public.portal_update_contacto(_nombre text, _telefono text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.portal_update_contacto(_nombre text, _telefono text) TO authenticated;
 GRANT ALL ON FUNCTION public.portal_update_contacto(_nombre text, _telefono text) TO service_role;
+REVOKE ALL ON FUNCTION public.preparar_revision_fiscal_embarque(p_embarque_id uuid, p_cliente_id uuid, p_conceptos_venta jsonb, p_expected_updated_at timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.preparar_revision_fiscal_embarque(p_embarque_id uuid, p_cliente_id uuid, p_conceptos_venta jsonb, p_expected_updated_at timestamp with time zone) TO authenticated;
 REVOKE ALL ON FUNCTION public.profit_por_cliente(_fecha_desde date, _fecha_hasta date, _modo text, _cliente_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.profit_por_cliente(_fecha_desde date, _fecha_hasta date, _modo text, _cliente_id uuid) TO authenticated;
 GRANT ALL ON FUNCTION public.profit_por_cliente(_fecha_desde date, _fecha_hasta date, _modo text, _cliente_id uuid) TO service_role;
@@ -46134,6 +46342,8 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.embarque_facturas_entrantes_co
 GRANT ALL ON TABLE public.embarque_facturas_entrantes_conceptos TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.embarque_garantias_historial TO authenticated;
 GRANT ALL ON TABLE public.embarque_garantias_historial TO service_role;
+GRANT SELECT ON TABLE public.embarque_revisiones_fiscales TO authenticated;
+GRANT SELECT ON TABLE public.embarque_revisiones_fiscales TO service_role;
 GRANT INSERT,DELETE,UPDATE ON TABLE public.embarques TO anon;
 GRANT INSERT,DELETE,UPDATE ON TABLE public.embarques TO authenticated;
 GRANT ALL ON TABLE public.embarques TO service_role;

@@ -103,3 +103,15 @@ export function validarRutaMaritimaRequerida(
     step: 2,
   };
 }
+
+export function resolverRutaAlGuardar({ modo, contenedores, tipoServicio, naviera }: {
+  modo: string; contenedores?: ContenedorBorrador[]; tipoServicio?: string | null; naviera?: string | null;
+}) {
+  const hijos = contenedores ?? [];
+  const errorContenedores = validarContenedoresMaritimo(modo, hijos, tipoServicio);
+  if (errorContenedores) return { error: errorContenedores, titulo: "Faltan datos de contenedores" } as const;
+  const errorRuta = validarRutaMaritimaRequerida(modo, { naviera, tipoServicio });
+  if (errorRuta) return { error: errorRuta, titulo: "Faltan datos de la ruta" } as const;
+  // Aéreo y terrestre capturan peso, volumen y piezas en el embarque.
+  return { contenedores: modo === "Marítimo" || modo === "Multimodal" ? hijos : undefined } as const;
+}

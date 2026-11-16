@@ -93,7 +93,7 @@ Las etapas siguientes llevarán a cada documento los importes aprobados y el cua
 
 ## Etapa 3 Cotización y embarque
 
-**Avance local.** La 0071 ya tiene pruebas de evaluación, autorización, revisión de cotización y conversión a embarque con datos sintéticos. Pantalla y PDF reproducen $230.42, y PostgreSQL 17.9 comprueba los mismos grupos de impuestos en el embarque. Está pendiente cerrar el recorrido de revisión fiscal de un embarque con importes ya aprobados.
+**Avance local.** La 0071 ya tiene pruebas de evaluación, autorización, revisión de cotización y conversión a embarque con datos sintéticos. Pantalla y PDF reproducen $230.42, y PostgreSQL 17.9 comprueba los mismos grupos de impuestos en el embarque. La 0072 incorpora la revisión autorizada cuando cambia el cliente o la base del embarque con evaluación guardada. La revisión conserva el antes y el después, los conceptos originales, el motivo y el actor.
 
 ### Entrega 3A Evaluación y desglose de la cotización
 
@@ -172,4 +172,4 @@ Ejecutar pruebas de dominio, UI, PDF con el renderizador real, Deno y PostgreSQL
 
 ## Primer cambio implementable
 
-Empezar por **3A**. Guardar y reabrir una cotización sintética PF 626 a persona moral con dos conceptos de $100.40, desglosar el ISR de $2.51 y mostrar $230.42 en pantalla y en el PDF real. Después incorporar la copia al embarque en **3B**. Buscar en paralelo la identidad de prueba de Facturapi para el futuro timbrado.
+Continuar con **4A**. Crear una proforma normal desde el embarque evaluado con dos conceptos de $100.40 y comprobar que el desglose de $2.51 de ISR y $230.42 de total se guarda en PostgreSQL y llega al PDF y al portal. Buscar en paralelo la identidad de prueba de Facturapi para el futuro timbrado.

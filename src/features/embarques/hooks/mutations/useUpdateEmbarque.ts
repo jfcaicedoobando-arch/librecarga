@@ -6,32 +6,18 @@
  *   - `./useNotaEmbarque` (createNota)
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Tables, TablesInsert } from '@/integrations/supabase/types';
+import type { Tables } from '@/integrations/supabase/types';
 import { queryKeys } from '@/lib/query';
-import { actualizarEmbarqueRpc } from '@/features/embarques/services';
-import type { ContenedorBorrador } from '@/features/embarques/types/contenedor';
+import { actualizarEmbarqueRpc, type ActualizarEmbarqueRpcInput } from '@/features/embarques/services';
 import { newRequestId } from '@/lib/idempotency';
 import { invalidateProfitDependencies } from '@/features/profit/hooks/invalidateProfitDependencies';
 
 type EmbarqueRow = Tables<'embarques'>;
 
-interface UpdateEmbarqueInput {
-  id: string;
-  embarque: Partial<TablesInsert<'embarques'>>;
-  conceptosVenta: Omit<TablesInsert<'conceptos_venta'>, 'embarque_id'>[];
-  conceptosCosto: Omit<TablesInsert<'conceptos_costo'>, 'embarque_id'>[];
-  /** Lista de contenedores hijos (Fase 2 v12.11.0). Si se omite, no se sincronizan. */
-  contenedores?: ContenedorBorrador[];
-  /** Idempotency key (A.3). */
-  requestId?: string;
-  /** FIX-15 · Bloqueo optimista: `updated_at` leído al abrir el wizard. */
-  expectedUpdatedAt?: string | null;
-}
-
 export function useUpdateEmbarque() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: UpdateEmbarqueInput) => {
+    mutationFn: async (input: ActualizarEmbarqueRpcInput) => {
       await actualizarEmbarqueRpc({ ...input, requestId: input.requestId ?? newRequestId() });
       return { id: input.id } as EmbarqueRow;
     },

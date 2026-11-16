@@ -369,6 +369,11 @@ REVOKE ALL ON FUNCTION public.evaluar_documento_isr_resico(uuid,uuid,jsonb,uuid,
   public.obtener_evaluacion_fiscal_embarque(uuid), public.revisar_cotizacion_fiscal(uuid,text,text)
   FROM PUBLIC,anon,service_role;
 REVOKE ALL ON FUNCTION public.validar_cotizacion_fiscal_envio(uuid,text,uuid) FROM PUBLIC,anon,authenticated;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN
+  ON public.embarque_revisiones_fiscales FROM authenticated, service_role;
+REVOKE ALL ON FUNCTION public._isr_base_revision_venta(jsonb),
+  public._isr_plan_revision_embarque(uuid,uuid,jsonb) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.preparar_revision_fiscal_embarque(uuid,uuid,jsonb,timestamptz) FROM PUBLIC,anon,service_role;
 \ir _ci_check_isr_resico_acl.sql
 \ir _ci_check_factura_resico_totales_acl.sql
 \ir _ci_check_isr_resico_comercial_acl.sql
