@@ -48,7 +48,8 @@ BEGIN
   END IF;
 
   SELECT jsonb_agg(jsonb_build_object('id', c.id, 'cantidad', c.cantidad, 'precio_unitario', c.precio_unitario,
-    'moneda', c.moneda, 'tipo_iva', c.tipo_iva, 'tasa_iva_aplicada', c.tasa_iva_aplicada) ORDER BY c.id)
+    'moneda', c.moneda, 'tipo_iva', c.tipo_iva, 'tasa_iva_aplicada', c.tasa_iva_aplicada, 'descripcion', c.descripcion,
+    'clave_sat', c.clave_sat, 'clave_unidad', c.clave_unidad, 'embarque_id', c.embarque_id) ORDER BY c.id)
   INTO v_lineas FROM public.conceptos_factura c WHERE c.factura_id = p_factura_id AND c.deleted_at IS NULL;
   IF v_lineas IS NULL THEN RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE = '23514'; END IF;
   v_ahora := public._evaluar_documento_isr_resico(v_factura.organization_id, v_factura.cliente_id, v_lineas);
@@ -77,11 +78,19 @@ BEGIN
   END IF;
 
   RETURN jsonb_build_object('factura_id', p_factura_id, 'organization_id', v_factura.organization_id,
+    'factura_actualizada_at', v_factura.updated_at,
+    'datos_factura', jsonb_build_object('fecha_emision', v_factura.fecha_emision, 'serie', v_factura.serie,
+      'uso_cfdi', v_factura.uso_cfdi, 'metodo_pago', v_factura.metodo_pago, 'forma_pago', v_factura.forma_pago,
+      'tipo_cambio', v_factura.tipo_cambio, 'embarque_id', v_factura.embarque_id, 'proforma_id', v_factura.proforma_id),
     'ambiente', v_cred.ambiente, 'credenciales_actualizadas_at', v_cred.updated_at,
     'perfil_id', v_perfil.id, 'perfil_version', v_perfil.version,
-    'conceptos_fingerprint', v_documento->'conceptos_fingerprint', 'totales', v_bloque,
+    'conceptos_fingerprint', v_documento->'conceptos_fingerprint', 'lineas_fingerprint', md5(v_lineas::text),
+    'totales', v_bloque,
     'emisor', jsonb_build_object('facturapi_org_id', v_perfil.facturapi_org_id,
-      'rfc', v_perfil.rfc, 'regimen_fiscal', v_perfil.regimen_fiscal, 'codigo_postal', v_perfil.codigo_postal),
-    'receptor', jsonb_build_object('rfc', upper(btrim(v_cliente.rfc)), 'regimen_fiscal', v_cliente.regimen_fiscal));
+      'rfc', v_perfil.rfc, 'regimen_fiscal', v_perfil.regimen_fiscal, 'codigo_postal', v_perfil.codigo_postal,
+      'razon_social', v_perfil.razon_social),
+    'receptor', jsonb_build_object('rfc', upper(btrim(v_cliente.rfc)), 'regimen_fiscal', v_cliente.regimen_fiscal,
+      'nombre', v_cliente.nombre, 'codigo_postal', v_cliente.codigo_postal, 'direccion', v_cliente.direccion,
+      'ciudad', v_cliente.ciudad, 'estado', v_cliente.estado));
 END;
 $$;

@@ -600,5 +600,13 @@
       "0076_isr_resico_factura_manual.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0077_isr_resico_intentos_timbrado.sql",
+    "sha256": "b88e723859b4a9398edcf50f19c0b348b93f22d7d3a952f213dd7c872efcbd80",
+    "replays": [
+      "0077_isr_resico_intentos_timbrado.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

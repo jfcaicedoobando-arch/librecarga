@@ -6263,12 +6263,12 @@ DECLARE
   v_proforma public.proformas;
 BEGIN
   IF NEW.evaluacion_fiscal IS NULL AND (TG_OP = 'INSERT' OR OLD.evaluacion_fiscal IS NULL) THEN RETURN NEW; END IF;
-  IF NEW.estado <> 'Borrador' OR NEW.snapshot_emision IS NOT NULL OR NEW.uuid_fiscal IS NOT NULL
-    OR NEW.facturapi_id IS NOT NULL OR NEW.facturapi_claim_at IS NOT NULL OR NEW.facturapi_pendiente_id IS NOT NULL
-    OR NEW.timbrado_en IS NOT NULL OR NEW.timbrado_por IS NOT NULL THEN
-    RAISE EXCEPTION 'LC_ISR_TIMBRADO_PENDIENTE' USING ERRCODE = '23514';
-  END IF;
   IF TG_OP = 'INSERT' THEN
+    IF NEW.estado <> 'Borrador' OR NEW.snapshot_emision IS NOT NULL OR NEW.uuid_fiscal IS NOT NULL
+      OR NEW.facturapi_id IS NOT NULL OR NEW.facturapi_claim_at IS NOT NULL OR NEW.facturapi_pendiente_id IS NOT NULL
+      OR NEW.facturapi_pendiente_at IS NOT NULL OR NEW.timbrado_en IS NOT NULL OR NEW.timbrado_por IS NOT NULL THEN
+      RAISE EXCEPTION 'LC_ISR_TIMBRADO_PENDIENTE' USING ERRCODE = '23514';
+    END IF;
     SELECT p.* INTO v_proforma FROM public.proformas p
       WHERE p.id = NEW.proforma_id AND p.organization_id = NEW.organization_id AND p.deleted_at IS NULL;
     IF NOT v_propietario OR NOT FOUND OR NEW.deleted_at IS NOT NULL OR NEW.origen <> 'conversion_proforma'
@@ -6292,6 +6292,7 @@ BEGIN
     AND v_propietario AND (to_jsonb(NEW) - ARRAY['evaluacion_fiscal','updated_at'])
       IS NOT DISTINCT FROM (to_jsonb(OLD) - ARRAY['evaluacion_fiscal','updated_at'])
     AND OLD.origen = 'manual' AND OLD.deleted_at IS NULL AND OLD.proforma_id IS NULL AND OLD.embarque_id IS NULL
+    AND OLD.estado = 'Borrador' AND OLD.uuid_fiscal IS NULL AND OLD.facturapi_id IS NULL AND OLD.snapshot_emision IS NULL
     AND (NEW.evaluacion_fiscal->>'factura_id')::uuid = OLD.id
     AND (NEW.evaluacion_fiscal->>'organization_id')::uuid = OLD.organization_id
     AND (NEW.evaluacion_fiscal->>'cliente_id')::uuid = OLD.cliente_id
@@ -6310,6 +6311,23 @@ BEGIN
       AND (NOT v_propietario OR OLD.deleted_at IS NOT NULL OR NEW.deleted_at IS NULL
         OR NEW.deleted_by IS DISTINCT FROM auth.uid())) THEN
     RAISE EXCEPTION 'LC_ISR_CONVERSION_REVISION' USING ERRCODE = '23514';
+  END IF;
+  IF OLD.uuid_fiscal IS NOT NULL THEN
+    IF (NEW.uuid_fiscal, NEW.facturapi_id, NEW.snapshot_emision, NEW.ambiente, NEW.timbrado_en, NEW.timbrado_por)
+      IS DISTINCT FROM (OLD.uuid_fiscal, OLD.facturapi_id, OLD.snapshot_emision, OLD.ambiente, OLD.timbrado_en, OLD.timbrado_por) THEN
+      RAISE EXCEPTION 'LC_ISR_TIMBRADO_PENDIENTE' USING ERRCODE = '23514';
+    END IF;
+    RETURN NEW;
+  END IF;
+  IF OLD.facturapi_id IS NOT NULL OR NEW.facturapi_id IS NOT NULL OR NEW.estado <> 'Borrador'
+    OR NEW.snapshot_emision IS NOT NULL OR NEW.uuid_fiscal IS NOT NULL OR NEW.facturapi_claim_at IS NOT NULL
+    OR NEW.facturapi_pendiente_id IS NOT NULL OR NEW.facturapi_pendiente_at IS NOT NULL
+    OR NEW.timbrado_en IS NOT NULL OR NEW.timbrado_por IS NOT NULL THEN
+    IF (to_jsonb(NEW) - 'updated_at') IS NOT DISTINCT FROM (to_jsonb(OLD) - 'updated_at') THEN RETURN NEW; END IF;
+    IF NOT v_propietario THEN RAISE EXCEPTION 'LC_ISR_TIMBRADO_PENDIENTE' USING ERRCODE = '23514'; END IF;
+    IF public._isr_validar_estado_timbrado_factura(OLD, NEW) IS DISTINCT FROM true THEN
+      RAISE EXCEPTION 'LC_ISR_TIMBRADO_PENDIENTE' USING ERRCODE = '23514';
+    END IF;
   END IF;
   RETURN NEW;
 END;
@@ -6502,6 +6520,9 @@ BEGIN
     WHERE f.id = NEW.factura_id AND f.organization_id = NEW.organization_id;
   IF v_factura.evaluacion_fiscal IS NULL AND NEW.origen_fiscal IS NULL
     AND (TG_OP = 'INSERT' OR OLD.origen_fiscal IS NULL) THEN RETURN NEW; END IF;
+  IF v_factura.facturapi_id LIKE 'PENDING:%' THEN
+    RAISE EXCEPTION 'LC_ISR_INTENTO_ACTIVO' USING ERRCODE = '23514';
+  END IF;
   IF TG_OP = 'INSERT' THEN
     IF NOT v_propietario OR v_factura.evaluacion_fiscal IS NULL OR v_factura.deleted_at IS NOT NULL
       OR NEW.deleted_at IS NOT NULL OR NEW.proforma_id_origen IS DISTINCT FROM v_factura.proforma_id
@@ -6940,7 +6961,8 @@ BEGIN
     RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE = '23514';
   END IF;
   SELECT jsonb_agg(jsonb_build_object('id', c.id, 'cantidad', c.cantidad, 'precio_unitario', c.precio_unitario,
-    'moneda', c.moneda, 'tipo_iva', c.tipo_iva, 'tasa_iva_aplicada', c.tasa_iva_aplicada) ORDER BY c.id)
+    'moneda', c.moneda, 'tipo_iva', c.tipo_iva, 'tasa_iva_aplicada', c.tasa_iva_aplicada, 'descripcion', c.descripcion,
+    'clave_sat', c.clave_sat, 'clave_unidad', c.clave_unidad, 'embarque_id', c.embarque_id) ORDER BY c.id)
   INTO v_lineas FROM public.conceptos_factura c WHERE c.factura_id = p_factura_id AND c.deleted_at IS NULL;
   IF v_lineas IS NULL THEN RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE = '23514'; END IF;
   v_ahora := public._evaluar_documento_isr_resico(v_factura.organization_id, v_factura.cliente_id, v_lineas);
@@ -6968,12 +6990,20 @@ BEGIN
     RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE = '23514';
   END IF;
   RETURN jsonb_build_object('factura_id', p_factura_id, 'organization_id', v_factura.organization_id,
+    'factura_actualizada_at', v_factura.updated_at,
+    'datos_factura', jsonb_build_object('fecha_emision', v_factura.fecha_emision, 'serie', v_factura.serie,
+      'uso_cfdi', v_factura.uso_cfdi, 'metodo_pago', v_factura.metodo_pago, 'forma_pago', v_factura.forma_pago,
+      'tipo_cambio', v_factura.tipo_cambio, 'embarque_id', v_factura.embarque_id, 'proforma_id', v_factura.proforma_id),
     'ambiente', v_cred.ambiente, 'credenciales_actualizadas_at', v_cred.updated_at,
     'perfil_id', v_perfil.id, 'perfil_version', v_perfil.version,
-    'conceptos_fingerprint', v_documento->'conceptos_fingerprint', 'totales', v_bloque,
+    'conceptos_fingerprint', v_documento->'conceptos_fingerprint', 'lineas_fingerprint', md5(v_lineas::text),
+    'totales', v_bloque,
     'emisor', jsonb_build_object('facturapi_org_id', v_perfil.facturapi_org_id,
-      'rfc', v_perfil.rfc, 'regimen_fiscal', v_perfil.regimen_fiscal, 'codigo_postal', v_perfil.codigo_postal),
-    'receptor', jsonb_build_object('rfc', upper(btrim(v_cliente.rfc)), 'regimen_fiscal', v_cliente.regimen_fiscal));
+      'rfc', v_perfil.rfc, 'regimen_fiscal', v_perfil.regimen_fiscal, 'codigo_postal', v_perfil.codigo_postal,
+      'razon_social', v_perfil.razon_social),
+    'receptor', jsonb_build_object('rfc', upper(btrim(v_cliente.rfc)), 'regimen_fiscal', v_cliente.regimen_fiscal,
+      'nombre', v_cliente.nombre, 'codigo_postal', v_cliente.codigo_postal, 'direccion', v_cliente.direccion,
+      'ciudad', v_cliente.ciudad, 'estado', v_cliente.estado));
 END;
 $$;
 CREATE FUNCTION public._isr_snapshot_documento(p_org_id uuid, p_cliente_id uuid, p_ambiente text, p_conceptos jsonb) RETURNS jsonb
@@ -7112,6 +7142,128 @@ BEGIN
   RETURN v_proforma.evaluacion_fiscal || jsonb_build_object(
     'emisor', v_lineas#>'{0,evaluacion_fiscal,emisor}',
     'receptor', (v_lineas#>'{0,evaluacion_fiscal,receptor}') || jsonb_build_object('regimen_fiscal', v_regimen_receptor));
+END;
+$$;
+CREATE FUNCTION public.current_user_org_id() RETURNS uuid
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  SELECT CASE
+    WHEN public.has_role(auth.uid(), 'super_admin'::app_role)
+      THEN COALESCE(
+             (SELECT s.organization_id FROM public.super_admin_org_activa s
+               WHERE s.user_id = auth.uid()),
+             public.default_user_org_id())
+    ELSE public.default_user_org_id()
+  END;
+$$;
+CREATE TABLE public.facturas (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    numero text NOT NULL,
+    embarque_id uuid,
+    expediente text DEFAULT ''::text NOT NULL,
+    cliente_id uuid NOT NULL,
+    cliente_nombre text DEFAULT ''::text NOT NULL,
+    subtotal numeric DEFAULT 0 NOT NULL,
+    iva numeric DEFAULT 0 NOT NULL,
+    total numeric DEFAULT 0 NOT NULL,
+    moneda public.moneda DEFAULT 'MXN'::public.moneda NOT NULL,
+    tipo_cambio numeric,
+    fecha_emision date DEFAULT CURRENT_DATE NOT NULL,
+    fecha_vencimiento date NOT NULL,
+    estado public.estado_factura DEFAULT 'Borrador'::public.estado_factura NOT NULL,
+    referencia_bl text,
+    notas text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    organization_id uuid DEFAULT public.current_user_org_id() NOT NULL,
+    proforma_id uuid,
+    factura_pdf_url text,
+    factura_xml_url text,
+    deleted_at timestamp with time zone,
+    deleted_by uuid,
+    snapshot_emision jsonb,
+    serie_id uuid,
+    folio_fiscal bigint,
+    rfc_cliente text,
+    uso_cfdi text,
+    forma_pago text,
+    metodo_pago text,
+    uuid_fiscal text,
+    dias_credito integer,
+    facturapi_id text,
+    serie text,
+    timbrado_en timestamp with time zone,
+    timbrado_por uuid,
+    cancelacion_motivo text,
+    cancelado_en timestamp with time zone,
+    enviada_cliente_at timestamp with time zone,
+    cotizacion_id uuid,
+    origen public.origen_factura DEFAULT 'proforma'::public.origen_factura NOT NULL,
+    sustituye_a uuid,
+    sustituida_por uuid,
+    ambiente public.ambiente_facturapi,
+    acuse_cancelacion_xml text,
+    acuse_cancelacion_fecha timestamp with time zone,
+    acuse_cancelacion_status text,
+    factura_xml_backup_path text,
+    ret_isr numeric DEFAULT 0 NOT NULL,
+    ret_iva numeric DEFAULT 0 NOT NULL,
+    uuid_verificado boolean DEFAULT false NOT NULL,
+    uuid_estatus_sat text,
+    uuid_verificado_fecha timestamp with time zone,
+    cancellation_status text,
+    cancelacion_solicitada_en timestamp with time zone,
+    cancelacion_vence_en timestamp with time zone,
+    facturapi_claim_at timestamp with time zone,
+    reconciliacion_checked_at timestamp with time zone,
+    facturapi_pendiente_id text,
+    facturapi_pendiente_at timestamp with time zone,
+    evaluacion_fiscal jsonb,
+    CONSTRAINT factura_evaluacion_fiscal_objeto_chk CHECK (((evaluacion_fiscal IS NULL) OR (jsonb_typeof(evaluacion_fiscal) = 'object'::text))),
+    CONSTRAINT facturas_cancelacion_motivo_sat CHECK (((cancelacion_motivo IS NULL) OR (cancelacion_motivo = ANY (ARRAY['01'::text, '02'::text, '03'::text, '04'::text])))),
+    CONSTRAINT facturas_cancellation_status_check CHECK ((cancellation_status = ANY (ARRAY['none'::text, 'verifying'::text, 'pending'::text, 'accepted'::text, 'rejected'::text, 'expired'::text]))),
+    CONSTRAINT facturas_iva_nonneg CHECK ((iva >= (0)::numeric)),
+    CONSTRAINT facturas_subtotal_nonneg CHECK ((subtotal >= (0)::numeric)),
+    CONSTRAINT facturas_tipo_cambio_pos CHECK (((tipo_cambio IS NULL) OR (tipo_cambio > (0)::numeric))),
+    CONSTRAINT facturas_total_nonneg CHECK ((total >= (0)::numeric)),
+    CONSTRAINT facturas_venc_despues_emision CHECK ((fecha_vencimiento >= fecha_emision))
+);
+ALTER TABLE ONLY public.facturas FORCE ROW LEVEL SECURITY;
+CREATE FUNCTION public._isr_validar_estado_timbrado_factura(p_old public.facturas, p_new public.facturas) RETURNS boolean
+    LANGUAGE plpgsql STABLE
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_intento public.intentos_timbrado_isr;
+  v_campos text[] := ARRAY['facturapi_id','facturapi_claim_at','facturapi_pendiente_id','facturapi_pendiente_at','updated_at'];
+  v_claim text := COALESCE(p_old.facturapi_id, p_new.facturapi_id);
+BEGIN
+  SELECT * INTO v_intento FROM public.intentos_timbrado_isr i WHERE i.factura_id = p_old.id
+    AND i.organization_id = p_old.organization_id AND 'PENDING:' || i.id::text = v_claim;
+  IF NOT FOUND OR p_old.uuid_fiscal IS NOT NULL THEN RETURN false; END IF;
+  IF v_intento.estado IN ('reservado','pendiente','conciliacion') THEN
+    RETURN p_new.estado = 'Borrador' AND p_new.facturapi_id = v_claim
+      AND p_new.facturapi_claim_at = v_intento.creado_at
+      AND p_new.facturapi_pendiente_id IS NOT DISTINCT FROM v_intento.facturapi_id
+      AND p_new.facturapi_pendiente_at IS NOT DISTINCT FROM
+        CASE WHEN v_intento.estado = 'reservado' THEN NULL ELSE v_intento.actualizado_at END
+      AND (to_jsonb(p_new) - v_campos) IS NOT DISTINCT FROM (to_jsonb(p_old) - v_campos);
+  END IF;
+  IF v_intento.estado = 'rechazado' THEN
+    RETURN p_old.facturapi_id = v_claim AND p_new.estado = 'Borrador'
+      AND p_new.facturapi_id IS NULL AND p_new.facturapi_claim_at IS NULL
+      AND p_new.facturapi_pendiente_id IS NULL AND p_new.facturapi_pendiente_at IS NULL
+      AND (to_jsonb(p_new) - v_campos) IS NOT DISTINCT FROM (to_jsonb(p_old) - v_campos);
+  END IF;
+  v_campos := v_campos || ARRAY['estado','snapshot_emision','uuid_fiscal','folio_fiscal','serie','numero','ambiente',
+    'uso_cfdi','timbrado_en','timbrado_por','factura_pdf_url','factura_xml_url','factura_xml_backup_path'];
+  RETURN v_intento.estado = 'confirmado' AND p_old.facturapi_id = v_claim AND p_new.estado = 'Emitida'
+    AND p_new.facturapi_id = v_intento.facturapi_id AND p_new.uuid_fiscal = v_intento.uuid_fiscal
+    AND p_new.facturapi_claim_at IS NULL AND p_new.facturapi_pendiente_id IS NULL AND p_new.facturapi_pendiente_at IS NULL
+    AND p_new.ambiente::text = v_intento.ambiente AND p_new.timbrado_por = v_intento.actor_id
+    AND p_new.snapshot_emision IS NOT NULL
+    AND (to_jsonb(p_new) - v_campos) IS NOT DISTINCT FROM (to_jsonb(p_old) - v_campos);
 END;
 $$;
 CREATE FUNCTION public._isr_validar_vinculo_proforma_normal(p_anterior jsonb, p_nuevo jsonb) RETURNS void
@@ -11009,19 +11161,6 @@ BEGIN
   END IF;
   RETURN jsonb_build_object('proforma_id', p_proforma_id, 'aprobada_at', v_proforma.ajuste_consolidacion_aprobado_at);
 END;
-$$;
-CREATE FUNCTION public.current_user_org_id() RETURNS uuid
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public'
-    AS $$
-  SELECT CASE
-    WHEN public.has_role(auth.uid(), 'super_admin'::app_role)
-      THEN COALESCE(
-             (SELECT s.organization_id FROM public.super_admin_org_activa s
-               WHERE s.user_id = auth.uid()),
-             public.default_user_org_id())
-    ELSE public.default_user_org_id()
-  END;
 $$;
 CREATE TABLE public.proveedor_facturas (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -16148,6 +16287,7 @@ DECLARE
   v_cliente jsonb;
   v_org jsonb;
   v_tasa_iva numeric;
+  v_prevalidacion jsonb;
 BEGIN
   -- Sólo congelar al transicionar a Emitida/Pagada y si aún no hay snapshot
   IF NEW.estado NOT IN ('Emitida', 'Pagada') THEN
@@ -16195,6 +16335,16 @@ BEGIN
     INTO v_org
     FROM public.organizations o
    WHERE o.id = NEW.organization_id;
+  IF NEW.evaluacion_fiscal IS NOT NULL AND TG_OP = 'UPDATE' THEN
+    SELECT i.prevalidacion INTO v_prevalidacion FROM public.intentos_timbrado_isr i
+    WHERE i.factura_id = NEW.id AND i.organization_id = NEW.organization_id
+      AND i.estado = 'confirmado' AND 'PENDING:' || i.id::text = OLD.facturapi_id;
+    IF NOT FOUND THEN RAISE EXCEPTION 'LC_ISR_TIMBRADO_PENDIENTE' USING ERRCODE = '23514'; END IF;
+    v_cliente := (v_prevalidacion->'receptor') || jsonb_build_object(
+      'id', NEW.cliente_id, 'cp', v_prevalidacion#>'{receptor,codigo_postal}');
+    v_org := (v_prevalidacion->'emisor') || jsonb_build_object(
+      'id', NEW.organization_id, 'nombre', v_prevalidacion#>'{emisor,razon_social}');
+  END IF;
   v_tasa_iva := CASE
     WHEN COALESCE(NEW.subtotal, 0) = 0 THEN 0
     ELSE round((NEW.iva / NEW.subtotal)::numeric, 4)
@@ -16218,6 +16368,10 @@ BEGIN
     'organizacion_snapshot', v_org,
     'conceptos', v_conceptos
   );
+  IF v_prevalidacion IS NOT NULL THEN
+    NEW.snapshot_emision := NEW.snapshot_emision || jsonb_build_object(
+      'ret_isr', NEW.ret_isr, 'ret_iva', NEW.ret_iva, 'evaluacion_fiscal', NEW.evaluacion_fiscal);
+  END IF;
   RETURN NEW;
 END;
 $$;
@@ -16681,79 +16835,6 @@ BEGIN
   RETURN round(v_mxn / v_tc_fact, 4);
 END;
 $$;
-CREATE TABLE public.facturas (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    numero text NOT NULL,
-    embarque_id uuid,
-    expediente text DEFAULT ''::text NOT NULL,
-    cliente_id uuid NOT NULL,
-    cliente_nombre text DEFAULT ''::text NOT NULL,
-    subtotal numeric DEFAULT 0 NOT NULL,
-    iva numeric DEFAULT 0 NOT NULL,
-    total numeric DEFAULT 0 NOT NULL,
-    moneda public.moneda DEFAULT 'MXN'::public.moneda NOT NULL,
-    tipo_cambio numeric,
-    fecha_emision date DEFAULT CURRENT_DATE NOT NULL,
-    fecha_vencimiento date NOT NULL,
-    estado public.estado_factura DEFAULT 'Borrador'::public.estado_factura NOT NULL,
-    referencia_bl text,
-    notas text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    organization_id uuid DEFAULT public.current_user_org_id() NOT NULL,
-    proforma_id uuid,
-    factura_pdf_url text,
-    factura_xml_url text,
-    deleted_at timestamp with time zone,
-    deleted_by uuid,
-    snapshot_emision jsonb,
-    serie_id uuid,
-    folio_fiscal bigint,
-    rfc_cliente text,
-    uso_cfdi text,
-    forma_pago text,
-    metodo_pago text,
-    uuid_fiscal text,
-    dias_credito integer,
-    facturapi_id text,
-    serie text,
-    timbrado_en timestamp with time zone,
-    timbrado_por uuid,
-    cancelacion_motivo text,
-    cancelado_en timestamp with time zone,
-    enviada_cliente_at timestamp with time zone,
-    cotizacion_id uuid,
-    origen public.origen_factura DEFAULT 'proforma'::public.origen_factura NOT NULL,
-    sustituye_a uuid,
-    sustituida_por uuid,
-    ambiente public.ambiente_facturapi,
-    acuse_cancelacion_xml text,
-    acuse_cancelacion_fecha timestamp with time zone,
-    acuse_cancelacion_status text,
-    factura_xml_backup_path text,
-    ret_isr numeric DEFAULT 0 NOT NULL,
-    ret_iva numeric DEFAULT 0 NOT NULL,
-    uuid_verificado boolean DEFAULT false NOT NULL,
-    uuid_estatus_sat text,
-    uuid_verificado_fecha timestamp with time zone,
-    cancellation_status text,
-    cancelacion_solicitada_en timestamp with time zone,
-    cancelacion_vence_en timestamp with time zone,
-    facturapi_claim_at timestamp with time zone,
-    reconciliacion_checked_at timestamp with time zone,
-    facturapi_pendiente_id text,
-    facturapi_pendiente_at timestamp with time zone,
-    evaluacion_fiscal jsonb,
-    CONSTRAINT factura_evaluacion_fiscal_objeto_chk CHECK (((evaluacion_fiscal IS NULL) OR (jsonb_typeof(evaluacion_fiscal) = 'object'::text))),
-    CONSTRAINT facturas_cancelacion_motivo_sat CHECK (((cancelacion_motivo IS NULL) OR (cancelacion_motivo = ANY (ARRAY['01'::text, '02'::text, '03'::text, '04'::text])))),
-    CONSTRAINT facturas_cancellation_status_check CHECK ((cancellation_status = ANY (ARRAY['none'::text, 'verifying'::text, 'pending'::text, 'accepted'::text, 'rejected'::text, 'expired'::text]))),
-    CONSTRAINT facturas_iva_nonneg CHECK ((iva >= (0)::numeric)),
-    CONSTRAINT facturas_subtotal_nonneg CHECK ((subtotal >= (0)::numeric)),
-    CONSTRAINT facturas_tipo_cambio_pos CHECK (((tipo_cambio IS NULL) OR (tipo_cambio > (0)::numeric))),
-    CONSTRAINT facturas_total_nonneg CHECK ((total >= (0)::numeric)),
-    CONSTRAINT facturas_venc_despues_emision CHECK ((fecha_vencimiento >= fecha_emision))
-);
-ALTER TABLE ONLY public.facturas FORCE ROW LEVEL SECURITY;
 CREATE FUNCTION public.convertir_proformas_a_factura(p_proforma_ids uuid[], p_serie_id uuid, p_metodo_pago text, p_forma_pago text, p_uso_cfdi text, p_dias_credito integer DEFAULT NULL::integer, p_notas text DEFAULT NULL::text, p_request_id uuid DEFAULT NULL::uuid) RETURNS SETOF public.facturas
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -35240,6 +35321,104 @@ BEGIN
   RETURN v_id;
 END;
 $_$;
+CREATE FUNCTION public.registrar_resultado_timbrado_isr(p_factura_id uuid, p_claim text, p_estado text, p_resultado jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $_$
+DECLARE
+  v_factura public.facturas;
+  v_intento public.intentos_timbrado_isr;
+  v_estado text := p_estado;
+  v_datos jsonb;
+  v_id text := NULLIF(p_resultado->>'facturapi_id', '');
+  v_uuid text := upper(NULLIF(p_resultado->>'uuid', ''));
+  v_xml jsonb := p_resultado->'xml';
+  v_ruta text;
+  v_base_url text;
+  v_folio bigint;
+  v_serie text;
+  v_uso text;
+  v_hora timestamptz := clock_timestamp();
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'LC_ISR_REVISION_SIN_PERMISO' USING ERRCODE = '42501';
+  END IF;
+  IF p_estado IS NULL OR p_estado NOT IN ('pendiente','conciliacion','rechazado','confirmado')
+    OR jsonb_typeof(p_resultado) IS DISTINCT FROM 'object'
+    OR (v_id IS NOT NULL AND v_id !~ '^[A-Za-z0-9_-]{1,150}$') THEN
+    RAISE EXCEPTION 'LC_ISR_RESULTADO_INVALIDO' USING ERRCODE = '22023';
+  END IF;
+  SELECT * INTO STRICT v_factura FROM public.facturas WHERE id = p_factura_id AND deleted_at IS NULL FOR UPDATE;
+  SELECT * INTO v_intento FROM public.intentos_timbrado_isr i WHERE i.factura_id = p_factura_id
+    AND i.organization_id = v_factura.organization_id AND 'PENDING:' || i.id::text = p_claim FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'LC_ISR_INTENTO_NO_VIGENTE' USING ERRCODE = '23514'; END IF;
+  IF v_intento.estado = 'confirmado' AND v_id = v_intento.facturapi_id AND v_uuid = v_intento.uuid_fiscal THEN
+    RETURN jsonb_build_object('estado', v_intento.estado, 'facturapi_id', v_intento.facturapi_id, 'uuid', v_intento.uuid_fiscal);
+  END IF;
+  IF v_factura.facturapi_id IS DISTINCT FROM p_claim OR v_intento.estado IN ('rechazado','confirmado')
+    OR (v_intento.facturapi_id IS NOT NULL AND v_id IS NOT NULL AND v_intento.facturapi_id <> v_id)
+    OR (v_intento.uuid_fiscal IS NOT NULL AND v_uuid IS NOT NULL AND v_intento.uuid_fiscal <> v_uuid) THEN
+    RAISE EXCEPTION 'LC_ISR_INTENTO_NO_VIGENTE' USING ERRCODE = '23514';
+  END IF;
+  IF p_estado = 'rechazado' AND (
+    v_intento.estado <> 'reservado' OR v_id IS NOT NULL OR v_intento.facturapi_id IS NOT NULL
+    OR COALESCE(p_resultado->>'http_status','') NOT IN ('400','401','403','422','429')
+  ) THEN
+    RAISE EXCEPTION 'LC_ISR_RECHAZO_INCIERTO' USING ERRCODE = '23514';
+  END IF;
+  IF p_estado = 'confirmado' THEN
+    v_ruta := v_factura.organization_id::text || '/emitidas/' || v_uuid || '.xml';
+    IF v_id IS NULL OR COALESCE(v_uuid,'') !~ '^[0-9A-F]{8}(-[0-9A-F]{4}){3}-[0-9A-F]{12}$'
+      OR p_resultado->>'external_id' IS DISTINCT FROM p_claim
+      OR p_resultado->>'ambiente' IS DISTINCT FROM v_intento.ambiente
+      OR p_resultado->>'facturapi_org_id' IS DISTINCT FROM v_intento.prevalidacion#>>'{emisor,facturapi_org_id}'
+      OR p_resultado->>'moneda' IS DISTINCT FROM v_intento.prevalidacion#>>'{totales,moneda}'
+      OR p_resultado->'total' IS DISTINCT FROM v_intento.prevalidacion#>'{totales,total}'
+      OR v_xml->>'uuid' IS DISTINCT FROM v_uuid
+      OR v_xml->>'emisor_rfc' IS DISTINCT FROM v_intento.prevalidacion#>>'{emisor,rfc}'
+      OR v_xml->>'emisor_regimen' IS DISTINCT FROM v_intento.prevalidacion#>>'{emisor,regimen_fiscal}'
+      OR v_xml->>'receptor_rfc' IS DISTINCT FROM v_intento.prevalidacion#>>'{receptor,rfc}'
+      OR v_xml->>'receptor_regimen' IS DISTINCT FROM v_intento.prevalidacion#>>'{receptor,regimen_fiscal}'
+      OR v_xml->'totales' IS DISTINCT FROM v_intento.prevalidacion->'totales'
+      OR v_xml->>'ruta' IS DISTINCT FROM v_ruta OR COALESCE(v_xml->>'sha256','') !~ '^[a-f0-9]{64}$'
+      OR COALESCE(p_resultado->>'folio','') !~ '^[1-9][0-9]{0,14}$'
+      OR v_xml->>'uso_cfdi' IS NULL OR v_xml->>'uso_cfdi' !~ '^[A-Z]{1,2}[0-9]{2}$'
+      OR length(COALESCE(p_resultado->>'serie','')) > 25 THEN
+      v_estado := 'conciliacion';
+    END IF;
+  END IF;
+  IF v_intento.estado = 'conciliacion' AND v_estado = 'pendiente' THEN v_estado := 'conciliacion'; END IF;
+  v_datos := jsonb_strip_nulls(jsonb_build_object(
+    'http_status', left(p_resultado->>'http_status', 3),
+    'motivo', left(p_resultado->>'motivo', 90),
+    'total_respuesta', left(p_resultado->>'total', 40),
+    'sha256_xml', left(v_xml->>'sha256', 64)));
+  UPDATE public.intentos_timbrado_isr
+  SET estado = v_estado, facturapi_id = COALESCE(v_id, facturapi_id),
+      uuid_fiscal = CASE WHEN COALESCE(v_uuid,'') ~ '^[0-9A-F]{8}(-[0-9A-F]{4}){3}-[0-9A-F]{12}$' THEN v_uuid ELSE uuid_fiscal END,
+      resultado = v_datos, actualizado_at = v_hora
+  WHERE id = v_intento.id RETURNING * INTO v_intento;
+  IF v_estado = 'confirmado' THEN
+    v_folio := (p_resultado->>'folio')::bigint;
+    v_serie := COALESCE(p_resultado->>'serie', '');
+    v_uso := v_xml->>'uso_cfdi';
+    v_base_url := 'https://www.facturapi.io/v2/invoices/' || v_id;
+    UPDATE public.facturas SET estado = 'Emitida', numero = v_serie || v_folio::text, folio_fiscal = v_folio,
+      serie = v_serie, uso_cfdi = v_uso, uuid_fiscal = v_uuid, facturapi_id = v_id, facturapi_claim_at = NULL,
+      facturapi_pendiente_id = NULL, facturapi_pendiente_at = NULL, ambiente = v_intento.ambiente::public.ambiente_facturapi,
+      factura_pdf_url = v_base_url || '/pdf', factura_xml_url = v_base_url || '/xml', factura_xml_backup_path = v_ruta,
+      timbrado_en = v_hora, timbrado_por = v_intento.actor_id
+    WHERE id = p_factura_id;
+  ELSIF v_estado = 'rechazado' THEN
+    UPDATE public.facturas SET facturapi_id = NULL, facturapi_claim_at = NULL,
+      facturapi_pendiente_id = NULL, facturapi_pendiente_at = NULL WHERE id = p_factura_id;
+  ELSE
+    UPDATE public.facturas SET facturapi_pendiente_id = v_intento.facturapi_id,
+      facturapi_pendiente_at = v_hora WHERE id = p_factura_id;
+  END IF;
+  RETURN jsonb_build_object('estado', v_estado, 'facturapi_id', v_intento.facturapi_id, 'uuid', v_intento.uuid_fiscal);
+END;
+$_$;
 CREATE FUNCTION public.registrar_traspaso_bancario(p_cuenta_origen_id uuid, p_cuenta_destino_id uuid, p_fecha date, p_monto_origen numeric, p_tipo_cambio numeric DEFAULT NULL::numeric, p_comision numeric DEFAULT 0, p_concepto text DEFAULT ''::text, p_referencia text DEFAULT ''::text, p_client_request_id uuid DEFAULT NULL::uuid) RETURNS uuid
     LANGUAGE plpgsql
     SET search_path TO 'public'
@@ -35707,6 +35886,41 @@ BEGIN
     reserva_hasta = clock_timestamp() + interval '5 minutes'
   WHERE id = p_intento;
   RETURN jsonb_build_object('estado', 'reservado', 'contenido', v_intento.contenido);
+END;
+$$;
+CREATE FUNCTION public.reservar_timbrado_isr(p_factura_id uuid, p_actor uuid, p_prevalidacion jsonb, p_emisor_observado jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_factura public.facturas;
+  v_intento public.intentos_timbrado_isr;
+  v_esperado jsonb;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'LC_ISR_REVISION_SIN_PERMISO' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO v_factura FROM public.facturas WHERE id = p_factura_id AND deleted_at IS NULL FOR UPDATE;
+  IF NOT FOUND OR p_actor IS NULL OR NOT public.has_any_role_in_org_exact(p_actor,
+    ARRAY['admin','admin_org','contador']::public.app_role[], v_factura.organization_id) THEN
+    RAISE EXCEPTION 'LC_ISR_REVISION_SIN_PERMISO' USING ERRCODE = '42501';
+  END IF;
+  IF v_factura.facturapi_id IS NOT NULL THEN
+    RAISE EXCEPTION 'LC_ISR_INTENTO_ACTIVO' USING ERRCODE = '23505';
+  END IF;
+  -- Re-check the previously observed profile and the complete document while
+  -- coordinating concurrent emissions via the invoice row lock.
+  v_esperado := public._isr_revisar_factura_emision(p_factura_id);
+  IF v_esperado IS NULL OR v_esperado IS DISTINCT FROM p_prevalidacion
+    OR v_esperado->'emisor' IS DISTINCT FROM p_emisor_observado THEN
+    RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE = '23514';
+  END IF;
+  INSERT INTO public.intentos_timbrado_isr(factura_id, organization_id, actor_id, ambiente, prevalidacion)
+  VALUES(p_factura_id, v_factura.organization_id, p_actor, v_esperado->>'ambiente', v_esperado)
+  RETURNING * INTO v_intento;
+  UPDATE public.facturas SET facturapi_id = 'PENDING:' || v_intento.id::text,
+    facturapi_claim_at = v_intento.creado_at WHERE id = p_factura_id;
+  RETURN jsonb_build_object('claim', 'PENDING:' || v_intento.id::text, 'reservado_at', v_intento.creado_at);
 END;
 $$;
 CREATE FUNCTION public.resolver_clave_sat(p_org uuid, p_descripcion text) RETURNS text
@@ -39545,6 +39759,7 @@ BEGIN
      SET cliente_nombre = NEW.nombre
    WHERE cliente_id = NEW.id
      AND estado = 'Borrador'
+     AND (evaluacion_fiscal IS NULL OR facturapi_id IS NULL)
      AND cliente_nombre IS DISTINCT FROM NEW.nombre
      AND deleted_at IS NULL;
   RETURN NEW;
@@ -41979,6 +42194,24 @@ CREATE TABLE public.idempotency_keys (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     hits integer DEFAULT 0 NOT NULL
 );
+CREATE TABLE public.intentos_timbrado_isr (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    factura_id uuid NOT NULL,
+    organization_id uuid NOT NULL,
+    actor_id uuid NOT NULL,
+    ambiente text NOT NULL,
+    prevalidacion jsonb NOT NULL,
+    estado text DEFAULT 'reservado'::text NOT NULL,
+    facturapi_id text,
+    uuid_fiscal text,
+    resultado jsonb,
+    creado_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    actualizado_at timestamp with time zone,
+    CONSTRAINT intentos_timbrado_isr_ambiente_check CHECK ((ambiente = ANY (ARRAY['sandbox'::text, 'live'::text]))),
+    CONSTRAINT intentos_timbrado_isr_estado_check CHECK ((estado = ANY (ARRAY['reservado'::text, 'pendiente'::text, 'conciliacion'::text, 'confirmado'::text, 'rechazado'::text]))),
+    CONSTRAINT intentos_timbrado_isr_prevalidacion_check CHECK ((jsonb_typeof(prevalidacion) = 'object'::text))
+);
+ALTER TABLE ONLY public.intentos_timbrado_isr FORCE ROW LEVEL SECURITY;
 CREATE TABLE public.liquidaciones_broker (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     organization_id uuid NOT NULL,
@@ -42937,6 +43170,8 @@ ALTER TABLE ONLY public.folio_secuencias
     ADD CONSTRAINT folio_secuencias_pkey PRIMARY KEY (organization_id, tipo);
 ALTER TABLE ONLY public.idempotency_keys
     ADD CONSTRAINT idempotency_keys_pkey PRIMARY KEY (key, organization_id, user_id);
+ALTER TABLE ONLY public.intentos_timbrado_isr
+    ADD CONSTRAINT intentos_timbrado_isr_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.liquidaciones_broker
     ADD CONSTRAINT liquidaciones_broker_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.liquidaciones_comision
@@ -43441,6 +43676,8 @@ CREATE INDEX idx_traspasos_cuentas ON public.traspasos_bancarios USING btree (cu
 CREATE INDEX idx_traspasos_org_fecha ON public.traspasos_bancarios USING btree (organization_id, fecha DESC);
 CREATE INDEX idx_unsubscribe_tokens_token ON public.email_unsubscribe_tokens USING btree (token);
 CREATE INDEX idx_user_roles_user ON public.user_roles USING btree (user_id);
+CREATE UNIQUE INDEX intentos_timbrado_isr_factura_uniq ON public.intentos_timbrado_isr USING btree (factura_id) WHERE (estado <> 'rechazado'::text);
+CREATE UNIQUE INDEX intentos_timbrado_isr_remoto_uniq ON public.intentos_timbrado_isr USING btree (organization_id, ambiente, facturapi_id) WHERE (facturapi_id IS NOT NULL);
 CREATE UNIQUE INDEX pagos_factura_client_request_id_key ON public.pagos_factura USING btree (client_request_id) WHERE (client_request_id IS NOT NULL);
 CREATE UNIQUE INDEX pagos_proveedor_client_request_id_key ON public.pagos_proveedor USING btree (client_request_id) WHERE (client_request_id IS NOT NULL);
 CREATE INDEX proforma_email_intentos_proforma_idx ON public.proforma_email_intentos USING btree (proforma_id);
@@ -44292,6 +44529,12 @@ ALTER TABLE ONLY public.seguros_embarque
     ADD CONSTRAINT insurance_pf_same_org_fk FOREIGN KEY (proveedor_factura_id, organization_id) REFERENCES public.proveedor_facturas(id, organization_id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.seguros_embarque
     ADD CONSTRAINT insurance_shipment_same_org_fk FOREIGN KEY (embarque_id, organization_id) REFERENCES public.embarques(id, organization_id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.intentos_timbrado_isr
+    ADD CONSTRAINT intentos_timbrado_isr_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES auth.users(id);
+ALTER TABLE ONLY public.intentos_timbrado_isr
+    ADD CONSTRAINT intentos_timbrado_isr_factura_id_fkey FOREIGN KEY (factura_id) REFERENCES public.facturas(id);
+ALTER TABLE ONLY public.intentos_timbrado_isr
+    ADD CONSTRAINT intentos_timbrado_isr_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
 ALTER TABLE ONLY public.liquidaciones_broker
     ADD CONSTRAINT liquidaciones_broker_broker_id_fkey FOREIGN KEY (broker_id) REFERENCES public.crm_brokers(id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.liquidaciones_broker
@@ -45124,6 +45367,8 @@ ALTER TABLE public.folio_secuencias ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "folio_secuencias lectura org" ON public.folio_secuencias FOR SELECT TO authenticated USING ((organization_id = ( SELECT public.current_user_org_id() AS current_user_org_id)));
 CREATE POLICY "gestionar credenciales facturapi de su org" ON public.facturapi_credenciales TO authenticated USING ((public.is_org_admin(( SELECT auth.uid() AS uid), organization_id) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'contador'::public.app_role) AS has_role))) WITH CHECK ((public.is_org_admin(( SELECT auth.uid() AS uid), organization_id) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'contador'::public.app_role) AS has_role)));
 ALTER TABLE public.idempotency_keys ENABLE ROW LEVEL SECURITY;
+CREATE POLICY intento_isr_scope ON public.intentos_timbrado_isr AS RESTRICTIVE TO authenticated USING (public.rls_tenant_scope_ok(organization_id)) WITH CHECK (public.rls_tenant_scope_ok(organization_id));
+ALTER TABLE public.intentos_timbrado_isr ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "leer credenciales facturapi de su org" ON public.facturapi_credenciales FOR SELECT TO authenticated USING ((public.is_org_admin(( SELECT auth.uid() AS uid), organization_id) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'contador'::public.app_role) AS has_role)));
 CREATE POLICY liq_admin_read ON public.liquidaciones_comision FOR SELECT TO authenticated USING ((((organization_id = ( SELECT public.current_user_org_id() AS current_user_org_id)) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role)) AND (( SELECT public.has_role(( SELECT auth.uid() AS uid), 'admin'::public.app_role) AS has_role) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role))));
 CREATE POLICY liq_finanzas_read ON public.liquidaciones_comision FOR SELECT TO authenticated USING (public.has_any_role_in_org(( SELECT auth.uid() AS uid), ARRAY['admin'::public.app_role, 'admin_org'::public.app_role, 'contador'::public.app_role, 'tesorero'::public.app_role, 'gerente_comercial'::public.app_role, 'gerente_operaciones'::public.app_role, 'gerente_visor'::public.app_role], organization_id));
@@ -45537,6 +45782,13 @@ REVOKE ALL ON FUNCTION public._isr_revisar_factura_emision(p_factura_id uuid) FR
 REVOKE ALL ON FUNCTION public._isr_snapshot_documento(p_org_id uuid, p_cliente_id uuid, p_ambiente text, p_conceptos jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_snapshot_proforma_normal(p_org_id uuid, p_embarque_id uuid, p_cliente_id uuid, p_concepto_ids uuid[]) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_validar_conversion_proforma(p_proforma_id uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.current_user_org_id() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.current_user_org_id() TO authenticated;
+GRANT ALL ON FUNCTION public.current_user_org_id() TO service_role;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.facturas TO anon;
+GRANT SELECT,INSERT,UPDATE ON TABLE public.facturas TO authenticated;
+GRANT ALL ON TABLE public.facturas TO service_role;
+REVOKE ALL ON FUNCTION public._isr_validar_estado_timbrado_factura(p_old public.facturas, p_new public.facturas) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_validar_vinculo_proforma_normal(p_anterior jsonb, p_nuevo jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._liberar_conceptos_proforma_portal(p_proforma_id uuid, p_org_id uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._liquidacion_guard_estado() FROM PUBLIC;
@@ -45737,9 +45989,6 @@ GRANT ALL ON FUNCTION public.app_logs_health_timeline(p_hours integer, p_buckets
 GRANT ALL ON FUNCTION public.app_logs_health_timeline(p_hours integer, p_buckets integer) TO service_role;
 REVOKE ALL ON FUNCTION public.aprobar_ajuste_consolidacion_proforma(p_proforma_id uuid, p_huella text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.aprobar_ajuste_consolidacion_proforma(p_proforma_id uuid, p_huella text) TO authenticated;
-REVOKE ALL ON FUNCTION public.current_user_org_id() FROM PUBLIC;
-GRANT ALL ON FUNCTION public.current_user_org_id() TO authenticated;
-GRANT ALL ON FUNCTION public.current_user_org_id() TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.proveedor_facturas TO authenticated;
 GRANT ALL ON TABLE public.proveedor_facturas TO service_role;
 REVOKE ALL ON FUNCTION public.aprobar_factura_proveedor(p_id uuid, p_aprobar boolean, p_motivo text, p_expected_updated_at timestamp with time zone) FROM PUBLIC;
@@ -45994,9 +46243,6 @@ GRANT ALL ON FUNCTION public.convertir_monto_dof(p_monto numeric, p_moneda_orige
 REVOKE ALL ON FUNCTION public.convertir_monto_pago_a_factura(p_monto numeric, p_moneda_pago public.moneda, p_tc_pago numeric, p_moneda_fact public.moneda, p_tc_fact numeric) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.convertir_monto_pago_a_factura(p_monto numeric, p_moneda_pago public.moneda, p_tc_pago numeric, p_moneda_fact public.moneda, p_tc_fact numeric) TO authenticated;
 GRANT ALL ON FUNCTION public.convertir_monto_pago_a_factura(p_monto numeric, p_moneda_pago public.moneda, p_tc_pago numeric, p_moneda_fact public.moneda, p_tc_fact numeric) TO service_role;
-GRANT SELECT,INSERT,UPDATE ON TABLE public.facturas TO anon;
-GRANT SELECT,INSERT,UPDATE ON TABLE public.facturas TO authenticated;
-GRANT ALL ON TABLE public.facturas TO service_role;
 REVOKE ALL ON FUNCTION public.convertir_proformas_a_factura(p_proforma_ids uuid[], p_serie_id uuid, p_metodo_pago text, p_forma_pago text, p_uso_cfdi text, p_dias_credito integer, p_notas text, p_request_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.convertir_proformas_a_factura(p_proforma_ids uuid[], p_serie_id uuid, p_metodo_pago text, p_forma_pago text, p_uso_cfdi text, p_dias_credito integer, p_notas text, p_request_id uuid) TO authenticated;
 GRANT ALL ON FUNCTION public.convertir_proformas_a_factura(p_proforma_ids uuid[], p_serie_id uuid, p_metodo_pago text, p_forma_pago text, p_uso_cfdi text, p_dias_credito integer, p_notas text, p_request_id uuid) TO service_role;
@@ -46892,6 +47138,8 @@ GRANT ALL ON FUNCTION public.registrar_pago_proveedor_lote(p_payload jsonb) TO a
 GRANT ALL ON FUNCTION public.registrar_pago_proveedor_lote(p_payload jsonb) TO service_role;
 REVOKE ALL ON FUNCTION public.registrar_perfil_fiscal_emisor(p_org_id uuid, p_ambiente text, p_actor uuid, p_credenciales_actualizadas_at timestamp with time zone, p_version_esperada integer, p_datos jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.registrar_perfil_fiscal_emisor(p_org_id uuid, p_ambiente text, p_actor uuid, p_credenciales_actualizadas_at timestamp with time zone, p_version_esperada integer, p_datos jsonb) TO service_role;
+REVOKE ALL ON FUNCTION public.registrar_resultado_timbrado_isr(p_factura_id uuid, p_claim text, p_estado text, p_resultado jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.registrar_resultado_timbrado_isr(p_factura_id uuid, p_claim text, p_estado text, p_resultado jsonb) TO service_role;
 REVOKE ALL ON FUNCTION public.registrar_traspaso_bancario(p_cuenta_origen_id uuid, p_cuenta_destino_id uuid, p_fecha date, p_monto_origen numeric, p_tipo_cambio numeric, p_comision numeric, p_concepto text, p_referencia text, p_client_request_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.registrar_traspaso_bancario(p_cuenta_origen_id uuid, p_cuenta_destino_id uuid, p_fecha date, p_monto_origen numeric, p_tipo_cambio numeric, p_comision numeric, p_concepto text, p_referencia text, p_client_request_id uuid) TO authenticated;
 GRANT ALL ON FUNCTION public.registrar_traspaso_bancario(p_cuenta_origen_id uuid, p_cuenta_destino_id uuid, p_fecha date, p_monto_origen numeric, p_tipo_cambio numeric, p_comision numeric, p_concepto text, p_referencia text, p_client_request_id uuid) TO service_role;
@@ -46914,6 +47162,8 @@ GRANT ALL ON FUNCTION public.reservar_folio_factura(_serie_id uuid) TO authentic
 GRANT ALL ON FUNCTION public.reservar_folio_factura(_serie_id uuid) TO service_role;
 REVOKE ALL ON FUNCTION public.reservar_proforma_email(p_proforma_id uuid, p_usuario_id uuid, p_intento uuid, p_reserva uuid, p_solicitud jsonb, p_portal_base text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.reservar_proforma_email(p_proforma_id uuid, p_usuario_id uuid, p_intento uuid, p_reserva uuid, p_solicitud jsonb, p_portal_base text) TO service_role;
+REVOKE ALL ON FUNCTION public.reservar_timbrado_isr(p_factura_id uuid, p_actor uuid, p_prevalidacion jsonb, p_emisor_observado jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.reservar_timbrado_isr(p_factura_id uuid, p_actor uuid, p_prevalidacion jsonb, p_emisor_observado jsonb) TO service_role;
 REVOKE ALL ON FUNCTION public.resolver_clave_sat(p_org uuid, p_descripcion text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.resolver_clave_sat(p_org uuid, p_descripcion text) TO authenticated;
 GRANT ALL ON FUNCTION public.resolver_clave_sat(p_org uuid, p_descripcion text) TO service_role;

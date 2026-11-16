@@ -5,12 +5,12 @@ DECLARE
   v_proforma public.proformas;
 BEGIN
   IF NEW.evaluacion_fiscal IS NULL AND (TG_OP = 'INSERT' OR OLD.evaluacion_fiscal IS NULL) THEN RETURN NEW; END IF;
-  IF NEW.estado <> 'Borrador' OR NEW.snapshot_emision IS NOT NULL OR NEW.uuid_fiscal IS NOT NULL
-    OR NEW.facturapi_id IS NOT NULL OR NEW.facturapi_claim_at IS NOT NULL OR NEW.facturapi_pendiente_id IS NOT NULL
-    OR NEW.timbrado_en IS NOT NULL OR NEW.timbrado_por IS NOT NULL THEN
-    RAISE EXCEPTION 'LC_ISR_TIMBRADO_PENDIENTE' USING ERRCODE = '23514';
-  END IF;
   IF TG_OP = 'INSERT' THEN
+    IF NEW.estado <> 'Borrador' OR NEW.snapshot_emision IS NOT NULL OR NEW.uuid_fiscal IS NOT NULL
+      OR NEW.facturapi_id IS NOT NULL OR NEW.facturapi_claim_at IS NOT NULL OR NEW.facturapi_pendiente_id IS NOT NULL
+      OR NEW.facturapi_pendiente_at IS NOT NULL OR NEW.timbrado_en IS NOT NULL OR NEW.timbrado_por IS NOT NULL THEN
+      RAISE EXCEPTION 'LC_ISR_TIMBRADO_PENDIENTE' USING ERRCODE = '23514';
+    END IF;
     SELECT p.* INTO v_proforma FROM public.proformas p
       WHERE p.id = NEW.proforma_id AND p.organization_id = NEW.organization_id AND p.deleted_at IS NULL;
     IF NOT v_propietario OR NOT FOUND OR NEW.deleted_at IS NOT NULL OR NEW.origen <> 'conversion_proforma'
@@ -35,6 +35,7 @@ BEGIN
     AND v_propietario AND (to_jsonb(NEW) - ARRAY['evaluacion_fiscal','updated_at'])
       IS NOT DISTINCT FROM (to_jsonb(OLD) - ARRAY['evaluacion_fiscal','updated_at'])
     AND OLD.origen = 'manual' AND OLD.deleted_at IS NULL AND OLD.proforma_id IS NULL AND OLD.embarque_id IS NULL
+    AND OLD.estado = 'Borrador' AND OLD.uuid_fiscal IS NULL AND OLD.facturapi_id IS NULL AND OLD.snapshot_emision IS NULL
     AND (NEW.evaluacion_fiscal->>'factura_id')::uuid = OLD.id
     AND (NEW.evaluacion_fiscal->>'organization_id')::uuid = OLD.organization_id
     AND (NEW.evaluacion_fiscal->>'cliente_id')::uuid = OLD.cliente_id
@@ -54,6 +55,23 @@ BEGIN
       AND (NOT v_propietario OR OLD.deleted_at IS NOT NULL OR NEW.deleted_at IS NULL
         OR NEW.deleted_by IS DISTINCT FROM auth.uid())) THEN
     RAISE EXCEPTION 'LC_ISR_CONVERSION_REVISION' USING ERRCODE = '23514';
+  END IF;
+  IF OLD.uuid_fiscal IS NOT NULL THEN
+    IF (NEW.uuid_fiscal, NEW.facturapi_id, NEW.snapshot_emision, NEW.ambiente, NEW.timbrado_en, NEW.timbrado_por)
+      IS DISTINCT FROM (OLD.uuid_fiscal, OLD.facturapi_id, OLD.snapshot_emision, OLD.ambiente, OLD.timbrado_en, OLD.timbrado_por) THEN
+      RAISE EXCEPTION 'LC_ISR_TIMBRADO_PENDIENTE' USING ERRCODE = '23514';
+    END IF;
+    RETURN NEW;
+  END IF;
+  IF OLD.facturapi_id IS NOT NULL OR NEW.facturapi_id IS NOT NULL OR NEW.estado <> 'Borrador'
+    OR NEW.snapshot_emision IS NOT NULL OR NEW.uuid_fiscal IS NOT NULL OR NEW.facturapi_claim_at IS NOT NULL
+    OR NEW.facturapi_pendiente_id IS NOT NULL OR NEW.facturapi_pendiente_at IS NOT NULL
+    OR NEW.timbrado_en IS NOT NULL OR NEW.timbrado_por IS NOT NULL THEN
+    IF (to_jsonb(NEW) - 'updated_at') IS NOT DISTINCT FROM (to_jsonb(OLD) - 'updated_at') THEN RETURN NEW; END IF;
+    IF NOT v_propietario THEN RAISE EXCEPTION 'LC_ISR_TIMBRADO_PENDIENTE' USING ERRCODE = '23514'; END IF;
+    IF public._isr_validar_estado_timbrado_factura(OLD, NEW) IS DISTINCT FROM true THEN
+      RAISE EXCEPTION 'LC_ISR_TIMBRADO_PENDIENTE' USING ERRCODE = '23514';
+    END IF;
   END IF;
   RETURN NEW;
 END;

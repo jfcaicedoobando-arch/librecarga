@@ -7216,6 +7216,66 @@ export type Database = {
         }
         Relationships: []
       }
+      intentos_timbrado_isr: {
+        Row: {
+          actor_id: string
+          actualizado_at: string | null
+          ambiente: string
+          creado_at: string
+          estado: string
+          factura_id: string
+          facturapi_id: string | null
+          id: string
+          organization_id: string
+          prevalidacion: Json
+          resultado: Json | null
+          uuid_fiscal: string | null
+        }
+        Insert: {
+          actor_id: string
+          actualizado_at?: string | null
+          ambiente: string
+          creado_at?: string
+          estado?: string
+          factura_id: string
+          facturapi_id?: string | null
+          id?: string
+          organization_id: string
+          prevalidacion: Json
+          resultado?: Json | null
+          uuid_fiscal?: string | null
+        }
+        Update: {
+          actor_id?: string
+          actualizado_at?: string | null
+          ambiente?: string
+          creado_at?: string
+          estado?: string
+          factura_id?: string
+          facturapi_id?: string | null
+          id?: string
+          organization_id?: string
+          prevalidacion?: Json
+          resultado?: Json | null
+          uuid_fiscal?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intentos_timbrado_isr_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intentos_timbrado_isr_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       liquidaciones_broker: {
         Row: {
           broker_id: string
@@ -13913,6 +13973,10 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_resultado_timbrado_isr: {
+        Args: { p_factura_id: string; p_claim: string; p_estado: string; p_resultado: Json }
+        Returns: Json
+      }
       registrar_traspaso_bancario: {
         Args: {
           p_client_request_id?: string
@@ -13942,6 +14006,10 @@ export type Database = {
           procesadas: number
           resueltas: number
         }[]
+      }
+      reservar_timbrado_isr: {
+        Args: { p_factura_id: string; p_actor: string; p_prevalidacion: Json; p_emisor_observado: Json }
+        Returns: Json
       }
       reseed_organization_catalogs: {
         Args: { p_org_id: string }

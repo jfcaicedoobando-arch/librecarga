@@ -540,6 +540,13 @@
       "when": 1794694500011,
       "tag": "0076_isr_resico_factura_manual",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1794694500012,
+      "tag": "0077_isr_resico_intentos_timbrado",
+      "breakpoints": true
     }
   ]
 }

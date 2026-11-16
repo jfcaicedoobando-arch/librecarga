@@ -391,6 +391,11 @@ REVOKE ALL ON FUNCTION public._isr_validar_conversion_proforma(uuid),
 REVOKE ALL ON FUNCTION public._isr_revisar_factura_emision(uuid) FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.aplicar_evaluacion_isr_factura_manual(uuid), public.prevalidar_emision_isr_factura(uuid)
   FROM PUBLIC,anon,service_role;
+REVOKE ALL ON TABLE public.intentos_timbrado_isr FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public._isr_validar_estado_timbrado_factura(public.facturas,public.facturas)
+  FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.reservar_timbrado_isr(uuid,uuid,jsonb,jsonb), public.registrar_resultado_timbrado_isr(uuid,text,text,jsonb)
+  FROM PUBLIC,anon,authenticated;
 \ir _ci_check_isr_resico_acl.sql
 \ir _ci_check_factura_resico_totales_acl.sql
 \ir _ci_check_isr_resico_comercial_acl.sql

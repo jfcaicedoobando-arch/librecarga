@@ -9,6 +9,7 @@
 - La migración 0074 permite consolidar proformas fiscales compatibles y conserva el origen de cada concepto. Las diferencias de redondeo por moneda requieren aprobación de Administración o Contabilidad antes de enviar la nueva proforma al cliente.
 - La migración 0075 convierte una proforma fiscal aceptada en un borrador de factura por moneda. Conserva totales, retenciones y origen de los conceptos, y bloquea el timbrado hasta habilitar la validación fiscal de emisión.
 - La migración 0076 calcula el ISR de las facturas manuales en el servidor para organizaciones con la automatización activa. La validación previa a la emisión revisa el perfil, el receptor y los totales del documento y comprueba la identidad asociada a la llave de Facturapi.
+- La migración 0077 registra una sola reserva de timbrado por factura fiscal. Una respuesta incierta conserva el identificador del intento y la confirmación exige que el XML y el resultado de Facturapi coincidan con el perfil y los importes guardados.
 
 ## [13.824.91] - Unreleased
 

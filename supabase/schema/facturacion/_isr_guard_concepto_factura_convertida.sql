@@ -13,6 +13,9 @@ BEGIN
     WHERE f.id = NEW.factura_id AND f.organization_id = NEW.organization_id;
   IF v_factura.evaluacion_fiscal IS NULL AND NEW.origen_fiscal IS NULL
     AND (TG_OP = 'INSERT' OR OLD.origen_fiscal IS NULL) THEN RETURN NEW; END IF;
+  IF v_factura.facturapi_id LIKE 'PENDING:%' THEN
+    RAISE EXCEPTION 'LC_ISR_INTENTO_ACTIVO' USING ERRCODE = '23514';
+  END IF;
 
   IF TG_OP = 'INSERT' THEN
     IF NOT v_propietario OR v_factura.evaluacion_fiscal IS NULL OR v_factura.deleted_at IS NOT NULL

@@ -28,7 +28,10 @@ BEGIN
     'public._isr_convertir_proforma_a_facturas(uuid,uuid,text,text,text,integer,text,date)',
     'public._isr_guard_borrador_convertido()', 'public._isr_guard_concepto_factura_convertida()',
     'public._isr_revisar_factura_emision(uuid)', 'public.aplicar_evaluacion_isr_factura_manual(uuid)',
-    'public.prevalidar_emision_isr_factura(uuid)'
+    'public.prevalidar_emision_isr_factura(uuid)',
+    'public._isr_validar_estado_timbrado_factura(public.facturas,public.facturas)',
+    'public.reservar_timbrado_isr(uuid,uuid,jsonb,jsonb)',
+    'public.registrar_resultado_timbrado_isr(uuid,text,text,jsonb)'
   ]) LOOP
     oid_fn := to_regprocedure(fn);
     IF oid_fn IS NULL OR NOT EXISTS (SELECT 1 FROM pg_proc WHERE oid=oid_fn AND proowner='postgres'::regrole) THEN
@@ -45,7 +48,8 @@ BEGIN
         'public.preparar_revision_fiscal_embarque(uuid,uuid,jsonb,timestamptz)',
         'public.aprobar_ajuste_consolidacion_proforma(uuid,text)', 'public.aplicar_evaluacion_isr_factura_manual(uuid)',
         'public.prevalidar_emision_isr_factura(uuid)'
-      )) OR (rol='service_role' AND fn='public.validar_cotizacion_fiscal_envio(uuid,text,uuid)');
+      )) OR (rol='service_role' AND fn IN ('public.validar_cotizacion_fiscal_envio(uuid,text,uuid)',
+        'public.reservar_timbrado_isr(uuid,uuid,jsonb,jsonb)', 'public.registrar_resultado_timbrado_isr(uuid,text,text,jsonb)'));
       IF has_function_privilege(rol, oid_fn, 'EXECUTE') IS DISTINCT FROM esperado THEN
         RAISE EXCEPTION 'CI_ISR_COMERCIAL_ACL: unexpected execute on % for %', fn, rol;
       END IF;
@@ -53,13 +57,14 @@ BEGIN
   END LOOP;
 
   FOREACH tabla IN ARRAY ARRAY['public.cotizacion_revisiones_fiscales','public.embarque_revisiones_fiscales',
-    'public.proforma_liberaciones_portal'] LOOP
+    'public.proforma_liberaciones_portal','public.intentos_timbrado_isr'] LOOP
     IF NOT EXISTS(SELECT 1 FROM pg_class WHERE oid=to_regclass(tabla) AND relrowsecurity AND relforcerowsecurity) THEN
       RAISE EXCEPTION 'CI_ISR_COMERCIAL_ACL: % must enforce RLS', tabla;
     END IF;
     FOREACH rol IN ARRAY ARRAY['anon','authenticated','service_role'] LOOP
       FOREACH privilegio IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER','MAINTAIN'] LOOP
-        esperado := privilegio='SELECT' AND rol<>'anon' AND tabla<>'public.proforma_liberaciones_portal';
+        esperado := privilegio='SELECT' AND rol<>'anon'
+          AND tabla NOT IN ('public.proforma_liberaciones_portal','public.intentos_timbrado_isr');
         IF has_table_privilege(rol, tabla, privilegio) IS DISTINCT FROM esperado THEN
           RAISE EXCEPTION 'CI_ISR_COMERCIAL_ACL: unexpected % on % for %', privilegio, tabla, rol;
         END IF;
