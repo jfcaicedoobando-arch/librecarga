@@ -51,7 +51,8 @@ export async function prepararRevisionFiscalEmbarque(input: {
 }) {
   const data = await unwrap(supabase.rpc("preparar_revision_fiscal_embarque", {
     p_embarque_id: input.embarqueId,
-    p_cliente_id: input.clienteId,
+    // SAFE-CAST: la RPC acepta NULL; los tipos generados no lo reflejan.
+    p_cliente_id: input.clienteId as string,
     p_conceptos_venta: toDbJson(input.conceptosVenta),
     p_expected_updated_at: input.expectedUpdatedAt,
   }));

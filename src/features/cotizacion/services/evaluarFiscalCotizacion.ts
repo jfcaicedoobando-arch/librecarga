@@ -17,7 +17,8 @@ export async function evaluarFiscalCotizacion(
   params.scope.assertCurrent();
   const datos = await unwrap(supabase.rpc("evaluar_documento_isr_resico", {
     p_org_id: params.organizationId,
-    p_cliente_id: params.clienteId,
+    // SAFE-CAST: la RPC acepta NULL (prospecto sin cliente); los tipos generados no lo reflejan.
+    p_cliente_id: params.clienteId as string,
     p_conceptos: params.conceptos,
     p_cotizacion_id: params.cotizacionId ?? undefined,
   }).abortSignal(params.signal));
