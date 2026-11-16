@@ -145,6 +145,9 @@ export async function marcarProformaFacturada(params: MarcarFacturadaParams): Pr
   if (proforma.estado_proforma === "cancelada") {
     throw new Error("LC_PROFORMA_CANCELADA: crea una nueva proforma para refacturar.");
   }
+  if (proforma.evaluacion_fiscal != null) {
+    throw new Error("LC_ISR_FLUJO_NO_HABILITADO: la proforma requiere conversión fiscal antes de facturar.");
+  }
 
   // Idempotencia: si ya fue facturada, salir sin tocar nada.
   if (proforma.factura_id) return;

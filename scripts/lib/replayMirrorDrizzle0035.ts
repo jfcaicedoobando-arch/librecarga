@@ -95,6 +95,18 @@ const REVIEWED_FORWARD_FIXES: ReadonlyArray<readonly [string, string]> = [
   ["0068_perfil_fiscal_emisor.sql", "b9ff6b1ea3bcfd3add4fe4829a4ff8f7731a8181181e8fd06a8acb5ade3c7cd1"],
   ["0069_isr_resico_contrato.sql", "7975e33aa3d03aaaa4838aef8cf56aeb77472843aa67347f2d9b540358f83aae"],
   ["0070_factura_resico_totales_agrupados.sql", "04a26c4b1d084b4a98d7d41f5a71db0f15d6f30a34933e4c6b4c7899be3f956c"],
+  ["0071_isr_resico_cotizacion_embarque.sql", "685e1ec8bc30f56771d8284089f37fa0a363df8d71a2b0d0da389f0411f14104"],
+  ["0072_isr_resico_revision_embarque.sql", "5204233d11421deda09b914b71e746b2607e89ac5a849f00e0633e26b58a3871"],
+  ["0073_isr_resico_proforma_normal.sql", "dd198ea737366b1a53d121c426b90603df582fc2c9f7334fff9a62682ad6ae8f"],
+  ["0074_isr_resico_consolidacion_proformas.sql", "331b1e84456ee357c4c67dc8c490762316d8ebb3ba2bb9f62031ac4c63e86fbd"],
+  ["0075_isr_resico_conversion_proforma.sql", "c9d7455fbc7373c50577ac5fb6e715d28467b4508c2effd4ecf75f93a9ae7b9e"],
+  ["0076_isr_resico_factura_manual.sql", "3ac5dcd38f14c52fe11199a0791be62c6796d71f3defd133b5be8ea2de827c8b"],
+  ["0077_isr_resico_intentos_timbrado.sql", "b88e723859b4a9398edcf50f19c0b348b93f22d7d3a952f213dd7c872efcbd80"],
+  ["0078_isr_resico_recuperar_timbrado.sql", "8430edc3ef77b9b76072095a7ce1a4f8a87338291146a2ba7d376956bb3e9283"],
+  ["0079_isr_resico_cobranza.sql", "1fc2d8d6ce3704a4523d8f71f287adedd931f6c4aceb85ace433d3d382461ef0"],
+  ["0080_isr_resico_timbrado_notas.sql", "fe4f54521ba3e3d057e401cbf4608a5cc7d57e49cb040f1000940880c410e4d4"],
+  ["0081_isr_resico_timbrado_rep.sql", "8d3027e3b135952bfd035470929b63f77ac82f07b719e17b22781f009a210a21"],
+  ["0082_isr_resico_reemplazo.sql", "af04b637e4ad3918e3ec0e4143c34bee3a4d902e1a039c91ebe017df9ef2f4fb"],
 ];
 
 function verificarOrdenJournal(sources: ReadonlyMap<string, string>, journal: JournalEntry[]): void {

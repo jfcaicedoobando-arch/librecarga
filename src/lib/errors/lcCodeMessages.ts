@@ -36,6 +36,46 @@ export const LC_CODE_MESSAGES: Record<string, string> = {
     "La demo no está disponible en esta versión. Puedes contactarnos para conocer Libre Carga.",
   LC_PROFORMA_CANCELADA:
     "Esta proforma está cancelada. Crea una nueva proforma para continuar; el histórico se conserva.",
+  LC_ISR_PROFORMA_REVISION:
+    "Revisa el perfil fiscal y los conceptos seleccionados en el embarque antes de generar la proforma.",
+  LC_ISR_CONSOLIDACION_INCOMPATIBLE:
+    "Revisa que las proformas fiscales correspondan al mismo embarque, cliente y perfil fiscal vigente.",
+  LC_ISR_CONSOLIDACION_APROBACION:
+    "Actualiza el detalle de la proforma y revisa los importes antes de aprobar el ajuste.",
+  LC_ISR_CONVERSION_REVISION:
+    "Revisa el perfil fiscal, el RFC del receptor y los importes aprobados antes de convertir la proforma.",
+  LC_ISR_CONVERSION_REQUIERE_CONSOLIDAR:
+    "Consolida las proformas fiscales compatibles y obtén su aprobación antes de crear un borrador conjunto.",
+  LC_ISR_TIMBRADO_PENDIENTE:
+    "Consulta el estado del timbrado desde el detalle de la factura antes de continuar.",
+  LC_ISR_FACTURA_REVISION:
+    "Revisa el perfil fiscal del emisor, el RFC del receptor y los impuestos de la factura.",
+  LC_ISR_NC_INMUTABLE:
+    "La nota tiene un timbrado en curso o ya emitido. Consulta su estado desde la factura original.",
+  LC_ISR_NC_IMPUESTOS_ORIGEN:
+    "Usa el tratamiento de IVA y las retenciones del renglón de la factura que estás acreditando.",
+  LC_ISR_NC_TOTAL:
+    "Los impuestos y el total de la nota deben coincidir con el cálculo aprobado para sus renglones.",
+  LC_ISR_NC_FACTURA:
+    "Revisa que la factura esté timbrada y disponible para recibir la nota de crédito.",
+  LC_ISR_NC_TIMBRADO_PROTEGIDO:
+    "La nota de crédito requiere confirmar su intento de timbrado desde la factura original.",
+  LC_ISR_PAGO_NC_RESERVADA:
+    "Una nota de crédito pendiente de timbrado tiene reservada parte del saldo fiscal. Consulta el intento antes de registrar este cobro.",
+  LC_ISR_REP_PROTEGIDO:
+    "El complemento requiere confirmar su intento de timbrado con el XML de Facturapi.",
+  LC_ISR_REP_CONTEXTO:
+    "Revisa el emisor, el saldo y las parcialidades anteriores antes de timbrar el complemento de pago.",
+  LC_ISR_SUSTITUCION_RECEPTOR:
+    "Si cambió el RFC del receptor, usa la ruta 02 de refacturación para generar la factura nueva.",
+  LC_ISR_INTENTO_ACTIVO:
+    "La factura tiene un intento de timbrado en curso. Consulta el resultado antes de iniciar otro.",
+  LC_ISR_INTENTO_NO_VIGENTE:
+    "El intento de timbrado cambió. Actualiza el documento y consulta su estado.",
+  LC_ISR_RECHAZO_INCIERTO:
+    "El timbrado sigue pendiente de confirmación. Recupera el intento antes de volver a emitir.",
+  LC_ISR_RESULTADO_INVALIDO:
+    "El resultado del timbrado requiere revisión. Consulta el intento desde Facturación.",
   LC_ANTICIPO_APLICACION_INCONSISTENTE:
     "No se pudo confirmar la aplicación del anticipo. Revisa el vínculo entre factura, pago y anticipo antes de continuar.",
   LC_ANTICIPO_MOVIMIENTO_INCONSISTENTE:

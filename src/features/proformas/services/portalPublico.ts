@@ -5,6 +5,8 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import type { TipoIvaSat } from "@/lib/financial/tipoIvaSat";
+import type { BloqueFiscalCotizacion } from "@/features/cotizacion/domain/snapshotFiscalCotizacion";
+import { bloquesFiscalesProformaSchema } from "../domain/proformaFiscal";
 
 export type EstadoLink = "activo" | "expirado" | "respondida" | "cancelada";
 
@@ -38,6 +40,7 @@ export interface PortalProformaData {
   subtotal_usd: number | null;
   iva_usd: number | null;
   total_usd: number | null;
+  totales_fiscales?: BloqueFiscalCotizacion[] | null;
   estado_cliente: "pendiente" | "aceptada" | "rechazada";
   aceptada_at: string | null;
   rechazada_at: string | null;
@@ -67,9 +70,13 @@ export async function fetchPortalProforma(token: string): Promise<PortalProforma
   if ((raw as { error?: string }).error === "token_invalido") {
     return { estado_link: "token_invalido", proforma: null, conceptos: [] };
   }
+  const proforma = (raw.proforma as PortalProformaData | null) ?? null;
+  if (proforma?.totales_fiscales != null) {
+    proforma.totales_fiscales = bloquesFiscalesProformaSchema.min(1).parse(proforma.totales_fiscales);
+  }
   return {
     estado_link: (raw.estado_link as EstadoLink) ?? "activo",
-    proforma: (raw.proforma as PortalProformaData | null) ?? null,
+    proforma,
     conceptos: (raw.conceptos as PortalProformaConcepto[]) ?? [],
   };
 }

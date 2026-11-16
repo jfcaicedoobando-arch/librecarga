@@ -59,9 +59,10 @@ export async function crearProforma(params: CrearProformaParams): Promise<Profor
   );
   if (error) throw error;
   if (!data) throw new Error("No se pudo crear la proforma");
+  const proforma = fromDb<ProformaRow>(data);
   // P3: métrica de negocio. Sólo monto agregado en MXN, sin cliente/RFC.
   try {
-    Sentry.metrics?.distribution?.("proforma.total_mxn", params.totales.total_mxn, {
+    Sentry.metrics?.distribution?.("proforma.total_mxn", proforma.total_mxn, {
       unit: "none",
     });
   } catch (err) {
@@ -72,7 +73,6 @@ export async function crearProforma(params: CrearProformaParams): Promise<Profor
   // R170-02: la fecha de negocio (hora México) la fija la propia RPC
   // `crear_proforma_atomica` dentro de su transacción. No hay parche posterior
   // desde el cliente: si la RPC falla, no queda proforma con fecha equivocada.
-  const proforma = fromDb<ProformaRow>(data);
   await registrarActividad({
     modulo: "facturacion",
     accion: "Creó proforma",
@@ -81,8 +81,8 @@ export async function crearProforma(params: CrearProformaParams): Promise<Profor
     detalles: {
       expediente: params.expediente,
       cliente: params.clienteNombre,
-      total_usd: params.totales.total_usd,
-      total_mxn: params.totales.total_mxn,
+      total_usd: proforma.total_usd,
+      total_mxn: proforma.total_mxn,
     },
   });
   return proforma;

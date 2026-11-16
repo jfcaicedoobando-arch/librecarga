@@ -552,5 +552,101 @@
       "0070_factura_resico_totales_agrupados.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0071_isr_resico_cotizacion_embarque.sql",
+    "sha256": "685e1ec8bc30f56771d8284089f37fa0a363df8d71a2b0d0da389f0411f14104",
+    "replays": [
+      "0071_isr_resico_cotizacion_embarque.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0072_isr_resico_revision_embarque.sql",
+    "sha256": "5204233d11421deda09b914b71e746b2607e89ac5a849f00e0633e26b58a3871",
+    "replays": [
+      "0072_isr_resico_revision_embarque.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0073_isr_resico_proforma_normal.sql",
+    "sha256": "dd198ea737366b1a53d121c426b90603df582fc2c9f7334fff9a62682ad6ae8f",
+    "replays": [
+      "0073_isr_resico_proforma_normal.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0074_isr_resico_consolidacion_proformas.sql",
+    "sha256": "331b1e84456ee357c4c67dc8c490762316d8ebb3ba2bb9f62031ac4c63e86fbd",
+    "replays": [
+      "0074_isr_resico_consolidacion_proformas.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0075_isr_resico_conversion_proforma.sql",
+    "sha256": "c9d7455fbc7373c50577ac5fb6e715d28467b4508c2effd4ecf75f93a9ae7b9e",
+    "replays": [
+      "0075_isr_resico_conversion_proforma.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0076_isr_resico_factura_manual.sql",
+    "sha256": "3ac5dcd38f14c52fe11199a0791be62c6796d71f3defd133b5be8ea2de827c8b",
+    "replays": [
+      "0076_isr_resico_factura_manual.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0077_isr_resico_intentos_timbrado.sql",
+    "sha256": "b88e723859b4a9398edcf50f19c0b348b93f22d7d3a952f213dd7c872efcbd80",
+    "replays": [
+      "0077_isr_resico_intentos_timbrado.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0078_isr_resico_recuperar_timbrado.sql",
+    "sha256": "8430edc3ef77b9b76072095a7ce1a4f8a87338291146a2ba7d376956bb3e9283",
+    "replays": [
+      "0078_isr_resico_recuperar_timbrado.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0079_isr_resico_cobranza.sql",
+    "sha256": "1fc2d8d6ce3704a4523d8f71f287adedd931f6c4aceb85ace433d3d382461ef0",
+    "replays": [
+      "0079_isr_resico_cobranza.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0080_isr_resico_timbrado_notas.sql",
+    "sha256": "fe4f54521ba3e3d057e401cbf4608a5cc7d57e49cb040f1000940880c410e4d4",
+    "replays": [
+      "0080_isr_resico_timbrado_notas.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0081_isr_resico_timbrado_rep.sql",
+    "sha256": "8d3027e3b135952bfd035470929b63f77ac82f07b719e17b22781f009a210a21",
+    "replays": [
+      "0081_isr_resico_timbrado_rep.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0082_isr_resico_reemplazo.sql",
+    "sha256": "af04b637e4ad3918e3ec0e4143c34bee3a4d902e1a039c91ebe017df9ef2f4fb",
+    "replays": [
+      "0082_isr_resico_reemplazo.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

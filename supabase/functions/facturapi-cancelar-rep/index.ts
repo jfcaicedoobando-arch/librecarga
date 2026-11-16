@@ -60,11 +60,12 @@ Deno.serve(wrapEdgeHandler("facturapi-cancelar-rep", async (req) => {
 
   const { data: pago, error: pErr } = await supabase
     .from("pagos_factura")
-    .select("id, organization_id, facturapi_rep_id, estado_rep, uuid_rep, rep_cancellation_status")
+    .select("id, organization_id, facturapi_rep_id, estado_rep, uuid_rep, rep_cancellation_status, ambiente")
     .eq("id", body.pago_id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (pErr || !pago) return json({ error: "pago_not_found" }, 404);
-  if (!pago.facturapi_rep_id) return json({ error: "no_timbrado_rep" }, 409);
+  if (!pago.facturapi_rep_id || pago.facturapi_rep_id.startsWith("PENDING:")) return json({ error: "no_timbrado_rep" }, 409);
   if (pago.estado_rep === "Cancelado") return json({ error: "ya_cancelado" }, 409);
   if (!(await authorizeOrgRole(supabase, userData.user.id, pago.organization_id, ROLES_COBRANZA_FISCAL))) {
     return json({ error: "forbidden" }, 403);
@@ -87,13 +88,17 @@ Deno.serve(wrapEdgeHandler("facturapi-cancelar-rep", async (req) => {
   let sustituyeFacturapiId: string | undefined;
   const objetivoFacturapiId: string = pago.facturapi_rep_id as string;
   if (body.motivo === "01") {
-    const { data: sustituto } = await supabase
+    let query = supabase
       .from("pagos_factura")
       .select("id, facturapi_rep_id")
       .eq("organization_id", pago.organization_id)
       .eq("uuid_rep", body.sustituye_uuid!)
-      .maybeSingle();
-    if (!sustituto?.facturapi_rep_id) {
+      .eq("estado_rep", "Timbrado")
+      .neq("id", pago.id)
+      .is("deleted_at", null);
+    if (pago.ambiente) query = query.eq("ambiente", pago.ambiente);
+    const { data: sustituto } = await query.maybeSingle();
+    if (!sustituto?.facturapi_rep_id || sustituto.facturapi_rep_id.startsWith("PENDING:")) {
       return json({
         error: "sustituto_no_encontrado",
         message: "No hay un REP timbrado con ese UUID en esta organización. Timbra primero el REP sustituto.",
@@ -102,7 +107,8 @@ Deno.serve(wrapEdgeHandler("facturapi-cancelar-rep", async (req) => {
     sustituyeFacturapiId = sustituto.facturapi_rep_id as string;
   }
 
-  const resolved = await getFacturapiClient(supabase, pago.organization_id);
+  const ambiente = pago.ambiente === "sandbox" || pago.ambiente === "live" ? pago.ambiente : undefined;
+  const resolved = await getFacturapiClient(supabase, pago.organization_id, ambiente);
   if (!resolved.ok) return json({ error: resolved.data.error, message: resolved.data.message }, resolved.data.status);
   const facturapi = resolved.data.client;
 
@@ -174,9 +180,10 @@ Deno.serve(wrapEdgeHandler("facturapi-cancelar-rep", async (req) => {
   }
 
   return await resolverResultadoCancelacionRep({
-    supabase,
+    supabase: createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } }),
     json,
     pagoId: pago.id,
+    facturapiId: objetivoFacturapiId,
     organizationId: pago.organization_id,
     usuarioId: userData.user.id,
     usuarioEmail: userData.user.email,

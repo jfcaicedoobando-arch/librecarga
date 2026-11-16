@@ -6,6 +6,8 @@ CREATE OR REPLACE FUNCTION public.tg_facturas_link_proforma() RETURNS trigger
 DECLARE
   v_estado_proforma text;
 BEGIN
+  -- The evaluated conversion owns both currency links and publishes them atomically.
+  IF NEW.evaluacion_fiscal IS NOT NULL THEN RETURN NEW; END IF;
   IF NEW.proforma_id IS NOT NULL AND NEW.deleted_at IS NULL
      AND NEW.estado NOT IN ('Cancelada'::estado_factura,'Sustituida'::estado_factura) THEN
     -- Lock de proforma: mismo orden lógico que cancelar/convertir.

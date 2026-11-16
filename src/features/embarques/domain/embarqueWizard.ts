@@ -9,8 +9,15 @@
 import type { CotizacionRow } from "@/features/cotizacion/types";
 import type { EmbarqueValidationErrors } from "@/features/embarques/types/embarque";
 import { parseConceptos } from "@/lib/domain/cotizacionDetalle";
+import type { ConceptoVentaLocal } from "@/types/concepto";
 
 export interface ConceptoVentaWizard {
+  evaluacionFiscal?: ConceptoVentaLocal["evaluacionFiscal"];
+  tasaRetIsr?: number | null;
+  montoRetIsr?: number | null;
+  tasaRetIva?: number | null;
+  origen?: string | null;
+  cotizacionConceptoOrigenId?: string | null;
   id: number;
   concepto: string;
   cantidad: number;
@@ -103,6 +110,12 @@ export function mapConceptosVentaFromCotizacion(
       tasaIva: numeroONull(v.tasa_iva_aplicada),
       // SAT 01: se preserva el tratamiento explícito de la cotización.
       tipoIva: typeof v.tipo_iva === "string" && v.tipo_iva !== "" ? v.tipo_iva : null,
+      evaluacionFiscal: v.evaluacion_fiscal ?? null,
+      tasaRetIsr: numeroONull(v.tasa_ret_isr),
+      montoRetIsr: numeroONull(v.monto_ret_isr),
+      tasaRetIva: numeroONull(v.tasa_ret_iva),
+      origen: "cotizacion",
+      cotizacionConceptoOrigenId: v.id ?? null,
     }));
 }
 

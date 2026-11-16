@@ -2,7 +2,6 @@
 import { esFacturaVigenteParaOperar } from "./facturaVigencia";
 import { tieneSaldoMonetario } from "@/lib/financial/toleranciaPago";
 import { esCreadaConCapacidadTimbrado } from "./facturaCapacidadTimbrado";
-
 export {
   esCreadaConCapacidadTimbrado,
   FECHA_INICIO_TIMBRADO_SISTEMA,
@@ -14,6 +13,7 @@ export interface FacturaFlagsInput {
   estado?: string | null;
   metodo_pago?: string | null;
   facturapi_id?: string | null;
+  evaluacion_fiscal?: unknown;
   uuid_fiscal?: string | null;
   fecha_emision?: string | null;
   sustituida_por?: string | null;
@@ -169,15 +169,17 @@ function deriveActionFlags(
 ): FacturaFlags {
   const sinTimbrar = !f.uuid_fiscal;
   const esBorrador = f.estado === "Borrador" && !f.facturapi_id;
-  const puedeEditarBorrador = esBorrador && canEdit;
+  const fiscalConfirmada = f.evaluacion_fiscal != null;
+  const puedeEditarBorrador = esBorrador && canEdit && !fiscalConfirmada;
   const estaCancelada = isEstadoCanceladoOSustituido(f.estado);
 
   return {
     sinTimbrar,
     esBorrador,
     puedeEditarBorrador,
-    puedeEliminarBorrador: puedeEditarBorrador,
-    puedeTimbrarDesdeSistema: esFacturaVigenteParaOperar(f) && sinTimbrar && esCreadaConCapacidadTimbrado(f.fecha_emision),
+    puedeEliminarBorrador: esBorrador && canEdit,
+    puedeTimbrarDesdeSistema: (!fiscalConfirmada || esBorrador) && esFacturaVigenteParaOperar(f)
+      && sinTimbrar && esCreadaConCapacidadTimbrado(f.fecha_emision),
     ...deriveFiscalFlags(f, canEdit, sinTimbrar, estaCancelada),
     puedeRegistrarPago: puedeCobrarse(f, ctx, canRegistrarCobro, estaCancelada),
     repPendiente: (ctx.pagosRepPendientes ?? 0) > 0,

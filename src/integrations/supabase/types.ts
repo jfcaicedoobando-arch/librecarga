@@ -1599,6 +1599,7 @@ export type Database = {
           monto_ret_isr: number
           monto_ret_iva: number
           organization_id: string
+          origen_fiscal: Json | null
           precio_unitario: number
           proforma_id_origen: string | null
           tasa_iva_aplicada: number | null
@@ -1623,6 +1624,7 @@ export type Database = {
           monto_ret_isr?: number
           monto_ret_iva?: number
           organization_id?: string
+          origen_fiscal?: Json | null
           precio_unitario?: number
           proforma_id_origen?: string | null
           tasa_iva_aplicada?: number | null
@@ -1647,6 +1649,7 @@ export type Database = {
           monto_ret_isr?: number
           monto_ret_iva?: number
           organization_id?: string
+          origen_fiscal?: Json | null
           precio_unitario?: number
           proforma_id_origen?: string | null
           tasa_iva_aplicada?: number | null
@@ -1698,6 +1701,7 @@ export type Database = {
         Row: {
           aplica_iva: boolean
           cantidad: number
+          cotizacion_concepto_origen_id: string | null
           contenedor_id: string | null
           created_at: string
           deleted_at: string | null
@@ -1722,6 +1726,7 @@ export type Database = {
         Insert: {
           aplica_iva?: boolean
           cantidad?: number
+          cotizacion_concepto_origen_id?: string | null
           contenedor_id?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -1746,6 +1751,7 @@ export type Database = {
         Update: {
           aplica_iva?: boolean
           cantidad?: number
+          cotizacion_concepto_origen_id?: string | null
           contenedor_id?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -5941,6 +5947,63 @@ export type Database = {
           },
         ]
       }
+      embarque_revisiones_fiscales: {
+        Row: {
+          actor_id: string
+          aplicada_at: string | null
+          conceptos_anteriores: Json
+          created_at: string
+          embarque_id: string
+          id: string
+          motivo: string
+          organization_id: string
+          snapshot_anterior: Json
+          snapshot_nuevo: Json
+          transaccion: number
+        }
+        Insert: {
+          actor_id: string
+          aplicada_at?: string | null
+          conceptos_anteriores: Json
+          created_at?: string
+          embarque_id: string
+          id?: string
+          motivo: string
+          organization_id: string
+          snapshot_anterior: Json
+          snapshot_nuevo: Json
+          transaccion: number
+        }
+        Update: {
+          actor_id?: string
+          aplicada_at?: string | null
+          conceptos_anteriores?: Json
+          created_at?: string
+          embarque_id?: string
+          id?: string
+          motivo?: string
+          organization_id?: string
+          snapshot_anterior?: Json
+          snapshot_nuevo?: Json
+          transaccion?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "embarque_revisiones_fiscales_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "embarques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "embarque_revisiones_fiscales_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       embarques: {
         Row: {
           aerolinea: string | null
@@ -6864,6 +6927,7 @@ export type Database = {
           embarque_id: string | null
           enviada_cliente_at: string | null
           estado: Database["public"]["Enums"]["estado_factura"]
+          evaluacion_fiscal: Json | null
           expediente: string
           factura_pdf_url: string | null
           factura_xml_backup_path: string | null
@@ -6927,6 +6991,7 @@ export type Database = {
           embarque_id?: string | null
           enviada_cliente_at?: string | null
           estado?: Database["public"]["Enums"]["estado_factura"]
+          evaluacion_fiscal?: Json | null
           expediente?: string
           factura_pdf_url?: string | null
           factura_xml_backup_path?: string | null
@@ -6990,6 +7055,7 @@ export type Database = {
           embarque_id?: string | null
           enviada_cliente_at?: string | null
           estado?: Database["public"]["Enums"]["estado_factura"]
+          evaluacion_fiscal?: Json | null
           expediente?: string
           factura_pdf_url?: string | null
           factura_xml_backup_path?: string | null
@@ -7149,6 +7215,199 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      intentos_nota_credito_isr: {
+        Row: {
+          actor_id: string
+          actualizado_at: string | null
+          ambiente: Database["public"]["Enums"]["ambiente_facturapi"]
+          creado_at: string
+          estado: string
+          nota_id: string
+          facturapi_id: string | null
+          id: string
+          organization_id: string
+          esperado: Json
+          resultado: Json | null
+          uuid_fiscal: string | null
+        }
+        Insert: {
+          actor_id: string
+          actualizado_at?: string | null
+          ambiente: Database["public"]["Enums"]["ambiente_facturapi"]
+          creado_at?: string
+          estado?: string
+          nota_id: string
+          facturapi_id?: string | null
+          id?: string
+          organization_id: string
+          esperado: Json
+          resultado?: Json | null
+          uuid_fiscal?: string | null
+        }
+        Update: {
+          actor_id?: string
+          actualizado_at?: string | null
+          ambiente?: Database["public"]["Enums"]["ambiente_facturapi"]
+          creado_at?: string
+          estado?: string
+          nota_id?: string
+          facturapi_id?: string | null
+          id?: string
+          organization_id?: string
+          esperado?: Json
+          resultado?: Json | null
+          uuid_fiscal?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intentos_nota_credito_isr_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "factura_notas_credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intentos_nota_credito_isr_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intentos_rep_isr: {
+        Row: {
+          actor_id: string
+          actualizado_at: string | null
+          ambiente: Database["public"]["Enums"]["ambiente_facturapi"]
+          creado_at: string
+          esperado: Json
+          estado: string
+          factura_id: string
+          facturapi_id: string | null
+          id: string
+          id_anterior: string | null
+          organization_id: string
+          pago_id: string
+          resultado: Json | null
+          uuid_fiscal: string | null
+        }
+        Insert: {
+          actor_id: string
+          actualizado_at?: string | null
+          ambiente: Database["public"]["Enums"]["ambiente_facturapi"]
+          creado_at?: string
+          esperado: Json
+          estado?: string
+          factura_id: string
+          facturapi_id?: string | null
+          id?: string
+          id_anterior?: string | null
+          organization_id: string
+          pago_id: string
+          resultado?: Json | null
+          uuid_fiscal?: string | null
+        }
+        Update: {
+          actor_id?: string
+          actualizado_at?: string | null
+          ambiente?: Database["public"]["Enums"]["ambiente_facturapi"]
+          creado_at?: string
+          esperado?: Json
+          estado?: string
+          factura_id?: string
+          facturapi_id?: string | null
+          id?: string
+          id_anterior?: string | null
+          organization_id?: string
+          pago_id?: string
+          resultado?: Json | null
+          uuid_fiscal?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intentos_rep_isr_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intentos_rep_isr_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intentos_rep_isr_pago_id_fkey"
+            columns: ["pago_id"]
+            isOneToOne: false
+            referencedRelation: "pagos_factura"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intentos_timbrado_isr: {
+        Row: {
+          actor_id: string
+          actualizado_at: string | null
+          ambiente: string
+          creado_at: string
+          estado: string
+          factura_id: string
+          facturapi_id: string | null
+          id: string
+          organization_id: string
+          prevalidacion: Json
+          resultado: Json | null
+          uuid_fiscal: string | null
+        }
+        Insert: {
+          actor_id: string
+          actualizado_at?: string | null
+          ambiente: string
+          creado_at?: string
+          estado?: string
+          factura_id: string
+          facturapi_id?: string | null
+          id?: string
+          organization_id: string
+          prevalidacion: Json
+          resultado?: Json | null
+          uuid_fiscal?: string | null
+        }
+        Update: {
+          actor_id?: string
+          actualizado_at?: string | null
+          ambiente?: string
+          creado_at?: string
+          estado?: string
+          factura_id?: string
+          facturapi_id?: string | null
+          id?: string
+          organization_id?: string
+          prevalidacion?: Json
+          resultado?: Json | null
+          uuid_fiscal?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intentos_timbrado_isr_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intentos_timbrado_isr_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       liquidaciones_broker: {
         Row: {
@@ -8206,6 +8465,7 @@ export type Database = {
           evaluacion_fiscal: Json | null
           id: string
           iva: number
+          linaje_fiscal: Json | null
           moneda: Database["public"]["Enums"]["moneda"]
           monto_ret_isr: number | null
           organization_id: string
@@ -8230,6 +8490,7 @@ export type Database = {
           evaluacion_fiscal?: Json | null
           id?: string
           iva?: number
+          linaje_fiscal?: Json | null
           moneda?: Database["public"]["Enums"]["moneda"]
           monto_ret_isr?: number | null
           organization_id?: string
@@ -8254,6 +8515,7 @@ export type Database = {
           evaluacion_fiscal?: Json | null
           id?: string
           iva?: number
+          linaje_fiscal?: Json | null
           moneda?: Database["public"]["Enums"]["moneda"]
           monto_ret_isr?: number | null
           organization_id?: string
@@ -8415,9 +8677,12 @@ export type Database = {
         Row: {
           aceptada_at: string | null
           aceptada_por: string | null
+          ajuste_consolidacion_aprobado_at: string | null
+          ajuste_consolidacion_aprobado_por: string | null
           bl_master: string | null
           cliente_id: string
           cliente_nombre: string
+          conceptos_fiscales: Json | null
           consolidada_en: string | null
           created_at: string
           created_by: string | null
@@ -8433,6 +8698,7 @@ export type Database = {
           estado_cliente: string
           estado_proforma: string
           estado_revision: string
+          evaluacion_fiscal: Json | null
           expediente: string
           factura_id: string | null
           factura_secundaria_id: string | null
@@ -8464,9 +8730,12 @@ export type Database = {
         Insert: {
           aceptada_at?: string | null
           aceptada_por?: string | null
+          ajuste_consolidacion_aprobado_at?: string | null
+          ajuste_consolidacion_aprobado_por?: string | null
           bl_master?: string | null
           cliente_id: string
           cliente_nombre: string
+          conceptos_fiscales?: Json | null
           consolidada_en?: string | null
           created_at?: string
           created_by?: string | null
@@ -8482,6 +8751,7 @@ export type Database = {
           estado_cliente?: string
           estado_proforma?: string
           estado_revision?: string
+          evaluacion_fiscal?: Json | null
           expediente: string
           factura_id?: string | null
           factura_secundaria_id?: string | null
@@ -8513,9 +8783,12 @@ export type Database = {
         Update: {
           aceptada_at?: string | null
           aceptada_por?: string | null
+          ajuste_consolidacion_aprobado_at?: string | null
+          ajuste_consolidacion_aprobado_por?: string | null
           bl_master?: string | null
           cliente_id?: string
           cliente_nombre?: string
+          conceptos_fiscales?: Json | null
           consolidada_en?: string | null
           created_at?: string
           created_by?: string | null
@@ -8531,6 +8804,7 @@ export type Database = {
           estado_cliente?: string
           estado_proforma?: string
           estado_revision?: string
+          evaluacion_fiscal?: Json | null
           expediente?: string
           factura_id?: string | null
           factura_secundaria_id?: string | null
@@ -11001,6 +11275,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      aplicar_evaluacion_isr_factura_manual: {
+        Args: { p_factura_id: string }
+        Returns: undefined
+      }
       aplicar_plantilla_cotizacion: {
         Args: { _plantilla_id: string }
         Returns: Json
@@ -11026,6 +11304,10 @@ export type Database = {
           total: number
           warns: number
         }[]
+      }
+      aprobar_ajuste_consolidacion_proforma: {
+        Args: { p_huella: string; p_proforma_id: string }
+        Returns: Json
       }
       aprobar_factura_proveedor: {
         Args: {
@@ -12705,6 +12987,21 @@ export type Database = {
         Args: { p_cuenta_bancaria_id: string; p_desde: string; p_hasta: string }
         Returns: Json
       }
+      evaluar_documento_isr_resico: {
+        Args: { p_org_id: string; p_cliente_id: string | null; p_conceptos: Json; p_cotizacion_id?: string; p_embarque_id?: string }
+        Returns: Json
+      }
+      obtener_evaluacion_fiscal_embarque: { Args: { p_embarque_id: string }; Returns: Json }
+      preparar_revision_fiscal_embarque: {
+        Args: { p_embarque_id: string; p_cliente_id: string | null; p_conceptos_venta: Json; p_expected_updated_at: string }
+        Returns: Json
+      }
+      prevalidar_emision_isr_factura: {
+        Args: { p_factura_id: string }
+        Returns: Json
+      }
+      revisar_cotizacion_fiscal: { Args: { p_cotizacion_id: string; p_expected_fingerprint: string; p_motivo: string }; Returns: Json }
+      validar_cotizacion_fiscal_envio: { Args: { p_cotizacion_id: string; p_expected_fingerprint: string | null; p_usuario_id: string }; Returns: Json }
       evaluar_isr_resico: {
         Args: {
           p_ambiente: string
@@ -13289,6 +13586,18 @@ export type Database = {
           uso_cfdi: string
         }[]
       }
+      obtener_intento_nota_credito_isr: {
+        Args: { p_claim: string; p_nota_id: string; p_organization_id: string }
+        Returns: Json
+      }
+      obtener_intento_rep_isr: {
+        Args: { p_claim: string; p_organization_id: string; p_pago_id: string }
+        Returns: Json
+      }
+      obtener_intento_timbrado_isr: {
+        Args: { p_claim: string; p_factura_id: string; p_organization_id: string }
+        Returns: Json
+      }
       obtener_perfil_fiscal_emisor: {
         Args: { p_ambiente: string; p_org_id: string }
         Returns: Json
@@ -13809,6 +14118,18 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_resultado_nota_credito_isr: {
+        Args: { p_claim: string; p_estado: string; p_nota_id: string; p_organization_id: string; p_resultado: Json }
+        Returns: Json
+      }
+      registrar_resultado_rep_isr: {
+        Args: { p_claim: string; p_estado: string; p_organization_id: string; p_pago_id: string; p_resultado: Json }
+        Returns: Json
+      }
+      registrar_resultado_timbrado_isr: {
+        Args: { p_factura_id: string; p_claim: string; p_estado: string; p_resultado: Json }
+        Returns: Json
+      }
       registrar_traspaso_bancario: {
         Args: {
           p_client_request_id?: string
@@ -13838,6 +14159,18 @@ export type Database = {
           procesadas: number
           resueltas: number
         }[]
+      }
+      reservar_nota_credito_isr: {
+        Args: { p_actor: string; p_nota_id: string; p_organization_id: string; p_updated_at: string }
+        Returns: Json
+      }
+      reservar_rep_isr: {
+        Args: { p_actor: string; p_esperado: Json; p_organization_id: string; p_pago_id: string; p_updated_at: string }
+        Returns: Json
+      }
+      reservar_timbrado_isr: {
+        Args: { p_factura_id: string; p_actor: string; p_prevalidacion: Json; p_emisor_observado: Json }
+        Returns: Json
       }
       reseed_organization_catalogs: {
         Args: { p_org_id: string }

@@ -10,6 +10,7 @@ import { useTasaIVA } from "@/features/catalogos/hooks/useTasaIVA";
 import {
   fetchClienteParaPdf,
   fetchConceptosConsolidados,
+  fetchConceptosFiscalesParaPdf,
   fetchConceptosProforma,
   fetchEmbarqueParaPdf,
   type ProformaRow,
@@ -46,7 +47,7 @@ export function useDescargarProformaPdf() {
         const [embarque, cliente, conceptos, consolidados] = await Promise.all([
           embarquePromise,
           fetchClienteParaPdf(proforma.cliente_id),
-          esConsolidada ? Promise.resolve([]) : fetchConceptosProforma(proforma.id),
+          esConsolidada ? Promise.resolve([]) : cargarConceptosPdf(proforma),
           esConsolidada ? fetchConceptosConsolidados(proforma.id) : Promise.resolve([]),
         ]);
 
@@ -75,4 +76,8 @@ export function useDescargarProformaPdf() {
   );
 
   return { descargar, downloadingId };
+}
+
+function cargarConceptosPdf(proforma: ProformaRow) {
+  return proforma.evaluacion_fiscal != null ? fetchConceptosFiscalesParaPdf(proforma) : fetchConceptosProforma(proforma.id);
 }

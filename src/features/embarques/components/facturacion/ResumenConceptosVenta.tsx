@@ -6,6 +6,7 @@ import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/Da
 import { formatCurrency } from "@/lib/formatters";
 import { GrupoConceptosContenedor } from "./GrupoConceptosContenedor";
 import { ResumenConceptosVentaTotales } from "./ResumenConceptosVentaTotales";
+import { FiscalEmbarqueGuardado } from "./FiscalEmbarqueGuardado";
 import { EstadoConceptoBadge, type EstadoConcepto } from "./estadoConceptoBadge";
 import { agruparPorContenedor } from "@/features/embarques/domain/conceptosPorContenedor";
 import type { Tables } from "@/types/db";
@@ -165,6 +166,7 @@ export function ResumenConceptosVenta({
             )}
 
             <ResumenConceptosVentaTotales
+              ocultarImportes={conceptos.some(c => c.evaluacion_fiscal != null)}
               totales={totales}
               pendientesCount={conceptosPendientes.length}
               enProformaCount={conceptosEnProforma.length}
@@ -173,6 +175,7 @@ export function ResumenConceptosVenta({
               gruposConIva={gruposConIva}
               ivaPendienteCount={conceptosPendientes.filter(tratamientoIvaPendiente).length}
             />
+            {conceptos.some(c => c.evaluacion_fiscal != null) && <FiscalEmbarqueGuardado embarqueId={conceptos[0].embarque_id} revision={JSON.stringify(conceptos)} />}
           </>
         )}
       </CardContent>

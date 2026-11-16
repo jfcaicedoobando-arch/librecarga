@@ -7,8 +7,12 @@ import type { ConceptoVentaLocal, ConceptoCostoLocal } from "@/types/concepto";
 // BL-12: canon monetario — nunca `cantidad * precio` crudo (drift float).
 import { subtotalLinea } from "@/lib/financial/financialUtils";
 import { monedaSchema, monedaVentaSchema } from "./embarquePayloadSchemas";
+import { ReglaNegocioError } from "@/lib/errors/reglaNegocio";
 
 export function buildConceptosVentaPayload(conceptosVenta: ConceptoVentaLocal[]) {
+  if (conceptosVenta.some((v) => v.tasaRetIva != null && v.tasaRetIva !== 0)) {
+    throw new ReglaNegocioError("La retención de IVA comercial requiere revisión antes de guardar el embarque.");
+  }
   return conceptosVenta
     .filter((v) => v.concepto)
     .map((v) => ({
@@ -16,6 +20,9 @@ export function buildConceptosVentaPayload(conceptosVenta: ConceptoVentaLocal[])
       // `actualizar_embarque_completo` haga merge en sitio y NO borre
       // conceptos que ya estén facturados.
       ...(v.dbId ? { id: v.dbId } : {}),
+      ...(v.evaluacionFiscal == null ? {} : { evaluacion_fiscal: v.evaluacionFiscal }),
+      ...(v.origen == null ? {} : { origen: v.origen }),
+      ...(v.cotizacionConceptoOrigenId == null ? {} : { cotizacion_concepto_origen_id: v.cotizacionConceptoOrigenId }),
       descripcion: v.concepto,
       cantidad: v.cantidad,
       precio_unitario: v.precioUnitario,

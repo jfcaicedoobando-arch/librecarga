@@ -32,12 +32,14 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT * INTO v_old FROM public.facturas WHERE id = v_c.factura_original_id;
+  SELECT * INTO v_old FROM public.facturas WHERE id = v_c.factura_original_id AND organization_id=v_c.organization_id
+    AND deleted_at IS NULL FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'LC_REFACT_FACTURA_NO_ENCONTRADA' USING ERRCODE = 'P0002';
   END IF;
 
-  SELECT * INTO v_cli FROM public.clientes WHERE id = v_c.cliente_destino_id;
+  SELECT * INTO v_cli FROM public.clientes WHERE id = v_c.cliente_destino_id AND organization_id=v_c.organization_id
+    AND deleted_at IS NULL;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'LC_REFACT_CLIENTE_DESTINO: el cliente destino no existe' USING ERRCODE = 'P0002';
   END IF;
@@ -96,34 +98,23 @@ BEGIN
   );
 
   IF v_c.ruta_fiscal = '01' THEN
+    IF EXISTS (SELECT 1 FROM public.facturas s WHERE s.id=v_old.sustituida_por AND s.deleted_at IS NULL
+      AND s.estado NOT IN ('Cancelada','Sustituida')) THEN
+      RAISE EXCEPTION 'factura_ya_sustituida' USING ERRCODE='P0001';
+    END IF;
     UPDATE public.facturas SET sustituida_por = v_new_id WHERE id = v_old.id;
   END IF;
 
-  INSERT INTO public.conceptos_factura (
-    factura_id, organization_id,
-    descripcion, cantidad, precio_unitario, moneda, total,
-    clave_sat, tipo_iva, tasa_iva_aplicada,
-    tasa_ret_isr, tasa_ret_iva, monto_ret_isr, monto_ret_iva,
-    clave_unidad, embarque_id, proforma_id_origen
-  )
-  SELECT
-    v_new_id, v_old.organization_id,
-    descripcion, cantidad, precio_unitario, moneda, total,
-    clave_sat, tipo_iva, tasa_iva_aplicada,
-    tasa_ret_isr, tasa_ret_iva, monto_ret_isr, monto_ret_iva,
-    clave_unidad, embarque_id, proforma_id_origen
-  FROM public.conceptos_factura
-  WHERE factura_id = v_old.id AND deleted_at IS NULL;
+  UPDATE public.refacturaciones
+     SET factura_nueva_id = v_new_id, paso_actual = GREATEST(paso_actual, 3)
+   WHERE id = p_caso_id;
+  PERFORM public._copiar_conceptos_factura_reemplazo(v_new_id,v_old.id,p_caso_id);
 
   INSERT INTO public.factura_embarques (factura_id, embarque_id, organization_id, activa)
   SELECT v_new_id, embarque_id, organization_id, true
   FROM public.factura_embarques
   WHERE factura_id = v_old.id
   ON CONFLICT DO NOTHING;
-
-  UPDATE public.refacturaciones
-     SET factura_nueva_id = v_new_id, paso_actual = GREATEST(paso_actual, 3)
-   WHERE id = p_caso_id;
 
   v_factor := CASE WHEN COALESCE(v_old.tipo_cambio, 0) > 0 AND v_tc_nuevo IS NOT NULL
                    THEN ROUND(v_tc_nuevo / v_old.tipo_cambio, 6) ELSE NULL END;

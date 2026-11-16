@@ -26,6 +26,7 @@ import {
 import { useRegisterBreadcrumbLabel } from "@/lib/contexts/BreadcrumbContext";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { EditarEmbarqueError } from "@/features/embarques/components/EditarEmbarqueError";
+import { RevisionFiscalEmbarque } from "@/features/embarques/components/facturacion/RevisionFiscalEmbarque";
 
 export default function EditarEmbarque() {
   const { id } = useParams();
@@ -36,7 +37,7 @@ export default function EditarEmbarque() {
   const {
     embarque, isLoading, isError, errorCarga, refetch, methods, currentStep, setCurrentStep,
     clientes, proveedoresDb, contactos, selectedCliente,
-    handleMsdsUpload, handleSave, isPending, navigate, conceptosForm,
+    handleMsdsUpload, handleSave, isPending, revisionFiscal, responderRevisionFiscal, navigate, conceptosForm,
     validateStep, cotizacionVinculada, cotizacionesAceptadas,
   } = useEditarEmbarqueWizard(id);
   useRegisterBreadcrumbLabel(id, embarque?.expediente);
@@ -188,6 +189,7 @@ export default function EditarEmbarque() {
           />
         )}
       </EmbarqueWizardLayout>
+      <RevisionFiscalEmbarque propuesta={revisionFiscal} clientes={clientes} responder={responderRevisionFiscal} />
     </FormProvider>
   );
 }

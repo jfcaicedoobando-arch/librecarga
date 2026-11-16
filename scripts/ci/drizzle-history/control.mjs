@@ -62,6 +62,18 @@ export const HISTORY = [
   { file: '0068_perfil_fiscal_emisor.sql', sha256: 'b9ff6b1ea3bcfd3add4fe4829a4ff8f7731a8181181e8fd06a8acb5ade3c7cd1', eligibleName: '20261115120000_perfil_fiscal_emisor.sql' },
   { file: '0069_isr_resico_contrato.sql', sha256: '7975e33aa3d03aaaa4838aef8cf56aeb77472843aa67347f2d9b540358f83aae', eligibleName: '20261115130000_isr_resico_contrato.sql' },
   { file: '0070_factura_resico_totales_agrupados.sql', sha256: '04a26c4b1d084b4a98d7d41f5a71db0f15d6f30a34933e4c6b4c7899be3f956c', eligibleName: '20261115140000_factura_resico_totales_agrupados.sql' },
+  { file: '0071_isr_resico_cotizacion_embarque.sql', sha256: '685e1ec8bc30f56771d8284089f37fa0a363df8d71a2b0d0da389f0411f14104', eligibleName: '20261115150000_isr_resico_cotizacion_embarque.sql' },
+  { file: '0072_isr_resico_revision_embarque.sql', sha256: '5204233d11421deda09b914b71e746b2607e89ac5a849f00e0633e26b58a3871', eligibleName: '20261115160000_isr_resico_revision_embarque.sql' },
+  { file: '0073_isr_resico_proforma_normal.sql', sha256: 'dd198ea737366b1a53d121c426b90603df582fc2c9f7334fff9a62682ad6ae8f', eligibleName: '20261115170000_isr_resico_proforma_normal.sql' },
+  { file: '0074_isr_resico_consolidacion_proformas.sql', sha256: '331b1e84456ee357c4c67dc8c490762316d8ebb3ba2bb9f62031ac4c63e86fbd', eligibleName: '20261115180000_isr_resico_consolidacion_proformas.sql' },
+  { file: '0075_isr_resico_conversion_proforma.sql', sha256: 'c9d7455fbc7373c50577ac5fb6e715d28467b4508c2effd4ecf75f93a9ae7b9e', eligibleName: '20261115190000_isr_resico_conversion_proforma.sql' },
+  { file: '0076_isr_resico_factura_manual.sql', sha256: '3ac5dcd38f14c52fe11199a0791be62c6796d71f3defd133b5be8ea2de827c8b', eligibleName: '20261115200000_isr_resico_factura_manual.sql' },
+  { file: '0077_isr_resico_intentos_timbrado.sql', sha256: 'b88e723859b4a9398edcf50f19c0b348b93f22d7d3a952f213dd7c872efcbd80', eligibleName: '20261115210000_isr_resico_intentos_timbrado.sql' },
+  { file: '0078_isr_resico_recuperar_timbrado.sql', sha256: '8430edc3ef77b9b76072095a7ce1a4f8a87338291146a2ba7d376956bb3e9283', eligibleName: '20261115220000_isr_resico_recuperar_timbrado.sql' },
+  { file: '0079_isr_resico_cobranza.sql', sha256: '1fc2d8d6ce3704a4523d8f71f287adedd931f6c4aceb85ace433d3d382461ef0', eligibleName: '20261115230000_isr_resico_cobranza.sql' },
+  { file: '0080_isr_resico_timbrado_notas.sql', sha256: 'fe4f54521ba3e3d057e401cbf4608a5cc7d57e49cb040f1000940880c410e4d4', eligibleName: '20261116000000_isr_resico_timbrado_notas.sql' },
+  { file: '0081_isr_resico_timbrado_rep.sql', sha256: '8d3027e3b135952bfd035470929b63f77ac82f07b719e17b22781f009a210a21', eligibleName: '20261116000100_isr_resico_timbrado_rep.sql' },
+  { file: '0082_isr_resico_reemplazo.sql', sha256: 'af04b637e4ad3918e3ec0e4143c34bee3a4d902e1a039c91ebe017df9ef2f4fb', eligibleName: '20261116000200_isr_resico_reemplazo.sql' },
 ];
 const ARCHIVED_METADATA = [
   [`${ARCHIVE}/meta/0022_snapshot.json`, '002a1cff39197fe3431f23193a4229e1c845cbcd0ab5eaa074efded812b0081d'],

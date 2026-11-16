@@ -6,9 +6,11 @@
  * deshabilitado. El guard del backend no cambia.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router";
+import { proformaFixture } from "./fixtures/proforma";
 
-const permisos = { canEmitirFactura: true };
+const permisos = { canEmitirFactura: true, canEditarProforma: false };
 vi.mock("@/hooks/shared", async () => ({
   ...(await import("@/hooks/shared/useCargaExpirada")), usePermissions: () => permisos }));
 
@@ -21,11 +23,13 @@ vi.mock("@/components/shared/dataTable/ResponsiveDataTable", () => ({
   ResponsiveDataTable: () => <div data-testid="tabla" />,
 }));
 vi.mock("../ProformasFiltros", () => ({ default: () => <div /> }));
+const consolidar = vi.fn().mockResolvedValue({ id: "consolidada" });
 vi.mock("@/features/proformas/hooks", () => ({
   useConvertirProformaDirecto: () => ({ convertir: vi.fn(), isPending: false }),
+  useConsolidarProformasFiscales: () => ({ mutateAsync: consolidar, isPending: false }),
 }));
 
-const proforma = { id: "p1", numero: "PRO-1" };
+const proforma = proformaFixture();
 
 const controller = {
   isLoading: false,
@@ -74,6 +78,9 @@ describe("TabProformas — selección según permiso de emisión", () => {
   beforeEach(() => {
     buildColumnsSpy.mockClear();
     permisos.canEmitirFactura = true;
+    permisos.canEditarProforma = false;
+    controller.selectedProformas = [proforma];
+    consolidar.mockClear();
   });
 
   it("contador/operador con emisión: incluye la casilla de selección y la acción", () => {
@@ -88,5 +95,39 @@ describe("TabProformas — selección según permiso de emisión", () => {
     expect(buildColumnsSpy.mock.calls[0][0]).not.toHaveProperty("selection");
     expect(screen.queryByRole("button", { name: /convertir a factura/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /fusionar/i })).toBeNull();
+  });
+
+  it("operaciones consolida proformas fiscales pendientes y abre el nuevo detalle", async () => {
+    permisos.canEmitirFactura = false;
+    permisos.canEditarProforma = true;
+    const fiscal = { estado: "confirmado" };
+    controller.selectedProformas = [
+      proformaFixture({ id: "p2", evaluacion_fiscal: fiscal }),
+      proformaFixture({ id: "p1", evaluacion_fiscal: fiscal }),
+    ];
+    render(
+      <MemoryRouter>
+        <Routes>
+          <Route path="/" element={<TabProformas />} />
+          <Route path="/proformas/consolidada" element={<p>Detalle consolidado</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole("button", { name: /fusionar|convertir a factura/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Consolidar proformas" }));
+    await waitFor(() => expect(consolidar).toHaveBeenCalledWith(expect.objectContaining({
+      proformaIds: ["p1", "p2"],
+      embarqueId: "e1",
+      organizationId: "org-sintetica",
+    })));
+    expect(await screen.findByText("Detalle consolidado")).toBeInTheDocument();
+  });
+
+  it("bloquea una selección fiscal mezclada con proformas históricas", () => {
+    permisos.canEditarProforma = true;
+    controller.selectedProformas = [proforma, proformaFixture({ id: "p2", evaluacion_fiscal: { estado: "confirmado" } })];
+    render(<MemoryRouter><TabProformas /></MemoryRouter>);
+    expect(screen.getByRole("button", { name: "Consolidar proformas" })).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent(/mismo embarque, cliente y plazo de crédito/);
   });
 });

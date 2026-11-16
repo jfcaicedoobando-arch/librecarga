@@ -1,3 +1,5 @@
+import type { Json } from "@/integrations/supabase/types";
+
 /** Contrato de concepto de cotización usado por cálculos puros y el feature. */
 export interface ConceptoVentaCotizacion {
   /** Exact cost lineage; absent means manually captured/legacy, never discard automatically. */
@@ -26,5 +28,9 @@ export interface ConceptoVentaCotizacion {
    * legacy: ahí se sigue resolviendo por tasa/flag.
    */
   tipo_iva?: string;
+  evaluacion_fiscal?: Json;
+  tasa_ret_isr?: number | null;
+  monto_ret_isr?: number | null;
+  tasa_ret_iva?: number | null;
   notas?: string;
 }

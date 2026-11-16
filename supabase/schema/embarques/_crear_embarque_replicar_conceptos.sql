@@ -153,14 +153,16 @@ BEGIN
 
         INSERT INTO public.conceptos_venta (
           embarque_id, descripcion, cantidad, precio_unitario, moneda,
-          aplica_iva, tasa_iva_aplicada, total, organization_id
+          aplica_iva, tasa_iva_aplicada, total, organization_id, tipo_iva, origen, cotizacion_concepto_origen_id, evaluacion_fiscal
         )
         VALUES (
           p_embarque_id, v_venta->>'descripcion', v_cant, v_pu,
           CASE WHEN v_moneda = 'USD' THEN 'USD'::moneda ELSE 'MXN'::moneda END,
           v_aplica,
           v_tasa,
-          v_total, p_org
+          v_total, p_org, v_venta->>'tipo_iva',
+          CASE WHEN v_venta->'evaluacion_fiscal' IS NOT NULL THEN 'cotizacion' ELSE 'manual' END,
+          CASE WHEN v_venta->'evaluacion_fiscal' IS NOT NULL THEN v_venta->>'id' END, v_venta->'evaluacion_fiscal'
         );
       END IF;
     END LOOP;

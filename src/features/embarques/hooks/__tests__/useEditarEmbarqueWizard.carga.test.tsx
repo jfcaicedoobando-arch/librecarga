@@ -6,6 +6,7 @@ type Consulta = { data: unknown; isError: boolean; refetch: ReturnType<typeof vi
 const m = vi.hoisted(() => ({
   consultas: {} as Record<string, Consulta>,
   guardar: vi.fn().mockResolvedValue(undefined), navegar: vi.fn(), error: vi.fn(),
+  prepararRevision: vi.fn(),
 }));
 const venta = { id: "v1", descripcion: "Flete", cantidad: 1, precio_unitario: 1000, total: 1000, moneda: "MXN", contenedor_id: null };
 const costo = { id: "c1", concepto: "Costo", monto: 400, moneda: "MXN", proveedor_id: "p1", contenedor_id: null };
@@ -46,6 +47,7 @@ vi.mock("../useEmbarqueForm", async () => {
 });
 vi.mock("@/features/configuracion/hooks/useMargenMinimo", () => ({ useMargenMinimo: () => 10 }));
 vi.mock("@/lib/ui/appFeedback", () => ({ notifyError: m.error, notifySuccess: vi.fn() }));
+vi.mock("../../services/evaluacionFiscalEmbarque", () => ({ prepararRevisionFiscalEmbarque: m.prepararRevision }));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -133,5 +135,32 @@ describe("edición segura tras cargar todos los datos", () => {
     expect(result.current.isLoading).toBe(false);
     expect(result.current.isError).toBe(false);
     expect(result.current.embarque).toBeNull();
+  });
+
+  it.each([false, true])("espera la revisión fiscal antes de guardar (confirmada: %s)", async (confirmada) => {
+    const propuesta = { huella: "a".repeat(64), puede_autorizar: true };
+    m.prepararRevision.mockResolvedValueOnce(propuesta);
+    m.consultas.ventas.data = [{ ...venta, evaluacion_fiscal: { estado: "aplica" } }];
+    const { result } = renderHook(() => useEditarEmbarqueWizard("e1"));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    let guardado: Promise<void>;
+    act(() => { guardado = result.current.handleSave(); });
+    await waitFor(() => expect(result.current.revisionFiscal).toEqual(propuesta));
+    expect(m.guardar).not.toHaveBeenCalled();
+    expect(result.current.isPending).toBe(true);
+    const motivo = confirmada ? "Cambio fiscal confirmado" : null;
+    await act(async () => {
+      result.current.responderRevisionFiscal(motivo);
+      await guardado;
+    });
+    if (confirmada) {
+      expect(m.guardar).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+        revisionFiscal: { huella: propuesta.huella, motivo },
+        expectedUpdatedAt: "2026-11-14",
+      }));
+    } else {
+      expect(m.guardar).not.toHaveBeenCalled();
+    }
+    expect(result.current.isPending).toBe(false);
   });
 });

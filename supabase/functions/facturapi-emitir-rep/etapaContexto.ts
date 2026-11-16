@@ -16,7 +16,7 @@ function receptorDe(factura: FacturaRep, datos: DatosPagoRep): PagoContext["rece
   const { cliente } = datos;
   return {
     legal_name: cliente.nombre,
-    tax_id: factura.rfc_cliente ?? cliente.rfc ?? "",
+    tax_id: (factura.evaluacion_fiscal != null ? cliente.rfc : factura.rfc_cliente ?? cliente.rfc) ?? "",
     tax_system: cliente.regimen_fiscal ?? "",
     address: { zip: cliente.codigo_postal ?? "" },
     email: datos.emailContacto,

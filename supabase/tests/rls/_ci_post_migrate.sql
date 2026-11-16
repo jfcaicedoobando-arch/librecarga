@@ -1,5 +1,6 @@
 \ir _ci_check_isr_resico_acl.sql
 \ir _ci_check_factura_resico_totales_acl.sql
+\ir _ci_check_isr_resico_comercial_acl.sql
 \ir _ci_check_perfil_fiscal_acl.sql
 -- Verify the real replay state before any harness grant can mask drift.
 \ir _ci_check_global_catalog_acl.sql
@@ -358,5 +359,59 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN
 -- Restore exact stage-2 ACL after blanket CI grants.
 REVOKE ALL ON FUNCTION public._evaluar_isr_resico(uuid,uuid,text,numeric,numeric,text), public._isr_guard_concepto(), public._isr_guard_cotizacion(), public._isr_guard_padre(), public._isr_guard_conversion_factura() FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.evaluar_isr_resico(uuid,uuid,text,numeric,numeric,text) FROM PUBLIC,anon,service_role;
+-- Restore stage-3 fiscal history and RPC boundaries after blanket grants.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN
+  ON public.cotizacion_revisiones_fiscales FROM authenticated, service_role;
+REVOKE ALL ON FUNCTION public._isr_documento_habilitado(uuid),
+  public._isr_snapshot_documento(uuid,uuid,text,jsonb),
+  public._evaluar_documento_isr_resico(uuid,uuid,jsonb) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.evaluar_documento_isr_resico(uuid,uuid,jsonb,uuid,uuid),
+  public.obtener_evaluacion_fiscal_embarque(uuid), public.revisar_cotizacion_fiscal(uuid,text,text)
+  FROM PUBLIC,anon,service_role;
+REVOKE ALL ON FUNCTION public.validar_cotizacion_fiscal_envio(uuid,text,uuid) FROM PUBLIC,anon,authenticated;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN
+  ON public.embarque_revisiones_fiscales FROM authenticated, service_role;
+REVOKE ALL ON FUNCTION public._isr_base_revision_venta(jsonb),
+  public._isr_plan_revision_embarque(uuid,uuid,jsonb) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.preparar_revision_fiscal_embarque(uuid,uuid,jsonb,timestamptz) FROM PUBLIC,anon,service_role;
+REVOKE ALL ON TABLE public.proforma_liberaciones_portal FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public._isr_concepto_proforma_normal(jsonb),
+  public._isr_snapshot_proforma_normal(uuid,uuid,uuid,uuid[]), public._isr_guard_proforma_normal(),
+  public._isr_validar_vinculo_proforma_normal(jsonb,jsonb), public._liberar_conceptos_proforma_portal(uuid,uuid),
+  public._h14_lock_grafo_baja_embarque(uuid,boolean) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public._isr_guard_concepto_consolidado(),
+  public._isr_armar_consolidacion_proformas(uuid[],uuid,uuid,uuid), public._isr_insertar_grupos_consolidacion(uuid,uuid,uuid,jsonb),
+  public._isr_consolidar_proformas(uuid,uuid,uuid,uuid[]) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.aprobar_ajuste_consolidacion_proforma(uuid,text) FROM PUBLIC,anon,service_role;
+REVOKE ALL ON FUNCTION public._isr_validar_conversion_proforma(uuid),
+  public._isr_insertar_conceptos_factura(uuid,uuid,uuid,boolean,public.moneda),
+  public._isr_convertir_proforma_a_facturas(uuid,uuid,text,text,text,integer,text,date),
+  public._isr_guard_borrador_convertido(), public._isr_guard_concepto_factura_convertida()
+  FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public._isr_revisar_factura_emision(uuid) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.aplicar_evaluacion_isr_factura_manual(uuid), public.prevalidar_emision_isr_factura(uuid)
+  FROM PUBLIC,anon,service_role;
+REVOKE ALL ON TABLE public.intentos_timbrado_isr FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public._isr_validar_estado_timbrado_factura(public.facturas,public.facturas)
+  FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.reservar_timbrado_isr(uuid,uuid,jsonb,jsonb), public.registrar_resultado_timbrado_isr(uuid,text,text,jsonb),
+  public.obtener_intento_timbrado_isr(uuid,uuid,text)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public._isr_totales_nota_credito(jsonb), public._isr_notas_credito_vigentes(public.facturas,uuid),
+  public._isr_guard_nota_credito()
+  FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON TABLE public.intentos_nota_credito_isr FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public._isr_validar_nota_timbrado() FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.reservar_nota_credito_isr(uuid,uuid,uuid,timestamptz),
+  public.obtener_intento_nota_credito_isr(uuid,uuid,text), public.registrar_resultado_nota_credito_isr(uuid,uuid,text,text,jsonb)
+  FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON TABLE public.intentos_rep_isr FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public._isr_guard_timbrado_rep(), public._isr_proyectar_retenciones_rep(public.facturas)
+  FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public._copiar_conceptos_factura_reemplazo(uuid,uuid,uuid) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.reservar_rep_isr(uuid,uuid,uuid,timestamptz,jsonb), public.obtener_intento_rep_isr(uuid,uuid,text),
+  public.registrar_resultado_rep_isr(uuid,uuid,text,text,jsonb), public._isr_rep_confirmado_webhook(uuid,uuid,text,text,text)
+  FROM PUBLIC,anon,authenticated;
 \ir _ci_check_isr_resico_acl.sql
 \ir _ci_check_factura_resico_totales_acl.sql
+\ir _ci_check_isr_resico_comercial_acl.sql

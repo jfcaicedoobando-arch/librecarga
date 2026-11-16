@@ -19,6 +19,10 @@ function isConvertible(p: ProformaConFactura): boolean {
   // conceptos a la proforma consolidada: convertirla emitiría una factura sin
   // líneas. El servidor también lo rechaza (`LC_PROFORMA_FUENTE_CONSOLIDADA`).
   if (p.estado_revision === "consolidada") return false;
+  if (p.evaluacion_fiscal != null) {
+    return !p.es_consolidada && !!p.embarque_id && !p.factura_id && !p.factura_secundaria_id
+      && !p.folio_factura_externa && p.estado_cliente !== "rechazada";
+  }
   return p.estado_cliente === "aceptada";
 }
 

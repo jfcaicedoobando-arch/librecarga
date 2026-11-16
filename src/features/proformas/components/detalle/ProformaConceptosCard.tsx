@@ -12,7 +12,8 @@ import {
   monedaComun,
 } from "@/features/proformas/components/detalle/conceptoColumns";
 import type { calcularTotalesProforma } from "@/features/proformas/domain/proforma";
-import type { ConceptoVentaRow } from "@/features/proformas/services";
+import type { ConceptoProformaDocumento } from "@/features/proformas/domain/proformaFiscal";
+import type { BloqueFiscalCotizacion } from "@/features/cotizacion/domain/snapshotFiscalCotizacion";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { useTasaIVA } from "@/features/catalogos/hooks/useTasaIVA";
 import {
@@ -21,13 +22,15 @@ import {
 } from "@/lib/financial/lineasPorConfirmarIva";
 import { AlertTriangle } from "lucide-react";
 import { ProformaConceptoMobileCard } from "./ProformaConceptoMobileCard";
+import { TotalesFiscalesProforma } from "../TotalesFiscalesProforma";
 
 type Totales = ReturnType<typeof calcularTotalesProforma>;
 
 interface Props {
-  conceptos: ConceptoVentaRow[];
+  conceptos: ConceptoProformaDocumento[];
   totales: Totales;
   emptyMessage: string;
+  bloquesFiscales?: BloqueFiscalCotizacion[];
 }
 
 function BloqueTotales({
@@ -63,13 +66,13 @@ function BloqueTotales({
   );
 }
 
-export function ProformaConceptosCard({ conceptos, totales, emptyMessage }: Props) {
+export function ProformaConceptosCard({ conceptos, totales, emptyMessage, bloquesFiscales }: Props) {
   const moneda = useMemo(() => monedaComun(conceptos), [conceptos]);
   const columns = useMemo(() => buildConceptoColumns(moneda), [moneda]);
   const tasaIva = useTasaIVA();
   // P1 · Auditoría IVA: renglones heredados sin clasificar a los que el cálculo
   // aún aplica la tasa general ⇒ el total es estimado, no definitivo.
-  const porConfirmar = hayLineasIvaPorConfirmar(conceptos, tasaIva);
+  const porConfirmar = !bloquesFiscales && hayLineasIvaPorConfirmar(conceptos, tasaIva);
   const hasUsd = totales.subtotal_usd > 0;
   const hasMxn = totales.subtotal_mxn > 0;
 
@@ -100,7 +103,9 @@ export function ProformaConceptosCard({ conceptos, totales, emptyMessage }: Prop
           emptyMessage={emptyMessage}
           mobileCard={(concepto) => <ProformaConceptoMobileCard concepto={concepto} />}
         />
-        {(hasUsd || hasMxn) && (
+        {bloquesFiscales ? (
+          <div className="border-t bg-muted/30 px-4 py-3"><TotalesFiscalesProforma bloques={bloquesFiscales} /></div>
+        ) : (hasUsd || hasMxn) && (
           <div className="flex flex-col sm:flex-row sm:justify-end gap-6 border-t px-4 py-3 bg-muted/30">
             {hasUsd && (
               <BloqueTotales

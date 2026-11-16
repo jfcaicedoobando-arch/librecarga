@@ -30,14 +30,6 @@ DECLARE
   -- R170-02: fecha de negocio en hora México, no CURRENT_DATE (UTC).
   v_hoy_mx date := (now() AT TIME ZONE 'America/Mexico_City')::date;
 BEGIN
-  v_cached := public.idempotency_claim(p_request_id, 'convertir_proformas_a_factura');
-  IF v_cached IS NOT NULL AND (v_cached ? 'factura_ids') THEN
-    RETURN QUERY SELECT * FROM public.facturas
-      WHERE id = ANY(ARRAY(SELECT jsonb_array_elements_text(v_cached->'factura_ids'))::uuid[])
-        AND deleted_at IS NULL;
-    RETURN;
-  END IF;
-
   IF p_proforma_ids IS NULL OR array_length(p_proforma_ids, 1) IS NULL THEN
     RAISE EXCEPTION 'Debes proporcionar al menos una proforma';
   END IF;
@@ -59,8 +51,25 @@ BEGIN
     RAISE EXCEPTION 'LC_PROFORMA_SIN_PERMISO: rol no autorizado para convertir proformas' USING ERRCODE='P0001';
   END IF;
 
+  v_cached := public.idempotency_claim(p_request_id, 'convertir_proformas_a_factura');
+  IF v_cached ? 'factura_ids' THEN
+    IF v_cached ? 'proforma_ids' AND NOT (
+      (v_cached->'proforma_ids') @> to_jsonb(p_proforma_ids) AND to_jsonb(p_proforma_ids) @> (v_cached->'proforma_ids')
+    ) THEN
+      RAISE EXCEPTION 'LC_ISR_CONVERSION_REVISION' USING ERRCODE='23514';
+    END IF;
+    RETURN QUERY SELECT f.* FROM public.facturas f
+      WHERE f.id = ANY(ARRAY(SELECT jsonb_array_elements_text(v_cached->'factura_ids'))::uuid[])
+        AND f.deleted_at IS NULL
+        AND (f.organization_id = v_caller_org OR public.has_role(auth.uid(), 'super_admin'::app_role))
+        AND (f.evaluacion_fiscal IS NULL OR (f.organization_id = public.org_scope()
+          AND public.has_any_role_in_org_exact(auth.uid(), ARRAY['admin','admin_org','contador']::public.app_role[],
+            f.organization_id)));
+    RETURN;
+  END IF;
+
   PERFORM 1 FROM public.proformas
-    WHERE id = ANY(p_proforma_ids) AND deleted_at IS NULL FOR UPDATE;
+    WHERE id = ANY(p_proforma_ids) AND deleted_at IS NULL ORDER BY id FOR UPDATE;
 
   SELECT count(*), count(DISTINCT organization_id), count(DISTINCT cliente_id)
     INTO v_count, v_distinct_org, v_distinct_cli
@@ -154,6 +163,19 @@ BEGIN
   -- Cascada de plazo de crédito: parámetro → proforma → ficha del cliente → 0.
   v_dias := COALESCE(NULLIF(p_dias_credito, 0), v_first.dias_credito, v_cliente.dias_credito, p_dias_credito, 0);
 
+  IF EXISTS (SELECT 1 FROM public.proformas p WHERE p.id = ANY(p_proforma_ids)
+    AND p.organization_id = v_org AND p.evaluacion_fiscal IS NOT NULL) THEN
+    IF v_count <> 1 THEN
+      RAISE EXCEPTION 'LC_ISR_CONVERSION_REQUIERE_CONSOLIDAR' USING ERRCODE = '23514';
+    END IF;
+    IF NOT v_serie.activa THEN RAISE EXCEPTION 'Serie inactiva'; END IF;
+    v_factura_ids := public._isr_convertir_proforma_a_facturas(v_first.id, p_serie_id, p_metodo_pago,
+      p_forma_pago, p_uso_cfdi, v_dias, p_notas, v_hoy_mx);
+    PERFORM public.idempotency_store(p_request_id, jsonb_build_object('factura_ids', to_jsonb(v_factura_ids),
+      'proforma_ids', to_jsonb(p_proforma_ids)));
+    RETURN QUERY SELECT f.* FROM public.facturas f WHERE f.id = ANY(v_factura_ids) ORDER BY f.moneda;
+    RETURN;
+  END IF;
 
   SELECT array_agg(DISTINCT embarque_id) INTO v_embarque_ids
   FROM public.proformas

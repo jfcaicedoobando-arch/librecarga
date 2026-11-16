@@ -1,4 +1,7 @@
 export const embarques = {
+  fiscalGuardado: (id: string, org: string | null, user: string | undefined, revision: string) =>
+    ['conceptos_venta', id, 'fiscal', org, user, revision] as const,
+  fiscalPreview: (contexto: string) => ['embarques', 'fiscal-preview', contexto] as const,
   all: ['embarques'] as const,
   list: (filters: Record<string, unknown>) => ['embarques', 'list', filters] as const,
   detail: (id: string) => ['embarques', id] as const,

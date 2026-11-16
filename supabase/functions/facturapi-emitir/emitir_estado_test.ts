@@ -17,6 +17,13 @@ Deno.test("factura: estados timbrables reales = Borrador / Por timbrar", () => {
   }
 });
 
+Deno.test("factura: el borrador con evaluación aprobada permanece sin emitir", async () => {
+  const bloqueo = validarEstadoTimbrable({ ...base("Borrador"), evaluacion_fiscal: { estado: "confirmado" } });
+  assert(bloqueo);
+  assertEquals(bloqueo.status, 409);
+  assertEquals((await bloqueo.json()).error, "isr_timbrado_pendiente");
+});
+
 Deno.test("factura: estados no timbrables devuelven 409 estado_no_timbrable", async () => {
   for (const estado of ["Emitida", "Pagada", "Parcialmente pagada", "Vencida", "Cancelada", "Sustituida"]) {
     const res = validarEstadoTimbrable(base(estado));

@@ -5,7 +5,18 @@ CREATE OR REPLACE FUNCTION public._convertir_proformas_insertar_conceptos(p_fact
  SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
+DECLARE
+  v_proforma_fiscal uuid;
 BEGIN
+  SELECT f.proforma_id INTO v_proforma_fiscal FROM public.facturas f WHERE f.id = p_factura_id
+    AND f.organization_id = p_org AND f.evaluacion_fiscal IS NOT NULL AND f.moneda = p_moneda;
+  IF v_proforma_fiscal IS NOT NULL THEN
+    IF p_proforma_ids IS DISTINCT FROM ARRAY[v_proforma_fiscal] OR EXISTS (
+      SELECT 1 FROM public.conceptos_factura c WHERE c.factura_id = p_factura_id
+    ) THEN RAISE EXCEPTION 'LC_ISR_CONVERSION_REVISION' USING ERRCODE = '23514'; END IF;
+    PERFORM public._isr_insertar_conceptos_factura(p_factura_id, v_proforma_fiscal, p_org, p_es_consolidada, p_moneda);
+    RETURN;
+  END IF;
   IF p_es_consolidada THEN
     PERFORM public._assert_iva_proforma_coherente(tipo_iva, tasa_iva_aplicada, aplica_iva)
       FROM public.proforma_conceptos_consolidados

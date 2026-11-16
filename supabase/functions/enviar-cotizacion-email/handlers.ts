@@ -25,6 +25,7 @@ import { isEmail } from './emailValidation.ts';
 import { ESTADOS_NO_ENVIABLES, validarCotizacionEnviable } from './envioGuards.ts';
 export { ESTADOS_NO_ENVIABLES, validarCotizacionEnviable };
 import { jsonResponse } from "../_shared/response.ts";
+import { validarFiscalEnvio, totalesFiscalesCorreo, rutaPdfFiscal } from "./fiscalEnvio.ts";
 export { isEmail };
 
 export async function handlePrepare(
@@ -32,8 +33,9 @@ export async function handlePrepare(
   pdfPath: string,
   cors: Record<string, string>,
   userId: string,
-  cot: Cotizacion,
+  context: { cot: Cotizacion; expectedFingerprint?: unknown },
 ): Promise<Response> {
+  const { cot, expectedFingerprint } = context;
   const bloqueo = validarCotizacionEnviable(cot, cors);
   if (bloqueo) return bloqueo;
   // v13.823.346 — `prepare` sólo validaba membresía: cualquier miembro (incluido
@@ -43,13 +45,16 @@ export async function handlePrepare(
   if (!okRol) {
     return jsonResponse({ error: 'Tu rol no puede enviar cotizaciones' }, 403, cors);
   }
+  const revision = await validarFiscalEnvio(admin, cot, userId, expectedFingerprint, cors);
+  if (revision instanceof Response) return revision;
+  const path = rutaPdfFiscal(pdfPath, revision.fiscal?.conceptos_fingerprint);
   const { data: upload, error: upErr } = await admin
     .storage.from(BUCKET_PDF)
-    .createSignedUploadUrl(pdfPath);
+    .createSignedUploadUrl(path);
   if (upErr || !upload) {
     return jsonResponse({ error: 'No se pudo preparar la subida', detail: upErr?.message }, 500, cors);
   }
-  return jsonResponse({ upload_url: upload.signedUrl, upload_token: upload.token, path: pdfPath }, 200, cors);
+  return jsonResponse({ upload_url: upload.signedUrl, upload_token: upload.token, path }, 200, cors);
 }
 
 
@@ -219,8 +224,11 @@ export async function handleSend(params: SendParams): Promise<Response> {
   const parsed = parseSendBody(body);
   const rechazo = await validarEnvio(admin, cot, userId, parsed, cors);
   if (rechazo) return rechazo;
+  const revision = await validarFiscalEnvio(admin, cot, userId, body.fiscal_fingerprint, cors);
+  if (revision instanceof Response) return revision;
+  if (revision.fiscal) parsed.totales = totalesFiscalesCorreo(revision.fiscal);
 
-  const pdfPath = await resolverPdfPath(admin, cot);
+  const pdfPath = await resolverPdfPath(admin, cot, revision.fiscal?.conceptos_fingerprint);
   if (!pdfPath) {
     return jsonResponse({ error: 'No hay PDF para esta cotización (súbelo primero con action=prepare)' }, 400, cors);
   }

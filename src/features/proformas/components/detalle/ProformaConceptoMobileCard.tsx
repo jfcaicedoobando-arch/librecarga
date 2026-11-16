@@ -1,9 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/formatters";
 import { etiquetaTratamientoFila } from "@/lib/financial/etiquetaTratamientoFila";
-import type { ConceptoVentaRow } from "@/features/proformas/services";
+import type { ConceptoProformaDocumento } from "@/features/proformas/domain/proformaFiscal";
 
-export function ProformaConceptoMobileCard({ concepto }: { concepto: ConceptoVentaRow }) {
+export function ProformaConceptoMobileCard({ concepto }: { concepto: ConceptoProformaDocumento }) {
   const base = Number(concepto.cantidad) * Number(concepto.precio_unitario);
   return (
     <div className="space-y-2">

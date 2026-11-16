@@ -25,6 +25,7 @@ DECLARE
   v_reactivar boolean := false;
   v_target uuid;
   v_deleted timestamptz;
+  v_liberacion_portal boolean := false;
 BEGIN
   v_keys := CASE TG_TABLE_NAME
     WHEN 'facturas' THEN ARRAY['id','organization_id','embarque_id','proforma_id','deleted_at','estado']
@@ -58,14 +59,33 @@ BEGIN
     RAISE EXCEPTION 'LC_FORBIDDEN: vínculo financiero fuera de la organización autorizada' USING ERRCODE = '42501';
   END IF;
   v_org := COALESCE(v_new_org, v_old_org);
+  IF TG_TABLE_NAME = 'conceptos_venta' AND TG_OP = 'UPDATE'
+    AND v_old->>'proforma_id' IS NOT NULL AND v_new->>'proforma_id' IS NULL
+    AND v_new->>'estado_facturacion' = 'pendiente' AND v_old->>'deleted_at' IS NULL
+    AND (v_new - 'proforma_id' - 'estado_facturacion') = (v_old - 'proforma_id' - 'estado_facturacion') THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.proforma_liberaciones_portal l
+      JOIN public.proformas p ON p.id = l.proforma_id AND p.organization_id = l.organization_id
+      JOIN public.embarques e ON e.id = p.embarque_id AND e.organization_id = p.organization_id
+      WHERE l.proforma_id = (v_old->>'proforma_id')::uuid AND l.organization_id = v_org
+        AND l.transaccion = txid_current() AND p.deleted_at IS NULL AND p.estado_cliente = 'rechazada'
+        AND e.id = (v_old->>'embarque_id')::uuid
+    ) INTO v_liberacion_portal;
+  END IF;
   -- Do admission and composite-FK checks before any advisory/parent lock.
-  PERFORM public._h14_validar_fila_org_baja(v_org, TG_TABLE_NAME, v_old);
-  PERFORM public._h14_validar_fila_org_baja(v_org, TG_TABLE_NAME, v_new);
-  PERFORM public._h14_mutex_baja_embarque(v_org, false);
+  IF NOT v_liberacion_portal THEN
+    PERFORM public._h14_validar_fila_org_baja(v_org, TG_TABLE_NAME, v_old);
+    PERFORM public._h14_validar_fila_org_baja(v_org, TG_TABLE_NAME, v_new);
+    PERFORM public._h14_mutex_baja_embarque(v_org, false);
+  ELSE
+    PERFORM public._h14_lock_grafo_baja_embarque(v_org, false);
+  END IF;
   -- Resolve again after the mutex: a source could have moved while admission
   -- ran. All relevant writers now share this anchor, even with no targets.
-  PERFORM public._h14_validar_fila_org_baja(v_org, TG_TABLE_NAME, v_old);
-  PERFORM public._h14_validar_fila_org_baja(v_org, TG_TABLE_NAME, v_new);
+  IF NOT v_liberacion_portal THEN
+    PERFORM public._h14_validar_fila_org_baja(v_org, TG_TABLE_NAME, v_old);
+    PERFORM public._h14_validar_fila_org_baja(v_org, TG_TABLE_NAME, v_new);
+  END IF;
   v_old_targets := public._h14_grafo_fila_baja(v_org, TG_TABLE_NAME, v_old);
   v_new_targets := public._h14_grafo_fila_baja(v_org, TG_TABLE_NAME, v_new);
   v_old_activa := public._h14_fila_bloqueante_baja(v_org, TG_TABLE_NAME, v_old);

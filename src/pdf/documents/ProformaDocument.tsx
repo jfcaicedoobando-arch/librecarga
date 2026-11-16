@@ -17,6 +17,7 @@ import type { ClienteLite, EmbarqueLite, ProformaRow } from "./proformaShared";
 import { SeccionMonedaPdf } from "./ProformaConceptosSection";
 import { agruparPorContenedor, tasaEfectivaFila, type ConceptoVenta } from "./proformaConceptosColumns";
 import { totalesProformaPdf } from "./proformaTotales";
+import { leerConceptosFiscalesProforma } from "@/features/proformas/domain";
 
 interface Props {
   proforma: ProformaRow;
@@ -33,7 +34,12 @@ function TituloConceptos({ porContenedor }: { porContenedor: boolean }) {
   </Text>;
 }
 
-export function ProformaDocument({ proforma, embarque, conceptos, cliente, tasaIva = TASA_IVA, emisor }: Props) {
+function resolverLineasPdf(proforma: ProformaRow, filas: ConceptoVenta[]) {
+  return proforma.conceptos_fiscales == null ? filas : leerConceptosFiscalesProforma(proforma) ?? filas;
+}
+
+export function ProformaDocument({ proforma, embarque, conceptos: filas, cliente, tasaIva = TASA_IVA, emisor }: Props) {
+  const conceptos = resolverLineasPdf(proforma, filas);
   const usd = conceptos.filter((c) => c.moneda === "USD");
   const mxn = conceptos.filter((c) => c.moneda === "MXN");
   // B-4: detectar si la proforma cubre N contenedores reales para activar el agrupamiento.

@@ -37,6 +37,15 @@ describe("marcarProformaFacturada", () => {
     expect(mock.tableCalls.some((c) => c.ops.includes("insert") || c.ops.includes("update"))).toBe(false);
   });
 
+  it("reserva la proforma fiscal para la conversión antes de registrar una factura externa", async () => {
+    mock.setTableResult("proformas", { data: proformaRow({ evaluacion_fiscal: { estado: "confirmado" } }), error: null });
+    await expect(marcarProformaFacturada({
+      proformaId: "prof-1", folioFacturaExterna: "F-RESICO", fechaFacturacion: "2026-11-15",
+      pdfFile: new File(["synthetic"], "fixture.pdf"),
+    })).rejects.toThrow("LC_ISR_FLUJO_NO_HABILITADO");
+    expect(mock.tableCalls.map((call) => call.table)).toEqual(["proformas"]);
+  });
+
   it("calcula fecha_vencimiento = fechaFacturacion + dias_credito (UTC-safe)", async () => {
     mock.setTableResult("proformas", { data: proformaRow({ dias_credito: 30 }), error: null });
     mock.setTableResult("facturas", { data: [{ id: "f1" }], error: null });

@@ -13,6 +13,7 @@ DECLARE
   v_sum_new numeric;
   v_dif int;
   v_pago numeric;
+  v_isr_destino boolean;
 BEGIN
   SELECT * INTO v_c FROM public.refacturaciones WHERE id = p_caso_id;
   IF NOT FOUND THEN
@@ -32,6 +33,12 @@ BEGIN
   END IF;
 
   SELECT * INTO v_new FROM public.facturas WHERE id = v_c.factura_nueva_id;
+  v_isr_destino := COALESCE(v_c.ruta_fiscal='02' AND v_new.evaluacion_fiscal->>'estado'='confirmado'
+    AND v_new.evaluacion_fiscal#>>'{origen_reemplazo,caso_id}'=v_c.id::text
+    AND v_new.evaluacion_fiscal#>>'{origen_reemplazo,factura_id}'=v_old.id::text
+    AND v_new.evaluacion_fiscal#>>'{origen_reemplazo,ruta}'='02'
+    AND v_new.ret_isr=(v_new.evaluacion_fiscal#>>'{bloques,0,ret_isr}')::numeric
+    AND v_new.total=(v_new.evaluacion_fiscal#>>'{bloques,0,total}')::numeric,false);
 
   -- Receptor
   IF NOT public._rfc_valido(v_new.rfc_cliente, false) THEN
@@ -58,12 +65,13 @@ BEGIN
     v_h := v_h || jsonb_build_object('codigo', 'LC_REFACT_TOTAL_INCONSISTENTE',
       'mensaje', 'El subtotal de la nueva factura no coincide con el de la original.');
   END IF;
-  IF ROUND(COALESCE(v_new.total, 0), 2) <> ROUND(COALESCE(v_old.total, 0), 2) THEN
+  IF ROUND(COALESCE(v_new.total, 0) + CASE WHEN v_isr_destino THEN COALESCE(v_new.ret_isr,0) ELSE 0 END, 2)
+    <> ROUND(COALESCE(v_old.total, 0) + CASE WHEN v_isr_destino THEN COALESCE(v_old.ret_isr,0) ELSE 0 END, 2) THEN
     v_h := v_h || jsonb_build_object('codigo', 'LC_REFACT_TOTAL_INCONSISTENTE',
       'mensaje', 'El total de la nueva factura no coincide con el de la original.');
   END IF;
   IF ROUND(COALESCE(v_new.iva, 0), 2) <> ROUND(COALESCE(v_old.iva, 0), 2)
-     OR ROUND(COALESCE(v_new.ret_isr, 0), 2) <> ROUND(COALESCE(v_old.ret_isr, 0), 2)
+     OR (NOT v_isr_destino AND ROUND(COALESCE(v_new.ret_isr, 0), 2) <> ROUND(COALESCE(v_old.ret_isr, 0), 2))
      OR ROUND(COALESCE(v_new.ret_iva, 0), 2) <> ROUND(COALESCE(v_old.ret_iva, 0), 2) THEN
     v_h := v_h || jsonb_build_object('codigo', 'LC_REFACT_IMPUESTOS_INCONSISTENTES',
       'mensaje', 'Los impuestos trasladados o las retenciones no coinciden con la factura original.');
@@ -80,11 +88,11 @@ BEGIN
   END IF;
 
   SELECT COUNT(*) INTO v_dif FROM (
-    SELECT clave_sat, tipo_iva, tasa_iva_aplicada, tasa_ret_isr, tasa_ret_iva, COUNT(*) AS n
+    SELECT clave_sat, tipo_iva, tasa_iva_aplicada, CASE WHEN v_isr_destino THEN 0 ELSE tasa_ret_isr END, tasa_ret_iva, COUNT(*) AS n
       FROM public.conceptos_factura WHERE factura_id = v_old.id AND deleted_at IS NULL
       GROUP BY 1,2,3,4,5
     EXCEPT
-    SELECT clave_sat, tipo_iva, tasa_iva_aplicada, tasa_ret_isr, tasa_ret_iva, COUNT(*) AS n
+    SELECT clave_sat, tipo_iva, tasa_iva_aplicada, CASE WHEN v_isr_destino THEN 0 ELSE tasa_ret_isr END, tasa_ret_iva, COUNT(*) AS n
       FROM public.conceptos_factura WHERE factura_id = v_new.id AND deleted_at IS NULL
       GROUP BY 1,2,3,4,5
   ) d;

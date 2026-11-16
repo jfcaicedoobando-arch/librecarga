@@ -90,5 +90,5 @@ Deno.serve(wrapEdgeHandler("facturapi-webhook", async (req) => {
   }
 
   const eventKey = await computeEventKey(cuerpo.raw, event);
-  return confirmarEntrega(supabase, orgId, eventKey, event);
+  return confirmarEntrega(supabase, orgId, eventKey, { ...event, ambiente_firma: origenSecret });
 }));

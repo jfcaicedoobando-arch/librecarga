@@ -32,6 +32,7 @@ interface Props {
   fechaFactura?: string | null;
   /** Conceptos sugeridos desde la factura original (snapshot). */
   conceptosSugeridos?: ConceptoNotaCredito[];
+  cuadreAgrupado?: boolean;
   /** Hay cobros vigentes (REP no cancelado) en la factura. */
   facturaCobrada?: boolean;
   /** Forma de pago SAT del cobro vigente más reciente. */

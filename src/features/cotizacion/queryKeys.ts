@@ -11,6 +11,8 @@ export const cotizaciones = {
   handoverProveedores: (organizationId: string | null, agenteId: string | null, navieraId: string | null) =>
     ['cotizaciones', 'handover-proveedores', organizationId, agenteId, navieraId] as const,
   pdfPreview: (id: string, organizationId: string | null) => [...pdfPreviewCotizacion(id), organizationId] as const,
+  vistaFiscal: (scope: PricingScopeKey, clienteId: string | null, cotizacionId: string | null, firma: string) =>
+    ['cotizaciones', 'vista-fiscal', scope.organizationId, scope.userId, scope.generation, clienteId, cotizacionId, firma] as const,
   costos: (id: string) => ['cotizacion_costos', id] as const,
   costosSnapshot: (id: string) => ['cotizacion_costos', id, 'snapshot'] as const,
   folio: (id: string) => ['cotizaciones', 'folio', id] as const,

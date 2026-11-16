@@ -22,6 +22,8 @@ import { loadFactura, validarFacturaTimbrable, claimFactura, resolverSustitucion
 import { realinearFechaEmision } from "./fechaEmision.ts";
 import { cargarContexto } from "./contexto.ts";
 import type { FacturaRow } from "./types.ts";
+import { revisarBorradorIsr, validarEmisorFacturapi, type BorradorIsrValidado } from "./isrPreflight.ts";
+import { emitirFacturaConIsr } from "./emitirIsr.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -35,6 +37,7 @@ interface ReqBody { factura_id?: string }
 interface Preparacion {
   factura: FacturaRow;
   sustituyeUuid: string | null;
+  isr: BorradorIsrValidado | null;
 }
 
 /**
@@ -64,10 +67,12 @@ async function prepararEmision(
     supabase, factura as FacturaRow, ESTADOS_FACTURA_TIMBRABLES, user,
   );
   if (realineada instanceof Response) return realineada;
+  const isr = await revisarBorradorIsr(supabase, realineada);
+  if (isr instanceof Response) return isr;
 
   // Ola 3 · B: estado timbrable + TC fiscal + total > 0 + límite de crédito,
   // todo ANTES de credenciales/contexto/claim/PAC.
-  const previos = await validarFacturaTimbrable(supabase, realineada, user.id);
+  const previos = await validarFacturaTimbrable(supabase, realineada, user.id, isr != null);
   if (previos) return previos;
 
   // REF-06: validar TODO antes de clamar (patrón facturapi-emitir-nota-credito).
@@ -77,7 +82,7 @@ async function prepararEmision(
   const sustituyeUuid = await resolverSustitucion(supabase, realineada);
   if (sustituyeUuid instanceof Response) return sustituyeUuid;
 
-  return { factura: realineada, sustituyeUuid };
+  return { factura: realineada, sustituyeUuid, isr };
 }
 
 Deno.serve(wrapEdgeHandler("facturapi-emitir", async (req) => {
@@ -108,9 +113,17 @@ Deno.serve(wrapEdgeHandler("facturapi-emitir", async (req) => {
 
   const resolved = await getFacturapiClient(supabase, facturaVigente.organization_id);
   if (!resolved.ok) return json({ error: resolved.data.error, message: resolved.data.message }, resolved.data.status);
-
   const context = await cargarContexto(supabase, body.factura_id, facturaVigente, preparada.sustituyeUuid);
   if (context instanceof Response) return context;
+  if (preparada.isr) {
+    const emisor = await validarEmisorFacturapi(preparada.isr, resolved.data);
+    if (emisor instanceof Response) return emisor;
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+    return emitirFacturaConIsr({
+      admin, factura: facturaVigente, actorId: user.id, prevalidacion: preparada.isr, emisorObservado: emisor,
+      ctx: context, facturapi: resolved.data.client, apiKey: resolved.data.apiKey,
+    });
+  }
 
   // Claim atómico DESPUÉS de validar (comentario espejo de la familia NC): se
   // toma aquí para no tener que liberarlo en los 422/412 de arriba. El tag

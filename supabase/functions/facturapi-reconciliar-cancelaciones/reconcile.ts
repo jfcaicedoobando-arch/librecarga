@@ -2,7 +2,7 @@
  * Helpers puros para `facturapi-reconciliar-cancelaciones`.
  * Sin I/O directo excepto los deps inyectados; permite tests aislados.
  */
-import { FACTURAPI_BASE, basicAuthHeader } from "../_shared/facturapiAuth.ts";
+import { FACTURAPI_BASE, basicAuthHeader, type FacturapiAmbiente } from "../_shared/facturapiAuth.ts";
 import type { FapiInvoiceStatus, ResolvedPatch } from "../_shared/facturapiReconciliarFactura.ts";
 
 export { resolveNextAction, type FapiInvoiceStatus, type ResolvedPatch } from "../_shared/facturapiReconciliarFactura.ts";
@@ -11,6 +11,7 @@ export interface FacturaPendiente {
   id: string;
   organization_id: string;
   facturapi_id: string;
+  ambiente?: FacturapiAmbiente | null;
   cancellation_status: string;
   sustituida_por: string | null;
   reconciliacion_checked_at?: string | null;
@@ -85,6 +86,7 @@ export interface NotaCreditoPendiente {
   id: string;
   organization_id: string;
   facturapi_id: string;
+  ambiente?: FacturapiAmbiente | null;
   cancellation_status: string;
   reconciliacion_checked_at?: string | null;
 }
@@ -139,6 +141,7 @@ export interface RepPendiente {
   id: string;
   organization_id: string;
   facturapi_rep_id: string;
+  ambiente?: FacturapiAmbiente | null;
   rep_cancellation_status: string;
   rep_reconciliacion_checked_at?: string | null;
 }

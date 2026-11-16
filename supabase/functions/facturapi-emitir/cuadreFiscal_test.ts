@@ -4,7 +4,7 @@ import {
   recalcularTotalesConceptos,
   toleranciaCentavos,
   type ConceptoCuadre,
-} from "./cuadreFiscal.ts";
+} from "../_shared/cuadreFiscal.ts";
 
 function concepto(p: Partial<ConceptoCuadre>): ConceptoCuadre {
   return {

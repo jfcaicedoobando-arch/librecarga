@@ -32,15 +32,14 @@ REVOKE ALL ON FUNCTION public._h14_validar_actor_org_baja(uuid) FROM PUBLIC, ano
 -- The graph can initially have no shipment. This org anchor is acquired before
 -- resolving it. Hash collisions only add contention; they never merge tenants.
 -- audit:allow-no-grants
-CREATE OR REPLACE FUNCTION public._h14_mutex_baja_embarque(p_org uuid, p_esperar boolean DEFAULT false)
+CREATE OR REPLACE FUNCTION public._h14_lock_grafo_baja_embarque(p_org uuid, p_esperar boolean)
 RETURNS void
-LANGUAGE plpgsql VOLATILE SECURITY DEFINER
-SET search_path TO 'public'
+LANGUAGE plpgsql VOLATILE
+SET search_path = pg_catalog, public, pg_temp
 AS $function$
 DECLARE
   v_key bigint;
 BEGIN
-  PERFORM public._h14_validar_actor_org_baja(p_org);
   IF current_setting('transaction_isolation') <> 'read committed' THEN
     RAISE EXCEPTION 'LC_EMBARQUE_AISLAMIENTO_NO_SOPORTADO: esta operación requiere una transacción READ COMMITTED'
       USING ERRCODE = '25001';
@@ -52,6 +51,18 @@ BEGIN
     RAISE EXCEPTION 'LC_EMBARQUE_EN_USO: los vínculos financieros se están actualizando; consulta el estado y vuelve a intentarlo'
       USING ERRCODE = '55P03';
   END IF;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public._h14_lock_grafo_baja_embarque(uuid, boolean) FROM PUBLIC, anon, authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public._h14_mutex_baja_embarque(p_org uuid, p_esperar boolean DEFAULT false)
+RETURNS void
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+BEGIN
+  PERFORM public._h14_validar_actor_org_baja(p_org);
+  PERFORM public._h14_lock_grafo_baja_embarque(p_org, p_esperar);
 END;
 $function$;
 REVOKE ALL ON FUNCTION public._h14_mutex_baja_embarque(uuid, boolean) FROM PUBLIC, anon, authenticated, service_role;

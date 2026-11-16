@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { WizardSection } from "@/components/shared/WizardSection";
 import { AlertTriangle, Plus } from "lucide-react";
+import type { ReactNode } from "react";
 
 import type { ConceptoVentaCotizacion } from "@/features/cotizacion/hooks";
 import { formatCurrency } from "@/lib/formatters";
@@ -28,6 +29,7 @@ interface Props {
   subtotalMXN: number;
   ivaMXN: number;
   totalMXN: number;
+  resumenFiscal?: ReactNode;
 }
 
 export default function SeccionConceptosVentaCotizacion({
@@ -35,7 +37,7 @@ export default function SeccionConceptosVentaCotizacion({
   actualizarConceptoUSD, actualizarConceptoMXN,
   agregarConceptoUSD, agregarConceptoMXN, agregarConceptoPrefill,
   eliminarConceptoUSD, eliminarConceptoMXN,
-  totalUSD, subtotalMXN, ivaMXN, totalMXN,
+  totalUSD, subtotalMXN, ivaMXN, totalMXN, resumenFiscal,
 }: Props) {
   const tasaIva = useTasaIVA();
   const hayIvaUSD = conceptosUSD.some(c => resolverTasaConcepto(c, tasaIva) > 0);
@@ -94,7 +96,7 @@ export default function SeccionConceptosVentaCotizacion({
               tasaIva={tasaIva}
             />
           ))}
-          <div className="flex flex-col items-end gap-1 pt-2 border-t">
+          {!resumenFiscal && <div className="flex flex-col items-end gap-1 pt-2 border-t">
             {hayIvaUSD ? (
               <>
                 <span className="text-body">Subtotal s/IVA: {formatCurrency(subtotalSinIvaUSD, 'USD')}</span>
@@ -104,7 +106,7 @@ export default function SeccionConceptosVentaCotizacion({
             ) : (
               <span className="text-body font-semibold">Total USD: {formatCurrency(totalUSD, 'USD')}</span>
             )}
-          </div>
+          </div>}
         </>
       </WizardSection>
 
@@ -146,16 +148,16 @@ export default function SeccionConceptosVentaCotizacion({
               tasaIva={tasaIva}
             />
           ))}
-          <div className="flex flex-col items-end gap-1 pt-2 border-t">
+          {!resumenFiscal && <div className="flex flex-col items-end gap-1 pt-2 border-t">
             <span className="text-body">Subtotal MXN: {formatCurrency(subtotalMXN, 'MXN')}</span>
             <span className="text-body">{ivaMXN > 0 ? `IVA trasladado (${tasaPctMXN})` : "IVA trasladado"}: {formatCurrency(ivaMXN, 'MXN')}</span>
             <span className="text-body font-semibold">Total MXN: {formatCurrency(totalMXN, 'MXN')}</span>
-          </div>
+          </div>}
         </>
       </WizardSection>
 
 
-      <div className="flex flex-col items-end gap-1 p-4 border rounded-md bg-muted/30">
+      {resumenFiscal ?? <div className="flex flex-col items-end gap-1 p-4 border rounded-md bg-muted/30">
         <span className="text-base font-bold">Total USD: {formatCurrency(totalUSD, 'USD')}</span>
         <span className="text-base font-bold">Total MXN: {formatCurrency(totalMXN, 'MXN')}</span>
         {hayIvaMXN && (
@@ -169,7 +171,7 @@ export default function SeccionConceptosVentaCotizacion({
           </span>
         )}
         {hayIvaUSD && <span className="text-body-sm text-warning">* Algunos conceptos USD incluyen IVA {etiquetaTasaIva(conceptosUSD, tasaIva)}</span>}
-      </div>
+      </div>}
     </div>
   );
 }

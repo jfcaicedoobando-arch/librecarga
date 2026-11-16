@@ -22,10 +22,9 @@ const columns = defineColumns<FilaPorTimbrar>([
     accessorFn: (r) => r.numero,
     enableSorting: true,
     meta: { width: COL_W.nombre, className: "font-mono whitespace-nowrap", sticky: true },
-    cell: ({ row }) =>
-      row.original.numero.startsWith("BORRADOR-")
-        ? <Hint label={row.original.numero}><span tabIndex={0} aria-label="Sin folio (borrador)" className="text-muted-foreground italic">Sin folio (borrador)</span></Hint>
-        : row.original.numero,
+    cell: ({ row }) => row.original.numero.startsWith("BORRADOR-")
+      ? <Hint label={row.original.numero}><span tabIndex={0} aria-label="Sin folio (borrador)" className="text-muted-foreground italic">Sin folio (borrador)</span></Hint>
+      : row.original.numero,
   },
   clientColumn<FilaPorTimbrar>({ accessor: (r) => r.cliente_nombre }),
   { ...dateColumn<FilaPorTimbrar>({ id: "emision", header: "Emisión prevista", accessor: (r) => r.fecha_emision }),

@@ -1,5 +1,23 @@
 # Changelog
 
+## Pendiente de publicación
+
+- Integra la evaluación fiscal por organización con los borradores de cotización y embarque. La migración 0071 conserva el cálculo agrupado y el origen de los renglones al convertir una cotización aprobada.
+- El detalle, el PDF y el correo de la cotización leen el desglose fiscal aprobado. La revisión de una cotización enviada conserva la versión anterior y vuelve a solicitar autorización.
+- La migración 0072 permite que Administración o Contabilidad revise el cliente o los importes fiscales de un embarque. El guardado compara los montos mostrados por moneda, conserva la procedencia de los renglones y registra la revisión en la misma transacción.
+- La migración 0073 guarda el desglose fiscal y los conceptos seleccionados al crear una proforma normal. Detalle, PDF y portal leen el total neto por moneda. El rechazo y la cancelación liberan las ventas y conservan los importes y renglones del documento histórico.
+- La migración 0074 permite consolidar proformas fiscales compatibles y conserva el origen de cada concepto. Las diferencias de redondeo por moneda requieren aprobación de Administración o Contabilidad antes de enviar la nueva proforma al cliente.
+- La migración 0075 convierte una proforma fiscal aceptada en un borrador de factura por moneda. Conserva totales, retenciones y origen de los conceptos, y bloquea el timbrado hasta habilitar la validación fiscal de emisión.
+- La migración 0076 calcula el ISR de las facturas manuales en el servidor para organizaciones con la automatización activa. La validación previa a la emisión revisa el perfil, el receptor y los totales del documento y comprueba la identidad asociada a la llave de Facturapi.
+- La migración 0077 registra una sola reserva de timbrado por factura fiscal. Una respuesta incierta conserva el identificador del intento y la confirmación exige que el XML y el resultado de Facturapi coincidan con el perfil y los importes guardados.
+- La migración 0078 conecta el timbrado, la recuperación y los avisos de Facturapi con la reserva de la factura. La recuperación consulta el ambiente original con la llave de la organización y registra la emisión al comprobar y respaldar el XML.
+- La migración 0079 calcula cobros de facturas evaluadas sobre el neto y las retenciones disponibles después de las notas de crédito. Respeta la moneda aplicada, separa el efectivo recibido y excluye los REP cancelados. Las notas usan el cuadre agrupado y conservan los impuestos y el origen de sus renglones.
+- La emisión de REP y notas de crédito de facturas evaluadas toma el receptor guardado en el CFDI original. Usa la credencial del ambiente de esa factura y comprueba el emisor antes de enviar el comprobante.
+- La migración 0080 protege la reserva de las notas de crédito evaluadas. Una nota afecta cartera después de confirmar y respaldar su XML, y la recuperación consulta el mismo intento en el ambiente original.
+- La migración 0081 registra las retenciones del REP después de verificar su XML y recalcula los importes estimados de los cobros sin complemento. El mismo intento se conserva durante la emisión, la recuperación y el webhook.
+- La migración 0082 conserva el origen de los conceptos en los borradores de sustitución y refacturación. La relación con el CFDI original se verifica al timbrar una sustituta y el ISR se evalúa con el receptor de la factura nueva.
+- La reconciliación programada de cancelaciones distingue las credenciales por organización y ambiente del CFDI y comprueba la identidad del comprobante antes de actualizar el estado local.
+
 ## [13.824.91] - Unreleased
 
 ### ISR RESICO y cuadre con Facturapi

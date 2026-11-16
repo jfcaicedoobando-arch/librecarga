@@ -46,6 +46,7 @@ interface Params {
   saldoFactura: number;
   uuidFacturaOriginal: string | null;
   conceptosSugeridos?: ConceptoNotaCredito[];
+  cuadreAgrupado?: boolean;
   /** Hay al menos un cobro vigente (REP no cancelado) en la factura. */
   facturaCobrada?: boolean;
   /** Forma de pago SAT del cobro vigente más reciente. */
@@ -104,8 +105,9 @@ export function useNotaCreditoDraft(p: Params) {
       derivadosNC(draft, {
         saldoFactura: p.saldoFactura,
         uuidFacturaOriginal: p.uuidFacturaOriginal,
+        cuadreAgrupado: p.cuadreAgrupado,
       }),
-    [draft, p.saldoFactura, p.uuidFacturaOriginal],
+    [draft, p.saldoFactura, p.uuidFacturaOriginal, p.cuadreAgrupado],
   );
 
   // P1-IVA: el saldo completo conserva los tratamientos de la factura (uno por
@@ -115,6 +117,7 @@ export function useNotaCreditoDraft(p: Params) {
       p.saldoFactura,
       p.conceptosSugeridos ?? [],
       draft.conceptos[0] ?? makeConcepto(),
+      p.cuadreAgrupado,
     );
     if (!r.ok) {
       notifyError(undefined, {

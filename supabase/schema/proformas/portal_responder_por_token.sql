@@ -8,7 +8,6 @@ DECLARE
   v_now       timestamptz := now();
   v_motivo    text;
   v_titulo    text; v_mensaje text; v_tipo text;
-  v_bypass_prev text;
   v_liberados integer := 0;
   v_rl        jsonb;
 BEGIN
@@ -67,17 +66,7 @@ BEGIN
     RAISE EXCEPTION 'Esta proforma ya fue respondida por otra solicitud concurrente.';
   END IF;
   IF p_respuesta = 'rechazada' THEN
-    -- Respuesta validada del cliente: liberar vínculos derivados no abre
-    -- la edición del embarque cerrado ni deja una excepción para la llamada siguiente.
-    v_bypass_prev := COALESCE(current_setting('app.bypass_cierre', true), '');
-    BEGIN
-      PERFORM set_config('app.bypass_cierre', 'on', true);
-      v_liberados := public.liberar_conceptos_de_proforma(v_proforma.id);
-      PERFORM set_config('app.bypass_cierre', v_bypass_prev, true);
-    EXCEPTION WHEN OTHERS THEN
-      PERFORM set_config('app.bypass_cierre', v_bypass_prev, true);
-      RAISE;
-    END;
+    v_liberados := public._liberar_conceptos_proforma_portal(v_proforma.id, v_proforma.organization_id);
   END IF;
   -- fix3: usuario sentinel en vez de NULL — bitacora_actividad.usuario_id es
   -- NOT NULL (20260301200638). Mismo patrón que otras escrituras de sistema

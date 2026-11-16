@@ -1,5 +1,5 @@
 import type { ConceptoVentaLite } from "@/features/proformas/domain";
-import type { Tables } from "@/integrations/supabase/types";
+import type { ConceptoProformaDocumento } from "@/features/proformas/domain";
 import { calcularIVA, resolverTasaConcepto, subtotalLinea, sumarMontos } from "@/lib/financial/financialUtils";
 import { formatCurrency } from "@/lib/formatters";
 import { styles } from "../theme/styles";
@@ -7,13 +7,7 @@ import { type PdfColumn } from "../components/DataTable";
 import { formatearDescripcionConcepto } from "./proformaShared";
 import { etiquetaTratamientoFila } from "@/lib/financial/etiquetaTratamientoFila";
 
-export type ConceptoVenta = Tables<"conceptos_venta"> & {
-  embarque_contenedores?: {
-    id: string;
-    numero_contenedor: string;
-    tipo_contenedor: string;
-  } | null;
-};
+export type ConceptoVenta = ConceptoProformaDocumento;
 
 /**
  * R179-01/PDF-A — Tasa efectiva de una fila, con la misma semántica del dominio
