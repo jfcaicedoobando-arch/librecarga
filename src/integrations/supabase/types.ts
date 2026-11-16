@@ -1701,8 +1701,8 @@ export type Database = {
         Row: {
           aplica_iva: boolean
           cantidad: number
-          contenedor_id: string | null
           cotizacion_concepto_origen_id: string | null
+          contenedor_id: string | null
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
@@ -1726,8 +1726,8 @@ export type Database = {
         Insert: {
           aplica_iva?: boolean
           cantidad?: number
-          contenedor_id?: string | null
           cotizacion_concepto_origen_id?: string | null
+          contenedor_id?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -1751,8 +1751,8 @@ export type Database = {
         Update: {
           aplica_iva?: boolean
           cantidad?: number
-          contenedor_id?: string | null
           cotizacion_concepto_origen_id?: string | null
+          contenedor_id?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -2909,60 +2909,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "cotizacion_plantillas_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cotizacion_revisiones_fiscales: {
-        Row: {
-          actor_id: string
-          conceptos_anteriores: Json
-          cotizacion_id: string
-          created_at: string
-          estado_anterior: string
-          id: string
-          motivo: string
-          organization_id: string
-          snapshot_anterior: Json
-          transaccion: number
-        }
-        Insert: {
-          actor_id: string
-          conceptos_anteriores: Json
-          cotizacion_id: string
-          created_at?: string
-          estado_anterior: string
-          id?: string
-          motivo: string
-          organization_id: string
-          snapshot_anterior: Json
-          transaccion: number
-        }
-        Update: {
-          actor_id?: string
-          conceptos_anteriores?: Json
-          cotizacion_id?: string
-          created_at?: string
-          estado_anterior?: string
-          id?: string
-          motivo?: string
-          organization_id?: string
-          snapshot_anterior?: Json
-          transaccion?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cotizacion_revisiones_fiscales_cotizacion_id_fkey"
-            columns: ["cotizacion_id"]
-            isOneToOne: false
-            referencedRelation: "cotizaciones"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cotizacion_revisiones_fiscales_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -7276,12 +7222,12 @@ export type Database = {
           actualizado_at: string | null
           ambiente: Database["public"]["Enums"]["ambiente_facturapi"]
           creado_at: string
-          esperado: Json
           estado: string
+          nota_id: string
           facturapi_id: string | null
           id: string
-          nota_id: string
           organization_id: string
+          esperado: Json
           resultado: Json | null
           uuid_fiscal: string | null
         }
@@ -7290,12 +7236,12 @@ export type Database = {
           actualizado_at?: string | null
           ambiente: Database["public"]["Enums"]["ambiente_facturapi"]
           creado_at?: string
-          esperado: Json
           estado?: string
+          nota_id: string
           facturapi_id?: string | null
           id?: string
-          nota_id: string
           organization_id: string
+          esperado: Json
           resultado?: Json | null
           uuid_fiscal?: string | null
         }
@@ -7304,12 +7250,12 @@ export type Database = {
           actualizado_at?: string | null
           ambiente?: Database["public"]["Enums"]["ambiente_facturapi"]
           creado_at?: string
-          esperado?: Json
           estado?: string
+          nota_id?: string
           facturapi_id?: string | null
           id?: string
-          nota_id?: string
           organization_id?: string
+          esperado?: Json
           resultado?: Json | null
           uuid_fiscal?: string | null
         }
@@ -7399,20 +7345,6 @@ export type Database = {
             columns: ["pago_id"]
             isOneToOne: false
             referencedRelation: "pagos_factura"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "intentos_rep_isr_pago_id_fkey"
-            columns: ["pago_id"]
-            isOneToOne: false
-            referencedRelation: "v_pagos_rep_pendientes"
-            referencedColumns: ["pago_id"]
-          },
-          {
-            foreignKeyName: "intentos_rep_isr_pago_id_fkey"
-            columns: ["pago_id"]
-            isOneToOne: false
-            referencedRelation: "v_reps_historico"
             referencedColumns: ["id"]
           },
         ]
@@ -8734,46 +8666,6 @@ export type Database = {
           },
           {
             foreignKeyName: "proforma_envios_proforma_id_fkey"
-            columns: ["proforma_id"]
-            isOneToOne: false
-            referencedRelation: "v_proforma_factura_link"
-            referencedColumns: ["proforma_id"]
-          },
-        ]
-      }
-      proforma_liberaciones_portal: {
-        Row: {
-          organization_id: string
-          proforma_id: string
-          transaccion: number
-        }
-        Insert: {
-          organization_id: string
-          proforma_id: string
-          transaccion: number
-        }
-        Update: {
-          organization_id?: string
-          proforma_id?: string
-          transaccion?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "proforma_liberaciones_portal_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "proforma_liberaciones_portal_proforma_id_fkey"
-            columns: ["proforma_id"]
-            isOneToOne: false
-            referencedRelation: "proformas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "proforma_liberaciones_portal_proforma_id_fkey"
             columns: ["proforma_id"]
             isOneToOne: false
             referencedRelation: "v_proforma_factura_link"
@@ -10941,10 +10833,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      _copiar_conceptos_factura_reemplazo: {
-        Args: { p_caso_id: string; p_nueva_id: string; p_original_id: string }
-        Returns: undefined
-      }
       _cotizacion_es_autorizador: { Args: { p_org: string }; Returns: boolean }
       _cotizacion_margen_pct: { Args: { p_id: string }; Returns: number }
       _crear_embarque_replicar_conceptos: {
@@ -11015,10 +10903,6 @@ export type Database = {
         Returns: Json
       }
       _es_rol_interno: { Args: never; Returns: boolean }
-      _evaluar_documento_isr_resico: {
-        Args: { p_cliente_id: string; p_conceptos: Json; p_org_id: string }
-        Returns: Json
-      }
       _evaluar_isr_resico: {
         Args: {
           p_ambiente: string
@@ -11062,10 +10946,6 @@ export type Database = {
         Args: { p_fila: Json; p_org: string; p_tabla: string }
         Returns: string[]
       }
-      _h14_lock_grafo_baja_embarque: {
-        Args: { p_esperar: boolean; p_org: string }
-        Returns: undefined
-      }
       _h14_mutex_baja_embarque: {
         Args: { p_esperar?: boolean; p_org: string }
         Returns: undefined
@@ -11081,153 +10961,6 @@ export type Database = {
       _h14_validar_fila_org_baja: {
         Args: { p_fila: Json; p_org: string; p_tabla: string }
         Returns: undefined
-      }
-      _isr_armar_consolidacion_proformas: {
-        Args: {
-          p_cliente_id: string
-          p_embarque_id: string
-          p_org: string
-          p_proforma_ids: string[]
-        }
-        Returns: Json
-      }
-      _isr_base_revision_venta: { Args: { p_linea: Json }; Returns: Json }
-      _isr_concepto_proforma_normal: { Args: { p_linea: Json }; Returns: Json }
-      _isr_consolidar_proformas: {
-        Args: {
-          p_cliente_id: string
-          p_embarque_id: string
-          p_ids: string[]
-          p_org: string
-        }
-        Returns: string
-      }
-      _isr_convertir_proforma_a_facturas: {
-        Args: {
-          p_dias: number
-          p_fecha: string
-          p_forma: string
-          p_metodo: string
-          p_notas: string
-          p_proforma_id: string
-          p_serie_id: string
-          p_uso: string
-        }
-        Returns: string[]
-      }
-      _isr_documento_habilitado: {
-        Args: { p_org_id: string }
-        Returns: boolean
-      }
-      _isr_insertar_conceptos_factura: {
-        Args: {
-          p_es_consolidada: boolean
-          p_factura_id: string
-          p_moneda: Database["public"]["Enums"]["moneda"]
-          p_org: string
-          p_proforma_id: string
-        }
-        Returns: undefined
-      }
-      _isr_insertar_grupos_consolidacion: {
-        Args: {
-          p_conceptos: Json
-          p_embarque_id: string
-          p_org: string
-          p_proforma_id: string
-        }
-        Returns: undefined
-      }
-      _isr_notas_credito_vigentes: {
-        Args: {
-          p_excluir: string
-          p_factura: Database["public"]["Tables"]["facturas"]["Row"]
-        }
-        Returns: {
-          isr_aplicado: number
-          isr_reservado: number
-          iva_aplicado: number
-          iva_reservado: number
-          neto_aplicado: number
-          neto_reservado: number
-        }[]
-      }
-      _isr_plan_revision_embarque: {
-        Args: {
-          p_cliente_id: string
-          p_conceptos_venta: Json
-          p_embarque_id: string
-        }
-        Returns: Json
-      }
-      _isr_proyectar_retenciones_rep: {
-        Args: { p_factura: Database["public"]["Tables"]["facturas"]["Row"] }
-        Returns: {
-          pago_id: string
-          ret_isr: number
-          ret_iva: number
-        }[]
-      }
-      _isr_rep_confirmado_webhook: {
-        Args: {
-          p_ambiente: string
-          p_claim: string
-          p_id_remoto: string
-          p_org: string
-          p_pago: string
-        }
-        Returns: boolean
-      }
-      _isr_revisar_factura_emision: {
-        Args: { p_factura_id: string }
-        Returns: Json
-      }
-      _isr_snapshot_documento: {
-        Args: {
-          p_ambiente: string
-          p_cliente_id: string
-          p_conceptos: Json
-          p_org_id: string
-        }
-        Returns: Json
-      }
-      _isr_snapshot_proforma_normal: {
-        Args: {
-          p_cliente_id: string
-          p_concepto_ids: string[]
-          p_embarque_id: string
-          p_org_id: string
-        }
-        Returns: Json
-      }
-      _isr_totales_nota_credito: {
-        Args: { p_conceptos: Json }
-        Returns: {
-          iva: number
-          ret_isr: number
-          ret_iva: number
-          subtotal: number
-          total: number
-        }[]
-      }
-      _isr_validar_conversion_proforma: {
-        Args: { p_proforma_id: string }
-        Returns: Json
-      }
-      _isr_validar_estado_timbrado_factura: {
-        Args: {
-          p_new: Database["public"]["Tables"]["facturas"]["Row"]
-          p_old: Database["public"]["Tables"]["facturas"]["Row"]
-        }
-        Returns: boolean
-      }
-      _isr_validar_vinculo_proforma_normal: {
-        Args: { p_anterior: Json; p_nuevo: Json }
-        Returns: undefined
-      }
-      _liberar_conceptos_proforma_portal: {
-        Args: { p_org_id: string; p_proforma_id: string }
-        Returns: number
       }
       _lock_cuenta_bancaria: {
         Args: { p_cuenta_id: string }
@@ -11657,12 +11390,9 @@ export type Database = {
         Returns: {
           aceptada_at: string | null
           aceptada_por: string | null
-          ajuste_consolidacion_aprobado_at: string | null
-          ajuste_consolidacion_aprobado_por: string | null
           bl_master: string | null
           cliente_id: string
           cliente_nombre: string
-          conceptos_fiscales: Json | null
           consolidada_en: string | null
           created_at: string
           created_by: string | null
@@ -11678,7 +11408,6 @@ export type Database = {
           estado_cliente: string
           estado_proforma: string
           estado_revision: string
-          evaluacion_fiscal: Json | null
           expediente: string
           factura_id: string | null
           factura_secundaria_id: string | null
@@ -12172,12 +11901,9 @@ export type Database = {
         Returns: {
           aceptada_at: string | null
           aceptada_por: string | null
-          ajuste_consolidacion_aprobado_at: string | null
-          ajuste_consolidacion_aprobado_por: string | null
           bl_master: string | null
           cliente_id: string
           cliente_nombre: string
-          conceptos_fiscales: Json | null
           consolidada_en: string | null
           created_at: string
           created_by: string | null
@@ -12193,7 +11919,6 @@ export type Database = {
           estado_cliente: string
           estado_proforma: string
           estado_revision: string
-          evaluacion_fiscal: Json | null
           expediente: string
           factura_id: string | null
           factura_secundaria_id: string | null
@@ -12300,7 +12025,6 @@ export type Database = {
           embarque_id: string | null
           enviada_cliente_at: string | null
           estado: Database["public"]["Enums"]["estado_factura"]
-          evaluacion_fiscal: Json | null
           expediente: string
           factura_pdf_url: string | null
           factura_xml_backup_path: string | null
@@ -12583,12 +12307,9 @@ export type Database = {
         Returns: {
           aceptada_at: string | null
           aceptada_por: string | null
-          ajuste_consolidacion_aprobado_at: string | null
-          ajuste_consolidacion_aprobado_por: string | null
           bl_master: string | null
           cliente_id: string
           cliente_nombre: string
-          conceptos_fiscales: Json | null
           consolidada_en: string | null
           created_at: string
           created_by: string | null
@@ -12604,7 +12325,6 @@ export type Database = {
           estado_cliente: string
           estado_proforma: string
           estado_revision: string
-          evaluacion_fiscal: Json | null
           expediente: string
           factura_id: string | null
           factura_secundaria_id: string | null
@@ -13268,15 +12988,20 @@ export type Database = {
         Returns: Json
       }
       evaluar_documento_isr_resico: {
-        Args: {
-          p_cliente_id: string
-          p_conceptos: Json
-          p_cotizacion_id?: string
-          p_embarque_id?: string
-          p_org_id: string
-        }
+        Args: { p_org_id: string; p_cliente_id: string | null; p_conceptos: Json; p_cotizacion_id?: string; p_embarque_id?: string }
         Returns: Json
       }
+      obtener_evaluacion_fiscal_embarque: { Args: { p_embarque_id: string }; Returns: Json }
+      preparar_revision_fiscal_embarque: {
+        Args: { p_embarque_id: string; p_cliente_id: string | null; p_conceptos_venta: Json; p_expected_updated_at: string }
+        Returns: Json
+      }
+      prevalidar_emision_isr_factura: {
+        Args: { p_factura_id: string }
+        Returns: Json
+      }
+      revisar_cotizacion_fiscal: { Args: { p_cotizacion_id: string; p_expected_fingerprint: string; p_motivo: string }; Returns: Json }
+      validar_cotizacion_fiscal_envio: { Args: { p_cotizacion_id: string; p_expected_fingerprint: string | null; p_usuario_id: string }; Returns: Json }
       evaluar_isr_resico: {
         Args: {
           p_ambiente: string
@@ -13861,10 +13586,6 @@ export type Database = {
           uso_cfdi: string
         }[]
       }
-      obtener_evaluacion_fiscal_embarque: {
-        Args: { p_embarque_id: string }
-        Returns: Json
-      }
       obtener_intento_nota_credito_isr: {
         Args: { p_claim: string; p_nota_id: string; p_organization_id: string }
         Returns: Json
@@ -13874,11 +13595,7 @@ export type Database = {
         Returns: Json
       }
       obtener_intento_timbrado_isr: {
-        Args: {
-          p_claim: string
-          p_factura_id: string
-          p_organization_id: string
-        }
+        Args: { p_claim: string; p_factura_id: string; p_organization_id: string }
         Returns: Json
       }
       obtener_perfil_fiscal_emisor: {
@@ -13990,19 +13707,6 @@ export type Database = {
       portal_update_contacto: {
         Args: { _nombre: string; _telefono: string }
         Returns: undefined
-      }
-      preparar_revision_fiscal_embarque: {
-        Args: {
-          p_cliente_id: string
-          p_conceptos_venta: Json
-          p_embarque_id: string
-          p_expected_updated_at: string
-        }
-        Returns: Json
-      }
-      prevalidar_emision_isr_factura: {
-        Args: { p_factura_id: string }
-        Returns: Json
       }
       profit_por_cliente: {
         Args: {
@@ -14415,32 +14119,15 @@ export type Database = {
         Returns: string
       }
       registrar_resultado_nota_credito_isr: {
-        Args: {
-          p_claim: string
-          p_estado: string
-          p_nota_id: string
-          p_organization_id: string
-          p_resultado: Json
-        }
+        Args: { p_claim: string; p_estado: string; p_nota_id: string; p_organization_id: string; p_resultado: Json }
         Returns: Json
       }
       registrar_resultado_rep_isr: {
-        Args: {
-          p_claim: string
-          p_estado: string
-          p_organization_id: string
-          p_pago_id: string
-          p_resultado: Json
-        }
+        Args: { p_claim: string; p_estado: string; p_organization_id: string; p_pago_id: string; p_resultado: Json }
         Returns: Json
       }
       registrar_resultado_timbrado_isr: {
-        Args: {
-          p_claim: string
-          p_estado: string
-          p_factura_id: string
-          p_resultado: Json
-        }
+        Args: { p_factura_id: string; p_claim: string; p_estado: string; p_resultado: Json }
         Returns: Json
       }
       registrar_traspaso_bancario: {
@@ -14473,6 +14160,18 @@ export type Database = {
           resueltas: number
         }[]
       }
+      reservar_nota_credito_isr: {
+        Args: { p_actor: string; p_nota_id: string; p_organization_id: string; p_updated_at: string }
+        Returns: Json
+      }
+      reservar_rep_isr: {
+        Args: { p_actor: string; p_esperado: Json; p_organization_id: string; p_pago_id: string; p_updated_at: string }
+        Returns: Json
+      }
+      reservar_timbrado_isr: {
+        Args: { p_factura_id: string; p_actor: string; p_prevalidacion: Json; p_emisor_observado: Json }
+        Returns: Json
+      }
       reseed_organization_catalogs: {
         Args: { p_org_id: string }
         Returns: Json
@@ -14492,15 +14191,6 @@ export type Database = {
           numero: string
         }[]
       }
-      reservar_nota_credito_isr: {
-        Args: {
-          p_actor: string
-          p_nota_id: string
-          p_organization_id: string
-          p_updated_at: string
-        }
-        Returns: Json
-      }
       reservar_proforma_email: {
         Args: {
           p_intento: string
@@ -14509,25 +14199,6 @@ export type Database = {
           p_reserva: string
           p_solicitud: Json
           p_usuario_id: string
-        }
-        Returns: Json
-      }
-      reservar_rep_isr: {
-        Args: {
-          p_actor: string
-          p_esperado: Json
-          p_organization_id: string
-          p_pago_id: string
-          p_updated_at: string
-        }
-        Returns: Json
-      }
-      reservar_timbrado_isr: {
-        Args: {
-          p_actor: string
-          p_emisor_observado: Json
-          p_factura_id: string
-          p_prevalidacion: Json
         }
         Returns: Json
       }
@@ -14596,14 +14267,6 @@ export type Database = {
       revertir_proforma_al_cancelar_sustitucion: {
         Args: { p_factura_id: string }
         Returns: string[]
-      }
-      revisar_cotizacion_fiscal: {
-        Args: {
-          p_cotizacion_id: string
-          p_expected_fingerprint: string
-          p_motivo: string
-        }
-        Returns: Json
       }
       revocar_usuario_portal_cliente: {
         Args: { p_id: string }
@@ -14835,14 +14498,6 @@ export type Database = {
       }
       validar_cierre_embarque: {
         Args: { p_embarque_id: string }
-        Returns: Json
-      }
-      validar_cotizacion_fiscal_envio: {
-        Args: {
-          p_cotizacion_id: string
-          p_expected_fingerprint: string
-          p_usuario_id: string
-        }
         Returns: Json
       }
       venta_embarque_mxn_neta: {

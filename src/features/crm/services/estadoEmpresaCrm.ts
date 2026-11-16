@@ -22,8 +22,7 @@ type RpcSinTipos = (fn: string, args: Record<string, unknown>) => Promise<{ data
 /** Pasa la empresa a Prospecto y devuelve la oportunidad creada o reutilizada. */
 export async function pasarAProspecto(empresaId: string): Promise<string> {
   // SAFE-CAST: la RPC llega con la migración del borrador; los tipos se regeneran al aceptarla.
-  const client = supabase as unknown as { rpc: RpcSinTipos };
-  const rpc = client.rpc.bind(supabase);
+  const rpc = supabase.rpc.bind(supabase) as unknown as RpcSinTipos;
   const { data, error } = await rpc("crm_empresa_pasar_a_prospecto", { p_empresa_id: empresaId });
   if (error) {
     const mensaje = LC_CODE_MESSAGES_CRM_EMPRESAS[error.message];
