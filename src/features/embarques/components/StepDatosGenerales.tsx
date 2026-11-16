@@ -43,6 +43,7 @@ interface Props {
   onSeleccionarExpediente?: (exp: ExpedienteCliente) => void;
   /** Cuando es false, se oculta el bloque de expediente (crear/asociar). Default: true. */
   mostrarSelectorExpediente?: boolean;
+  esBorrador?: boolean;
 }
 
 export function StepDatosGenerales({
@@ -60,6 +61,7 @@ export function StepDatosGenerales({
   expedienteSeleccionado,
   onSeleccionarExpediente,
   mostrarSelectorExpediente = true,
+  esBorrador = true,
 }: Props) {
   const { watch } = useFormContext<EmbarqueFormValues>();
   const clienteId = watch('clienteId');
@@ -104,6 +106,7 @@ export function StepDatosGenerales({
           clienteNombre={clienteNombre}
           contactos={contactos}
           errors={errors}
+          esBorrador={esBorrador}
         />
         <BloqueMercancia errors={errors} onMsdsUpload={onMsdsUpload} />
         <ResumenHerenciaCotizacion />

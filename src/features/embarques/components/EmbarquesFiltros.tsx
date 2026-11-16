@@ -5,11 +5,13 @@
  * Secondary (Sheet): Modo, Operador, ETD desde, ETA hasta.
  * Chips activos generados de los valores actuales del filtro.
  */
+import { useId } from "react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
 import { UnifiedFiltersBar } from "@/components/shared/filters/UnifiedFiltersBar";
+import { useIsMobile } from "@/hooks/shared";
 import type { ChipItem } from "@/hooks/shared/useTableFilters";
 import { ModoIcon } from "@/components/shared/ModoIcon";
 import { ESTADOS_EMBARQUE, MODOS_TRANSPORTE } from "@/features/embarques/constants/embarqueConstants";
@@ -22,6 +24,7 @@ interface ClienteOption { id: string; nombre: string }
 interface Props {
   search: string;
   onSearchChange: (v: string) => void;
+  onClearAll: () => void;
   filterModo: string;
   onFilterModoChange: (v: string) => void;
   filterEstado: string;
@@ -39,8 +42,12 @@ interface Props {
 }
 
 export default function EmbarquesFiltros(props: Props) {
+  const isMobile = useIsMobile();
+  const idFechas = useId();
+  const etdId = `${idFechas}-etd`;
+  const etaId = `${idFechas}-eta`;
   const {
-    search, onSearchChange,
+    search, onSearchChange, onClearAll,
     filterModo, filterEstado, filterCliente, filterOperador,
     fechaDesde, fechaHasta,
     onFilterModoChange, onFilterEstadoChange, onFilterClienteChange,
@@ -86,7 +93,7 @@ export default function EmbarquesFiltros(props: Props) {
     onFechaDesdeChange(f.desde); onFechaHastaChange(f.hasta);
   };
 
-  const clearAll = () => {
+  const clearSheet = () => {
     onFilterModoChange("todos"); onFilterEstadoChange("todos");
     onFilterClienteChange("todos"); onFilterOperadorChange("todos");
     onFechaDesdeChange(""); onFechaHastaChange("");
@@ -98,8 +105,9 @@ export default function EmbarquesFiltros(props: Props) {
       onSearchChange={onSearchChange}
       searchPlaceholder="Buscar por expediente, cliente o mercancía…"
       chips={chips}
-      activeCount={secondaryCount}
-      onClearAll={clearAll}
+      activeCount={isMobile ? chips.length : secondaryCount}
+      onClearAll={onClearAll}
+      onSheetClearAll={clearSheet}
       snapshot={snapshot}
       restore={restore}
       primary={
@@ -158,11 +166,11 @@ export default function EmbarquesFiltros(props: Props) {
               </SelectContent>
             </Select>
           </FieldGroup>
-          <FieldGroup label={rangoLabel("ETD", "desde")}>
-            <DatePickerMx value={fechaDesde} onChange={onFechaDesdeChange} className="w-full" />
+          <FieldGroup label={rangoLabel("ETD", "desde")} htmlFor={etdId}>
+            <DatePickerMx id={etdId} value={fechaDesde} onChange={onFechaDesdeChange} className="w-full" />
           </FieldGroup>
-          <FieldGroup label={rangoLabel("ETA", "hasta")}>
-            <DatePickerMx value={fechaHasta} onChange={onFechaHastaChange} className="w-full" />
+          <FieldGroup label={rangoLabel("ETA", "hasta")} htmlFor={etaId}>
+            <DatePickerMx id={etaId} value={fechaHasta} onChange={onFechaHastaChange} className="w-full" />
           </FieldGroup>
         </div>
       }
@@ -170,10 +178,10 @@ export default function EmbarquesFiltros(props: Props) {
   );
 }
 
-function FieldGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function FieldGroup({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-body-sm font-medium text-muted-foreground">{label}</label>
+      <label htmlFor={htmlFor} className="text-body-sm font-medium text-muted-foreground">{label}</label>
       {children}
     </div>
   );
