@@ -6,7 +6,7 @@ DECLARE
   fx record;
   cliente uuid:=gen_random_uuid(); perfil uuid; stamp timestamptz; factura uuid;
   previa jsonb; reservada jsonb; respuesta jsonb; evidencia jsonb; bloqueado boolean;
-  claim text; claim_anterior text;
+  claim text; claim_anterior text; webhook jsonb;
   folio_uuid constant text := '2D4D13C5-7DE2-42F1-A9A7-F824D50CDF88';
 BEGIN
   SELECT * INTO STRICT fx FROM pg_temp.seed_org_pair('RESICO77');
@@ -35,6 +35,10 @@ BEGIN
   BEGIN PERFORM public.reservar_timbrado_isr(factura,fx.admin_a,previa,previa->'emisor');
   EXCEPTION WHEN insufficient_privilege THEN bloqueado:=true; END;
   PERFORM pg_temp.assert(bloqueado,'authenticated users cannot reserve directly');
+  bloqueado:=false;
+  BEGIN PERFORM public.obtener_intento_timbrado_isr(factura,fx.org_a,'PENDING:otro');
+  EXCEPTION WHEN insufficient_privilege THEN bloqueado:=true; END;
+  PERFORM pg_temp.assert(bloqueado,'authenticated users cannot read a protected issuance attempt');
 
   UPDATE public.facturas SET uso_cfdi='G01' WHERE id=factura;
   PERFORM pg_temp.as_postgres();
@@ -72,6 +76,10 @@ BEGIN
   PERFORM set_config('role','service_role',true);
   claim:=public.reservar_timbrado_isr(factura,fx.admin_a,previa,previa->'emisor')->>'claim';
   PERFORM pg_temp.assert(claim IS DISTINCT FROM claim_anterior,'a definitive rejection permits a new explicit attempt');
+  PERFORM pg_temp.assert(public.obtener_intento_timbrado_isr(factura,fx.org_a,claim)->'prevalidacion'=previa
+    AND public.obtener_intento_timbrado_isr(factura,fx.org_b,claim) IS NULL
+    AND public.obtener_intento_timbrado_isr(factura,fx.org_a,claim_anterior) IS NULL,
+    'the recovery snapshot is available exclusively for the active organization, invoice and claim');
   bloqueado:=false;
   BEGIN PERFORM public.reservar_timbrado_isr(factura,fx.admin_a,previa,previa->'emisor');
   EXCEPTION WHEN unique_violation THEN bloqueado:=SQLERRM='LC_ISR_INTENTO_ACTIVO'; END;
@@ -107,15 +115,38 @@ BEGIN
   PERFORM pg_temp.assert(bloqueado,'pending fiscal data cannot be edited while the result is uncertain');
   PERFORM pg_temp.as_postgres();
   UPDATE public.clientes SET rfc='AAA010101AA0', nombre='Otro nombre', codigo_postal='01020' WHERE id=cliente;
+  UPDATE public.facturapi_credenciales SET ambiente='live' WHERE organization_id=fx.org_a;
   PERFORM pg_temp.as_service_role();
   PERFORM set_config('role','service_role',true);
+  PERFORM pg_temp.assert(public.obtener_intento_timbrado_isr(factura,fx.org_a,claim)=
+    jsonb_build_object('prevalidacion',previa,'facturapi_id','invoice-qa-77'),
+    'recovery retains the original environment and receiver after settings change');
+  webhook:=public.reservar_evento_facturapi_webhook(fx.org_a, 'resico77-webhook-1',
+    '{"type":"invoice.status_updated","data":{"object":{"id":"invoice-qa-77"}}}');
+  PERFORM pg_temp.assert(public.finalizar_evento_facturapi_webhook((webhook->>'id')::uuid,(webhook->>'token')::uuid,
+    'conciliado_isr',NULL,'facturas',factura,NULL,claim)->>'estado'='reintentable',
+    'the webhook requires durable evidence of emission');
   respuesta:=public.registrar_resultado_timbrado_isr(factura,claim,'confirmado',evidencia);
   PERFORM pg_temp.assert(respuesta->>'estado'='confirmado','matching PAC and XML evidence confirms the original attempt');
   PERFORM pg_temp.assert(public.registrar_resultado_timbrado_isr(factura,claim,'confirmado',evidencia)=respuesta,
     'recovery replay of the same evidence is idempotent');
+  webhook:=public.reservar_evento_facturapi_webhook(fx.org_b, 'resico77-webhook-2',
+    '{"type":"invoice.status_updated","data":{"object":{"id":"invoice-qa-77"}}}');
+  PERFORM pg_temp.assert(public.finalizar_evento_facturapi_webhook((webhook->>'id')::uuid,(webhook->>'token')::uuid,
+    'conciliado_isr',NULL,'facturas',factura,NULL,claim)->>'estado'='reintentable',
+    'the webhook cannot mark a CFDI from another organization as processed');
+  webhook:=public.reservar_evento_facturapi_webhook(fx.org_a, 'resico77-webhook-3',
+    '{"type":"invoice.status_updated","data":{"object":{"id":"invoice-qa-77"}}}');
+  PERFORM pg_temp.assert(public.finalizar_evento_facturapi_webhook((webhook->>'id')::uuid,(webhook->>'token')::uuid,
+    'conciliado_isr',NULL,'facturas',factura,NULL,claim)->>'estado'='procesado',
+    'the webhook records reconciliation without rewriting the fiscal document');
+  PERFORM pg_temp.assert(public.obtener_intento_timbrado_isr(factura,fx.org_a,claim) IS NULL,
+    'a confirmed attempt no longer needs provider recovery');
   PERFORM pg_temp.as_postgres();
   PERFORM pg_temp.assert((SELECT count(*)=2 FROM public.intentos_timbrado_isr WHERE factura_id=factura),
     'both attempts remain auditable without duplicate fiscal issue');
+  PERFORM pg_temp.assert((SELECT count(*)=1 FROM public.bitacora_actividad WHERE entidad_id=factura AND accion='facturapi_emitida'),
+    'replayed emission generates a single issuance audit record');
   PERFORM pg_temp.assert((SELECT estado='Emitida' AND uuid_fiscal=folio_uuid AND snapshot_emision IS NOT NULL
     AND snapshot_emision#>>'{cliente_snapshot,rfc}'='EKU9003173C9'
     AND snapshot_emision#>>'{cliente_snapshot,cp}'='01010'

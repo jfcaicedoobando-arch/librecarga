@@ -47,7 +47,7 @@ export const LC_CODE_MESSAGES: Record<string, string> = {
   LC_ISR_CONVERSION_REQUIERE_CONSOLIDAR:
     "Consolida las proformas fiscales compatibles y obtén su aprobación antes de crear un borrador conjunto.",
   LC_ISR_TIMBRADO_PENDIENTE:
-    "El borrador conserva su desglose fiscal. El timbrado está pendiente de habilitación.",
+    "Consulta el estado del timbrado desde el detalle de la factura antes de continuar.",
   LC_ISR_FACTURA_REVISION:
     "Revisa el perfil fiscal del emisor, el RFC del receptor y los impuestos de la factura.",
   LC_ISR_INTENTO_ACTIVO:

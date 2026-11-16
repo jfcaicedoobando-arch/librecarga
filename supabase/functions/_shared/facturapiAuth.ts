@@ -168,6 +168,7 @@ function resolveSecretName(cred: FacturapiCredencialRow, ambiente: FacturapiAmbi
 export async function resolveFacturapiKey(
   supabase: SupabaseLike,
   organizationId: string,
+  ambienteIntento?: FacturapiAmbiente,
 ): Promise<FacturapiResolveResult> {
   const { data: cred }: { data: FacturapiCredencialRow | null } = await supabase
     .from("facturapi_credenciales")
@@ -180,7 +181,7 @@ export async function resolveFacturapiKey(
   // Fail-closed absoluto: sin credencial explícita no se timbra (Paso 15).
   if (!cred) return credencialNoConfigurada();
 
-  const ambiente: FacturapiAmbiente = cred.ambiente === "live" ? "live" : "sandbox";
+  const ambiente = ambienteIntento ?? (cred.ambiente === "live" ? "live" : "sandbox");
   const vaultId = ambiente === "live" ? cred.api_key_live_vault_id : cred.api_key_sandbox_vault_id;
 
   const vaultKey = await tryVaultKey(supabase, organizationId, ambiente, vaultId);

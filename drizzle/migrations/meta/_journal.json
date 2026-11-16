@@ -547,6 +547,13 @@
       "when": 1794694500012,
       "tag": "0077_isr_resico_intentos_timbrado",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1794694500013,
+      "tag": "0078_isr_resico_recuperar_timbrado",
+      "breakpoints": true
     }
   ]
 }

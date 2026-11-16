@@ -52,12 +52,22 @@ describe("deriveFacturaFlags", () => {
     expect(r.puedeSustituirCfdi).toBe(true);
   });
 
-  it("el borrador de una proforma fiscal conserva lectura y baja controlada", () => {
+  it("el borrador fiscal permite timbrar y dar de baja con los conceptos protegidos", () => {
     const flags = deriveFacturaFlags({
       deleted_at: null, estado: "Borrador", fecha_emision: POST, evaluacion_fiscal: { estado: "confirmado" },
     }, true);
     expect(flags).toMatchObject({
-      esBorrador: true, puedeEditarBorrador: false, puedeEliminarBorrador: true, puedeTimbrarDesdeSistema: false,
+      esBorrador: true, puedeEditarBorrador: false, puedeEliminarBorrador: true, puedeTimbrarDesdeSistema: true,
+    });
+  });
+
+  it("un intento fiscal pendiente deja disponible la recuperación y evita una segunda emisión", () => {
+    const flags = deriveFacturaFlags({
+      deleted_at: null, estado: "Borrador", fecha_emision: POST,
+      evaluacion_fiscal: { estado: "confirmado" }, facturapi_id: "PENDING:intento",
+    }, true);
+    expect(flags).toMatchObject({
+      esBorrador: false, puedeEditarBorrador: false, puedeEliminarBorrador: false, puedeTimbrarDesdeSistema: false,
     });
   });
 

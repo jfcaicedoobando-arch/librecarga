@@ -13453,6 +13453,10 @@ export type Database = {
           uso_cfdi: string
         }[]
       }
+      obtener_intento_timbrado_isr: {
+        Args: { p_claim: string; p_factura_id: string; p_organization_id: string }
+        Returns: Json
+      }
       obtener_perfil_fiscal_emisor: {
         Args: { p_ambiente: string; p_org_id: string }
         Returns: Json

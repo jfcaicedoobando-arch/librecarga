@@ -60,7 +60,7 @@ export function useConvertirProformaDirecto() {
       if (input.fiscal) {
         toast({
           title: res.length === 1 ? "Borrador fiscal generado" : `Se generaron ${res.length} borradores fiscales`,
-          description: `Disponible en Facturación (${monedas}). El timbrado está pendiente de habilitación.`,
+          description: `Consulta los borradores en Facturación (${monedas}).`,
         });
       } else if (res.length > 1) {
         toast({

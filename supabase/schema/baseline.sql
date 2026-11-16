@@ -16370,7 +16370,8 @@ BEGIN
   );
   IF v_prevalidacion IS NOT NULL THEN
     NEW.snapshot_emision := NEW.snapshot_emision || jsonb_build_object(
-      'ret_isr', NEW.ret_isr, 'ret_iva', NEW.ret_iva, 'evaluacion_fiscal', NEW.evaluacion_fiscal);
+      'ret_isr', NEW.ret_isr, 'ret_iva', NEW.ret_iva, 'evaluacion_fiscal', NEW.evaluacion_fiscal,
+      'intento_timbrado_isr', OLD.facturapi_id);
   END IF;
   RETURN NEW;
 END;
@@ -25397,6 +25398,25 @@ BEGIN
         p_accion, p_documento_id, '', jsonb_build_object('event_type', v_evento.event_type, 'event_id', v_evento.event_id, 'patch', p_patch));
       v_estado := 'procesado';
     END IF;
+  ELSIF p_resultado = 'conciliado_isr' THEN
+    IF p_tabla IS DISTINCT FROM 'facturas' OR v_evento.event_type <> 'invoice.status_updated'
+       OR NOT EXISTS (
+         SELECT 1 FROM public.facturas f
+         WHERE f.id = p_documento_id AND f.organization_id = v_evento.organization_id
+           AND f.deleted_at IS NULL AND f.uuid_fiscal IS NOT NULL
+           AND f.facturapi_id = v_evento.payload#>>'{data,object,id}'
+           AND f.snapshot_emision->>'intento_timbrado_isr' = p_claim
+       ) THEN
+      v_estado := 'reintentable';
+      v_motivo := 'timbrado_isr_pendiente';
+    ELSE
+      v_estado := 'procesado';
+      v_motivo := 'timbrado_isr_conciliado';
+      INSERT INTO public.bitacora_actividad (organization_id, usuario_id, usuario_email, modulo, accion, entidad_id, entidad_nombre, detalles)
+      VALUES (v_evento.organization_id, '00000000-0000-0000-0000-000000000000', 'system@edge', 'facturacion',
+        'facturapi_webhook_isr_conciliado', p_documento_id, '',
+        jsonb_build_object('event_type', v_evento.event_type, 'event_id', v_evento.event_id));
+    END IF;
   ELSIF p_resultado IS NULL OR p_resultado NOT IN ('ignorado', 'reintentable') THEN
     RAISE EXCEPTION 'Resultado de webhook inválido' USING ERRCODE = '22023';
   END IF;
@@ -28848,6 +28868,25 @@ BEGIN
   RETURN jsonb_build_object('snapshot',public._isr_snapshot_documento(v_emb.organization_id,v_emb.cliente_id,v_ambiente,v_lineas),
     'conceptos',COALESCE((SELECT jsonb_agg(l||jsonb_build_object('evaluacion_fiscal',(l->'evaluacion_fiscal')-'emisor'-'receptor'))
       FROM jsonb_array_elements(v_lineas) l),'[]'));
+END;
+$$;
+CREATE FUNCTION public.obtener_intento_timbrado_isr(p_factura_id uuid, p_organization_id uuid, p_claim text) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_intento public.intentos_timbrado_isr;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'LC_ISR_REVISION_SIN_PERMISO' USING ERRCODE = '42501';
+  END IF;
+  SELECT i.* INTO v_intento FROM public.intentos_timbrado_isr i
+  JOIN public.facturas f ON f.id = i.factura_id AND f.organization_id = i.organization_id
+  WHERE i.factura_id = p_factura_id AND i.organization_id = p_organization_id
+    AND f.deleted_at IS NULL AND f.facturapi_id = p_claim AND 'PENDING:' || i.id::text = p_claim
+    AND i.estado IN ('reservado','pendiente','conciliacion');
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  RETURN jsonb_build_object('prevalidacion', v_intento.prevalidacion, 'facturapi_id', v_intento.facturapi_id);
 END;
 $$;
 CREATE FUNCTION public.obtener_perfil_fiscal_emisor(p_org_id uuid, p_ambiente text) RETURNS jsonb
@@ -35409,6 +35448,19 @@ BEGIN
       factura_pdf_url = v_base_url || '/pdf', factura_xml_url = v_base_url || '/xml', factura_xml_backup_path = v_ruta,
       timbrado_en = v_hora, timbrado_por = v_intento.actor_id
     WHERE id = p_factura_id;
+    IF v_factura.sustituye_a IS NOT NULL THEN
+      UPDATE public.facturas SET sustituida_por = p_factura_id
+      WHERE id = v_factura.sustituye_a AND organization_id = v_factura.organization_id
+        AND deleted_at IS NULL AND sustituida_por IS NULL;
+    END IF;
+    INSERT INTO public.bitacora_actividad (organization_id, usuario_id, usuario_email, modulo, accion, entidad_id, entidad_nombre, detalles)
+    VALUES (v_factura.organization_id, v_intento.actor_id,
+      COALESCE((SELECT email FROM auth.users WHERE id = v_intento.actor_id), ''), 'facturacion',
+      'facturapi_emitida', p_factura_id, v_serie || v_folio::text, jsonb_build_object(
+        'uuid', v_uuid, 'folio', v_folio, 'serie', v_serie, 'facturapi_id', v_id,
+        'uso_cfdi_solicitado', v_intento.prevalidacion#>>'{datos_factura,uso_cfdi}', 'uso_cfdi_efectivo', v_uso,
+        'fuente_uso_cfdi', 'xml', 'intento', p_claim,
+        'xml_backup', jsonb_build_object('status', 'guardado', 'path', v_ruta)));
   ELSIF v_estado = 'rechazado' THEN
     UPDATE public.facturas SET facturapi_id = NULL, facturapi_claim_at = NULL,
       facturapi_pendiente_id = NULL, facturapi_pendiente_at = NULL WHERE id = p_factura_id;
@@ -46912,6 +46964,8 @@ GRANT ALL ON FUNCTION public.obtener_defaults_facturacion_cliente(p_cliente_id u
 GRANT ALL ON FUNCTION public.obtener_defaults_facturacion_cliente(p_cliente_id uuid) TO service_role;
 REVOKE ALL ON FUNCTION public.obtener_evaluacion_fiscal_embarque(p_embarque_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.obtener_evaluacion_fiscal_embarque(p_embarque_id uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.obtener_intento_timbrado_isr(p_factura_id uuid, p_organization_id uuid, p_claim text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.obtener_intento_timbrado_isr(p_factura_id uuid, p_organization_id uuid, p_claim text) TO service_role;
 REVOKE ALL ON FUNCTION public.obtener_perfil_fiscal_emisor(p_org_id uuid, p_ambiente text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.obtener_perfil_fiscal_emisor(p_org_id uuid, p_ambiente text) TO authenticated;
 GRANT ALL ON FUNCTION public.obtener_perfil_fiscal_emisor(p_org_id uuid, p_ambiente text) TO service_role;

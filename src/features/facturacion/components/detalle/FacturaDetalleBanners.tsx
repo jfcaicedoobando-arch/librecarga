@@ -59,14 +59,7 @@ export function FacturaDetalleBanners({ factura, saldoError, onRetrySaldo, saldo
 }
 
 function AvisoVigenciaFactura({ factura }: { factura: FacturaDetalle }) {
-  if (esFacturaVigenteParaOperar(factura)) {
-    if (factura.evaluacion_fiscal == null) return null;
-    return (
-      <p role="status" className="rounded-md border p-3 text-body-sm">
-        Borrador con el desglose fiscal de la proforma. Timbrado pendiente de habilitación.
-      </p>
-    );
-  }
+  if (esFacturaVigenteParaOperar(factura)) return null;
   return (
     <p role="status" className="text-body text-muted-foreground">
       {factura.deleted_at ? "Factura dada de baja." : "No se pudo verificar la vigencia de esta factura."}

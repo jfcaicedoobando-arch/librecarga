@@ -26,6 +26,7 @@ export type FacturapiEventType =
 export interface FacturapiWebhookEvent {
   type: string;
   data?: { object?: Record<string, unknown> };
+  ambiente_firma?: "sandbox" | "live" | "legacy";
 }
 
 export interface MappedUpdate {

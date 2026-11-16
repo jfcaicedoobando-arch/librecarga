@@ -119,14 +119,14 @@ El margen se calcula sobre la venta base y los costos. Una venta de $10,000 con 
 
 **Avance local 4B.** La 0074 consolida proformas fiscales del mismo embarque y conserva las bases exactas y el origen de cada renglón. En el caso de prueba, dos proformas suman $230.40 y el cálculo agrupado da $230.42. El sistema exige aprobar los $0.02 de diferencia antes de publicar el consolidado. PostgreSQL 17.9 validó los permisos, la trazabilidad y los importes del portal y correo. Las pruebas de interfaz y PDF reprodujeron la revisión y los importes guardados.
 
-**Avance local 4C.** La 0075 convierte la proforma aceptada en un borrador por moneda. PostgreSQL 17.9 comprobó $230.42 MXN con $2.51 de ISR y un borrador separado de $114.75 USD. Los borradores conservan la revisión del perfil y el origen de los conceptos. La conversión exige revisar si cambió el RFC del receptor. El módulo de emisión y la base de datos bloquean el timbrado mientras se integra la validación de la etapa 5.
+**Avance local 4C.** La 0075 convierte la proforma aceptada en un borrador por moneda. PostgreSQL 17.9 comprobó $230.42 MXN con $2.51 de ISR y un borrador separado de $114.75 USD. Los borradores conservan la revisión del perfil y el origen de los conceptos. La conversión exige revisar si cambió el RFC del receptor. El timbrado de estos borradores pasa por la validación de la etapa 5A.
 
 1. **Proforma normal.** Extender `crear_proforma_atomica` para calcular desde los conceptos elegibles y guardar el desglose aprobado por moneda. Distinguir importes en moneda original de la equivalencia en MXN que ya calcula la proforma.
 2. **Consolidación.** Extender `consolidar_proformas` para conservar conceptos origen, bases exactas y grupos compatibles de IVA y retenciones. Recalcular el documento consolidado por moneda, impuesto y tasa. Si el redondeo cambia el importe frente a los documentos aprobados, mostrar la diferencia y obtener nueva aprobación antes de convertir.
 3. **Factura desde proforma.** Completar ambas ramas de `_convertir_proformas_insertar_conceptos` y la cabecera de `convertir_proformas_a_factura`. Conservar aceptación, idempotencia, separación por moneda y trazabilidad hasta el concepto de origen. Validar que perfil y receptor siguen siendo compatibles con la versión aprobada.
 4. **Documentos y estados.** Mostrar el desglose guardado en proforma, PDF y portal del cliente. Adaptar los controles de asignación, envío, respuesta, consolidación y refacturación de la 0069 como un conjunto. La cancelación conserva el histórico y libera los conceptos para generar una proforma nueva.
 
-Probar la conversión primero en entorno aislado. Mantener el bloqueo efectivo de emisión para los borradores automáticos hasta que la etapa 5 revalide el perfil y el cálculo antes de timbrar.
+Probar la conversión en entorno aislado y emitir los borradores evaluados después de revalidar su perfil y cálculo en la etapa 5A.
 
 **Criterio de salida.** El PDF y el portal muestran el desglose aprobado de cada proforma, normal o consolidada. La factura borrador conserva la versión fiscal y los totales por moneda de la proforma que se convierte. Los reintentos conservan los vínculos, las canceladas siguen siendo terminales y una diferencia de identidad o de importe requiere revisión.
 
@@ -137,6 +137,8 @@ Probar la conversión primero en entorno aislado. Mantener el bloqueo efectivo d
 **Avance local 5A.** La 0076 calcula el ISR al guardar la factura manual con la automatización activa. PostgreSQL 17.9 comprobó $230.42 de neto y $2.51 de ISR, y conservó $8.03 de IVA retenido cuando ya estaba registrado en el borrador. La factura manual y la convertida verifican el perfil, el receptor y el desglose antes de emitir. El módulo de emisión coteja la identidad de la llave de la organización con respuestas simuladas de Facturapi.
 
 La 0077 registra el intento antes de emitir. Las pruebas en PostgreSQL 17.9 conservan la reserva ante un timeout o un descuadre, separan el rechazo definitivo de esos casos y conservan los datos aprobados aunque el catálogo del cliente cambie. La confirmación repetida con la misma evidencia devuelve el mismo resultado.
+
+La 0078 conecta emisión, recuperación y webhook al intento guardado. El adaptador envía una sola solicitud con el mismo identificador de correlación e idempotencia. Contrasta la respuesta y el XML con el perfil y los importes aprobados antes de confirmar. La recuperación usa la llave de la organización y el ambiente original del intento. El webhook recibe las notificaciones de ese ambiente en su URL registrada con `amb` y consulta el comprobante antes de guardar el resultado. La prueba de emisión con Facturapi simulado reprodujo $230.42 y $2.51 de ISR. PostgreSQL 17.9 comprobó la confirmación idempotente y el registro del webhook únicamente cuando existe evidencia del timbrado en la organización.
 
 1. Usar la evaluación del servidor en la factura manual y en la convertida. Antes de emitir, verificar que la identidad y el régimen devueltos por Facturapi coinciden con el perfil usado, con la credencial del emisor y el ambiente de la operación. Comparar subtotal, IVA, ISR retenido, IVA retenido y neto con el cuadre documental de la 0070.
 2. Enviar la retención de tasa `0.0125` mediante el adaptador existente y cotejar el desglose del XML, el PDF y la respuesta del proveedor. Congelar la versión fiscal del documento emitido. Una discrepancia previa devuelve el borrador a revisión. Una respuesta incierta, o un desacuerdo después de emitir, conserva el intento y sus identificadores para conciliación e impide una segunda emisión automática.
@@ -182,4 +184,4 @@ Ejecutar pruebas de dominio, UI, PDF con el renderizador real, Deno y PostgreSQL
 
 ## Siguiente entrega
 
-Continuar con **5A**. Conectar la reserva y la conciliación a la emisión, la recuperación y el webhook. Validar el XML, el PDF y la respuesta de Facturapi en la prueba integral. El timbrado de prueba requiere una identidad PF 626 aceptada por Facturapi sandbox y la llave de prueba de esa organización.
+Continuar con **5B** para pagos parciales, liquidación, REP y notas de crédito. La validación integral de 5A y 5B requiere cotejar la respuesta de Facturapi, el XML y el PDF con una identidad PF 626 aceptada por Facturapi sandbox y la llave de prueba de esa organización.

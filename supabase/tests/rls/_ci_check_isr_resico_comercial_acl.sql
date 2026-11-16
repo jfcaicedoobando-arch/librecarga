@@ -31,7 +31,8 @@ BEGIN
     'public.prevalidar_emision_isr_factura(uuid)',
     'public._isr_validar_estado_timbrado_factura(public.facturas,public.facturas)',
     'public.reservar_timbrado_isr(uuid,uuid,jsonb,jsonb)',
-    'public.registrar_resultado_timbrado_isr(uuid,text,text,jsonb)'
+    'public.registrar_resultado_timbrado_isr(uuid,text,text,jsonb)',
+    'public.obtener_intento_timbrado_isr(uuid,uuid,text)'
   ]) LOOP
     oid_fn := to_regprocedure(fn);
     IF oid_fn IS NULL OR NOT EXISTS (SELECT 1 FROM pg_proc WHERE oid=oid_fn AND proowner='postgres'::regrole) THEN
@@ -49,7 +50,8 @@ BEGIN
         'public.aprobar_ajuste_consolidacion_proforma(uuid,text)', 'public.aplicar_evaluacion_isr_factura_manual(uuid)',
         'public.prevalidar_emision_isr_factura(uuid)'
       )) OR (rol='service_role' AND fn IN ('public.validar_cotizacion_fiscal_envio(uuid,text,uuid)',
-        'public.reservar_timbrado_isr(uuid,uuid,jsonb,jsonb)', 'public.registrar_resultado_timbrado_isr(uuid,text,text,jsonb)'));
+        'public.reservar_timbrado_isr(uuid,uuid,jsonb,jsonb)', 'public.registrar_resultado_timbrado_isr(uuid,text,text,jsonb)',
+        'public.obtener_intento_timbrado_isr(uuid,uuid,text)'));
       IF has_function_privilege(rol, oid_fn, 'EXECUTE') IS DISTINCT FROM esperado THEN
         RAISE EXCEPTION 'CI_ISR_COMERCIAL_ACL: unexpected execute on % for %', fn, rol;
       END IF;

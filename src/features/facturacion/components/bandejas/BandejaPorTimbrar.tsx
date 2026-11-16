@@ -22,14 +22,9 @@ const columns = defineColumns<FilaPorTimbrar>([
     accessorFn: (r) => r.numero,
     enableSorting: true,
     meta: { width: COL_W.nombre, className: "font-mono whitespace-nowrap", sticky: true },
-    cell: ({ row }) => (
-      <>
-        {row.original.numero.startsWith("BORRADOR-")
-          ? <Hint label={row.original.numero}><span tabIndex={0} aria-label="Sin folio (borrador)" className="text-muted-foreground italic">Sin folio (borrador)</span></Hint>
-          : row.original.numero}
-        {row.original.revision_fiscal_pendiente && <div className="text-label font-sans text-muted-foreground">Timbrado por habilitar</div>}
-      </>
-    ),
+    cell: ({ row }) => row.original.numero.startsWith("BORRADOR-")
+      ? <Hint label={row.original.numero}><span tabIndex={0} aria-label="Sin folio (borrador)" className="text-muted-foreground italic">Sin folio (borrador)</span></Hint>
+      : row.original.numero,
   },
   clientColumn<FilaPorTimbrar>({ accessor: (r) => r.cliente_nombre }),
   { ...dateColumn<FilaPorTimbrar>({ id: "emision", header: "Emisión prevista", accessor: (r) => r.fecha_emision }),
@@ -102,7 +97,6 @@ export function BandejaPorTimbrar() {
                   </div>
                   <div className="text-body-sm text-muted-foreground truncate mt-0.5">{toTitleCase(r.cliente_nombre)}</div>
                   <div className="text-label text-muted-foreground mt-0.5">Emisión prevista: {formatDate(r.fecha_emision)}</div>
-                  {r.revision_fiscal_pendiente && <div className="text-label text-muted-foreground">Timbrado por habilitar</div>}
                 </div>
                 <span className="text-body font-semibold tabular-nums whitespace-nowrap">{formatCurrency(r.total, r.moneda)}</span>
               </div>

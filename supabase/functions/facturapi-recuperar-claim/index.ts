@@ -11,6 +11,7 @@ import { wrapEdgeHandler } from "../_shared/sentry.ts";
 import { getFacturapiClient } from "../_shared/facturapiClient.ts";
 import { authorizeOrgRole, ROLES_EMISOR_FISCAL } from "../_shared/auth.ts";
 import { jsonResponse, makeJson } from "../_shared/response.ts";
+import { recuperarFacturaIsr } from "./recuperarIsr.ts";
 import {
   loadFactura, loadNotaCredito, loadPago, validarClaim, buscarCfdiPorExternalId,
   promoverFactura, promoverNc, promoverPago, liberarClaim, liberarClaimNc, liberarClaimPago,
@@ -93,6 +94,10 @@ async function recuperarFactura(supabase: SB, user: Usuario, facturaId: string):
 
   const { claimTag, edadMin, response: validationResponse } = validarClaim(factura);
   if (validationResponse) return validationResponse;
+  if (factura.evaluacion_fiscal != null) {
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+    return recuperarFacturaIsr(admin, factura, claimTag);
+  }
 
   const resolved = await getFacturapiClient(supabase, factura.organization_id);
   if (!resolved.ok) {

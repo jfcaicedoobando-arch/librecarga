@@ -90,7 +90,8 @@ BEGIN
   );
   IF v_prevalidacion IS NOT NULL THEN
     NEW.snapshot_emision := NEW.snapshot_emision || jsonb_build_object(
-      'ret_isr', NEW.ret_isr, 'ret_iva', NEW.ret_iva, 'evaluacion_fiscal', NEW.evaluacion_fiscal);
+      'ret_isr', NEW.ret_isr, 'ret_iva', NEW.ret_iva, 'evaluacion_fiscal', NEW.evaluacion_fiscal,
+      'intento_timbrado_isr', OLD.facturapi_id);
   END IF;
   RETURN NEW;
 END;

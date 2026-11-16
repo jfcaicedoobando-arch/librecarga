@@ -91,6 +91,19 @@ BEGIN
       factura_pdf_url = v_base_url || '/pdf', factura_xml_url = v_base_url || '/xml', factura_xml_backup_path = v_ruta,
       timbrado_en = v_hora, timbrado_por = v_intento.actor_id
     WHERE id = p_factura_id;
+    IF v_factura.sustituye_a IS NOT NULL THEN
+      UPDATE public.facturas SET sustituida_por = p_factura_id
+      WHERE id = v_factura.sustituye_a AND organization_id = v_factura.organization_id
+        AND deleted_at IS NULL AND sustituida_por IS NULL;
+    END IF;
+    INSERT INTO public.bitacora_actividad (organization_id, usuario_id, usuario_email, modulo, accion, entidad_id, entidad_nombre, detalles)
+    VALUES (v_factura.organization_id, v_intento.actor_id,
+      COALESCE((SELECT email FROM auth.users WHERE id = v_intento.actor_id), ''), 'facturacion',
+      'facturapi_emitida', p_factura_id, v_serie || v_folio::text, jsonb_build_object(
+        'uuid', v_uuid, 'folio', v_folio, 'serie', v_serie, 'facturapi_id', v_id,
+        'uso_cfdi_solicitado', v_intento.prevalidacion#>>'{datos_factura,uso_cfdi}', 'uso_cfdi_efectivo', v_uso,
+        'fuente_uso_cfdi', 'xml', 'intento', p_claim,
+        'xml_backup', jsonb_build_object('status', 'guardado', 'path', v_ruta)));
   ELSIF v_estado = 'rechazado' THEN
     UPDATE public.facturas SET facturapi_id = NULL, facturapi_claim_at = NULL,
       facturapi_pendiente_id = NULL, facturapi_pendiente_at = NULL WHERE id = p_factura_id;

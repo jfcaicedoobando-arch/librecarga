@@ -2,7 +2,6 @@
 import { esFacturaVigenteParaOperar } from "./facturaVigencia";
 import { tieneSaldoMonetario } from "@/lib/financial/toleranciaPago";
 import { esCreadaConCapacidadTimbrado } from "./facturaCapacidadTimbrado";
-
 export {
   esCreadaConCapacidadTimbrado,
   FECHA_INICIO_TIMBRADO_SISTEMA,
@@ -179,7 +178,8 @@ function deriveActionFlags(
     esBorrador,
     puedeEditarBorrador,
     puedeEliminarBorrador: esBorrador && canEdit,
-    puedeTimbrarDesdeSistema: !fiscalConfirmada && esFacturaVigenteParaOperar(f) && sinTimbrar && esCreadaConCapacidadTimbrado(f.fecha_emision),
+    puedeTimbrarDesdeSistema: (!fiscalConfirmada || esBorrador) && esFacturaVigenteParaOperar(f)
+      && sinTimbrar && esCreadaConCapacidadTimbrado(f.fecha_emision),
     ...deriveFiscalFlags(f, canEdit, sinTimbrar, estaCancelada),
     puedeRegistrarPago: puedeCobrarse(f, ctx, canRegistrarCobro, estaCancelada),
     repPendiente: (ctx.pagosRepPendientes ?? 0) > 0,

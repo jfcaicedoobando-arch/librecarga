@@ -20,7 +20,20 @@ type ResultadoProcesamiento = Exclude<Reserva, { estado: "tomado" }> | Resultado
 async function finalizar(
   supabase: SupabaseClient, reserva: Extract<Reserva, { estado: "tomado" }>, resultado: ResultadoWebhook | null,
 ): Promise<ResultadoPersistido> {
-  const datos = resultado?.estado === "aplicar"
+  const datos = datosFinalizacion(resultado);
+  const { data, error } = await supabase.rpc("finalizar_evento_facturapi_webhook", {
+    p_evento_id: reserva.id, p_token: reserva.token, ...datos,
+  });
+  if (error) throw error;
+  // SAFE-CAST: estado y motivo emitidos por la RPC de finalización.
+  return data as ResultadoPersistido;
+}
+
+function datosFinalizacion(resultado: ResultadoWebhook | null) {
+  if (resultado?.estado === "conciliado_isr") {
+    return { p_resultado: "conciliado_isr", p_tabla: "facturas", p_documento_id: resultado.id, p_claim: resultado.claim };
+  }
+  return resultado?.estado === "aplicar"
     ? {
       p_resultado: "aplicar", p_tabla: resultado.tabla, p_documento_id: resultado.id,
       p_version: resultado.version, p_claim: resultado.claim, p_patch: resultado.patch, p_accion: resultado.accion,
@@ -29,12 +42,6 @@ async function finalizar(
       p_resultado: resultado?.estado === "ignorar" ? "ignorado" : "reintentable",
       p_motivo: resultado?.motivo ?? "procesamiento_fallido",
     };
-  const { data, error } = await supabase.rpc("finalizar_evento_facturapi_webhook", {
-    p_evento_id: reserva.id, p_token: reserva.token, ...datos,
-  });
-  if (error) throw error;
-  // SAFE-CAST: estado y motivo emitidos por la RPC de finalización.
-  return data as ResultadoPersistido;
 }
 
 export async function procesarEventoWebhook(
