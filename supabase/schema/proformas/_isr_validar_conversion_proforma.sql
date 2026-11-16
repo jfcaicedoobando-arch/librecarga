@@ -6,6 +6,7 @@ DECLARE
   v_lineas jsonb;
   v_evaluacion jsonb;
   v_snapshot jsonb;
+  v_regimen_receptor text;
 BEGIN
   SELECT * INTO v_proforma FROM public.proformas p
   WHERE p.id = p_proforma_id AND p.organization_id = public.org_scope() FOR UPDATE;
@@ -50,7 +51,10 @@ BEGIN
         v_proforma.evaluacion_fiscal->'precision_version', v_proforma.evaluacion_fiscal->'bloques') THEN
     RAISE EXCEPTION 'LC_ISR_CONVERSION_REVISION' USING ERRCODE = '23514';
   END IF;
+  SELECT c.regimen_fiscal INTO v_regimen_receptor FROM public.clientes c
+    WHERE c.id = v_proforma.cliente_id AND c.organization_id = v_proforma.organization_id AND c.deleted_at IS NULL;
   RETURN v_proforma.evaluacion_fiscal || jsonb_build_object(
-    'emisor', v_lineas#>'{0,evaluacion_fiscal,emisor}', 'receptor', v_lineas#>'{0,evaluacion_fiscal,receptor}');
+    'emisor', v_lineas#>'{0,evaluacion_fiscal,emisor}',
+    'receptor', (v_lineas#>'{0,evaluacion_fiscal,receptor}') || jsonb_build_object('regimen_fiscal', v_regimen_receptor));
 END;
 $$;

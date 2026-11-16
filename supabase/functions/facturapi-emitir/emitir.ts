@@ -19,6 +19,7 @@ import { resultadoUsoCfdi } from "./resultadoUsoCfdi.ts";
 import { createInvoiceInFacturapi } from './crear.ts';
 import { parseInvoiceResult, persistirFacturaTimbrada } from './persistencia.ts';
 import { validarProformasVigentes } from './proformasVigentes.ts';
+import { respuestaIsrPendiente } from "./isrPreflight.ts";
 
 export { hoyMx, realinearFechaEmision } from "./fechaEmision.ts";
 export type { Claim, FacturaRow } from "./types.ts";
@@ -50,10 +51,7 @@ export async function loadFactura(supabase: SupabaseClient, facturaId: string): 
  * directa no puede timbrar una factura en un estado no timbrable.
  */
 export function validarEstadoTimbrable(factura: FacturaRow): Response | null {
-  if (factura.evaluacion_fiscal != null) return jsonResponse({
-    error: "isr_timbrado_pendiente",
-    message: "El timbrado de este borrador requiere habilitar la validación fiscal de la organización.",
-  }, 409);
+  if (factura.evaluacion_fiscal != null) return respuestaIsrPendiente();
   const estado = factura.estado ?? "";
   if (ESTADOS_FACTURA_TIMBRABLES.includes(estado)) return null;
   return jsonResponse({

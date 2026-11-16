@@ -26,7 +26,9 @@ BEGIN
     'public._isr_consolidar_proformas(uuid,uuid,uuid,uuid[])', 'public.aprobar_ajuste_consolidacion_proforma(uuid,text)',
     'public._isr_validar_conversion_proforma(uuid)', 'public._isr_insertar_conceptos_factura(uuid,uuid,uuid,boolean,public.moneda)',
     'public._isr_convertir_proforma_a_facturas(uuid,uuid,text,text,text,integer,text,date)',
-    'public._isr_guard_borrador_convertido()', 'public._isr_guard_concepto_factura_convertida()'
+    'public._isr_guard_borrador_convertido()', 'public._isr_guard_concepto_factura_convertida()',
+    'public._isr_revisar_factura_emision(uuid)', 'public.aplicar_evaluacion_isr_factura_manual(uuid)',
+    'public.prevalidar_emision_isr_factura(uuid)'
   ]) LOOP
     oid_fn := to_regprocedure(fn);
     IF oid_fn IS NULL OR NOT EXISTS (SELECT 1 FROM pg_proc WHERE oid=oid_fn AND proowner='postgres'::regrole) THEN
@@ -41,7 +43,8 @@ BEGIN
         'public.evaluar_documento_isr_resico(uuid,uuid,jsonb,uuid,uuid)',
         'public.obtener_evaluacion_fiscal_embarque(uuid)', 'public.revisar_cotizacion_fiscal(uuid,text,text)',
         'public.preparar_revision_fiscal_embarque(uuid,uuid,jsonb,timestamptz)',
-        'public.aprobar_ajuste_consolidacion_proforma(uuid,text)'
+        'public.aprobar_ajuste_consolidacion_proforma(uuid,text)', 'public.aplicar_evaluacion_isr_factura_manual(uuid)',
+        'public.prevalidar_emision_isr_factura(uuid)'
       )) OR (rol='service_role' AND fn='public.validar_cotizacion_fiscal_envio(uuid,text,uuid)');
       IF has_function_privilege(rol, oid_fn, 'EXECUTE') IS DISTINCT FROM esperado THEN
         RAISE EXCEPTION 'CI_ISR_COMERCIAL_ACL: unexpected execute on % for %', fn, rol;

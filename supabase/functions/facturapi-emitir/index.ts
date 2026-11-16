@@ -22,6 +22,7 @@ import { loadFactura, validarFacturaTimbrable, claimFactura, resolverSustitucion
 import { realinearFechaEmision } from "./fechaEmision.ts";
 import { cargarContexto } from "./contexto.ts";
 import type { FacturaRow } from "./types.ts";
+import { revisarBorradorIsr, validarEmisorFacturapi, respuestaIsrPendiente, type PrevalidacionIsr } from "./isrPreflight.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -35,6 +36,7 @@ interface ReqBody { factura_id?: string }
 interface Preparacion {
   factura: FacturaRow;
   sustituyeUuid: string | null;
+  isr?: PrevalidacionIsr;
 }
 
 /**
@@ -55,6 +57,10 @@ async function prepararEmision(
   if (!(await authorizeOrgRole(supabase, user.id, factura.organization_id, ROLES_EMISOR_FISCAL))) {
     return json({ error: "forbidden", message: "Tu rol no tiene permiso para timbrar facturas de esta organización." }, 403);
   }
+
+  const isr = await revisarBorradorIsr(supabase, factura);
+  if (isr instanceof Response) return isr;
+  if (isr) return { factura, sustituyeUuid: null, isr };
 
   // El SAT certifica con la fecha del timbre: si el borrador quedó fechado otro
   // día se realinea a hoy (y el trigger del DOF recalcula el T/C) en vez de
@@ -108,6 +114,10 @@ Deno.serve(wrapEdgeHandler("facturapi-emitir", async (req) => {
 
   const resolved = await getFacturapiClient(supabase, facturaVigente.organization_id);
   if (!resolved.ok) return json({ error: resolved.data.error, message: resolved.data.message }, resolved.data.status);
+  if (preparada.isr) {
+    const error = await validarEmisorFacturapi(preparada.isr, resolved.data);
+    return error ?? respuestaIsrPendiente();
+  }
 
   const context = await cargarContexto(supabase, body.factura_id, facturaVigente, preparada.sustituyeUuid);
   if (context instanceof Response) return context;

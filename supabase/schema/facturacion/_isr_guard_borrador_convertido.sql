@@ -29,6 +29,22 @@ BEGIN
     RETURN NEW;
   END IF;
 
+  -- The existing manual capture keeps its invoker RLS for header and lines.
+  -- Only the evaluated transition is written by the scoped fiscal function.
+  IF OLD.evaluacion_fiscal IS NULL AND NEW.evaluacion_fiscal IS NOT NULL
+    AND v_propietario AND (to_jsonb(NEW) - ARRAY['evaluacion_fiscal','updated_at'])
+      IS NOT DISTINCT FROM (to_jsonb(OLD) - ARRAY['evaluacion_fiscal','updated_at'])
+    AND OLD.origen = 'manual' AND OLD.deleted_at IS NULL AND OLD.proforma_id IS NULL AND OLD.embarque_id IS NULL
+    AND (NEW.evaluacion_fiscal->>'factura_id')::uuid = OLD.id
+    AND (NEW.evaluacion_fiscal->>'organization_id')::uuid = OLD.organization_id
+    AND (NEW.evaluacion_fiscal->>'cliente_id')::uuid = OLD.cliente_id
+    AND NEW.evaluacion_fiscal->>'estado' = 'confirmado'
+    AND NEW.evaluacion_fiscal#>>'{receptor,rfc}' = upper(btrim(OLD.rfc_cliente))
+    AND jsonb_array_length(NEW.evaluacion_fiscal->'bloques') = 1
+    AND NEW.evaluacion_fiscal#>>'{bloques,0,moneda}' = OLD.moneda::text THEN
+    RETURN NEW;
+  END IF;
+
   IF (NEW.evaluacion_fiscal, NEW.organization_id, NEW.cliente_id, NEW.embarque_id, NEW.proforma_id,
       NEW.moneda, NEW.origen, NEW.rfc_cliente, NEW.sustituye_a)
     IS DISTINCT FROM

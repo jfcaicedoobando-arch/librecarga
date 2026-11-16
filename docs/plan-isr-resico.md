@@ -134,6 +134,8 @@ Probar la conversión primero en entorno aislado. Mantener el bloqueo efectivo d
 
 ### Entrega 5A Factura y timbrado
 
+**Avance local 5A.** La 0076 calcula el ISR al guardar la factura manual con la automatización activa. PostgreSQL 17.9 comprobó $230.42 de neto y $2.51 de ISR, y conservó $8.03 de IVA retenido cuando ya estaba registrado en el borrador. La factura manual y la convertida verifican el perfil, el receptor y el desglose antes de emitir. El módulo de emisión compara la organización, el RFC, el régimen y el código postal que devuelve Facturapi para la llave del ambiente. Las pruebas de esta comparación usaron respuestas simuladas. Sigue pendiente registrar y conciliar el intento y validar los documentos que devuelve el proveedor.
+
 1. Usar la evaluación del servidor en la factura manual y en la convertida. Antes de emitir, verificar que la identidad y el régimen devueltos por Facturapi coinciden con el perfil usado, con la credencial del emisor y el ambiente de la operación. Comparar subtotal, IVA, ISR retenido, IVA retenido y neto con el cuadre documental de la 0070.
 2. Enviar la retención de tasa `0.0125` mediante el adaptador existente y cotejar el desglose del XML, el PDF y la respuesta del proveedor. Congelar la versión fiscal del documento emitido. Una discrepancia previa devuelve el borrador a revisión. Una respuesta incierta, o un desacuerdo después de emitir, conserva el intento y sus identificadores para conciliación e impide una segunda emisión automática.
 
@@ -178,4 +180,4 @@ Ejecutar pruebas de dominio, UI, PDF con el renderizador real, Deno y PostgreSQL
 
 ## Siguiente entrega
 
-Continuar con **5A**. Integrar la evaluación del servidor en la factura manual y cotejar el perfil de Facturapi, el desglose de impuestos y los intentos de emisión de ambos flujos. El timbrado de prueba requiere una identidad PF 626 aceptada por Facturapi sandbox y la llave de prueba de esa organización.
+Continuar con **5A**. Registrar el intento de emisión de la factura manual y convertida, conservarlo ante respuestas inciertas y conciliar los impuestos del XML y la respuesta de Facturapi antes de confirmar la emisión. El timbrado de prueba requiere una identidad PF 626 aceptada por Facturapi sandbox y la llave de prueba de esa organización.

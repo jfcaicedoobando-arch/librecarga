@@ -24,7 +24,7 @@ interface ConceptoImporte {
 function usaModoAgrupado(conceptos: ConceptoImporte[], factura: FacturaRow): boolean {
   return (factura.estado === "Borrador" || factura.estado === "Por timbrar")
     && factura.snapshot_emision == null && !factura.uuid_fiscal?.trim()
-    && usaCuadreFacturapi(conceptos);
+    && (factura.evaluacion_fiscal != null || usaCuadreFacturapi(conceptos));
 }
 
 /**

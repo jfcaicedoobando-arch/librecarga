@@ -11082,6 +11082,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      aplicar_evaluacion_isr_factura_manual: {
+        Args: { p_factura_id: string }
+        Returns: undefined
+      }
       aplicar_plantilla_cotizacion: {
         Args: { _plantilla_id: string }
         Returns: Json
@@ -12797,6 +12801,10 @@ export type Database = {
       obtener_evaluacion_fiscal_embarque: { Args: { p_embarque_id: string }; Returns: Json }
       preparar_revision_fiscal_embarque: {
         Args: { p_embarque_id: string; p_cliente_id: string | null; p_conceptos_venta: Json; p_expected_updated_at: string }
+        Returns: Json
+      }
+      prevalidar_emision_isr_factura: {
+        Args: { p_factura_id: string }
         Returns: Json
       }
       revisar_cotizacion_fiscal: { Args: { p_cotizacion_id: string; p_expected_fingerprint: string; p_motivo: string }; Returns: Json }
