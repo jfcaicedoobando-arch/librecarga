@@ -616,5 +616,13 @@
       "0078_isr_resico_recuperar_timbrado.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0079_isr_resico_cobranza.sql",
+    "sha256": "1fc2d8d6ce3704a4523d8f71f287adedd931f6c4aceb85ace433d3d382461ef0",
+    "replays": [
+      "0079_isr_resico_cobranza.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

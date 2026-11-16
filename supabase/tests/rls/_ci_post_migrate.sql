@@ -397,6 +397,9 @@ REVOKE ALL ON FUNCTION public._isr_validar_estado_timbrado_factura(public.factur
 REVOKE ALL ON FUNCTION public.reservar_timbrado_isr(uuid,uuid,jsonb,jsonb), public.registrar_resultado_timbrado_isr(uuid,text,text,jsonb),
   public.obtener_intento_timbrado_isr(uuid,uuid,text)
   FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public._isr_totales_nota_credito(jsonb), public._isr_notas_credito_vigentes(public.facturas,uuid),
+  public._isr_guard_nota_credito()
+  FROM PUBLIC,anon,authenticated,service_role;
 \ir _ci_check_isr_resico_acl.sql
 \ir _ci_check_factura_resico_totales_acl.sql
 \ir _ci_check_isr_resico_comercial_acl.sql

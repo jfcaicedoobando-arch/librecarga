@@ -32,7 +32,9 @@ BEGIN
     'public._isr_validar_estado_timbrado_factura(public.facturas,public.facturas)',
     'public.reservar_timbrado_isr(uuid,uuid,jsonb,jsonb)',
     'public.registrar_resultado_timbrado_isr(uuid,text,text,jsonb)',
-    'public.obtener_intento_timbrado_isr(uuid,uuid,text)'
+    'public.obtener_intento_timbrado_isr(uuid,uuid,text)',
+    'public._isr_totales_nota_credito(jsonb)', 'public._isr_notas_credito_vigentes(public.facturas,uuid)',
+    'public._isr_guard_nota_credito()'
   ]) LOOP
     oid_fn := to_regprocedure(fn);
     IF oid_fn IS NULL OR NOT EXISTS (SELECT 1 FROM pg_proc WHERE oid=oid_fn AND proowner='postgres'::regrole) THEN

@@ -40,6 +40,11 @@ function numeroOpcional(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+export function usaCuadreAgrupadoNC(snapshot: unknown): boolean {
+  return snapshot != null && typeof snapshot === "object"
+    && "evaluacion_fiscal" in snapshot && snapshot.evaluacion_fiscal != null;
+}
+
 export function parseConceptosSugeridos(snapshot: unknown): ConceptoNotaCredito[] {
   if (typeof snapshot !== "object" || snapshot === null) return [];
   const list = (snapshot as { conceptos?: unknown }).conceptos;

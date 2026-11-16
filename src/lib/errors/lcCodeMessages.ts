@@ -50,6 +50,16 @@ export const LC_CODE_MESSAGES: Record<string, string> = {
     "Consulta el estado del timbrado desde el detalle de la factura antes de continuar.",
   LC_ISR_FACTURA_REVISION:
     "Revisa el perfil fiscal del emisor, el RFC del receptor y los impuestos de la factura.",
+  LC_ISR_NC_INMUTABLE:
+    "La nota tiene un timbrado en curso o ya emitido. Consulta su estado desde la factura original.",
+  LC_ISR_NC_IMPUESTOS_ORIGEN:
+    "Usa el tratamiento de IVA y las retenciones del renglón de la factura que estás acreditando.",
+  LC_ISR_NC_TOTAL:
+    "Los impuestos y el total de la nota deben coincidir con el cálculo aprobado para sus renglones.",
+  LC_ISR_NC_FACTURA:
+    "Revisa que la factura esté timbrada y disponible para recibir la nota de crédito.",
+  LC_ISR_PAGO_NC_RESERVADA:
+    "Una nota de crédito pendiente de timbrado tiene reservada parte del saldo fiscal. Consulta el intento antes de registrar este cobro.",
   LC_ISR_INTENTO_ACTIVO:
     "La factura tiene un intento de timbrado en curso. Consulta el resultado antes de iniciar otro.",
   LC_ANTICIPO_APLICACION_INCONSISTENTE:

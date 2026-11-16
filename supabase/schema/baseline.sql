@@ -6655,6 +6655,85 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+CREATE FUNCTION public._isr_guard_nota_credito() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_factura public.facturas;
+  v_totales record;
+  v_notas record;
+  v_pagos record;
+  v_factor numeric;
+BEGIN
+  IF TG_OP = 'UPDATE' AND (NEW.factura_id, NEW.organization_id) IS DISTINCT FROM (OLD.factura_id, OLD.organization_id)
+    AND EXISTS (SELECT 1 FROM public.facturas f WHERE f.id = OLD.factura_id AND f.evaluacion_fiscal IS NOT NULL) THEN
+    RAISE EXCEPTION 'LC_ISR_NC_INMUTABLE' USING ERRCODE = '23514';
+  END IF;
+  SELECT * INTO v_factura FROM public.facturas
+  WHERE id = NEW.factura_id AND organization_id = NEW.organization_id AND evaluacion_fiscal IS NOT NULL
+  FOR NO KEY UPDATE;
+  IF NOT FOUND THEN RETURN NEW; END IF;
+  IF TG_OP = 'UPDATE' AND (OLD.facturapi_id IS NOT NULL OR OLD.estado IN ('Timbrada','Aplicada','Cancelada')) THEN
+    IF (NEW.conceptos, NEW.monto, NEW.moneda, NEW.tipo_cambio, NEW.uso_cfdi, NEW.forma_pago, NEW.fecha_emision, NEW.deleted_at)
+      IS DISTINCT FROM (OLD.conceptos, OLD.monto, OLD.moneda, OLD.tipo_cambio, OLD.uso_cfdi, OLD.forma_pago, OLD.fecha_emision, OLD.deleted_at) THEN
+      RAISE EXCEPTION 'LC_ISR_NC_INMUTABLE' USING ERRCODE = '23514';
+    END IF;
+    -- The transition from a claim to a confirmed credit still verifies its
+    -- allocation. Cancellation and metadata do not rewrite a fiscal credit.
+    IF OLD.estado IN ('Timbrada','Aplicada','Cancelada')
+      OR (NEW.facturapi_id IS NULL AND NEW.estado IN ('Borrador','Aprobada')) THEN RETURN NEW; END IF;
+  END IF;
+  IF NEW.deleted_at IS NOT NULL OR NEW.estado = 'Cancelada' THEN RETURN NEW; END IF;
+  IF jsonb_typeof(NEW.conceptos) IS DISTINCT FROM 'array' OR jsonb_array_length(NEW.conceptos) = 0
+    OR EXISTS (
+      SELECT 1 FROM jsonb_array_elements(NEW.conceptos) l
+      WHERE l->>'tipo_iva' IS NULL OR l->>'tipo_iva' NOT IN ('gravado_16','gravado_8','tasa_0','exento','no_objeto')
+        OR (l->>'cantidad')::numeric IS NULL OR (l->>'cantidad')::numeric <= 0
+        OR (l->>'precio_unitario')::numeric IS NULL OR (l->>'precio_unitario')::numeric < 0
+        OR (l->>'cantidad')::numeric::text IN ('NaN','Infinity','-Infinity')
+        OR (l->>'precio_unitario')::numeric::text IN ('NaN','Infinity','-Infinity')
+        OR COALESCE((l->>'tasa_iva')::numeric, CASE l->>'tipo_iva' WHEN 'gravado_16' THEN 0.16 WHEN 'gravado_8' THEN 0.08 ELSE 0 END)
+          <> CASE l->>'tipo_iva' WHEN 'gravado_16' THEN 0.16 WHEN 'gravado_8' THEN 0.08 ELSE 0 END
+        OR NOT EXISTS (
+          SELECT 1 FROM public.conceptos_factura c
+          WHERE c.factura_id = v_factura.id AND c.organization_id = v_factura.organization_id
+            AND c.deleted_at IS NULL AND c.tipo_iva::text = l->>'tipo_iva'
+            AND (NULLIF(btrim(l->>'concepto_factura_id'), '') IS NULL OR c.id::text = lower(btrim(l->>'concepto_factura_id')))
+            AND c.tasa_ret_isr = COALESCE((l->>'tasa_ret_isr')::numeric, 0)
+            AND c.tasa_ret_iva = COALESCE((l->>'tasa_ret_iva')::numeric, 0)
+        )
+    ) THEN
+    RAISE EXCEPTION 'LC_ISR_NC_IMPUESTOS_ORIGEN' USING ERRCODE = '23514';
+  END IF;
+  SELECT * INTO v_totales FROM public._isr_totales_nota_credito(NEW.conceptos);
+  IF NEW.monto IS DISTINCT FROM v_totales.total OR v_totales.total <= 0
+    OR NEW.tipo_cambio::text IN ('NaN','Infinity','-Infinity') THEN
+    RAISE EXCEPTION 'LC_ISR_NC_TOTAL' USING ERRCODE = '23514';
+  END IF;
+  IF NEW.facturapi_id IS NULL AND NEW.estado NOT IN ('Timbrada','Aplicada') THEN RETURN NEW; END IF;
+  v_factor := public._nc_factor_moneda_factura(NEW.moneda::text, NEW.tipo_cambio,
+    v_factura.moneda::text, v_factura.tipo_cambio);
+  IF v_factura.uuid_fiscal IS NULL OR v_factura.deleted_at IS NOT NULL
+    OR v_factura.estado IN ('Cancelada','Sustituida') OR v_factura.cancellation_status IN ('pending','verifying')
+    OR v_factor IS NULL OR v_factor <= 0 THEN
+    RAISE EXCEPTION 'LC_ISR_NC_FACTURA' USING ERRCODE = '23514';
+  END IF;
+  SELECT * INTO v_notas FROM public._isr_notas_credito_vigentes(v_factura, NEW.id);
+  SELECT COALESCE(sum(monto_aplicado_factura), 0) AS neto, COALESCE(sum(ret_isr), 0) AS isr,
+    COALESCE(sum(ret_iva), 0) AS iva INTO v_pagos
+  FROM public.pagos_factura
+  WHERE factura_id = v_factura.id AND organization_id = v_factura.organization_id
+    AND deleted_at IS NULL AND (NOT public.pago_rep_anulado(estado_rep) OR facturapi_rep_id LIKE 'PENDING:%');
+  IF round(NEW.monto * v_factor + v_notas.neto_reservado + v_notas.neto_aplicado + v_pagos.neto, 2) > v_factura.total
+    OR round(v_totales.ret_isr * v_factor + v_notas.isr_aplicado + v_notas.isr_reservado + v_pagos.isr, 2) > v_factura.ret_isr
+    OR round(v_totales.ret_iva * v_factor + v_notas.iva_aplicado + v_notas.iva_reservado + v_pagos.iva, 2) > v_factura.ret_iva THEN
+    RAISE EXCEPTION 'LC_NC_EXCEDE_SALDO: la nota excede el saldo o las retenciones disponibles'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$$;
 CREATE FUNCTION public._isr_guard_padre() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public', 'pg_temp'
@@ -6839,6 +6918,115 @@ CREATE FUNCTION public._isr_insertar_grupos_consolidacion(p_proforma_id uuid, p_
     evaluacion || jsonb_build_object('base', round(base_exacta,2), 'base_exacta', base_exacta,
       'monto_ret_isr', round(base_exacta*tasa_ret_isr,2)), linaje
   FROM grupos;
+$$;
+CREATE FUNCTION public.current_user_org_id() RETURNS uuid
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  SELECT CASE
+    WHEN public.has_role(auth.uid(), 'super_admin'::app_role)
+      THEN COALESCE(
+             (SELECT s.organization_id FROM public.super_admin_org_activa s
+               WHERE s.user_id = auth.uid()),
+             public.default_user_org_id())
+    ELSE public.default_user_org_id()
+  END;
+$$;
+CREATE TABLE public.facturas (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    numero text NOT NULL,
+    embarque_id uuid,
+    expediente text DEFAULT ''::text NOT NULL,
+    cliente_id uuid NOT NULL,
+    cliente_nombre text DEFAULT ''::text NOT NULL,
+    subtotal numeric DEFAULT 0 NOT NULL,
+    iva numeric DEFAULT 0 NOT NULL,
+    total numeric DEFAULT 0 NOT NULL,
+    moneda public.moneda DEFAULT 'MXN'::public.moneda NOT NULL,
+    tipo_cambio numeric,
+    fecha_emision date DEFAULT CURRENT_DATE NOT NULL,
+    fecha_vencimiento date NOT NULL,
+    estado public.estado_factura DEFAULT 'Borrador'::public.estado_factura NOT NULL,
+    referencia_bl text,
+    notas text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    organization_id uuid DEFAULT public.current_user_org_id() NOT NULL,
+    proforma_id uuid,
+    factura_pdf_url text,
+    factura_xml_url text,
+    deleted_at timestamp with time zone,
+    deleted_by uuid,
+    snapshot_emision jsonb,
+    serie_id uuid,
+    folio_fiscal bigint,
+    rfc_cliente text,
+    uso_cfdi text,
+    forma_pago text,
+    metodo_pago text,
+    uuid_fiscal text,
+    dias_credito integer,
+    facturapi_id text,
+    serie text,
+    timbrado_en timestamp with time zone,
+    timbrado_por uuid,
+    cancelacion_motivo text,
+    cancelado_en timestamp with time zone,
+    enviada_cliente_at timestamp with time zone,
+    cotizacion_id uuid,
+    origen public.origen_factura DEFAULT 'proforma'::public.origen_factura NOT NULL,
+    sustituye_a uuid,
+    sustituida_por uuid,
+    ambiente public.ambiente_facturapi,
+    acuse_cancelacion_xml text,
+    acuse_cancelacion_fecha timestamp with time zone,
+    acuse_cancelacion_status text,
+    factura_xml_backup_path text,
+    ret_isr numeric DEFAULT 0 NOT NULL,
+    ret_iva numeric DEFAULT 0 NOT NULL,
+    uuid_verificado boolean DEFAULT false NOT NULL,
+    uuid_estatus_sat text,
+    uuid_verificado_fecha timestamp with time zone,
+    cancellation_status text,
+    cancelacion_solicitada_en timestamp with time zone,
+    cancelacion_vence_en timestamp with time zone,
+    facturapi_claim_at timestamp with time zone,
+    reconciliacion_checked_at timestamp with time zone,
+    facturapi_pendiente_id text,
+    facturapi_pendiente_at timestamp with time zone,
+    evaluacion_fiscal jsonb,
+    CONSTRAINT factura_evaluacion_fiscal_objeto_chk CHECK (((evaluacion_fiscal IS NULL) OR (jsonb_typeof(evaluacion_fiscal) = 'object'::text))),
+    CONSTRAINT facturas_cancelacion_motivo_sat CHECK (((cancelacion_motivo IS NULL) OR (cancelacion_motivo = ANY (ARRAY['01'::text, '02'::text, '03'::text, '04'::text])))),
+    CONSTRAINT facturas_cancellation_status_check CHECK ((cancellation_status = ANY (ARRAY['none'::text, 'verifying'::text, 'pending'::text, 'accepted'::text, 'rejected'::text, 'expired'::text]))),
+    CONSTRAINT facturas_iva_nonneg CHECK ((iva >= (0)::numeric)),
+    CONSTRAINT facturas_subtotal_nonneg CHECK ((subtotal >= (0)::numeric)),
+    CONSTRAINT facturas_tipo_cambio_pos CHECK (((tipo_cambio IS NULL) OR (tipo_cambio > (0)::numeric))),
+    CONSTRAINT facturas_total_nonneg CHECK ((total >= (0)::numeric)),
+    CONSTRAINT facturas_venc_despues_emision CHECK ((fecha_vencimiento >= fecha_emision))
+);
+ALTER TABLE ONLY public.facturas FORCE ROW LEVEL SECURITY;
+CREATE FUNCTION public._isr_notas_credito_vigentes(p_factura public.facturas, p_excluir uuid) RETURNS TABLE(neto_reservado numeric, isr_reservado numeric, iva_reservado numeric, neto_aplicado numeric, isr_aplicado numeric, iva_aplicado numeric)
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+  WITH notas AS (
+    SELECT n.conceptos, n.monto, n.estado IN ('Timbrada', 'Aplicada') AS aplicada,
+      public._nc_factor_moneda_factura(n.moneda::text, n.tipo_cambio,
+        p_factura.moneda::text, p_factura.tipo_cambio) AS factor
+    FROM public.factura_notas_credito n
+    WHERE n.factura_id = p_factura.id AND n.organization_id = p_factura.organization_id
+      AND n.id IS DISTINCT FROM p_excluir AND n.deleted_at IS NULL
+      AND (n.estado IN ('Timbrada', 'Aplicada')
+        OR (n.estado IN ('Borrador', 'Aprobada') AND n.facturapi_id LIKE 'PENDING:%'))
+  )
+  SELECT COALESCE(sum(n.monto * n.factor) FILTER (WHERE NOT n.aplicada), 0),
+    COALESCE(sum(t.ret_isr * n.factor) FILTER (WHERE NOT n.aplicada), 0),
+    COALESCE(sum(t.ret_iva * n.factor) FILTER (WHERE NOT n.aplicada), 0),
+    COALESCE(sum(n.monto * n.factor) FILTER (WHERE n.aplicada), 0),
+    COALESCE(sum(t.ret_isr * n.factor) FILTER (WHERE n.aplicada), 0),
+    COALESCE(sum(t.ret_iva * n.factor) FILTER (WHERE n.aplicada), 0)
+  FROM notas n
+  CROSS JOIN LATERAL public._isr_totales_nota_credito(n.conceptos) t
 $$;
 CREATE FUNCTION public._isr_plan_revision_embarque(p_embarque_id uuid, p_cliente_id uuid, p_conceptos_venta jsonb) RETURNS jsonb
     LANGUAGE plpgsql STABLE
@@ -7085,6 +7273,30 @@ BEGIN
     || jsonb_build_object('conceptos', v_conceptos);
 END;
 $$;
+CREATE FUNCTION public._isr_totales_nota_credito(p_conceptos jsonb) RETURNS TABLE(subtotal numeric, iva numeric, ret_isr numeric, ret_iva numeric, total numeric)
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+  WITH bases AS (
+    SELECT (c->>'cantidad')::numeric * (c->>'precio_unitario')::numeric AS base,
+      CASE c->>'tipo_iva' WHEN 'gravado_16' THEN 0.16 WHEN 'gravado_8' THEN 0.08 ELSE 0 END AS iva,
+      COALESCE((c->>'tasa_ret_isr')::numeric, 0) AS ret_isr,
+      COALESCE((c->>'tasa_ret_iva')::numeric, 0) AS ret_iva
+    FROM jsonb_array_elements(p_conceptos) c
+  ), grupos AS (
+    SELECT impuesto, round(sum(b.base * t.tasa), 2) AS importe
+    FROM bases b
+    CROSS JOIN LATERAL (VALUES ('iva', b.iva), ('ret_isr', b.ret_isr), ('ret_iva', b.ret_iva)) t(impuesto, tasa)
+    GROUP BY impuesto, tasa
+  ), totales AS (
+    SELECT COALESCE((SELECT round(sum(base), 2) FROM bases), 0) AS subtotal,
+      COALESCE(sum(importe) FILTER (WHERE impuesto = 'iva'), 0) AS iva,
+      COALESCE(sum(importe) FILTER (WHERE impuesto = 'ret_isr'), 0) AS ret_isr,
+      COALESCE(sum(importe) FILTER (WHERE impuesto = 'ret_iva'), 0) AS ret_iva
+    FROM grupos
+  )
+  SELECT subtotal, iva, ret_isr, ret_iva, subtotal + iva - ret_isr - ret_iva FROM totales
+$$;
 CREATE FUNCTION public._isr_validar_conversion_proforma(p_proforma_id uuid) RETURNS jsonb
     LANGUAGE plpgsql
     SET search_path TO 'pg_catalog', 'public', 'pg_temp'
@@ -7144,92 +7356,6 @@ BEGIN
     'receptor', (v_lineas#>'{0,evaluacion_fiscal,receptor}') || jsonb_build_object('regimen_fiscal', v_regimen_receptor));
 END;
 $$;
-CREATE FUNCTION public.current_user_org_id() RETURNS uuid
-    LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public'
-    AS $$
-  SELECT CASE
-    WHEN public.has_role(auth.uid(), 'super_admin'::app_role)
-      THEN COALESCE(
-             (SELECT s.organization_id FROM public.super_admin_org_activa s
-               WHERE s.user_id = auth.uid()),
-             public.default_user_org_id())
-    ELSE public.default_user_org_id()
-  END;
-$$;
-CREATE TABLE public.facturas (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    numero text NOT NULL,
-    embarque_id uuid,
-    expediente text DEFAULT ''::text NOT NULL,
-    cliente_id uuid NOT NULL,
-    cliente_nombre text DEFAULT ''::text NOT NULL,
-    subtotal numeric DEFAULT 0 NOT NULL,
-    iva numeric DEFAULT 0 NOT NULL,
-    total numeric DEFAULT 0 NOT NULL,
-    moneda public.moneda DEFAULT 'MXN'::public.moneda NOT NULL,
-    tipo_cambio numeric,
-    fecha_emision date DEFAULT CURRENT_DATE NOT NULL,
-    fecha_vencimiento date NOT NULL,
-    estado public.estado_factura DEFAULT 'Borrador'::public.estado_factura NOT NULL,
-    referencia_bl text,
-    notas text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    organization_id uuid DEFAULT public.current_user_org_id() NOT NULL,
-    proforma_id uuid,
-    factura_pdf_url text,
-    factura_xml_url text,
-    deleted_at timestamp with time zone,
-    deleted_by uuid,
-    snapshot_emision jsonb,
-    serie_id uuid,
-    folio_fiscal bigint,
-    rfc_cliente text,
-    uso_cfdi text,
-    forma_pago text,
-    metodo_pago text,
-    uuid_fiscal text,
-    dias_credito integer,
-    facturapi_id text,
-    serie text,
-    timbrado_en timestamp with time zone,
-    timbrado_por uuid,
-    cancelacion_motivo text,
-    cancelado_en timestamp with time zone,
-    enviada_cliente_at timestamp with time zone,
-    cotizacion_id uuid,
-    origen public.origen_factura DEFAULT 'proforma'::public.origen_factura NOT NULL,
-    sustituye_a uuid,
-    sustituida_por uuid,
-    ambiente public.ambiente_facturapi,
-    acuse_cancelacion_xml text,
-    acuse_cancelacion_fecha timestamp with time zone,
-    acuse_cancelacion_status text,
-    factura_xml_backup_path text,
-    ret_isr numeric DEFAULT 0 NOT NULL,
-    ret_iva numeric DEFAULT 0 NOT NULL,
-    uuid_verificado boolean DEFAULT false NOT NULL,
-    uuid_estatus_sat text,
-    uuid_verificado_fecha timestamp with time zone,
-    cancellation_status text,
-    cancelacion_solicitada_en timestamp with time zone,
-    cancelacion_vence_en timestamp with time zone,
-    facturapi_claim_at timestamp with time zone,
-    reconciliacion_checked_at timestamp with time zone,
-    facturapi_pendiente_id text,
-    facturapi_pendiente_at timestamp with time zone,
-    evaluacion_fiscal jsonb,
-    CONSTRAINT factura_evaluacion_fiscal_objeto_chk CHECK (((evaluacion_fiscal IS NULL) OR (jsonb_typeof(evaluacion_fiscal) = 'object'::text))),
-    CONSTRAINT facturas_cancelacion_motivo_sat CHECK (((cancelacion_motivo IS NULL) OR (cancelacion_motivo = ANY (ARRAY['01'::text, '02'::text, '03'::text, '04'::text])))),
-    CONSTRAINT facturas_cancellation_status_check CHECK ((cancellation_status = ANY (ARRAY['none'::text, 'verifying'::text, 'pending'::text, 'accepted'::text, 'rejected'::text, 'expired'::text]))),
-    CONSTRAINT facturas_iva_nonneg CHECK ((iva >= (0)::numeric)),
-    CONSTRAINT facturas_subtotal_nonneg CHECK ((subtotal >= (0)::numeric)),
-    CONSTRAINT facturas_tipo_cambio_pos CHECK (((tipo_cambio IS NULL) OR (tipo_cambio > (0)::numeric))),
-    CONSTRAINT facturas_total_nonneg CHECK ((total >= (0)::numeric)),
-    CONSTRAINT facturas_venc_despues_emision CHECK ((fecha_vencimiento >= fecha_emision))
-);
-ALTER TABLE ONLY public.facturas FORCE ROW LEVEL SECURITY;
 CREATE FUNCTION public._isr_validar_estado_timbrado_factura(p_old public.facturas, p_new public.facturas) RETURNS boolean
     LANGUAGE plpgsql STABLE
     SET search_path TO 'pg_catalog', 'public', 'pg_temp'
@@ -14045,28 +14171,36 @@ CREATE FUNCTION public.calc_pago_retenciones() RETURNS trigger
     SET search_path TO 'public'
     AS $$
 DECLARE
-  v_fac_subtotal numeric; v_fac_iva numeric;
+  v_factura public.facturas;
+  v_notas record;
+  v_disponible numeric;
   v_fac_ret_isr numeric; v_fac_ret_iva numeric;
   v_ncs numeric; v_base numeric; v_ratio numeric; v_monto numeric;
   v_prev_isr numeric; v_prev_iva numeric; v_prev_monto numeric;
 BEGIN
-  IF COALESCE(NEW.ret_isr,0) > 0 OR COALESCE(NEW.ret_iva,0) > 0 THEN RETURN NEW; END IF;
-  SELECT COALESCE(subtotal,0), COALESCE(iva,0), COALESCE(ret_isr,0), COALESCE(ret_iva,0)
-    INTO v_fac_subtotal, v_fac_iva, v_fac_ret_isr, v_fac_ret_iva
-    FROM public.facturas WHERE id = NEW.factura_id;
-  IF COALESCE(v_fac_ret_isr,0) = 0 AND COALESCE(v_fac_ret_iva,0) = 0 THEN
+  SELECT * INTO v_factura FROM public.facturas WHERE id = NEW.factura_id AND organization_id = NEW.organization_id;
+  IF NOT FOUND THEN RETURN NEW; END IF;
+  v_fac_ret_isr := COALESCE(v_factura.ret_isr, 0);
+  v_fac_ret_iva := COALESCE(v_factura.ret_iva, 0);
+  IF v_factura.evaluacion_fiscal IS NULL AND (
+    COALESCE(NEW.ret_isr, 0) > 0 OR COALESCE(NEW.ret_iva, 0) > 0 OR (v_fac_ret_isr = 0 AND v_fac_ret_iva = 0)
+    OR (TG_OP = 'UPDATE' AND (OLD.factura_id, OLD.monto_aplicado_factura, OLD.ret_isr, OLD.ret_iva)
+        IS NOT DISTINCT FROM (NEW.factura_id, NEW.monto_aplicado_factura, NEW.ret_isr, NEW.ret_iva))
+  ) THEN
     RETURN NEW;
   END IF;
-  -- N10: la base debe ser neta de las NC ya aplicadas (misma moneda de la
-  -- factura); antes se prorrateaba contra el total bruto y las retenciones
-  -- sumaban más de lo retenido realmente.
-  v_ncs := COALESCE(public.nc_aplicadas_en_moneda_factura(NEW.factura_id), 0);
-  v_base := v_fac_subtotal + v_fac_iva - v_fac_ret_iva - v_fac_ret_isr - v_ncs;
-  -- FIX-R4-05: si monto_aplicado_factura aún no llegó (otro trigger BEFORE lo poblará),
-  -- usar NEW.monto como base para prorratear las retenciones.
-  v_monto := COALESCE(NULLIF(NEW.monto_aplicado_factura,0), NEW.monto);
-  IF v_base <= 0 OR COALESCE(v_monto,0) <= 0 THEN
-    RETURN NEW;
+  IF v_factura.evaluacion_fiscal IS NOT NULL THEN
+    IF NEW.deleted_at IS NOT NULL OR (public.pago_rep_anulado(NEW.estado_rep)
+      AND NOT COALESCE(NEW.facturapi_rep_id LIKE 'PENDING:%', false)) THEN RETURN NEW; END IF;
+    IF TG_OP = 'UPDATE' AND OLD.deleted_at IS NULL
+      AND (NOT public.pago_rep_anulado(OLD.estado_rep) OR OLD.facturapi_rep_id LIKE 'PENDING:%')
+      AND (OLD.factura_id, OLD.monto_aplicado_factura) IS NOT DISTINCT FROM (NEW.factura_id, NEW.monto_aplicado_factura) THEN
+      NEW.ret_isr := OLD.ret_isr;
+      NEW.ret_iva := OLD.ret_iva;
+      RETURN NEW;
+    END IF;
+    -- Notes and payments serialize on the invoice before allocating the balance.
+    SELECT * INTO STRICT v_factura FROM public.facturas WHERE id = NEW.factura_id FOR NO KEY UPDATE;
   END IF;
   SELECT COALESCE(SUM(COALESCE(p.ret_isr,0)),0),
          COALESCE(SUM(COALESCE(p.ret_iva,0)),0),
@@ -14075,7 +14209,33 @@ BEGIN
     FROM public.pagos_factura p
    WHERE p.factura_id = NEW.factura_id
      AND p.deleted_at IS NULL
+     AND (NOT public.pago_rep_anulado(p.estado_rep)
+       OR (v_factura.evaluacion_fiscal IS NOT NULL AND p.facturapi_rep_id LIKE 'PENDING:%'))
+     AND p.organization_id = v_factura.organization_id
      AND p.id IS DISTINCT FROM NEW.id;
+  IF v_factura.evaluacion_fiscal IS NOT NULL THEN
+    SELECT * INTO v_notas FROM public._isr_notas_credito_vigentes(v_factura, NULL);
+    v_disponible := round(v_factura.total - v_notas.neto_aplicado - v_prev_monto, 2);
+    v_monto := NEW.monto_aplicado_factura;
+    IF v_disponible <= 0 OR round(v_monto + v_notas.neto_reservado, 2) > v_disponible THEN
+      RAISE EXCEPTION 'LC_PAGO_SOBREPAGO: el pago excede el saldo disponible' USING ERRCODE = '23514';
+    END IF;
+    v_fac_ret_isr := greatest(round(v_factura.ret_isr - v_notas.isr_aplicado - v_prev_isr, 2), 0);
+    v_fac_ret_iva := greatest(round(v_factura.ret_iva - v_notas.iva_aplicado - v_prev_iva, 2), 0);
+    v_ratio := v_monto / v_disponible;
+    NEW.ret_isr := round(v_fac_ret_isr * v_ratio, 2);
+    NEW.ret_iva := round(v_fac_ret_iva * v_ratio, 2);
+    IF round(NEW.ret_isr + v_notas.isr_reservado, 2) > v_fac_ret_isr
+      OR round(NEW.ret_iva + v_notas.iva_reservado, 2) > v_fac_ret_iva THEN
+      RAISE EXCEPTION 'LC_ISR_PAGO_NC_RESERVADA: una nota por timbrar tiene reservadas las retenciones' USING ERRCODE = '23514';
+    END IF;
+    RETURN NEW;
+  END IF;
+  -- Retained behavior for invoices issued before the evaluated workflow.
+  v_ncs := COALESCE(public.nc_aplicadas_en_moneda_factura(NEW.factura_id), 0);
+  v_base := COALESCE(v_factura.subtotal, 0) + COALESCE(v_factura.iva, 0) - v_fac_ret_iva - v_fac_ret_isr - v_ncs;
+  v_monto := COALESCE(NULLIF(NEW.monto_aplicado_factura, 0), NEW.monto);
+  IF v_base <= 0 OR COALESCE(v_monto, 0) <= 0 THEN RETURN NEW; END IF;
   IF v_prev_monto + v_monto >= v_base - 0.01 THEN
     -- Pago liquidador: absorbe el residuo de centavos del prorrateo.
     NEW.ret_isr := GREATEST(ROUND(v_fac_ret_isr - v_prev_isr, 2), 0);
@@ -44002,6 +44162,7 @@ CREATE TRIGGER trg_guard_soft_delete BEFORE UPDATE ON public.proveedor_notas_cre
 CREATE TRIGGER trg_guard_soft_delete BEFORE UPDATE ON public.seguros_embarque FOR EACH ROW EXECUTE FUNCTION public._guard_soft_delete();
 CREATE TRIGGER trg_guard_sustitucion_ciclo BEFORE INSERT OR UPDATE OF sustituye_a ON public.facturas FOR EACH ROW WHEN ((new.sustituye_a IS NOT NULL)) EXECUTE FUNCTION public.guard_sustitucion_ciclo();
 CREATE TRIGGER trg_handle_new_organization AFTER INSERT ON public.organizations FOR EACH ROW EXECUTE FUNCTION public.handle_new_organization();
+CREATE TRIGGER trg_isr_guard_nota_credito BEFORE INSERT OR UPDATE ON public.factura_notas_credito FOR EACH ROW EXECUTE FUNCTION public._isr_guard_nota_credito();
 CREATE TRIGGER trg_liberar_folio_proveedor_factura AFTER UPDATE OF deleted_at ON public.proveedor_facturas FOR EACH ROW WHEN ((old.deleted_at IS DISTINCT FROM new.deleted_at)) EXECUTE FUNCTION public.tg_liberar_folio_proveedor_factura();
 CREATE TRIGGER trg_liq_com_updated BEFORE UPDATE ON public.liquidaciones_comision FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER trg_liquidacion_guard_estado BEFORE UPDATE ON public.liquidaciones_comision FOR EACH ROW EXECUTE FUNCTION public._liquidacion_guard_estado();
@@ -44182,7 +44343,7 @@ CREATE TRIGGER zz_isr_proforma_factura BEFORE INSERT OR UPDATE OF proforma_id ON
 CREATE TRIGGER zz_isr_proforma_normal BEFORE INSERT OR DELETE OR UPDATE ON public.proformas FOR EACH ROW EXECUTE FUNCTION public._isr_guard_proforma_normal();
 CREATE TRIGGER zz_pago_factura_viva BEFORE INSERT OR UPDATE ON public.pagos_factura FOR EACH ROW WHEN ((new.deleted_at IS NULL)) EXECUTE FUNCTION public.assert_factura_viva_para_pago();
 CREATE TRIGGER zz_pagos_factura_no_sobrepago BEFORE INSERT OR UPDATE ON public.pagos_factura FOR EACH ROW EXECUTE FUNCTION public.tg_pago_factura_no_sobrepago();
-CREATE TRIGGER zzz_pagos_factura_calc_ret BEFORE INSERT OR UPDATE OF monto_aplicado_factura, factura_id, ret_isr, ret_iva ON public.pagos_factura FOR EACH ROW EXECUTE FUNCTION public.calc_pago_retenciones();
+CREATE TRIGGER zzz_pagos_factura_calc_ret BEFORE INSERT OR UPDATE OF factura_id, monto, moneda, tipo_cambio, monto_aplicado_factura, ret_isr, ret_iva, estado_rep, facturapi_rep_id, deleted_at ON public.pagos_factura FOR EACH ROW EXECUTE FUNCTION public.calc_pago_retenciones();
 ALTER TABLE ONLY public.agente_users
     ADD CONSTRAINT agente_users_agente_id_fkey FOREIGN KEY (agente_id) REFERENCES public.costeo_agentes(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.agente_users
@@ -45825,21 +45986,24 @@ REVOKE ALL ON FUNCTION public._isr_guard_concepto_consolidado() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_concepto_factura_convertida() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_conversion_factura() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_cotizacion() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._isr_guard_nota_credito() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_padre() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_proforma_normal() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_insertar_conceptos_factura(p_factura_id uuid, p_proforma_id uuid, p_org uuid, p_es_consolidada boolean, p_moneda public.moneda) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_insertar_grupos_consolidacion(p_proforma_id uuid, p_org uuid, p_embarque_id uuid, p_conceptos jsonb) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public._isr_plan_revision_embarque(p_embarque_id uuid, p_cliente_id uuid, p_conceptos_venta jsonb) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public._isr_revisar_factura_emision(p_factura_id uuid) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public._isr_snapshot_documento(p_org_id uuid, p_cliente_id uuid, p_ambiente text, p_conceptos jsonb) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public._isr_snapshot_proforma_normal(p_org_id uuid, p_embarque_id uuid, p_cliente_id uuid, p_concepto_ids uuid[]) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public._isr_validar_conversion_proforma(p_proforma_id uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.current_user_org_id() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.current_user_org_id() TO authenticated;
 GRANT ALL ON FUNCTION public.current_user_org_id() TO service_role;
 GRANT SELECT,INSERT,UPDATE ON TABLE public.facturas TO anon;
 GRANT SELECT,INSERT,UPDATE ON TABLE public.facturas TO authenticated;
 GRANT ALL ON TABLE public.facturas TO service_role;
+REVOKE ALL ON FUNCTION public._isr_notas_credito_vigentes(p_factura public.facturas, p_excluir uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._isr_plan_revision_embarque(p_embarque_id uuid, p_cliente_id uuid, p_conceptos_venta jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._isr_revisar_factura_emision(p_factura_id uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._isr_snapshot_documento(p_org_id uuid, p_cliente_id uuid, p_ambiente text, p_conceptos jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._isr_snapshot_proforma_normal(p_org_id uuid, p_embarque_id uuid, p_cliente_id uuid, p_concepto_ids uuid[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._isr_totales_nota_credito(p_conceptos jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._isr_validar_conversion_proforma(p_proforma_id uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_validar_estado_timbrado_factura(p_old public.facturas, p_new public.facturas) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_validar_vinculo_proforma_normal(p_anterior jsonb, p_nuevo jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._liberar_conceptos_proforma_portal(p_proforma_id uuid, p_org_id uuid) FROM PUBLIC;

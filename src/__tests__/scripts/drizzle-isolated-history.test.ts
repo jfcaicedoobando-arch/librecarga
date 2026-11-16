@@ -76,8 +76,9 @@ describe("isolated Drizzle history is not deployment-eligible", () => {
       "0076_isr_resico_factura_manual.sql",
       "0077_isr_resico_intentos_timbrado.sql",
       "0078_isr_resico_recuperar_timbrado.sql",
+      "0079_isr_resico_cobranza.sql",
     ]);
-    expect(readIsolatedDrizzleReplay().size).toBe(56);
+    expect(readIsolatedDrizzleReplay().size).toBe(57);
     const archive = paths[1].replace("0022_refacturar_proforma_abre_edicion.sql", "meta/_journal.json");
     expect(JSON.parse(read(archive)).entries[22]).toMatchObject({ idx: 22, when: 1792518064767, tag: "0022_refacturar_proforma_abre_edicion" });
     expect(JSON.parse(read("drizzle/migrations/meta/_journal.json")).entries[22].tag).toBe("0022_cotizacion_comercial");

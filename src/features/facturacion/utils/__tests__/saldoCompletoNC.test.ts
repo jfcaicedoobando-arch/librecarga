@@ -22,6 +22,18 @@ const base: ConceptoNotaCredito = {
 };
 
 describe("conceptosPorSaldoCompleto", () => {
+  it("conserva ambos renglones de origen y el cuadre agrupado aun con el mismo tratamiento", () => {
+    const linea = { ...base, precio_unitario: 100.4, tasa_ret_isr: .0125, tasa_ret_iva: .04 };
+    const lineas = [{ ...linea, concepto_factura_id: "origen-a" }, { ...linea, concepto_factura_id: "origen-b" }];
+    for (const saldo of [222.39, 94.65]) {
+      const r = conceptosPorSaldoCompleto(saldo, lineas, linea, true);
+      expect(r.ok).toBe(true);
+      if (!r.ok) throw new Error(r.motivo);
+      expect(r.conceptos.map((c) => c.concepto_factura_id)).toEqual(["origen-a", "origen-b"]);
+      expect(calcularTotalesNC(r.conceptos, true).total).toBe(saldo);
+    }
+  });
+
   it("factura homogénea al 16%: un renglón que iguala el saldo", () => {
     const r = conceptosPorSaldoCompleto(1160, [base], base);
     expect(r.ok).toBe(true);

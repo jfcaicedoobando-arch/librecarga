@@ -8,7 +8,8 @@
  * ISR/IVA del renglón original se reversan restando del total.
  */
 import { sumarMontos } from "@/lib/financial/financialUtils";
-import { impuestosLineaNC } from "@/features/facturacion/utils/impuestosNotaCredito";
+import { Decimal } from "decimal.js";
+import { impuestosLineaNC, tasaTrasladoNC } from "@/features/facturacion/utils/impuestosNotaCredito";
 import type { ConceptoNotaCredito } from "@/features/facturacion/services/notasCredito";
 
 export interface TotalesNC {
@@ -21,7 +22,37 @@ export interface TotalesNC {
   total: number;
 }
 
-export function calcularTotalesNC(conceptos: ConceptoNotaCredito[]): TotalesNC {
+const FiscalDecimal = Decimal.clone({ precision: 40, rounding: Decimal.ROUND_HALF_UP });
+
+function sumarImpuesto(grupos: Map<number, Decimal>, tasa: number, base: Decimal) {
+  grupos.set(tasa, (grupos.get(tasa) ?? new FiscalDecimal(0)).plus(base.times(tasa)));
+}
+
+function totalImpuesto(grupos: Map<number, Decimal>) {
+  return sumarMontos([...grupos.values()].map((monto) => monto.toDecimalPlaces(2).toNumber()));
+}
+
+function calcularTotalesAgrupados(conceptos: ConceptoNotaCredito[]): TotalesNC {
+  let base = new FiscalDecimal(0);
+  const traslados = new Map<number, Decimal>();
+  const isr = new Map<number, Decimal>();
+  const ivaRetenido = new Map<number, Decimal>();
+  for (const concepto of conceptos) {
+    const importe = new FiscalDecimal(concepto.cantidad).times(concepto.precio_unitario);
+    base = base.plus(importe);
+    sumarImpuesto(traslados, tasaTrasladoNC(concepto), importe);
+    sumarImpuesto(isr, concepto.tasa_ret_isr ?? 0, importe);
+    sumarImpuesto(ivaRetenido, concepto.tasa_ret_iva ?? 0, importe);
+  }
+  const subtotal = base.toDecimalPlaces(2).toNumber();
+  const iva = totalImpuesto(traslados);
+  const retIsr = totalImpuesto(isr);
+  const retIva = totalImpuesto(ivaRetenido);
+  return { subtotal, iva, retIsr, retIva, total: sumarMontos([subtotal, iva, -retIsr, -retIva]) };
+}
+
+export function calcularTotalesNC(conceptos: ConceptoNotaCredito[], agrupar = false): TotalesNC {
+  if (agrupar) return calcularTotalesAgrupados(conceptos);
   const lineas = conceptos.map((c) => impuestosLineaNC(c));
   return {
     subtotal: sumarMontos(lineas.map((l) => l.base)),
