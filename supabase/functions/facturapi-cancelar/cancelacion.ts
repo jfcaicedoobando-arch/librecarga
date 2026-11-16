@@ -198,15 +198,17 @@ export async function resolveSustitutaSnapshot(
   supabase: SupabaseClient,
   sustituidaPorFacturaId: string,
 ): Promise<
-  | { ok: true; uuid: string; facturapiId: string; organizationId: string }
+  | { ok: true; uuid: string; facturapiId: string; organizationId: string; ambiente: "sandbox" | "live" | null }
   | { ok: false }
 > {
   const { data } = await supabase
     .from("facturas")
-    .select("id, uuid_fiscal, facturapi_id, organization_id")
+    .select("id, uuid_fiscal, facturapi_id, organization_id, ambiente, estado, deleted_at")
     .eq("id", sustituidaPorFacturaId)
     .maybeSingle();
-  if (!data?.uuid_fiscal || !data.facturapi_id) return { ok: false };
-  return { ok: true, uuid: data.uuid_fiscal as string, facturapiId: data.facturapi_id as string, organizationId: data.organization_id as string };
+  if (!data?.uuid_fiscal || !data.facturapi_id || data.facturapi_id.startsWith("PENDING:")
+    || data.deleted_at || ["Borrador", "Cancelada", "Sustituida"].includes(data.estado)) return { ok: false };
+  return { ok: true, uuid: data.uuid_fiscal as string, facturapiId: data.facturapi_id as string,
+    organizationId: data.organization_id as string, ambiente: data.ambiente ?? null };
 }
 

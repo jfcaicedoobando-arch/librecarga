@@ -16,6 +16,7 @@ export interface PrevalidacionTimbradoIsr {
   ambiente: "sandbox" | "live";
   tipo?: "I" | "E";
   factura_uuid?: string;
+  sustituye_uuid?: string;
   tasas_iva_retenido?: number[];
   emisor: { facturapi_org_id: string; rfc: string; regimen_fiscal: string; codigo_postal?: string };
   receptor: { rfc: string; regimen_fiscal: string; nombre?: string; codigo_postal?: string };
@@ -121,7 +122,10 @@ export function conciliarCfdiIsr(
     || !importe(atributo(encabezado, "Total")).eq(esperado.totales.total)) {
     throw new Error("identidad_o_cabecera_xml_no_coincide");
   }
-  if (tipo === "E") verificarRelacionEgreso(documento, esperado.factura_uuid);
+  if (tipo === "E") verificarRelacionCfdi(documento, esperado.factura_uuid, "01", "cfdi_egreso_relacion_no_coincide");
+  if (tipo === "I" && esperado.sustituye_uuid) {
+    verificarRelacionCfdi(documento, esperado.sustituye_uuid, "04", "cfdi_sustitucion_relacion_no_coincide");
+  }
   const impuestos = impuestosRaiz(documento);
   if (impuestos.iva !== esperado.totales.iva || impuestos.ret_isr !== esperado.totales.ret_isr
     || impuestos.ret_iva !== esperado.totales.ret_iva) throw new Error("impuestos_xml_no_coinciden");
@@ -136,6 +140,7 @@ export function conciliarCfdiIsr(
   return {
     uuid, emisor_rfc: cfdi.emisor.rfc, emisor_regimen: cfdi.emisor.regimen, receptor_rfc: cfdi.receptor.rfc,
     receptor_regimen: regimenReceptor, uso_cfdi: uso, totales: { ...esperado.totales, ...impuestos },
+    ...(tipo === "I" && esperado.sustituye_uuid ? { sustituye_uuid: esperado.sustituye_uuid.toUpperCase() } : {}),
   };
 }
 
@@ -147,12 +152,12 @@ function verificarTasasIvaRetenido(retenciones: string[], esperadas: number[]) {
   }
 }
 
-function verificarRelacionEgreso(xml: string, facturaUuid: string | undefined) {
+function verificarRelacionCfdi(xml: string, facturaUuid: string | undefined, tipo: "01" | "04", error: string) {
   const relacion = /<((?:[\w.-]+:)?CfdiRelacionados)(?=[\s>])[^>]*>([\s\S]*?)<\/\1\s*>/i.exec(xml);
   const origen = nodos(relacion?.[2] ?? "", "CfdiRelacionado");
-  if (!facturaUuid || !relacion || atributo(relacion[0].slice(0, relacion[0].indexOf(">") + 1), "TipoRelacion") !== "01"
+  if (!facturaUuid || !relacion || atributo(relacion[0].slice(0, relacion[0].indexOf(">") + 1), "TipoRelacion") !== tipo
     || nodos(xml, "CfdiRelacionados").length !== 1 || origen.length !== 1
     || atributo(origen[0], "UUID")?.toUpperCase() !== facturaUuid.toUpperCase()) {
-    throw new Error("cfdi_egreso_relacion_no_coincide");
+    throw new Error(error);
   }
 }

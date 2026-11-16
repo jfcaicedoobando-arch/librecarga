@@ -68,3 +68,15 @@ Deno.test("conciliación ISR confirma moneda nativa y tipo de cambio de un CFDI 
   assertThrows(() => conciliarCfdiIsr(usd, claim, factura, documento.replace("19.900000", "19.8")), Error,
     "identidad_o_cabecera_xml_no_coincide");
 });
+
+Deno.test("la sustituta concilia sólo con el UUID original y relación 04", () => {
+  const origen = "F62BE5B4-F227-431F-9E24-1BC47FB6ADE8";
+  const sustitucion = { ...esperado, sustituye_uuid: origen };
+  const relacionado = `<cfdi:CfdiRelacionado UUID="${origen}"/>`;
+  const documento = xml.replace("<cfdi:Emisor", `<cfdi:CfdiRelacionados TipoRelacion="04">${relacionado}</cfdi:CfdiRelacionados><cfdi:Emisor`);
+  assertEquals(conciliarCfdiIsr(sustitucion, claim, remoto, documento).sustituye_uuid, origen);
+  for (const incierto of [xml, documento.replace(origen, uuid), documento.replace('TipoRelacion="04"', 'TipoRelacion="01"'),
+    documento.replace(relacionado, relacionado.repeat(2))]) {
+    assertThrows(() => conciliarCfdiIsr(sustitucion, claim, remoto, incierto), Error, "cfdi_sustitucion_relacion_no_coincide");
+  }
+});
