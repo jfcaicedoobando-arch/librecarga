@@ -31,8 +31,17 @@ BEGIN
     RETURN NEW;
   END IF;
   IF OLD.origen_fiscal IS NULL AND NEW.origen_fiscal IS NOT NULL AND v_propietario
-    AND v_factura.origen = 'manual' AND v_factura.deleted_at IS NULL AND v_factura.evaluacion_fiscal IS NOT NULL
-    AND OLD.deleted_at IS NULL AND (NEW.origen_fiscal->>'captura_id')::uuid = OLD.id
+    AND v_factura.deleted_at IS NULL AND v_factura.evaluacion_fiscal IS NOT NULL AND OLD.deleted_at IS NULL
+    AND ((v_factura.origen='manual' AND (NEW.origen_fiscal->>'captura_id')::uuid=OLD.id
+        AND NOT v_factura.evaluacion_fiscal ? 'origen_reemplazo') OR EXISTS (
+      SELECT 1 FROM public.conceptos_factura original WHERE original.id=(NEW.origen_fiscal->>'concepto_original_id')::uuid
+        AND original.factura_id=(v_factura.evaluacion_fiscal#>>'{origen_reemplazo,factura_id}')::uuid
+        AND original.factura_id=(NEW.origen_fiscal->>'factura_original_id')::uuid
+        AND original.organization_id=NEW.organization_id AND original.deleted_at IS NULL
+        AND (original.cantidad,original.precio_unitario,original.moneda,original.tasa_ret_iva)
+          IS NOT DISTINCT FROM (NEW.cantidad,NEW.precio_unitario,NEW.moneda,NEW.tasa_ret_iva)
+        AND (NEW.origen_fiscal->'origen_previo') IS NOT DISTINCT FROM COALESCE(original.origen_fiscal,'null'::jsonb)
+    ))
     AND NEW.tasa_ret_isr = (NEW.origen_fiscal#>>'{evaluacion,tasa_ret_isr}')::numeric
     AND NEW.monto_ret_isr = (NEW.origen_fiscal#>>'{evaluacion,monto_ret_isr}')::numeric
     AND NEW.cantidad * NEW.precio_unitario = (NEW.origen_fiscal#>>'{evaluacion,base_exacta}')::numeric

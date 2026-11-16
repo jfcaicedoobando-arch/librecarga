@@ -113,6 +113,11 @@ DECLARE
   claim text;
   claim_nc text;
   claim_rep text;
+  sustituta uuid;
+  cliente_pf uuid := gen_random_uuid();
+  caso_refact uuid;
+  refacturada uuid;
+  original_snapshot jsonb;
   folio_uuid constant text := '9DB0A395-76FD-42AE-8DB9-67F9EACD68F1';
   fecha date := public.fecha_negocio_mx();
 BEGIN
@@ -318,6 +323,47 @@ BEGIN
   PERFORM pg_temp.assert((SELECT (sum(ret_isr),sum(ret_iva))=(1.63,5.22)
     FROM public.pagos_factura WHERE factura_id=factura AND NOT public.pago_rep_anulado(estado_rep)),
     'active collections plus both credits reconcile to the issued amounts');
+
+  PERFORM pg_temp.as_user(fx.admin_a);
+  SELECT snapshot_emision INTO original_snapshot FROM public.facturas WHERE id=factura;
+  sustituta := public.duplicar_factura_para_sustitucion(factura);
+  captura := public.prevalidar_emision_isr_factura(sustituta);
+  PERFORM pg_temp.assert(captura->>'sustituye_uuid'=folio_uuid AND captura#>>'{totales,total}'='222.39',
+    'the replacement preflight binds the original UUID and both withholdings');
+  PERFORM pg_temp.assert((SELECT count(*)=2 FROM public.conceptos_factura c JOIN public.conceptos_factura anterior
+    ON anterior.id=(c.origen_fiscal->>'concepto_original_id')::uuid WHERE c.factura_id=sustituta
+    AND anterior.factura_id=factura AND c.origen_fiscal->'origen_previo'=anterior.origen_fiscal),
+    'replacement lines preserve both the original line and its prior lineage');
+  PERFORM pg_temp.as_postgres();
+  PERFORM pg_temp.as_service_role();
+  PERFORM set_config('role','service_role',true);
+  claim := public.reservar_timbrado_isr(sustituta,fx.admin_a,captura,captura->'emisor')->>'claim';
+  evidencia := jsonb_build_object('facturapi_id','inv-resico82-sust','uuid','9DB0A395-76FD-42AE-8DB9-67F9EACD68F8',
+    'external_id',claim,'ambiente','sandbox','facturapi_org_id','org-resico79-qa','moneda','MXN','total',222.39,'folio',82,'serie','QA',
+    'xml',jsonb_build_object('uuid','9DB0A395-76FD-42AE-8DB9-67F9EACD68F8','emisor_rfc','GODE561231GR8','emisor_regimen','626',
+      'receptor_rfc','EKU9003173C9','receptor_regimen','601','totales',captura->'totales','uso_cfdi','G03','sha256',repeat('d',64),
+      'ruta',fx.org_a::text||'/emitidas/9DB0A395-76FD-42AE-8DB9-67F9EACD68F8.xml'));
+  PERFORM pg_temp.assert(public.registrar_resultado_timbrado_isr(sustituta,claim,'confirmado',evidencia)->>'estado'='conciliacion',
+    'a replacement cannot confirm without verified relation 04');
+  evidencia := jsonb_set(evidencia,'{xml,sustituye_uuid}',to_jsonb(folio_uuid));
+  PERFORM pg_temp.assert(public.registrar_resultado_timbrado_isr(sustituta,claim,'confirmado',evidencia)->>'estado'='confirmado',
+    'verified relation 04 confirms the same reservation');
+  PERFORM pg_temp.assert((SELECT snapshot_emision=original_snapshot AND sustituida_por=sustituta FROM public.facturas WHERE id=factura),
+    'replacement keeps the original fiscal snapshot and links to the new invoice');
+
+  PERFORM pg_temp.as_postgres();
+  INSERT INTO public.clientes(id,organization_id,nombre,rfc,regimen_fiscal,codigo_postal,email)
+    VALUES(cliente_pf,fx.org_a,'PF QA','AIMA780113AB7','612','01010','resico82-pf@qa.invalid');
+  PERFORM pg_temp.as_user(fx.admin_a);
+  caso_refact := public.abrir_caso_refacturacion(factura,cliente_pf,'02','QA corrección de receptor');
+  refacturada := public.duplicar_factura_para_refacturacion(caso_refact);
+  PERFORM pg_temp.assert(public.duplicar_factura_para_refacturacion(caso_refact)=refacturada,'refacturation retry reuses its draft');
+  captura := public.prevalidar_emision_isr_factura(refacturada);
+  PERFORM pg_temp.assert(NOT (captura ? 'sustituye_uuid') AND captura#>>'{receptor,rfc}'='AIMA780113AB7'
+    AND (captura#>>'{totales,ret_isr}')::numeric=0 AND (captura#>>'{totales,ret_iva}')::numeric=8.03
+    AND (captura#>>'{totales,total}')::numeric=224.90,'route 02 reevaluates ISR for the new PF recipient');
+  PERFORM pg_temp.assert(public.refacturacion_validar_consistencia(caso_refact)->>'ok'='true',
+    'the refacturation wizard accepts the approved difference in ISR');
 END;
 $$;
 ROLLBACK;

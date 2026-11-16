@@ -2310,6 +2310,91 @@ BEGIN
   END IF;
 END;
 $$;
+CREATE FUNCTION public._copiar_conceptos_factura_reemplazo(p_nueva_id uuid, p_original_id uuid, p_caso_id uuid) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_new public.facturas;
+  v_old public.facturas;
+  v_cliente public.clientes;
+  v_caso public.refacturaciones;
+  v_lineas jsonb;
+  v_calculo jsonb;
+  v_snapshot jsonb;
+  v_bloque jsonb;
+  v_origen jsonb;
+  v_ret_iva numeric;
+  v_habilitado boolean;
+BEGIN
+  SELECT * INTO STRICT v_new FROM public.facturas WHERE id=p_nueva_id AND deleted_at IS NULL;
+  SELECT * INTO STRICT v_old FROM public.facturas WHERE id=p_original_id AND organization_id=v_new.organization_id
+    AND deleted_at IS NULL FOR UPDATE;
+  v_habilitado := public._isr_documento_habilitado(v_new.organization_id);
+  IF NOT v_habilitado AND v_old.evaluacion_fiscal IS NOT NULL THEN
+    RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE='23514';
+  END IF;
+  SELECT jsonb_agg(jsonb_build_object('id',gen_random_uuid(),'concepto_original_id',c.id,
+    'cantidad',c.cantidad,'precio_unitario',c.precio_unitario,'moneda',c.moneda,
+    'tipo_iva',c.tipo_iva,'tasa_iva_aplicada',c.tasa_iva_aplicada) ORDER BY c.id)
+  INTO v_lineas FROM public.conceptos_factura c WHERE c.factura_id=p_original_id
+    AND c.organization_id=v_new.organization_id AND c.deleted_at IS NULL;
+  INSERT INTO public.conceptos_factura (id,factura_id,organization_id,
+    descripcion,cantidad,precio_unitario,moneda,total,clave_sat,tipo_iva,tasa_iva_aplicada,
+    tasa_ret_isr,tasa_ret_iva,monto_ret_isr,monto_ret_iva,clave_unidad,embarque_id,proforma_id_origen)
+  SELECT (l->>'id')::uuid,p_nueva_id,v_new.organization_id,c.descripcion,c.cantidad,c.precio_unitario,c.moneda,c.total,
+    c.clave_sat,c.tipo_iva,c.tasa_iva_aplicada,c.tasa_ret_isr,c.tasa_ret_iva,c.monto_ret_isr,c.monto_ret_iva,
+    c.clave_unidad,c.embarque_id,c.proforma_id_origen
+  FROM jsonb_array_elements(v_lineas) l JOIN public.conceptos_factura c ON c.id=(l->>'concepto_original_id')::uuid;
+  IF NOT v_habilitado THEN RETURN; END IF;
+  SELECT * INTO v_cliente FROM public.clientes WHERE id=v_new.cliente_id AND organization_id=v_new.organization_id
+    AND deleted_at IS NULL FOR SHARE;
+  IF v_cliente.id IS NULL OR v_old.uuid_fiscal IS NULL OR v_lineas IS NULL
+    OR upper(btrim(v_cliente.rfc)) IS DISTINCT FROM upper(btrim(v_new.rfc_cliente))
+    OR EXISTS (SELECT 1 FROM public.conceptos_factura c WHERE c.factura_id=p_nueva_id AND
+      (c.moneda<>v_new.moneda OR c.tasa_ret_iva NOT BETWEEN 0 AND 1
+        OR (c.tipo_iva IN ('no_objeto','exento','tasa_0') AND c.tasa_ret_iva<>0))) THEN
+    RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE='23514';
+  END IF;
+  IF p_caso_id IS NOT NULL THEN
+    SELECT * INTO STRICT v_caso FROM public.refacturaciones WHERE id=p_caso_id AND organization_id=v_new.organization_id
+      AND factura_original_id=p_original_id AND factura_nueva_id=p_nueva_id AND cliente_destino_id=v_new.cliente_id;
+  END IF;
+  IF v_new.sustituye_a IS DISTINCT FROM (CASE WHEN COALESCE(v_caso.ruta_fiscal,'01')='01' THEN p_original_id END) THEN
+    RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE='23514';
+  END IF;
+  IF v_new.sustituye_a IS NOT NULL AND upper(btrim(v_new.rfc_cliente)) IS DISTINCT FROM
+    upper(btrim(COALESCE(v_old.snapshot_emision#>>'{cliente_snapshot,rfc}',v_old.rfc_cliente))) THEN
+    RAISE EXCEPTION 'LC_ISR_SUSTITUCION_RECEPTOR' USING ERRCODE='23514';
+  END IF;
+  v_calculo := public._evaluar_documento_isr_resico(v_new.organization_id,v_new.cliente_id,v_lineas);
+  v_snapshot := v_calculo->'snapshot';
+  v_bloque := v_snapshot#>'{bloques,0}';
+  SELECT t.ret_iva INTO v_ret_iva FROM public._totales_factura_resico_agrupados(p_nueva_id) t;
+  IF v_snapshot->>'estado' IS DISTINCT FROM 'confirmado' OR (v_bloque->>'total')::numeric<=v_ret_iva THEN
+    RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE='23514';
+  END IF;
+  v_bloque := v_bloque || jsonb_build_object('ret_iva',v_ret_iva,'total',(v_bloque->>'total')::numeric-v_ret_iva);
+  v_origen := jsonb_build_object('factura_id',p_original_id,'uuid',upper(v_old.uuid_fiscal),'caso_id',p_caso_id,
+    'ruta',COALESCE(v_caso.ruta_fiscal,'01'),'ambiente',v_old.ambiente);
+  v_snapshot := v_snapshot || jsonb_build_object('factura_id',p_nueva_id,'origen_reemplazo',v_origen,
+    'bloques',jsonb_build_array(v_bloque),'emisor',v_calculo#>'{conceptos,0,evaluacion_fiscal,emisor}',
+    'receptor',v_calculo#>'{conceptos,0,evaluacion_fiscal,receptor}' || jsonb_build_object('regimen_fiscal',v_cliente.regimen_fiscal));
+  UPDATE public.facturas SET evaluacion_fiscal=v_snapshot WHERE id=p_nueva_id;
+  UPDATE public.conceptos_factura c SET tasa_ret_isr=(l->>'tasa_ret_isr')::numeric,
+    total=(l#>>'{evaluacion_fiscal,base}')::numeric,
+    origen_fiscal=jsonb_build_object('factura_original_id',p_original_id,'concepto_original_id',o.id,
+      'origen_previo',o.origen_fiscal,'evaluacion',l->'evaluacion_fiscal')
+  FROM jsonb_array_elements(v_calculo->'conceptos') l
+  JOIN public.conceptos_factura o ON o.id=(l->>'concepto_original_id')::uuid
+  WHERE c.id=(l->>'id')::uuid AND c.factura_id=p_nueva_id AND c.organization_id=v_new.organization_id;
+  IF NOT EXISTS (SELECT 1 FROM public.facturas f WHERE f.id=p_nueva_id AND
+      (f.subtotal,f.iva,f.ret_isr,f.ret_iva,f.total)=((v_bloque->>'subtotal')::numeric,(v_bloque->>'iva')::numeric,
+        (v_bloque->>'ret_isr')::numeric,(v_bloque->>'ret_iva')::numeric,(v_bloque->>'total')::numeric)) THEN
+    RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE='23514';
+  END IF;
+END;
+$$;
 CREATE FUNCTION public._costeo_tarifa_solicitud_guard() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -6291,7 +6376,19 @@ BEGIN
   IF OLD.evaluacion_fiscal IS NULL AND NEW.evaluacion_fiscal IS NOT NULL
     AND v_propietario AND (to_jsonb(NEW) - ARRAY['evaluacion_fiscal','updated_at'])
       IS NOT DISTINCT FROM (to_jsonb(OLD) - ARRAY['evaluacion_fiscal','updated_at'])
-    AND OLD.origen = 'manual' AND OLD.deleted_at IS NULL AND OLD.proforma_id IS NULL AND OLD.embarque_id IS NULL
+    AND OLD.deleted_at IS NULL AND ((OLD.origen = 'manual' AND OLD.proforma_id IS NULL AND OLD.embarque_id IS NULL
+      AND OLD.sustituye_a IS NULL AND NOT NEW.evaluacion_fiscal ? 'origen_reemplazo') OR EXISTS (
+      SELECT 1 FROM public.facturas original WHERE original.id=(NEW.evaluacion_fiscal#>>'{origen_reemplazo,factura_id}')::uuid
+        AND original.organization_id=OLD.organization_id AND original.deleted_at IS NULL
+        AND upper(original.uuid_fiscal)=NEW.evaluacion_fiscal#>>'{origen_reemplazo,uuid}'
+        AND ((OLD.sustituye_a=original.id AND original.sustituida_por=OLD.id
+            AND NEW.evaluacion_fiscal#>>'{origen_reemplazo,ruta}'='01') OR EXISTS (
+          SELECT 1 FROM public.refacturaciones caso WHERE caso.id=(NEW.evaluacion_fiscal#>>'{origen_reemplazo,caso_id}')::uuid
+            AND caso.organization_id=OLD.organization_id AND caso.factura_nueva_id=OLD.id
+            AND caso.factura_original_id=original.id AND caso.cliente_destino_id=OLD.cliente_id
+            AND caso.ruta_fiscal='02' AND OLD.sustituye_a IS NULL
+            AND NEW.evaluacion_fiscal#>>'{origen_reemplazo,ruta}'='02'
+        ))))
     AND OLD.estado = 'Borrador' AND OLD.uuid_fiscal IS NULL AND OLD.facturapi_id IS NULL AND OLD.snapshot_emision IS NULL
     AND (NEW.evaluacion_fiscal->>'factura_id')::uuid = OLD.id
     AND (NEW.evaluacion_fiscal->>'organization_id')::uuid = OLD.organization_id
@@ -6537,8 +6634,17 @@ BEGIN
     RETURN NEW;
   END IF;
   IF OLD.origen_fiscal IS NULL AND NEW.origen_fiscal IS NOT NULL AND v_propietario
-    AND v_factura.origen = 'manual' AND v_factura.deleted_at IS NULL AND v_factura.evaluacion_fiscal IS NOT NULL
-    AND OLD.deleted_at IS NULL AND (NEW.origen_fiscal->>'captura_id')::uuid = OLD.id
+    AND v_factura.deleted_at IS NULL AND v_factura.evaluacion_fiscal IS NOT NULL AND OLD.deleted_at IS NULL
+    AND ((v_factura.origen='manual' AND (NEW.origen_fiscal->>'captura_id')::uuid=OLD.id
+        AND NOT v_factura.evaluacion_fiscal ? 'origen_reemplazo') OR EXISTS (
+      SELECT 1 FROM public.conceptos_factura original WHERE original.id=(NEW.origen_fiscal->>'concepto_original_id')::uuid
+        AND original.factura_id=(v_factura.evaluacion_fiscal#>>'{origen_reemplazo,factura_id}')::uuid
+        AND original.factura_id=(NEW.origen_fiscal->>'factura_original_id')::uuid
+        AND original.organization_id=NEW.organization_id AND original.deleted_at IS NULL
+        AND (original.cantidad,original.precio_unitario,original.moneda,original.tasa_ret_iva)
+          IS NOT DISTINCT FROM (NEW.cantidad,NEW.precio_unitario,NEW.moneda,NEW.tasa_ret_iva)
+        AND (NEW.origen_fiscal->'origen_previo') IS NOT DISTINCT FROM COALESCE(original.origen_fiscal,'null'::jsonb)
+    ))
     AND NEW.tasa_ret_isr = (NEW.origen_fiscal#>>'{evaluacion,tasa_ret_isr}')::numeric
     AND NEW.monto_ret_isr = (NEW.origen_fiscal#>>'{evaluacion,monto_ret_isr}')::numeric
     AND NEW.cantidad * NEW.precio_unitario = (NEW.origen_fiscal#>>'{evaluacion,base_exacta}')::numeric
@@ -7222,6 +7328,8 @@ DECLARE
   v_evaluacion jsonb;
   v_bloque jsonb;
   v_totales record;
+  v_original public.facturas;
+  v_sustituye_uuid text;
 BEGIN
   SELECT * INTO STRICT v_factura FROM public.facturas WHERE id = p_factura_id AND deleted_at IS NULL;
   IF v_factura.evaluacion_fiscal IS NULL THEN
@@ -7253,6 +7361,23 @@ BEGIN
     OR (v_documento->'receptor' ? 'regimen_fiscal'
       AND v_documento#>>'{receptor,regimen_fiscal}' IS DISTINCT FROM v_cliente.regimen_fiscal) THEN
     RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE = '23514';
+  END IF;
+  IF v_factura.sustituye_a IS NOT NULL THEN
+    SELECT * INTO v_original FROM public.facturas WHERE id=v_factura.sustituye_a
+      AND organization_id=v_factura.organization_id AND deleted_at IS NULL;
+    IF v_original.uuid_fiscal IS NULL OR v_original.sustituida_por IS DISTINCT FROM v_factura.id
+      OR v_original.estado IN ('Borrador','Cancelada','Sustituida')
+      OR (v_original.ambiente IS NOT NULL AND v_original.ambiente::text IS DISTINCT FROM v_cred.ambiente)
+      OR upper(btrim(COALESCE(v_original.snapshot_emision#>>'{cliente_snapshot,rfc}',v_original.rfc_cliente)))
+        IS DISTINCT FROM v_documento#>>'{receptor,rfc}'
+      OR (v_original.evaluacion_fiscal IS NOT NULL AND (
+        v_original.snapshot_emision#>>'{organizacion_snapshot,rfc}' IS DISTINCT FROM v_perfil.rfc
+        OR v_original.snapshot_emision#>>'{organizacion_snapshot,facturapi_org_id}' IS DISTINCT FROM v_perfil.facturapi_org_id))
+      OR v_documento#>>'{origen_reemplazo,factura_id}' IS DISTINCT FROM v_original.id::text
+      OR v_documento#>>'{origen_reemplazo,uuid}' IS DISTINCT FROM upper(v_original.uuid_fiscal) THEN
+      RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE = '23514';
+    END IF;
+    v_sustituye_uuid := upper(v_original.uuid_fiscal);
   END IF;
   SELECT jsonb_agg(jsonb_build_object('id', c.id, 'cantidad', c.cantidad, 'precio_unitario', c.precio_unitario,
     'moneda', c.moneda, 'tipo_iva', c.tipo_iva, 'tasa_iva_aplicada', c.tasa_iva_aplicada, 'descripcion', c.descripcion,
@@ -7297,7 +7422,8 @@ BEGIN
       'razon_social', v_perfil.razon_social),
     'receptor', jsonb_build_object('rfc', upper(btrim(v_cliente.rfc)), 'regimen_fiscal', v_cliente.regimen_fiscal,
       'nombre', v_cliente.nombre, 'codigo_postal', v_cliente.codigo_postal, 'direccion', v_cliente.direccion,
-      'ciudad', v_cliente.ciudad, 'estado', v_cliente.estado));
+      'ciudad', v_cliente.ciudad, 'estado', v_cliente.estado))
+    || CASE WHEN v_sustituye_uuid IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('sustituye_uuid',v_sustituye_uuid) END;
 END;
 $$;
 CREATE FUNCTION public._isr_snapshot_documento(p_org_id uuid, p_cliente_id uuid, p_ambiente text, p_conceptos jsonb) RETURNS jsonb
@@ -23125,11 +23251,13 @@ BEGIN
       RETURN v_c.factura_nueva_id;
     END IF;
   END IF;
-  SELECT * INTO v_old FROM public.facturas WHERE id = v_c.factura_original_id;
+  SELECT * INTO v_old FROM public.facturas WHERE id = v_c.factura_original_id AND organization_id=v_c.organization_id
+    AND deleted_at IS NULL FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'LC_REFACT_FACTURA_NO_ENCONTRADA' USING ERRCODE = 'P0002';
   END IF;
-  SELECT * INTO v_cli FROM public.clientes WHERE id = v_c.cliente_destino_id;
+  SELECT * INTO v_cli FROM public.clientes WHERE id = v_c.cliente_destino_id AND organization_id=v_c.organization_id
+    AND deleted_at IS NULL;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'LC_REFACT_CLIENTE_DESTINO: el cliente destino no existe' USING ERRCODE = 'P0002';
   END IF;
@@ -23182,31 +23310,21 @@ BEGIN
     CASE WHEN v_c.ruta_fiscal = '01' THEN v_old.id ELSE NULL END
   );
   IF v_c.ruta_fiscal = '01' THEN
+    IF EXISTS (SELECT 1 FROM public.facturas s WHERE s.id=v_old.sustituida_por AND s.deleted_at IS NULL
+      AND s.estado NOT IN ('Cancelada','Sustituida')) THEN
+      RAISE EXCEPTION 'factura_ya_sustituida' USING ERRCODE='P0001';
+    END IF;
     UPDATE public.facturas SET sustituida_por = v_new_id WHERE id = v_old.id;
   END IF;
-  INSERT INTO public.conceptos_factura (
-    factura_id, organization_id,
-    descripcion, cantidad, precio_unitario, moneda, total,
-    clave_sat, tipo_iva, tasa_iva_aplicada,
-    tasa_ret_isr, tasa_ret_iva, monto_ret_isr, monto_ret_iva,
-    clave_unidad, embarque_id, proforma_id_origen
-  )
-  SELECT
-    v_new_id, v_old.organization_id,
-    descripcion, cantidad, precio_unitario, moneda, total,
-    clave_sat, tipo_iva, tasa_iva_aplicada,
-    tasa_ret_isr, tasa_ret_iva, monto_ret_isr, monto_ret_iva,
-    clave_unidad, embarque_id, proforma_id_origen
-  FROM public.conceptos_factura
-  WHERE factura_id = v_old.id AND deleted_at IS NULL;
+  UPDATE public.refacturaciones
+     SET factura_nueva_id = v_new_id, paso_actual = GREATEST(paso_actual, 3)
+   WHERE id = p_caso_id;
+  PERFORM public._copiar_conceptos_factura_reemplazo(v_new_id,v_old.id,p_caso_id);
   INSERT INTO public.factura_embarques (factura_id, embarque_id, organization_id, activa)
   SELECT v_new_id, embarque_id, organization_id, true
   FROM public.factura_embarques
   WHERE factura_id = v_old.id
   ON CONFLICT DO NOTHING;
-  UPDATE public.refacturaciones
-     SET factura_nueva_id = v_new_id, paso_actual = GREATEST(paso_actual, 3)
-   WHERE id = p_caso_id;
   v_factor := CASE WHEN COALESCE(v_old.tipo_cambio, 0) > 0 AND v_tc_nuevo IS NOT NULL
                    THEN ROUND(v_tc_nuevo / v_old.tipo_cambio, 6) ELSE NULL END;
   INSERT INTO public.bitacora_actividad (
@@ -23273,7 +23391,7 @@ BEGIN
     cotizacion_id, embarque_id, proforma_id,
     numero, serie, serie_id,
     fecha_emision, fecha_vencimiento, dias_credito,
-    moneda, tipo_cambio, subtotal, iva, total,
+    moneda, tipo_cambio, subtotal, iva, ret_isr, ret_iva, total,
     metodo_pago, forma_pago, uso_cfdi, rfc_cliente,
     notas, referencia_bl,
     snapshot_emision,
@@ -23284,7 +23402,7 @@ BEGIN
     v_old.cotizacion_id, v_old.embarque_id, v_old.proforma_id,
     v_new_numero, v_old.serie, v_old.serie_id,
     CURRENT_DATE, CURRENT_DATE + COALESCE(v_old.dias_credito, 0), v_old.dias_credito,
-    v_old.moneda, v_old.tipo_cambio, v_old.subtotal, v_old.iva, v_old.total,
+    v_old.moneda, v_old.tipo_cambio, v_old.subtotal, v_old.iva, v_old.ret_isr, v_old.ret_iva, v_old.total,
     v_old.metodo_pago, v_old.forma_pago, v_old.uso_cfdi, v_old.rfc_cliente,
     COALESCE(v_old.notas, '') || E'\n[Sustituye a ' || v_old.numero || ']',
     v_old.referencia_bl,
@@ -23293,22 +23411,7 @@ BEGIN
     v_old.id
   );
   UPDATE public.facturas SET sustituida_por = v_new_id WHERE id = v_old.id;
-  INSERT INTO public.conceptos_factura (
-    factura_id, organization_id,
-    descripcion, cantidad, precio_unitario, moneda, total,
-    clave_sat, tipo_iva, tasa_iva_aplicada,
-    tasa_ret_isr, tasa_ret_iva, monto_ret_isr, monto_ret_iva,
-    clave_unidad, embarque_id, proforma_id_origen
-  )
-  SELECT
-    v_new_id, v_old.organization_id,
-    descripcion, cantidad, precio_unitario, moneda, total,
-    clave_sat, tipo_iva, tasa_iva_aplicada,
-    tasa_ret_isr, tasa_ret_iva, monto_ret_isr, monto_ret_iva,
-    clave_unidad, embarque_id, proforma_id_origen
-  FROM public.conceptos_factura
-  WHERE factura_id = v_old.id
-    AND deleted_at IS NULL;
+  PERFORM public._copiar_conceptos_factura_reemplazo(v_new_id,v_old.id,NULL);
   -- Copiar los vínculos con embarques (tabla puente) al borrador sustituto.
   -- La original queda con activa=false al cancelarse; la nueva nace activa.
   INSERT INTO public.factura_embarques (factura_id, embarque_id, organization_id, activa)
@@ -34430,6 +34533,7 @@ DECLARE
   v_sum_new numeric;
   v_dif int;
   v_pago numeric;
+  v_isr_destino boolean;
 BEGIN
   SELECT * INTO v_c FROM public.refacturaciones WHERE id = p_caso_id;
   IF NOT FOUND THEN
@@ -34446,6 +34550,12 @@ BEGIN
     );
   END IF;
   SELECT * INTO v_new FROM public.facturas WHERE id = v_c.factura_nueva_id;
+  v_isr_destino := COALESCE(v_c.ruta_fiscal='02' AND v_new.evaluacion_fiscal->>'estado'='confirmado'
+    AND v_new.evaluacion_fiscal#>>'{origen_reemplazo,caso_id}'=v_c.id::text
+    AND v_new.evaluacion_fiscal#>>'{origen_reemplazo,factura_id}'=v_old.id::text
+    AND v_new.evaluacion_fiscal#>>'{origen_reemplazo,ruta}'='02'
+    AND v_new.ret_isr=(v_new.evaluacion_fiscal#>>'{bloques,0,ret_isr}')::numeric
+    AND v_new.total=(v_new.evaluacion_fiscal#>>'{bloques,0,total}')::numeric,false);
   -- Receptor
   IF NOT public._rfc_valido(v_new.rfc_cliente, false) THEN
     v_h := v_h || jsonb_build_object('codigo', 'LC_REFACT_RFC_INVALIDO',
@@ -34469,12 +34579,13 @@ BEGIN
     v_h := v_h || jsonb_build_object('codigo', 'LC_REFACT_TOTAL_INCONSISTENTE',
       'mensaje', 'El subtotal de la nueva factura no coincide con el de la original.');
   END IF;
-  IF ROUND(COALESCE(v_new.total, 0), 2) <> ROUND(COALESCE(v_old.total, 0), 2) THEN
+  IF ROUND(COALESCE(v_new.total, 0) + CASE WHEN v_isr_destino THEN COALESCE(v_new.ret_isr,0) ELSE 0 END, 2)
+    <> ROUND(COALESCE(v_old.total, 0) + CASE WHEN v_isr_destino THEN COALESCE(v_old.ret_isr,0) ELSE 0 END, 2) THEN
     v_h := v_h || jsonb_build_object('codigo', 'LC_REFACT_TOTAL_INCONSISTENTE',
       'mensaje', 'El total de la nueva factura no coincide con el de la original.');
   END IF;
   IF ROUND(COALESCE(v_new.iva, 0), 2) <> ROUND(COALESCE(v_old.iva, 0), 2)
-     OR ROUND(COALESCE(v_new.ret_isr, 0), 2) <> ROUND(COALESCE(v_old.ret_isr, 0), 2)
+     OR (NOT v_isr_destino AND ROUND(COALESCE(v_new.ret_isr, 0), 2) <> ROUND(COALESCE(v_old.ret_isr, 0), 2))
      OR ROUND(COALESCE(v_new.ret_iva, 0), 2) <> ROUND(COALESCE(v_old.ret_iva, 0), 2) THEN
     v_h := v_h || jsonb_build_object('codigo', 'LC_REFACT_IMPUESTOS_INCONSISTENTES',
       'mensaje', 'Los impuestos trasladados o las retenciones no coinciden con la factura original.');
@@ -34489,11 +34600,11 @@ BEGIN
       'mensaje', 'La suma de los conceptos de la nueva factura no coincide con la original.');
   END IF;
   SELECT COUNT(*) INTO v_dif FROM (
-    SELECT clave_sat, tipo_iva, tasa_iva_aplicada, tasa_ret_isr, tasa_ret_iva, COUNT(*) AS n
+    SELECT clave_sat, tipo_iva, tasa_iva_aplicada, CASE WHEN v_isr_destino THEN 0 ELSE tasa_ret_isr END, tasa_ret_iva, COUNT(*) AS n
       FROM public.conceptos_factura WHERE factura_id = v_old.id AND deleted_at IS NULL
       GROUP BY 1,2,3,4,5
     EXCEPT
-    SELECT clave_sat, tipo_iva, tasa_iva_aplicada, tasa_ret_isr, tasa_ret_iva, COUNT(*) AS n
+    SELECT clave_sat, tipo_iva, tasa_iva_aplicada, CASE WHEN v_isr_destino THEN 0 ELSE tasa_ret_isr END, tasa_ret_iva, COUNT(*) AS n
       FROM public.conceptos_factura WHERE factura_id = v_new.id AND deleted_at IS NULL
       GROUP BY 1,2,3,4,5
   ) d;
@@ -36005,6 +36116,7 @@ BEGIN
       OR v_xml->>'emisor_regimen' IS DISTINCT FROM v_intento.prevalidacion#>>'{emisor,regimen_fiscal}'
       OR v_xml->>'receptor_rfc' IS DISTINCT FROM v_intento.prevalidacion#>>'{receptor,rfc}'
       OR v_xml->>'receptor_regimen' IS DISTINCT FROM v_intento.prevalidacion#>>'{receptor,regimen_fiscal}'
+      OR v_xml->>'sustituye_uuid' IS DISTINCT FROM v_intento.prevalidacion->>'sustituye_uuid'
       OR v_xml->'totales' IS DISTINCT FROM v_intento.prevalidacion->'totales'
       OR v_xml->>'ruta' IS DISTINCT FROM v_ruta OR COALESCE(v_xml->>'sha256','') !~ '^[a-f0-9]{64}$'
       OR COALESCE(p_resultado->>'folio','') !~ '^[1-9][0-9]{0,14}$'
@@ -46420,6 +46532,7 @@ REVOKE ALL ON FUNCTION public._comision_kam_broker() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._convertir_proformas_insertar_conceptos(p_factura_id uuid, p_proforma_ids uuid[], p_org uuid, p_es_consolidada boolean, p_moneda public.moneda) FROM PUBLIC;
 GRANT ALL ON FUNCTION public._convertir_proformas_insertar_conceptos(p_factura_id uuid, p_proforma_ids uuid[], p_org uuid, p_es_consolidada boolean, p_moneda public.moneda) TO service_role;
 GRANT ALL ON FUNCTION public._convertir_proformas_insertar_conceptos(p_factura_id uuid, p_proforma_ids uuid[], p_org uuid, p_es_consolidada boolean, p_moneda public.moneda) TO authenticated;
+REVOKE ALL ON FUNCTION public._copiar_conceptos_factura_reemplazo(p_nueva_id uuid, p_original_id uuid, p_caso_id uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._costeo_tarifa_solicitud_guard() FROM PUBLIC;
 GRANT ALL ON FUNCTION public._costeo_tarifa_solicitud_guard() TO service_role;
 REVOKE ALL ON FUNCTION public._cotizacion_autorizacion_guard() FROM PUBLIC;

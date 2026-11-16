@@ -42,7 +42,7 @@ export function PasoFacturaNueva(props: Props) {
         <div className="space-y-3">
           <p className="text-body">
             Se creará un borrador a nombre de <strong>{props.clienteDestinoNombre}</strong> con
-            los mismos conceptos e importes de la factura original.
+            los conceptos de la factura original. Con ISR automático, el cálculo usa los datos fiscales del receptor elegido.
           </p>
           <Button
             onClick={props.onDuplicar}

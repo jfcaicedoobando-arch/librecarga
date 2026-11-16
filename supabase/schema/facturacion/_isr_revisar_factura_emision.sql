@@ -13,6 +13,8 @@ DECLARE
   v_evaluacion jsonb;
   v_bloque jsonb;
   v_totales record;
+  v_original public.facturas;
+  v_sustituye_uuid text;
 BEGIN
   SELECT * INTO STRICT v_factura FROM public.facturas WHERE id = p_factura_id AND deleted_at IS NULL;
   IF v_factura.evaluacion_fiscal IS NULL THEN
@@ -45,6 +47,24 @@ BEGIN
     OR (v_documento->'receptor' ? 'regimen_fiscal'
       AND v_documento#>>'{receptor,regimen_fiscal}' IS DISTINCT FROM v_cliente.regimen_fiscal) THEN
     RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE = '23514';
+  END IF;
+
+  IF v_factura.sustituye_a IS NOT NULL THEN
+    SELECT * INTO v_original FROM public.facturas WHERE id=v_factura.sustituye_a
+      AND organization_id=v_factura.organization_id AND deleted_at IS NULL;
+    IF v_original.uuid_fiscal IS NULL OR v_original.sustituida_por IS DISTINCT FROM v_factura.id
+      OR v_original.estado IN ('Borrador','Cancelada','Sustituida')
+      OR (v_original.ambiente IS NOT NULL AND v_original.ambiente::text IS DISTINCT FROM v_cred.ambiente)
+      OR upper(btrim(COALESCE(v_original.snapshot_emision#>>'{cliente_snapshot,rfc}',v_original.rfc_cliente)))
+        IS DISTINCT FROM v_documento#>>'{receptor,rfc}'
+      OR (v_original.evaluacion_fiscal IS NOT NULL AND (
+        v_original.snapshot_emision#>>'{organizacion_snapshot,rfc}' IS DISTINCT FROM v_perfil.rfc
+        OR v_original.snapshot_emision#>>'{organizacion_snapshot,facturapi_org_id}' IS DISTINCT FROM v_perfil.facturapi_org_id))
+      OR v_documento#>>'{origen_reemplazo,factura_id}' IS DISTINCT FROM v_original.id::text
+      OR v_documento#>>'{origen_reemplazo,uuid}' IS DISTINCT FROM upper(v_original.uuid_fiscal) THEN
+      RAISE EXCEPTION 'LC_ISR_FACTURA_REVISION' USING ERRCODE = '23514';
+    END IF;
+    v_sustituye_uuid := upper(v_original.uuid_fiscal);
   END IF;
 
   SELECT jsonb_agg(jsonb_build_object('id', c.id, 'cantidad', c.cantidad, 'precio_unitario', c.precio_unitario,
@@ -91,6 +111,7 @@ BEGIN
       'razon_social', v_perfil.razon_social),
     'receptor', jsonb_build_object('rfc', upper(btrim(v_cliente.rfc)), 'regimen_fiscal', v_cliente.regimen_fiscal,
       'nombre', v_cliente.nombre, 'codigo_postal', v_cliente.codigo_postal, 'direccion', v_cliente.direccion,
-      'ciudad', v_cliente.ciudad, 'estado', v_cliente.estado));
+      'ciudad', v_cliente.ciudad, 'estado', v_cliente.estado))
+    || CASE WHEN v_sustituye_uuid IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('sustituye_uuid',v_sustituye_uuid) END;
 END;
 $$;

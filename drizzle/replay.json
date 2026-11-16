@@ -640,5 +640,13 @@
       "0081_isr_resico_timbrado_rep.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0082_isr_resico_reemplazo.sql",
+    "sha256": "af04b637e4ad3918e3ec0e4143c34bee3a4d902e1a039c91ebe017df9ef2f4fb",
+    "replays": [
+      "0082_isr_resico_reemplazo.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

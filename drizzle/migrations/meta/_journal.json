@@ -575,6 +575,13 @@
       "when": 1794694500016,
       "tag": "0081_isr_resico_timbrado_rep",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1794694500017,
+      "tag": "0082_isr_resico_reemplazo",
+      "breakpoints": true
     }
   ]
 }

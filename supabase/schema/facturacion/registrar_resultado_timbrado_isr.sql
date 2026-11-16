@@ -59,6 +59,7 @@ BEGIN
       OR v_xml->>'emisor_regimen' IS DISTINCT FROM v_intento.prevalidacion#>>'{emisor,regimen_fiscal}'
       OR v_xml->>'receptor_rfc' IS DISTINCT FROM v_intento.prevalidacion#>>'{receptor,rfc}'
       OR v_xml->>'receptor_regimen' IS DISTINCT FROM v_intento.prevalidacion#>>'{receptor,regimen_fiscal}'
+      OR v_xml->>'sustituye_uuid' IS DISTINCT FROM v_intento.prevalidacion->>'sustituye_uuid'
       OR v_xml->'totales' IS DISTINCT FROM v_intento.prevalidacion->'totales'
       OR v_xml->>'ruta' IS DISTINCT FROM v_ruta OR COALESCE(v_xml->>'sha256','') !~ '^[a-f0-9]{64}$'
       OR COALESCE(p_resultado->>'folio','') !~ '^[1-9][0-9]{0,14}$'

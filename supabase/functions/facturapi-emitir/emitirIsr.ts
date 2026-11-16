@@ -27,7 +27,8 @@ function mismoContexto(prevalidacion: BorradorIsrValidado, ctx: FacturaContext) 
     && receptor.nombre === ctx.receptor.legal_name && receptor.codigo_postal === ctx.receptor.address.zip
     && datos_factura?.uso_cfdi === ctx.uso_cfdi && datos_factura.forma_pago === ctx.forma_pago
     && datos_factura.metodo_pago === ctx.metodo_pago && (datos_factura.serie ?? null) === (ctx.serie ?? null)
-    && Number(datos_factura.tipo_cambio ?? 1) === ctx.tipo_cambio && totales?.moneda === ctx.moneda;
+    && Number(datos_factura.tipo_cambio ?? 1) === ctx.tipo_cambio && totales?.moneda === ctx.moneda
+    && (prevalidacion.captura.sustituye_uuid?.toUpperCase() ?? null) === (ctx.sustituye_uuid?.toUpperCase() ?? null);
 }
 
 function pendienteIsr(claim: string, conciliacion = false) {

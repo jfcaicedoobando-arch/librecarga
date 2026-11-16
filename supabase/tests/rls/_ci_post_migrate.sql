@@ -408,6 +408,7 @@ REVOKE ALL ON FUNCTION public.reservar_nota_credito_isr(uuid,uuid,uuid,timestamp
 REVOKE ALL ON TABLE public.intentos_rep_isr FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public._isr_guard_timbrado_rep(), public._isr_proyectar_retenciones_rep(public.facturas)
   FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public._copiar_conceptos_factura_reemplazo(uuid,uuid,uuid) FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.reservar_rep_isr(uuid,uuid,uuid,timestamptz,jsonb), public.obtener_intento_rep_isr(uuid,uuid,text),
   public.registrar_resultado_rep_isr(uuid,uuid,text,text,jsonb), public._isr_rep_confirmado_webhook(uuid,uuid,text,text,text)
   FROM PUBLIC,anon,authenticated;

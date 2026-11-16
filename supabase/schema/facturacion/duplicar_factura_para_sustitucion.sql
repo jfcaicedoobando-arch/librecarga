@@ -56,7 +56,7 @@ BEGIN
     cotizacion_id, embarque_id, proforma_id,
     numero, serie, serie_id,
     fecha_emision, fecha_vencimiento, dias_credito,
-    moneda, tipo_cambio, subtotal, iva, total,
+    moneda, tipo_cambio, subtotal, iva, ret_isr, ret_iva, total,
     metodo_pago, forma_pago, uso_cfdi, rfc_cliente,
     notas, referencia_bl,
     snapshot_emision,
@@ -67,7 +67,7 @@ BEGIN
     v_old.cotizacion_id, v_old.embarque_id, v_old.proforma_id,
     v_new_numero, v_old.serie, v_old.serie_id,
     CURRENT_DATE, CURRENT_DATE + COALESCE(v_old.dias_credito, 0), v_old.dias_credito,
-    v_old.moneda, v_old.tipo_cambio, v_old.subtotal, v_old.iva, v_old.total,
+    v_old.moneda, v_old.tipo_cambio, v_old.subtotal, v_old.iva, v_old.ret_isr, v_old.ret_iva, v_old.total,
     v_old.metodo_pago, v_old.forma_pago, v_old.uso_cfdi, v_old.rfc_cliente,
     COALESCE(v_old.notas, '') || E'\n[Sustituye a ' || v_old.numero || ']',
     v_old.referencia_bl,
@@ -78,22 +78,7 @@ BEGIN
 
   UPDATE public.facturas SET sustituida_por = v_new_id WHERE id = v_old.id;
 
-  INSERT INTO public.conceptos_factura (
-    factura_id, organization_id,
-    descripcion, cantidad, precio_unitario, moneda, total,
-    clave_sat, tipo_iva, tasa_iva_aplicada,
-    tasa_ret_isr, tasa_ret_iva, monto_ret_isr, monto_ret_iva,
-    clave_unidad, embarque_id, proforma_id_origen
-  )
-  SELECT
-    v_new_id, v_old.organization_id,
-    descripcion, cantidad, precio_unitario, moneda, total,
-    clave_sat, tipo_iva, tasa_iva_aplicada,
-    tasa_ret_isr, tasa_ret_iva, monto_ret_isr, monto_ret_iva,
-    clave_unidad, embarque_id, proforma_id_origen
-  FROM public.conceptos_factura
-  WHERE factura_id = v_old.id
-    AND deleted_at IS NULL;
+  PERFORM public._copiar_conceptos_factura_reemplazo(v_new_id,v_old.id,NULL);
 
   -- Copiar los vínculos con embarques (tabla puente) al borrador sustituto.
   -- La original queda con activa=false al cancelarse; la nueva nace activa.

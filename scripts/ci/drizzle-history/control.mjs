@@ -73,6 +73,7 @@ export const HISTORY = [
   { file: '0079_isr_resico_cobranza.sql', sha256: '1fc2d8d6ce3704a4523d8f71f287adedd931f6c4aceb85ace433d3d382461ef0', eligibleName: '20261115230000_isr_resico_cobranza.sql' },
   { file: '0080_isr_resico_timbrado_notas.sql', sha256: 'fe4f54521ba3e3d057e401cbf4608a5cc7d57e49cb040f1000940880c410e4d4', eligibleName: '20261116000000_isr_resico_timbrado_notas.sql' },
   { file: '0081_isr_resico_timbrado_rep.sql', sha256: '8d3027e3b135952bfd035470929b63f77ac82f07b719e17b22781f009a210a21', eligibleName: '20261116000100_isr_resico_timbrado_rep.sql' },
+  { file: '0082_isr_resico_reemplazo.sql', sha256: 'af04b637e4ad3918e3ec0e4143c34bee3a4d902e1a039c91ebe017df9ef2f4fb', eligibleName: '20261116000200_isr_resico_reemplazo.sql' },
 ];
 const ARCHIVED_METADATA = [
   [`${ARCHIVE}/meta/0022_snapshot.json`, '002a1cff39197fe3431f23193a4229e1c845cbcd0ab5eaa074efded812b0081d'],

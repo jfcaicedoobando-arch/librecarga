@@ -34,7 +34,19 @@ BEGIN
   IF OLD.evaluacion_fiscal IS NULL AND NEW.evaluacion_fiscal IS NOT NULL
     AND v_propietario AND (to_jsonb(NEW) - ARRAY['evaluacion_fiscal','updated_at'])
       IS NOT DISTINCT FROM (to_jsonb(OLD) - ARRAY['evaluacion_fiscal','updated_at'])
-    AND OLD.origen = 'manual' AND OLD.deleted_at IS NULL AND OLD.proforma_id IS NULL AND OLD.embarque_id IS NULL
+    AND OLD.deleted_at IS NULL AND ((OLD.origen = 'manual' AND OLD.proforma_id IS NULL AND OLD.embarque_id IS NULL
+      AND OLD.sustituye_a IS NULL AND NOT NEW.evaluacion_fiscal ? 'origen_reemplazo') OR EXISTS (
+      SELECT 1 FROM public.facturas original WHERE original.id=(NEW.evaluacion_fiscal#>>'{origen_reemplazo,factura_id}')::uuid
+        AND original.organization_id=OLD.organization_id AND original.deleted_at IS NULL
+        AND upper(original.uuid_fiscal)=NEW.evaluacion_fiscal#>>'{origen_reemplazo,uuid}'
+        AND ((OLD.sustituye_a=original.id AND original.sustituida_por=OLD.id
+            AND NEW.evaluacion_fiscal#>>'{origen_reemplazo,ruta}'='01') OR EXISTS (
+          SELECT 1 FROM public.refacturaciones caso WHERE caso.id=(NEW.evaluacion_fiscal#>>'{origen_reemplazo,caso_id}')::uuid
+            AND caso.organization_id=OLD.organization_id AND caso.factura_nueva_id=OLD.id
+            AND caso.factura_original_id=original.id AND caso.cliente_destino_id=OLD.cliente_id
+            AND caso.ruta_fiscal='02' AND OLD.sustituye_a IS NULL
+            AND NEW.evaluacion_fiscal#>>'{origen_reemplazo,ruta}'='02'
+        ))))
     AND OLD.estado = 'Borrador' AND OLD.uuid_fiscal IS NULL AND OLD.facturapi_id IS NULL AND OLD.snapshot_emision IS NULL
     AND (NEW.evaluacion_fiscal->>'factura_id')::uuid = OLD.id
     AND (NEW.evaluacion_fiscal->>'organization_id')::uuid = OLD.organization_id

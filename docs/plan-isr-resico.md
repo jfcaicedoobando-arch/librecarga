@@ -153,6 +153,8 @@ La 0080 concilia y recupera notas de crédito. La nota conserva la reserva hasta
 
 La 0081 incorpora el verificador del REP a emisión, recuperación manual y webhook. Antes de emitir se comprueban el UUID, la parcialidad, el saldo, la moneda y los grupos de impuestos del resumen de Facturapi. La confirmación guarda las retenciones del XML en la moneda de la factura y reajusta las estimaciones de los cobros sin REP. PostgreSQL 17.9 verificó $1.81 de IVA retenido en la parcialidad de $50 MXN y $1.44 en la de $2 USD aplicada por $40 MXN. La liquidación conserva saldo cero y suma $5.22 de IVA retenido con las dos parcialidades. Una discrepancia mantiene la reserva. La prueba verificó también la cancelación y el reemplazo de un REP.
 
+La 0082 conserva los conceptos y su procedencia al crear el borrador sustituto y genera una evaluación fiscal propia. La sustitución exige la relación 04 con el UUID original en el XML verificado. La ruta 02 reevalúa el ISR con el receptor elegido y conserva las tasas de IVA. En PostgreSQL 17.9, la sustituta mantuvo $222.39 y la refacturación a persona física dio $224.90, con $0 de ISR y $8.03 de IVA retenido. El CFDI original conservó su perfil y totales.
+
 1. Usar el neto aprobado en cartera y distinguir efectivo recibido de ISR retenido. Revisar `calc_pago_retenciones` con pagos parciales PPD, complemento de pago (REP), liquidación final, otra moneda y residuos de centavos. El pago toma los datos fiscales de la factura origen.
 2. Preservar tasas y `concepto_factura_id` en notas de crédito, limitar el crédito disponible y comprobar el efecto en cartera antes y después de un pago. Probar coexistencia de retenciones de ISR e IVA, cancelación y sustitución a partir de los datos fiscales de los CFDI originales.
 
@@ -192,4 +194,4 @@ Ejecutar pruebas de dominio, UI, PDF con el renderizador real, Deno y PostgreSQL
 
 ## Siguiente entrega
 
-Continuar con **5B** para verificar la sustitución de facturas y la cancelación en el ambiente histórico. La validación integral de 5A y 5B requiere cotejar la respuesta de Facturapi, el XML y el PDF con una identidad PF 626 aceptada por Facturapi sandbox y la llave de prueba de esa organización.
+Cerrar la conciliación programada de cancelaciones en el ambiente histórico antes de la prueba integral. Facturapi vincula el RFC de la organización al certificado de sello digital y la llave Test consulta los datos de su propia organización. La validación de 5A y 5B requiere confirmar una identidad de prueba PF 626 aceptada por Facturapi y cotejar su respuesta, XML y PDF con la llave Test de esa organización. [Organizaciones y credenciales de Facturapi](https://docs.facturapi.io/docs/guides/organizations/)

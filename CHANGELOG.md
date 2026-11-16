@@ -15,6 +15,7 @@
 - La emisión de REP y notas de crédito de facturas evaluadas toma el receptor guardado en el CFDI original. Usa la credencial del ambiente de esa factura y comprueba el emisor antes de enviar el comprobante.
 - La migración 0080 protege la reserva de las notas de crédito evaluadas. Una nota afecta cartera después de confirmar y respaldar su XML, y la recuperación consulta el mismo intento en el ambiente original.
 - La migración 0081 registra las retenciones del REP después de verificar su XML y recalcula los importes estimados de los cobros sin complemento. El mismo intento se conserva durante la emisión, la recuperación y el webhook.
+- La migración 0082 conserva el origen de los conceptos en los borradores de sustitución y refacturación. La relación con el CFDI original se verifica al timbrar una sustituta y el ISR se evalúa con el receptor de la factura nueva.
 
 ## [13.824.91] - Unreleased
 
