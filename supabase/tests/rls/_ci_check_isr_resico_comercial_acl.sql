@@ -20,7 +20,10 @@ BEGIN
     'public.preparar_revision_fiscal_embarque(uuid,uuid,jsonb,timestamptz)',
     'public._isr_concepto_proforma_normal(jsonb)', 'public._isr_snapshot_proforma_normal(uuid,uuid,uuid,uuid[])',
     'public._isr_guard_proforma_normal()', 'public._isr_validar_vinculo_proforma_normal(jsonb,jsonb)',
-    'public._liberar_conceptos_proforma_portal(uuid,uuid)', 'public._h14_lock_grafo_baja_embarque(uuid,boolean)'
+    'public._liberar_conceptos_proforma_portal(uuid,uuid)', 'public._h14_lock_grafo_baja_embarque(uuid,boolean)',
+    'public._isr_armar_consolidacion_proformas(uuid[],uuid,uuid,uuid)',
+    'public._isr_guard_concepto_consolidado()', 'public._isr_insertar_grupos_consolidacion(uuid,uuid,uuid,jsonb)',
+    'public._isr_consolidar_proformas(uuid,uuid,uuid,uuid[])', 'public.aprobar_ajuste_consolidacion_proforma(uuid,text)'
   ]) LOOP
     oid_fn := to_regprocedure(fn);
     IF oid_fn IS NULL OR NOT EXISTS (SELECT 1 FROM pg_proc WHERE oid=oid_fn AND proowner='postgres'::regrole) THEN
@@ -34,7 +37,8 @@ BEGIN
       esperado := (rol='authenticated' AND fn IN (
         'public.evaluar_documento_isr_resico(uuid,uuid,jsonb,uuid,uuid)',
         'public.obtener_evaluacion_fiscal_embarque(uuid)', 'public.revisar_cotizacion_fiscal(uuid,text,text)',
-        'public.preparar_revision_fiscal_embarque(uuid,uuid,jsonb,timestamptz)'
+        'public.preparar_revision_fiscal_embarque(uuid,uuid,jsonb,timestamptz)',
+        'public.aprobar_ajuste_consolidacion_proforma(uuid,text)'
       )) OR (rol='service_role' AND fn='public.validar_cotizacion_fiscal_envio(uuid,text,uuid)');
       IF has_function_privilege(rol, oid_fn, 'EXECUTE') IS DISTINCT FROM esperado THEN
         RAISE EXCEPTION 'CI_ISR_COMERCIAL_ACL: unexpected execute on % for %', fn, rol;

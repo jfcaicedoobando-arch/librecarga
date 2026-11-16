@@ -69,6 +69,8 @@ const erroresReserva = {
   sin_acceso: { status: 403, message: 'No tienes acceso a esta proforma' },
   no_encontrada: { status: 404, message: 'Proforma no encontrada' },
   cancelada: { status: 409, message: 'LC_PROFORMA_CANCELADA: crea una nueva proforma para enviar al cliente.' },
+  fuente_consolidada: { status: 409, message: 'LC_PROFORMA_FUENTE_CONSOLIDADA: envía la proforma consolidada al cliente.' },
+  ajuste_pendiente: { status: 409, message: 'LC_ISR_CONSOLIDACION_APROBACION: aprueba el ajuste antes de enviar la proforma.' },
   intento_distinto: { status: 409, message: 'El intento corresponde a otro envío.' },
 };
 

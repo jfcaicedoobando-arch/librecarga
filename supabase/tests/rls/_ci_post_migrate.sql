@@ -379,6 +379,10 @@ REVOKE ALL ON FUNCTION public._isr_concepto_proforma_normal(jsonb),
   public._isr_snapshot_proforma_normal(uuid,uuid,uuid,uuid[]), public._isr_guard_proforma_normal(),
   public._isr_validar_vinculo_proforma_normal(jsonb,jsonb), public._liberar_conceptos_proforma_portal(uuid,uuid),
   public._h14_lock_grafo_baja_embarque(uuid,boolean) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public._isr_guard_concepto_consolidado(),
+  public._isr_armar_consolidacion_proformas(uuid[],uuid,uuid,uuid), public._isr_insertar_grupos_consolidacion(uuid,uuid,uuid,jsonb),
+  public._isr_consolidar_proformas(uuid,uuid,uuid,uuid[]) FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.aprobar_ajuste_consolidacion_proforma(uuid,text) FROM PUBLIC,anon,service_role;
 \ir _ci_check_isr_resico_acl.sql
 \ir _ci_check_factura_resico_totales_acl.sql
 \ir _ci_check_isr_resico_comercial_acl.sql

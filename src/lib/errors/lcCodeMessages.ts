@@ -38,6 +38,10 @@ export const LC_CODE_MESSAGES: Record<string, string> = {
     "Esta proforma está cancelada. Crea una nueva proforma para continuar; el histórico se conserva.",
   LC_ISR_PROFORMA_REVISION:
     "Revisa el perfil fiscal y los conceptos seleccionados en el embarque antes de generar la proforma.",
+  LC_ISR_CONSOLIDACION_INCOMPATIBLE:
+    "Revisa que las proformas fiscales correspondan al mismo embarque, cliente y perfil fiscal vigente.",
+  LC_ISR_CONSOLIDACION_APROBACION:
+    "Actualiza el detalle de la proforma y revisa los importes antes de aprobar el ajuste.",
   LC_ANTICIPO_APLICACION_INCONSISTENTE:
     "No se pudo confirmar la aplicación del anticipo. Revisa el vínculo entre factura, pago y anticipo antes de continuar.",
   LC_ANTICIPO_MOVIMIENTO_INCONSISTENTE:

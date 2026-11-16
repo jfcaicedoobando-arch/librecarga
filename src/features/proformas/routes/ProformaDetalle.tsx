@@ -25,6 +25,7 @@ import { ErrorState } from "@/components/shared/states/ErrorState";
 import { useDocumentTitle } from "@/hooks/shared";
 import { useClienteAutorizacion } from "@/features/cliente/hooks/useClienteAutorizacion";
 import { calcularTotalesProformaConRespaldo } from "@/features/proformas/domain/proformaListado";
+import { RevisionConsolidacionProforma } from "@/features/proformas/components/detalle/RevisionConsolidacionProforma";
 
 
 export default function ProformaDetalle() {
@@ -134,9 +135,12 @@ function ProformaDetalleContent({ data }: ContentProps) {
           />
         }
       >
+        {proforma.es_consolidada && proforma.evaluacion_fiscal != null && (
+          <RevisionConsolidacionProforma proforma={proforma} />
+        )}
         <ProformaTabs
           proforma={proforma}
-          conceptos={conceptos}
+          conceptos={proforma.es_consolidada && calculo.origen === "fiscal" ? data.conceptosConsolidados : conceptos}
           totales={totales}
           emptyConceptos={emptyConceptos}
           bloquesFiscales={calculo.origen === "fiscal" ? calculo.bloques : undefined}

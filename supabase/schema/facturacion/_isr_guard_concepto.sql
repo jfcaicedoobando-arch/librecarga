@@ -18,6 +18,10 @@ BEGIN
     PERFORM public._isr_validar_vinculo_proforma_normal(to_jsonb(OLD), to_jsonb(NEW));
     RETURN NEW;
   END IF;
+  IF TG_TABLE_NAME = 'proforma_conceptos_consolidados' AND TG_OP = 'INSERT' AND to_jsonb(NEW)->>'linaje_fiscal' IS NOT NULL THEN
+    -- The invoker guard authenticates the creator and protects these frozen groups.
+    RETURN NEW;
+  END IF;
   IF TG_TABLE_NAME = 'conceptos_venta' THEN
     -- An authenticated writer cannot create an open audit row or reuse a completed review.
     SELECT EXISTS (SELECT 1 FROM public.embarque_revisiones_fiscales r

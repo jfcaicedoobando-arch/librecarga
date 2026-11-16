@@ -8266,6 +8266,7 @@ export type Database = {
           evaluacion_fiscal: Json | null
           id: string
           iva: number
+          linaje_fiscal: Json | null
           moneda: Database["public"]["Enums"]["moneda"]
           monto_ret_isr: number | null
           organization_id: string
@@ -8290,6 +8291,7 @@ export type Database = {
           evaluacion_fiscal?: Json | null
           id?: string
           iva?: number
+          linaje_fiscal?: Json | null
           moneda?: Database["public"]["Enums"]["moneda"]
           monto_ret_isr?: number | null
           organization_id?: string
@@ -8314,6 +8316,7 @@ export type Database = {
           evaluacion_fiscal?: Json | null
           id?: string
           iva?: number
+          linaje_fiscal?: Json | null
           moneda?: Database["public"]["Enums"]["moneda"]
           monto_ret_isr?: number | null
           organization_id?: string
@@ -8475,6 +8478,8 @@ export type Database = {
         Row: {
           aceptada_at: string | null
           aceptada_por: string | null
+          ajuste_consolidacion_aprobado_at: string | null
+          ajuste_consolidacion_aprobado_por: string | null
           bl_master: string | null
           cliente_id: string
           cliente_nombre: string
@@ -8526,6 +8531,8 @@ export type Database = {
         Insert: {
           aceptada_at?: string | null
           aceptada_por?: string | null
+          ajuste_consolidacion_aprobado_at?: string | null
+          ajuste_consolidacion_aprobado_por?: string | null
           bl_master?: string | null
           cliente_id: string
           cliente_nombre: string
@@ -8577,6 +8584,8 @@ export type Database = {
         Update: {
           aceptada_at?: string | null
           aceptada_por?: string | null
+          ajuste_consolidacion_aprobado_at?: string | null
+          ajuste_consolidacion_aprobado_por?: string | null
           bl_master?: string | null
           cliente_id?: string
           cliente_nombre?: string
@@ -11092,6 +11101,10 @@ export type Database = {
           total: number
           warns: number
         }[]
+      }
+      aprobar_ajuste_consolidacion_proforma: {
+        Args: { p_huella: string; p_proforma_id: string }
+        Returns: Json
       }
       aprobar_factura_proveedor: {
         Args: {

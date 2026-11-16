@@ -18,12 +18,8 @@ DECLARE
   v_iva_mxn        numeric := 0;
   v_total_mxn      numeric := 0;
   v_no_soportados  int;
+  v_fiscal_id      uuid;
 BEGIN
-  v_cached := public.idempotency_claim(p_request_id, 'consolidar_proformas');
-  IF v_cached IS NOT NULL THEN
-    SELECT * INTO v_nueva FROM public.proformas WHERE id = (v_cached->>'id')::uuid;
-    IF FOUND THEN RETURN v_nueva; END IF;
-  END IF;
   v_caller_org := public.current_user_org_id();
   IF public.has_role(auth.uid(), 'super_admin'::app_role) THEN
     v_org_efectiva := p_organization_id;
@@ -34,8 +30,18 @@ BEGIN
   IF p_proforma_ids IS NULL OR array_length(p_proforma_ids, 1) IS NULL OR array_length(p_proforma_ids, 1) < 2 THEN
     RAISE EXCEPTION 'Selecciona al menos 2 proformas para consolidar';
   END IF;
+  v_cached := public.idempotency_claim(p_request_id, 'consolidar_proformas');
+  IF v_cached IS NOT NULL THEN
+    SELECT * INTO v_nueva FROM public.proformas WHERE id = (v_cached->>'id')::uuid AND organization_id = v_org_efectiva;
+    IF v_nueva.id IS NULL OR v_nueva.embarque_id IS DISTINCT FROM p_embarque_id OR v_nueva.cliente_id IS DISTINCT FROM p_cliente_id
+      OR (v_nueva.proformas_origen @> p_proforma_ids AND p_proforma_ids @> v_nueva.proformas_origen) IS DISTINCT FROM true
+      OR (v_nueva.evaluacion_fiscal IS NOT NULL AND v_org_efectiva IS DISTINCT FROM public.org_scope()) THEN
+      RAISE EXCEPTION 'LC_ISR_CONSOLIDACION_INCOMPATIBLE' USING ERRCODE = '23514';
+    END IF;
+    RETURN v_nueva;
+  END IF;
   PERFORM 1 FROM public.proformas
-  WHERE id = ANY(p_proforma_ids) AND organization_id = v_org_efectiva FOR UPDATE;
+  WHERE id = ANY(p_proforma_ids) AND organization_id = v_org_efectiva ORDER BY id FOR UPDATE;
   SELECT count(*) INTO v_count
   FROM public.proformas
   WHERE id = ANY(p_proforma_ids) AND organization_id = v_org_efectiva;
@@ -69,6 +75,13 @@ BEGIN
   IF v_no_soportados > 0 THEN
     RAISE EXCEPTION 'LC_MONEDA_VENTA_NO_SOPORTADA: % concepto(s) de venta tienen una moneda no soportada; sólo se puede facturar en MXN o USD', v_no_soportados
       USING ERRCODE = 'P0001';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.proformas p WHERE p.id = ANY(p_proforma_ids) AND p.organization_id = v_org_efectiva
+    AND p.evaluacion_fiscal IS NOT NULL) THEN
+    v_fiscal_id := public._isr_consolidar_proformas(v_org_efectiva, p_embarque_id, p_cliente_id, p_proforma_ids);
+    SELECT * INTO STRICT v_nueva FROM public.proformas WHERE id = v_fiscal_id;
+    PERFORM public.idempotency_store(p_request_id, jsonb_build_object('id', v_fiscal_id));
+    RETURN v_nueva;
   END IF;
   v_numero := public.generar_numero_proforma(v_org_efectiva);
   INSERT INTO public.proformas (

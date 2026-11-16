@@ -14,7 +14,7 @@ const FACTURA_LITE = "id, estado, uuid_fiscal, deleted_at";
 const CONCEPTO_TOTALES = "id, cantidad, precio_unitario, moneda, aplica_iva, tasa_iva_aplicada, tipo_iva, deleted_at";
 
 export const PROFORMA_LISTA_SELECT = [
-  "id", "numero", "expediente", "embarque_id", "cliente_id", "cliente_nombre", "operador",
+  "id", "numero", "expediente", "embarque_id", "cliente_id", "cliente_nombre", "operador", "bl_master",
   // Política usada para distinguir autorización externa de aprobación interna en la lista.
   "cliente_autorizacion:cliente_id(requiere_autorizacion_proforma)",
   // C25: `es_consolidada` y `estado_revision` los usa `useTabProformasController`

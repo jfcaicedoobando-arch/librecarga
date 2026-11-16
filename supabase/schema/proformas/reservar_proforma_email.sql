@@ -9,6 +9,8 @@ DECLARE
   v_intento public.proforma_email_intentos%ROWTYPE;
   v_ahora timestamptz := clock_timestamp();
   v_dias integer := (p_solicitud->>'dias_vigencia')::integer;
+  v_total_mxn numeric;
+  v_total_usd numeric;
 BEGIN
   SELECT * INTO v_proforma FROM public.proformas
   WHERE id = p_proforma_id AND deleted_at IS NULL FOR UPDATE;
@@ -17,6 +19,14 @@ BEGIN
     SELECT 1 FROM public.organization_members
     WHERE user_id = p_usuario_id AND organization_id = v_proforma.organization_id
   ) THEN RETURN jsonb_build_object('estado', 'sin_acceso'); END IF;
+  IF v_proforma.evaluacion_fiscal IS NOT NULL AND v_proforma.consolidada_en IS NOT NULL THEN
+    RETURN jsonb_build_object('estado', 'fuente_consolidada');
+  END IF;
+  IF v_proforma.es_consolidada AND v_proforma.ajuste_consolidacion_aprobado_at IS NULL
+    AND EXISTS (SELECT 1 FROM jsonb_array_elements(v_proforma.evaluacion_fiscal->'ajustes_consolidacion') a
+      WHERE (a->>'diferencia')::numeric <> 0) THEN
+    RETURN jsonb_build_object('estado', 'ajuste_pendiente');
+  END IF;
 
   SELECT * INTO v_intento FROM public.proforma_email_intentos WHERE id = p_intento FOR UPDATE;
   IF FOUND THEN
@@ -40,12 +50,20 @@ BEGIN
         token_expira_at = v_ahora + make_interval(days => v_dias)
       WHERE id = v_proforma.id RETURNING * INTO v_proforma;
     END IF;
+    IF v_proforma.evaluacion_fiscal IS NOT NULL THEN
+      SELECT COALESCE(max((b->>'total')::numeric) FILTER (WHERE b->>'moneda'='MXN'),0),
+        COALESCE(max((b->>'total')::numeric) FILTER (WHERE b->>'moneda'='USD'),0) INTO v_total_mxn, v_total_usd
+      FROM jsonb_array_elements(v_proforma.evaluacion_fiscal->'bloques') b;
+    ELSE
+      v_total_mxn := v_proforma.total_mxn;
+      v_total_usd := v_proforma.total_usd;
+    END IF;
     INSERT INTO public.proforma_email_intentos (id, proforma_id, usuario_id, solicitud, contenido)
     VALUES (p_intento, p_proforma_id, p_usuario_id, p_solicitud, jsonb_build_object(
       'token', v_proforma.token_publico, 'expira', v_proforma.token_expira_at,
       'enlace', rtrim(p_portal_base, '/') || '/portal/proformas/' || v_proforma.token_publico,
       'numero', v_proforma.numero, 'cliente', v_proforma.cliente_nombre, 'expediente', v_proforma.expediente,
-      'total_mxn', v_proforma.total_mxn, 'total_usd', v_proforma.total_usd
+      'total_mxn', v_total_mxn, 'total_usd', v_total_usd
     )) RETURNING * INTO v_intento;
   END IF;
 

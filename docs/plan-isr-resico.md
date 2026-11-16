@@ -115,7 +115,9 @@ El margen se calcula sobre la venta base y los costos. Una venta de $10,000 con 
 
 ## Etapa 4 Proforma y conversión a factura
 
-**Avance local 4A.** La 0073 guarda el desglose por moneda y los renglones de la proforma normal. Las pruebas cubren $2.51 de ISR y $230.42 de neto, USD sin duplicar su equivalente en MXN, respuesta por token, cancelación y regeneración. Consolidación y conversión fiscal siguen pendientes.
+**Avance local 4A.** La 0073 guarda el desglose por moneda y los renglones de la proforma normal. Las pruebas cubren $2.51 de ISR y $230.42 de neto, USD sin duplicar su equivalente en MXN, respuesta por token, cancelación y regeneración.
+
+**Avance local 4B.** La 0074 consolida proformas fiscales del mismo embarque y conserva las bases exactas y el origen de cada renglón. En el caso de prueba, dos proformas suman $230.40 y el cálculo agrupado da $230.42. El sistema exige aprobar los $0.02 de diferencia antes de publicar el consolidado. PostgreSQL 17.9 validó los permisos, la trazabilidad y los importes del portal y correo. Las pruebas de interfaz y PDF reprodujeron la revisión y los importes guardados. La conversión fiscal a factura corresponde a 4C.
 
 1. **Proforma normal.** Extender `crear_proforma_atomica` para calcular desde los conceptos elegibles y guardar el desglose aprobado por moneda. Distinguir importes en moneda original de la equivalencia en MXN que ya calcula la proforma.
 2. **Consolidación.** Extender `consolidar_proformas` para conservar conceptos origen, bases exactas y grupos compatibles de IVA y retenciones. Recalcular el documento consolidado por moneda, impuesto y tasa. Si el redondeo cambia el importe frente a los documentos aprobados, mostrar la diferencia y obtener nueva aprobación antes de convertir.
@@ -172,6 +174,6 @@ Ejecutar pruebas de dominio, UI, PDF con el renderizador real, Deno y PostgreSQL
 
 **Criterio de salida.** El piloto puede completar y conciliar el recorrido fiscal. Aislamiento, reintentos, cancelaciones y documentos históricos pasan los controles. La habilitación adicional se realiza por organización.
 
-## Primer cambio implementable
+## Siguiente entrega
 
-Continuar con **4B**. Consolidar proformas normales con evaluación compatible, conservar el origen y la base de cada línea y mostrar la diferencia cuando la consolidación cambie el redondeo. Buscar en paralelo la identidad de prueba PF 626 de Facturapi para el futuro timbrado.
+Continuar con **4C**. Convertir la proforma aprobada a un borrador por moneda que conserve ISR, importes y procedencia. El timbrado de prueba de la etapa 5 requiere una identidad PF 626 aceptada por Facturapi sandbox y las credenciales de esa organización.

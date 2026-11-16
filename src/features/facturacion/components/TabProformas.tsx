@@ -18,31 +18,30 @@ import { ProformaMobileCard } from "./ProformaMobileCard";
 import { LABEL_ESTADO_UNIFICADO } from "@/lib/domain/estadoUnificado";
 import { useProformasListadoTable } from "@/features/facturacion/hooks/useProformasListadoTable";
 import { ProformasFusionToolbar } from "./ProformasFusionToolbar";
+import { ProformasConsolidacionToolbar } from "./ProformasConsolidacionToolbar";
 
 export function TabProformas({ isInRange, estadoInicial }: {
   isInRange?: (fecha: string | null | undefined) => boolean;
   estadoInicial?: FiltroEstadoProforma;
 }) {
   const c = useTabProformasController({ isInRange, estadoInicial });
-  const { canEmitirFactura } = usePermissions();
-
-  // v13.823.278 — quien no puede emitir facturas (vendedor, gerente comercial)
-  // ya no ve la casilla de selección: antes podía seleccionar y quedaba con el
-  // botón "Fusionar/Convertir" deshabilitado sin explicación. El guard del
-  // backend no cambia.
+  const { canEmitirFactura, canEditarProforma } = usePermissions();
+  const { selectedIds, toggleSelected, isConvertible } = c;
+  const haySeleccionFiscal = c.selectedProformas.some((p) => p.evaluacion_fiscal != null);
   const columns = useMemo(
     () => buildProformasColumns(
-      canEmitirFactura
+      canEmitirFactura || canEditarProforma
         ? {
             selection: {
-              selectedIds: c.selectedIds,
-              toggle: c.toggleSelected,
-              isSelectable: c.isConvertible,
+              selectedIds,
+              toggle: toggleSelected,
+              isSelectable: (p) => isConvertible(p) && !!(p.evaluacion_fiscal != null
+                ? canEditarProforma : canEmitirFactura),
             },
           }
         : {},
     ),
-    [canEmitirFactura, c.selectedIds, c.toggleSelected, c.isConvertible],
+    [canEditarProforma, canEmitirFactura, selectedIds, toggleSelected, isConvertible],
   );
   const listado = useProformasListadoTable({
     data: c.filtered, columns, page: c.page, pageSize: c.pageSize, onPageChange: c.setPage,
@@ -107,7 +106,10 @@ export function TabProformas({ isInRange, estadoInicial }: {
       </Card>
 
 
-      {canEmitirFactura && c.selectedProformas.length > 0 && (
+      {canEditarProforma && haySeleccionFiscal && (
+        <ProformasConsolidacionToolbar proformas={c.selectedProformas} onConsolidada={c.clearSelected} />
+      )}
+      {canEmitirFactura && c.selectedProformas.length > 0 && !haySeleccionFiscal && (
         <ProformasFusionToolbar selection={{
           selectedProformas: c.selectedProformas, fusionInfo: c.fusionInfo, clearSelected: c.clearSelected,
         }} />

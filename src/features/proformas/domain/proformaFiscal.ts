@@ -45,3 +45,27 @@ export function totalesNativosProforma(bloques: BloqueFiscalCotizacion[]): Total
 }
 
 export const bloquesFiscalesProformaSchema = snapshotFiscalCotizacionSchema.shape.bloques;
+
+const ajustesConsolidacionSchema = z.object({
+  conceptos_fingerprint: z.string().min(1),
+  ajustes_consolidacion: z.array(z.object({
+    moneda: z.enum(["MXN", "USD"]),
+    anterior: z.number().finite(),
+    nuevo: z.number().finite(),
+    diferencia: z.number().finite(),
+  })).min(1),
+});
+
+export function leerAjusteConsolidacion(proforma: ProformaConEvaluacion & {
+  es_consolidada?: boolean;
+  ajuste_consolidacion_aprobado_at?: string | null;
+}) {
+  if (!proforma.es_consolidada || !leerFiscalProforma(proforma)) return null;
+  const { conceptos_fingerprint, ajustes_consolidacion } = ajustesConsolidacionSchema.parse(proforma.evaluacion_fiscal);
+  if (!ajustes_consolidacion.some((a) => a.diferencia !== 0)) return null;
+  return {
+    huella: conceptos_fingerprint,
+    importes: ajustes_consolidacion,
+    pendiente: proforma.ajuste_consolidacion_aprobado_at == null,
+  };
+}

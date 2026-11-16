@@ -519,6 +519,13 @@
       "when": 1794694500008,
       "tag": "0073_isr_resico_proforma_normal",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1794694500009,
+      "tag": "0074_isr_resico_consolidacion_proformas",
+      "breakpoints": true
     }
   ]
 }

@@ -6039,6 +6039,76 @@ BEGIN
   END LOOP;
 END;
 $_$;
+CREATE FUNCTION public._isr_armar_consolidacion_proformas(p_proforma_ids uuid[], p_org uuid, p_embarque_id uuid, p_cliente_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_primera jsonb;
+  v_conceptos jsonb;
+  v_vigente jsonb;
+  v_calculo jsonb;
+  v_ajustes jsonb;
+  v_tipo_cambio numeric;
+BEGIN
+  SELECT p.evaluacion_fiscal INTO v_primera FROM public.proformas p
+  WHERE p.id = ANY(p_proforma_ids) AND p.organization_id = p_org ORDER BY p.id LIMIT 1;
+  IF NOT EXISTS (SELECT 1 FROM public.embarques e WHERE e.id = p_embarque_id AND e.organization_id = p_org
+    AND e.cliente_id = p_cliente_id AND e.deleted_at IS NULL) OR EXISTS (
+    SELECT 1 FROM public.proformas p WHERE p.id = ANY(p_proforma_ids) AND (
+      p.organization_id IS DISTINCT FROM p_org OR p.embarque_id IS DISTINCT FROM p_embarque_id
+      OR p.cliente_id IS DISTINCT FROM p_cliente_id OR p.es_consolidada OR p.consolidada_en IS NOT NULL
+      OR p.deleted_at IS NOT NULL OR p.estado_proforma NOT IN ('pendiente','aprobada')
+      OR p.estado_revision = 'consolidada' OR p.estado_cliente = 'rechazada'
+      OR p.factura_id IS NOT NULL OR p.factura_secundaria_id IS NOT NULL OR p.folio_factura_externa IS NOT NULL
+      OR EXISTS (SELECT 1 FROM public.facturas f WHERE f.proforma_id = p.id AND f.deleted_at IS NULL)
+      OR p.evaluacion_fiscal->>'estado' IS DISTINCT FROM 'confirmado'
+      OR (p.evaluacion_fiscal->>'ambiente', p.evaluacion_fiscal->>'perfil_id', p.evaluacion_fiscal->>'perfil_version',
+          p.evaluacion_fiscal->>'regla_version', p.evaluacion_fiscal->>'precision_version') IS DISTINCT FROM
+        (v_primera->>'ambiente', v_primera->>'perfil_id', v_primera->>'perfil_version',
+          v_primera->>'regla_version', v_primera->>'precision_version')
+    )
+  ) THEN RAISE EXCEPTION 'LC_ISR_CONSOLIDACION_INCOMPATIBLE' USING ERRCODE = '23514'; END IF;
+  PERFORM 1 FROM public.conceptos_venta c WHERE c.proforma_id = ANY(p_proforma_ids)
+    AND c.organization_id = p_org AND c.deleted_at IS NULL ORDER BY c.id FOR UPDATE;
+  SELECT jsonb_agg(l || jsonb_build_object('proforma_origen_id', p.id) ORDER BY p.id, l->>'id') INTO v_conceptos
+  FROM public.proformas p CROSS JOIN LATERAL jsonb_array_elements(p.conceptos_fiscales) l
+  WHERE p.id = ANY(p_proforma_ids) AND p.organization_id = p_org;
+  IF v_conceptos IS NULL OR jsonb_array_length(v_conceptos) <> (
+    SELECT count(*) FROM public.conceptos_venta c WHERE c.proforma_id = ANY(p_proforma_ids)
+      AND c.organization_id = p_org AND c.deleted_at IS NULL
+  ) OR EXISTS (
+    SELECT 1 FROM jsonb_array_elements(v_conceptos) l LEFT JOIN public.conceptos_venta c ON c.id = (l->>'id')::uuid
+    WHERE c.id IS NULL OR c.organization_id IS DISTINCT FROM p_org OR c.embarque_id IS DISTINCT FROM p_embarque_id
+      OR c.proforma_id IS DISTINCT FROM (l->>'proforma_origen_id')::uuid OR c.deleted_at IS NOT NULL
+      OR c.estado_facturacion IS DISTINCT FROM 'en_proforma'
+      OR NOT (l @> public._isr_concepto_proforma_normal(to_jsonb(c)))
+  ) THEN RAISE EXCEPTION 'LC_ISR_CONSOLIDACION_INCOMPATIBLE' USING ERRCODE = '23514'; END IF;
+  v_vigente := public._evaluar_documento_isr_resico(p_org, p_cliente_id, v_conceptos);
+  IF v_vigente#>>'{snapshot,estado}' IS DISTINCT FROM 'confirmado' OR EXISTS (
+    SELECT 1 FROM jsonb_array_elements(v_vigente->'conceptos') l
+    JOIN public.conceptos_venta c ON c.id = (l->>'id')::uuid
+    WHERE c.evaluacion_fiscal IS DISTINCT FROM l->'evaluacion_fiscal'
+  ) THEN RAISE EXCEPTION 'LC_ISR_PROFORMA_REVISION' USING ERRCODE = '23514'; END IF;
+  SELECT min((p.evaluacion_fiscal->>'tipo_cambio_usd')::numeric) INTO v_tipo_cambio FROM public.proformas p
+    WHERE p.id = ANY(p_proforma_ids) AND p.organization_id = p_org;
+  IF EXISTS (SELECT 1 FROM public.proformas p WHERE p.id = ANY(p_proforma_ids) AND p.organization_id = p_org
+    AND p.subtotal_usd > 0 AND ((p.evaluacion_fiscal->>'tipo_cambio_usd')::numeric IS DISTINCT FROM v_tipo_cambio
+      OR COALESCE(v_tipo_cambio,0) <= 0)) THEN
+    RAISE EXCEPTION 'LC_ISR_CONSOLIDACION_INCOMPATIBLE' USING ERRCODE = '23514';
+  END IF;
+  v_calculo := public._isr_snapshot_documento(p_org, p_cliente_id, v_primera->>'ambiente', v_conceptos);
+  WITH previas AS (
+    SELECT b->>'moneda' moneda, sum((b->>'total')::numeric) total
+    FROM public.proformas p CROSS JOIN LATERAL jsonb_array_elements(p.evaluacion_fiscal->'bloques') b
+    WHERE p.id = ANY(p_proforma_ids) AND p.organization_id = p_org GROUP BY b->>'moneda'
+  ) SELECT jsonb_agg(jsonb_build_object('moneda', previas.moneda, 'anterior', previas.total,
+    'nuevo', (b->>'total')::numeric, 'diferencia', (b->>'total')::numeric - previas.total) ORDER BY previas.moneda)
+    INTO v_ajustes FROM jsonb_array_elements(v_calculo->'bloques') b JOIN previas ON previas.moneda = b->>'moneda';
+  RETURN jsonb_build_object('evaluacion', v_calculo || jsonb_build_object('tipo_cambio_usd', v_tipo_cambio,
+    'ajustes_consolidacion', v_ajustes), 'conceptos', v_conceptos);
+END;
+$$;
 CREATE FUNCTION public._isr_base_revision_venta(p_linea jsonb) RETURNS jsonb
     LANGUAGE sql IMMUTABLE
     SET search_path TO 'pg_catalog', 'public', 'pg_temp'
@@ -6057,6 +6127,60 @@ CREATE FUNCTION public._isr_concepto_proforma_normal(p_linea jsonb) RETURNS json
     'cotizacion_concepto_origen_id', p_linea->'cotizacion_concepto_origen_id',
     'tasa_ret_isr', p_linea->'tasa_ret_isr', 'monto_ret_isr', p_linea->'monto_ret_isr',
     'evaluacion_fiscal', (p_linea->'evaluacion_fiscal')-'emisor'-'receptor');
+$$;
+CREATE FUNCTION public._isr_consolidar_proformas(p_org uuid, p_embarque_id uuid, p_cliente_id uuid, p_ids uuid[]) RETURNS uuid
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_plan jsonb;
+  v_fiscal jsonb;
+  v_usd jsonb;
+  v_mxn jsonb;
+  v_tipo_cambio numeric;
+  v_nueva_id uuid;
+  v_origen public.proformas;
+  v_total_mxn numeric;
+  v_requiere boolean;
+  v_actualizados integer;
+BEGIN
+  IF p_org IS DISTINCT FROM public.org_scope() THEN RAISE EXCEPTION 'LC_ISR_SIN_PERMISO' USING ERRCODE='42501'; END IF;
+  v_plan := public._isr_armar_consolidacion_proformas(p_ids, p_org, p_embarque_id, p_cliente_id);
+  v_fiscal := v_plan->'evaluacion';
+  SELECT * INTO v_origen FROM public.proformas WHERE id = ANY(p_ids) AND organization_id = p_org ORDER BY id LIMIT 1;
+  IF EXISTS (SELECT 1 FROM public.proformas p WHERE p.id = ANY(p_ids) AND p.organization_id = p_org
+    AND p.dias_credito IS DISTINCT FROM v_origen.dias_credito) THEN
+    RAISE EXCEPTION 'LC_ISR_CONSOLIDACION_INCOMPATIBLE' USING ERRCODE = '23514';
+  END IF;
+  SELECT b INTO v_usd FROM jsonb_array_elements(v_fiscal->'bloques') b WHERE b->>'moneda' = 'USD';
+  SELECT b INTO v_mxn FROM jsonb_array_elements(v_fiscal->'bloques') b WHERE b->>'moneda' = 'MXN';
+  v_tipo_cambio := COALESCE((v_fiscal->>'tipo_cambio_usd')::numeric,0);
+  v_total_mxn := COALESCE((v_mxn->>'total')::numeric,0) + round(COALESCE((v_usd->>'total')::numeric,0)*v_tipo_cambio,2);
+  IF v_tipo_cambio > 0 THEN v_fiscal := v_fiscal || jsonb_build_object('total_equivalente_mxn', v_total_mxn); END IF;
+  v_requiere := EXISTS (SELECT 1 FROM jsonb_array_elements(v_fiscal->'ajustes_consolidacion') a
+    WHERE (a->>'diferencia')::numeric <> 0);
+  INSERT INTO public.proformas (numero,embarque_id,cliente_id,cliente_nombre,expediente,bl_master,
+    organization_id,operador,dias_credito,tasa_iva_aplicada,fecha_emision,notas,es_consolidada,proformas_origen,
+    subtotal_usd,iva_usd,total_usd,subtotal_mxn,iva_mxn,total_mxn,estado_revision,evaluacion_fiscal,conceptos_fiscales)
+  VALUES (public.generar_numero_proforma(p_org),p_embarque_id,p_cliente_id,v_origen.cliente_nombre,v_origen.expediente,
+    v_origen.bl_master,p_org,v_origen.operador,v_origen.dias_credito,v_origen.tasa_iva_aplicada,public.fecha_negocio_mx(),
+    'Consolidación de ' || cardinality(p_ids) || ' proformas',true,p_ids,
+    COALESCE((v_usd->>'subtotal')::numeric,0),COALESCE((v_usd->>'iva')::numeric,0),COALESCE((v_usd->>'total')::numeric,0),
+    COALESCE((v_mxn->>'subtotal')::numeric,0) + round(COALESCE((v_usd->>'subtotal')::numeric,0)*v_tipo_cambio,2),
+    COALESCE((v_mxn->>'iva')::numeric,0) + round(COALESCE((v_usd->>'iva')::numeric,0)*v_tipo_cambio,2),v_total_mxn,
+    CASE WHEN v_requiere THEN 'pendiente' ELSE 'aprobada' END,v_fiscal,v_plan->'conceptos') RETURNING id INTO v_nueva_id;
+  PERFORM public._isr_insertar_grupos_consolidacion(v_nueva_id, p_org, p_embarque_id, v_plan->'conceptos');
+  UPDATE public.proformas SET estado_revision = 'consolidada', consolidada_en = v_nueva_id,
+    token_publico = NULL, token_expira_at = NULL
+  WHERE id = ANY(p_ids) AND organization_id = p_org;
+  UPDATE public.conceptos_venta SET proforma_id = v_nueva_id
+  WHERE proforma_id = ANY(p_ids) AND organization_id = p_org AND embarque_id = p_embarque_id AND deleted_at IS NULL;
+  GET DIAGNOSTICS v_actualizados = ROW_COUNT;
+  IF v_actualizados <> jsonb_array_length(v_plan->'conceptos') THEN
+    RAISE EXCEPTION 'LC_ISR_CONSOLIDACION_INCOMPATIBLE' USING ERRCODE = '23514';
+  END IF;
+  RETURN v_nueva_id;
+END;
 $$;
 CREATE FUNCTION public._isr_documento_habilitado(p_org_id uuid) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
@@ -6085,6 +6209,10 @@ BEGIN
   IF TG_TABLE_NAME = 'conceptos_venta' AND TG_OP = 'UPDATE' AND OLD.evaluacion_fiscal IS NOT NULL
     AND (OLD.proforma_id IS NOT NULL OR NEW.proforma_id IS NOT NULL) THEN
     PERFORM public._isr_validar_vinculo_proforma_normal(to_jsonb(OLD), to_jsonb(NEW));
+    RETURN NEW;
+  END IF;
+  IF TG_TABLE_NAME = 'proforma_conceptos_consolidados' AND TG_OP = 'INSERT' AND to_jsonb(NEW)->>'linaje_fiscal' IS NOT NULL THEN
+    -- The invoker guard authenticates the creator and protects these frozen groups.
     RETURN NEW;
   END IF;
   IF TG_TABLE_NAME = 'conceptos_venta' THEN
@@ -6210,6 +6338,28 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+CREATE FUNCTION public._isr_guard_concepto_consolidado() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF TG_OP <> 'INSERT' AND OLD.linaje_fiscal IS NOT NULL THEN
+    RAISE EXCEPTION 'LC_ISR_PROFORMA_REVISION' USING ERRCODE = '23514';
+  END IF;
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+  IF NEW.linaje_fiscal IS NOT NULL OR EXISTS (SELECT 1 FROM public.proformas p
+    WHERE p.id = NEW.proforma_id AND p.evaluacion_fiscal IS NOT NULL) THEN
+    IF TG_OP <> 'INSERT' OR NEW.linaje_fiscal IS NULL OR NEW.evaluacion_fiscal IS NULL
+      OR current_user IS DISTINCT FROM pg_get_userbyid((SELECT relowner FROM pg_class WHERE oid = TG_RELID))
+      OR NOT EXISTS (SELECT 1 FROM public.proformas p WHERE p.id = NEW.proforma_id AND p.es_consolidada
+        AND p.evaluacion_fiscal IS NOT NULL AND p.organization_id = NEW.organization_id
+        AND p.embarque_id = NEW.embarque_id AND p.estado_proforma = 'pendiente' AND p.deleted_at IS NULL) THEN
+      RAISE EXCEPTION 'LC_ISR_PROFORMA_REVISION' USING ERRCODE = '23514';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
 CREATE FUNCTION public._isr_guard_conversion_factura() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public', 'pg_temp'
@@ -6324,7 +6474,7 @@ BEGIN
       RAISE EXCEPTION 'LC_ISR_REVISION_REQUERIDA' USING ERRCODE='23514';
     END IF;
   ELSE
-    IF EXISTS (SELECT 1 FROM public.proforma_conceptos_consolidados WHERE proforma_id=OLD.id AND evaluacion_fiscal IS NOT NULL)
+    IF OLD.evaluacion_fiscal IS NULL AND EXISTS (SELECT 1 FROM public.proforma_conceptos_consolidados WHERE proforma_id=OLD.id AND evaluacion_fiscal IS NOT NULL)
       AND ((NEW.cliente_id,NEW.organization_id) IS DISTINCT FROM (OLD.cliente_id,OLD.organization_id)
         OR NEW.estado_aprobacion <> 'borrador' OR NEW.estado_proforma <> 'pendiente'
         OR NEW.enviada_at IS NOT NULL OR NEW.factura_id IS NOT NULL OR NEW.factura_secundaria_id IS NOT NULL
@@ -6339,11 +6489,16 @@ CREATE FUNCTION public._isr_guard_proforma_normal() RETURNS trigger
     LANGUAGE plpgsql
     SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
+DECLARE
+  v_propietario boolean := current_user = pg_get_userbyid((SELECT relowner FROM pg_class WHERE oid = TG_RELID));
 BEGIN
   IF TG_OP = 'INSERT' THEN
     IF NEW.evaluacion_fiscal IS NOT NULL AND (
-      current_user IS DISTINCT FROM pg_get_userbyid((SELECT relowner FROM pg_class WHERE oid = TG_RELID))
-      OR NEW.es_consolidada OR NEW.embarque_id IS NULL OR NEW.deleted_at IS NOT NULL
+      NOT v_propietario OR NEW.embarque_id IS NULL OR NEW.deleted_at IS NOT NULL
+      OR (NEW.es_consolidada AND (COALESCE(cardinality(NEW.proformas_origen),0) < 2
+        OR jsonb_typeof(NEW.evaluacion_fiscal->'ajustes_consolidacion') IS DISTINCT FROM 'array'))
+      OR (NOT NEW.es_consolidada AND NEW.proformas_origen IS NOT NULL)
+      OR NEW.ajuste_consolidacion_aprobado_at IS NOT NULL OR NEW.ajuste_consolidacion_aprobado_por IS NOT NULL
       OR NEW.factura_id IS NOT NULL OR NEW.factura_secundaria_id IS NOT NULL
       OR NEW.estado_proforma IS DISTINCT FROM 'pendiente' OR NEW.estado_cliente IS DISTINCT FROM 'pendiente'
       OR NEW.evaluacion_fiscal->>'estado' IS DISTINCT FROM 'confirmado'
@@ -6363,21 +6518,82 @@ BEGIN
   END IF;
   IF OLD.evaluacion_fiscal IS NULL THEN RETURN NEW; END IF;
   IF (NEW.organization_id, NEW.cliente_id, NEW.embarque_id, NEW.es_consolidada, NEW.deleted_at,
-      NEW.subtotal_usd, NEW.iva_usd, NEW.total_usd, NEW.subtotal_mxn, NEW.iva_mxn, NEW.total_mxn, NEW.tasa_iva_aplicada)
+      NEW.subtotal_usd, NEW.iva_usd, NEW.total_usd, NEW.subtotal_mxn, NEW.iva_mxn, NEW.total_mxn, NEW.tasa_iva_aplicada,
+      NEW.proformas_origen, NEW.embarques_ids, NEW.cliente_nombre)
      IS DISTINCT FROM
      (OLD.organization_id, OLD.cliente_id, OLD.embarque_id, OLD.es_consolidada, OLD.deleted_at,
-      OLD.subtotal_usd, OLD.iva_usd, OLD.total_usd, OLD.subtotal_mxn, OLD.iva_mxn, OLD.total_mxn, OLD.tasa_iva_aplicada) THEN
+      OLD.subtotal_usd, OLD.iva_usd, OLD.total_usd, OLD.subtotal_mxn, OLD.iva_mxn, OLD.total_mxn, OLD.tasa_iva_aplicada,
+      OLD.proformas_origen, OLD.embarques_ids, OLD.cliente_nombre) THEN
     RAISE EXCEPTION 'LC_ISR_PROFORMA_REVISION' USING ERRCODE = '23514';
   END IF;
   IF NEW.estado_proforma = 'facturada' OR NEW.factura_id IS NOT NULL OR NEW.factura_secundaria_id IS NOT NULL
-    OR NEW.consolidada_en IS NOT NULL OR NEW.folio_factura_externa IS NOT NULL THEN
+    OR NEW.folio_factura_externa IS NOT NULL THEN
     RAISE EXCEPTION 'LC_ISR_FLUJO_NO_HABILITADO' USING ERRCODE = '23514';
+  END IF;
+  IF NEW.consolidada_en IS DISTINCT FROM OLD.consolidada_en THEN
+    IF NOT v_propietario OR OLD.es_consolidada OR OLD.consolidada_en IS NOT NULL
+      OR NEW.estado_revision IS DISTINCT FROM 'consolidada' OR NEW.token_publico IS NOT NULL OR NEW.token_expira_at IS NOT NULL
+      OR NOT EXISTS (SELECT 1 FROM public.proformas p WHERE p.id = NEW.consolidada_en AND p.es_consolidada
+        AND p.organization_id = OLD.organization_id AND p.cliente_id = OLD.cliente_id AND p.embarque_id = OLD.embarque_id
+        AND p.evaluacion_fiscal IS NOT NULL AND OLD.id = ANY(p.proformas_origen)) THEN
+      RAISE EXCEPTION 'LC_ISR_CONSOLIDACION_INCOMPATIBLE' USING ERRCODE = '23514';
+    END IF;
+  ELSIF OLD.consolidada_en IS NOT NULL AND (
+    NEW.estado_proforma, NEW.estado_cliente, NEW.estado_revision, NEW.estado_aprobacion,
+    NEW.token_publico, NEW.token_expira_at, NEW.enviada_at, NEW.enviada_por
+  ) IS DISTINCT FROM (
+    OLD.estado_proforma, OLD.estado_cliente, OLD.estado_revision, OLD.estado_aprobacion,
+    OLD.token_publico, OLD.token_expira_at, OLD.enviada_at, OLD.enviada_por
+  ) THEN RAISE EXCEPTION 'LC_PROFORMA_FUENTE_CONSOLIDADA' USING ERRCODE = '23514'; END IF;
+  IF (NEW.ajuste_consolidacion_aprobado_at, NEW.ajuste_consolidacion_aprobado_por)
+    IS DISTINCT FROM (OLD.ajuste_consolidacion_aprobado_at, OLD.ajuste_consolidacion_aprobado_por) THEN
+    IF NOT v_propietario OR NOT OLD.es_consolidada OR OLD.ajuste_consolidacion_aprobado_at IS NOT NULL
+      OR NEW.ajuste_consolidacion_aprobado_at IS NULL OR NEW.ajuste_consolidacion_aprobado_por IS DISTINCT FROM auth.uid() THEN
+      RAISE EXCEPTION 'LC_ISR_CONSOLIDACION_APROBACION' USING ERRCODE = '23514';
+    END IF;
+  END IF;
+  IF NEW.es_consolidada AND NEW.ajuste_consolidacion_aprobado_at IS NULL
+    AND EXISTS (SELECT 1 FROM jsonb_array_elements(NEW.evaluacion_fiscal->'ajustes_consolidacion') a
+      WHERE (a->>'diferencia')::numeric <> 0)
+    AND (NEW.estado_cliente = 'aceptada' OR NEW.estado_revision = 'aprobada' OR NEW.estado_aprobacion = 'aprobada'
+      OR NEW.estado_proforma = 'aprobada' OR NEW.token_publico IS NOT NULL OR NEW.enviada_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'LC_ISR_CONSOLIDACION_APROBACION' USING ERRCODE = '23514';
   END IF;
   IF OLD.estado_cliente = 'rechazada' AND NEW.estado_cliente IS DISTINCT FROM OLD.estado_cliente THEN
     RAISE EXCEPTION 'LC_ISR_PROFORMA_REVISION' USING ERRCODE = '23514';
   END IF;
   RETURN NEW;
 END;
+$$;
+CREATE FUNCTION public._isr_insertar_grupos_consolidacion(p_proforma_id uuid, p_org uuid, p_embarque_id uuid, p_conceptos jsonb) RETURNS void
+    LANGUAGE sql
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+  WITH filas AS (
+    SELECT l, l->>'descripcion' descripcion, l->>'moneda' moneda, l->>'tipo_iva' tipo_iva,
+      (l->>'aplica_iva')::boolean aplica_iva, (l->>'tasa_iva_aplicada')::numeric tasa_iva,
+      (l->>'tasa_ret_isr')::numeric tasa_ret_isr, (l->>'cantidad')::numeric cantidad,
+      (l->>'precio_unitario')::numeric precio, l->>'contenedor_id' contenedor_id,
+      COALESCE(NULLIF(l#>>'{embarque_contenedores,numero_contenedor}', ''), 'Sin contenedor') contenedor,
+      NULLIF(l#>>'{embarque_contenedores,tipo_contenedor}', '') tipo_contenedor
+    FROM jsonb_array_elements(p_conceptos) l
+  ), grupos AS (
+    SELECT descripcion, moneda, tipo_iva, aplica_iva, tasa_iva, tasa_ret_isr, precio, contenedor, tipo_contenedor,
+      sum(cantidad) cantidad, sum(cantidad*precio) base_exacta,
+      (jsonb_agg(l->'evaluacion_fiscal' ORDER BY l->>'id')->0) evaluacion,
+      jsonb_agg(jsonb_build_object('proforma_id', l->'proforma_origen_id', 'concepto_venta_id', l->'id') ORDER BY l->>'id') linaje
+    FROM filas GROUP BY descripcion, moneda, tipo_iva, aplica_iva, tasa_iva, tasa_ret_isr, precio,
+      contenedor_id, contenedor, tipo_contenedor
+  )
+  INSERT INTO public.proforma_conceptos_consolidados (proforma_id, embarque_id, organization_id,
+    contenedor, tipo_contenedor, descripcion, cantidad, precio_unitario, total, moneda, aplica_iva, iva,
+    tasa_iva_aplicada, tipo_iva, tasa_ret_isr, monto_ret_isr, evaluacion_fiscal, linaje_fiscal)
+  SELECT p_proforma_id, p_embarque_id, p_org, contenedor, tipo_contenedor, descripcion, cantidad, precio,
+    round(base_exacta,2), moneda::public.moneda, aplica_iva, round(base_exacta*tasa_iva,2),
+    CASE WHEN tipo_iva='no_objeto' THEN NULL ELSE tasa_iva END, tipo_iva, tasa_ret_isr, round(base_exacta*tasa_ret_isr,2),
+    evaluacion || jsonb_build_object('base', round(base_exacta,2), 'base_exacta', base_exacta,
+      'monto_ret_isr', round(base_exacta*tasa_ret_isr,2)), linaje
+  FROM grupos;
 $$;
 CREATE FUNCTION public._isr_plan_revision_embarque(p_embarque_id uuid, p_cliente_id uuid, p_conceptos_venta jsonb) RETURNS jsonb
     LANGUAGE plpgsql STABLE
@@ -6539,6 +6755,7 @@ DECLARE
   v_anterior uuid := (p_anterior->>'proforma_id')::uuid;
   v_nuevo uuid := (p_nuevo->>'proforma_id')::uuid;
   v_proforma public.proformas;
+  v_destino public.proformas;
   v_linea jsonb := public._isr_concepto_proforma_normal(p_anterior);
 BEGIN
   IF (p_anterior->'organization_id', p_anterior->'embarque_id', p_anterior->'deleted_at', p_anterior->'evaluacion_fiscal')
@@ -6547,11 +6764,23 @@ BEGIN
     RAISE EXCEPTION 'LC_ISR_PROFORMA_REVISION' USING ERRCODE = '23514';
   END IF;
   SELECT * INTO v_proforma FROM public.proformas WHERE id = COALESCE(v_anterior, v_nuevo) FOR NO KEY UPDATE;
-  IF v_proforma.id IS NULL OR v_proforma.evaluacion_fiscal IS NULL OR v_proforma.es_consolidada
+  IF v_proforma.id IS NULL OR v_proforma.evaluacion_fiscal IS NULL
     OR v_proforma.organization_id IS DISTINCT FROM (p_anterior->>'organization_id')::uuid
     OR v_proforma.embarque_id IS DISTINCT FROM (p_anterior->>'embarque_id')::uuid
     OR (v_proforma.conceptos_fiscales @> jsonb_build_array(v_linea)) IS DISTINCT FROM true THEN
     RAISE EXCEPTION 'LC_ISR_FLUJO_NO_HABILITADO' USING ERRCODE = '23514';
+  END IF;
+  IF v_anterior IS NOT NULL AND v_nuevo IS NOT NULL AND v_anterior <> v_nuevo THEN
+    SELECT * INTO v_destino FROM public.proformas WHERE id = v_nuevo FOR NO KEY UPDATE;
+    IF NOT v_proforma.es_consolidada AND v_proforma.consolidada_en = v_nuevo AND v_proforma.estado_revision = 'consolidada'
+      AND v_destino.es_consolidada AND v_destino.evaluacion_fiscal IS NOT NULL
+      AND v_destino.organization_id = v_proforma.organization_id AND v_destino.embarque_id = v_proforma.embarque_id
+      AND v_destino.cliente_id = v_proforma.cliente_id AND v_destino.deleted_at IS NULL AND v_destino.estado_proforma = 'pendiente'
+      AND v_anterior = ANY(v_destino.proformas_origen) AND p_nuevo->>'estado_facturacion' = 'en_proforma'
+      AND v_destino.conceptos_fiscales @> jsonb_build_array(v_linea || jsonb_build_object('proforma_origen_id',v_anterior)) THEN
+      RETURN;
+    END IF;
+    RAISE EXCEPTION 'LC_ISR_CONSOLIDACION_INCOMPATIBLE' USING ERRCODE = '23514';
   END IF;
   IF v_anterior IS NOT NULL AND v_nuevo IS NULL
     AND p_nuevo->>'estado_facturacion' = 'pendiente'
@@ -6559,6 +6788,7 @@ BEGIN
     RETURN;
   END IF;
   IF (v_anterior IS NULL OR v_anterior = v_nuevo) AND v_nuevo IS NOT NULL
+    AND (v_anterior IS NOT NULL OR NOT v_proforma.es_consolidada)
     AND p_nuevo->>'estado_facturacion' = 'en_proforma' AND v_proforma.deleted_at IS NULL
     AND v_proforma.estado_proforma IN ('pendiente', 'aprobada') AND v_proforma.estado_cliente <> 'rechazada' THEN
     RETURN;
@@ -10301,6 +10531,32 @@ CREATE FUNCTION public.app_logs_health_timeline(p_hours integer DEFAULT 24, p_bu
   GROUP BY s.bucket
   ORDER BY s.bucket;
 $$;
+CREATE FUNCTION public.aprobar_ajuste_consolidacion_proforma(p_proforma_id uuid, p_huella text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_proforma public.proformas;
+  v_uid uuid := auth.uid();
+BEGIN
+  SELECT * INTO v_proforma FROM public.proformas WHERE id = p_proforma_id AND organization_id = public.org_scope() FOR UPDATE;
+  IF NOT FOUND OR NOT public.has_any_role_in_org_exact(v_uid, ARRAY['admin','admin_org','contador']::public.app_role[], v_proforma.organization_id) THEN
+    RAISE EXCEPTION 'LC_ISR_REVISION_SIN_PERMISO' USING ERRCODE = '42501';
+  END IF;
+  IF NOT v_proforma.es_consolidada OR v_proforma.evaluacion_fiscal IS NULL OR v_proforma.deleted_at IS NOT NULL
+    OR v_proforma.estado_proforma <> 'pendiente' OR v_proforma.estado_cliente = 'rechazada'
+    OR v_proforma.evaluacion_fiscal->>'conceptos_fingerprint' IS DISTINCT FROM p_huella
+    OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_proforma.evaluacion_fiscal->'ajustes_consolidacion') a
+      WHERE (a->>'diferencia')::numeric <> 0) THEN
+    RAISE EXCEPTION 'LC_ISR_CONSOLIDACION_APROBACION' USING ERRCODE = '23514';
+  END IF;
+  IF v_proforma.ajuste_consolidacion_aprobado_at IS NULL THEN
+    UPDATE public.proformas SET estado_revision = 'aprobada', ajuste_consolidacion_aprobado_at = clock_timestamp(),
+      ajuste_consolidacion_aprobado_por = v_uid WHERE id = p_proforma_id RETURNING * INTO v_proforma;
+  END IF;
+  RETURN jsonb_build_object('proforma_id', p_proforma_id, 'aprobada_at', v_proforma.ajuste_consolidacion_aprobado_at);
+END;
+$$;
 CREATE FUNCTION public.current_user_org_id() RETURNS uuid
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
@@ -10720,6 +10976,9 @@ CREATE TABLE public.proformas (
     embarques_ids uuid[],
     evaluacion_fiscal jsonb,
     conceptos_fiscales jsonb,
+    ajuste_consolidacion_aprobado_at timestamp with time zone,
+    ajuste_consolidacion_aprobado_por uuid,
+    CONSTRAINT proformas_ajuste_consolidacion_chk CHECK ((((ajuste_consolidacion_aprobado_at IS NULL) AND (ajuste_consolidacion_aprobado_por IS NULL)) OR (es_consolidada AND (evaluacion_fiscal IS NOT NULL) AND (ajuste_consolidacion_aprobado_at IS NOT NULL) AND (ajuste_consolidacion_aprobado_por IS NOT NULL)))),
     CONSTRAINT proformas_estado_cliente_check CHECK ((estado_cliente = ANY (ARRAY['pendiente'::text, 'aceptada'::text, 'rechazada'::text]))),
     CONSTRAINT proformas_estado_proforma_check CHECK ((estado_proforma = ANY (ARRAY['pendiente'::text, 'facturada'::text, 'cancelada'::text]))),
     CONSTRAINT proformas_estado_revision_check CHECK ((estado_revision = ANY (ARRAY['pendiente'::text, 'aprobada'::text, 'consolidada'::text]))),
@@ -15592,12 +15851,8 @@ DECLARE
   v_iva_mxn        numeric := 0;
   v_total_mxn      numeric := 0;
   v_no_soportados  int;
+  v_fiscal_id      uuid;
 BEGIN
-  v_cached := public.idempotency_claim(p_request_id, 'consolidar_proformas');
-  IF v_cached IS NOT NULL THEN
-    SELECT * INTO v_nueva FROM public.proformas WHERE id = (v_cached->>'id')::uuid;
-    IF FOUND THEN RETURN v_nueva; END IF;
-  END IF;
   v_caller_org := public.current_user_org_id();
   IF public.has_role(auth.uid(), 'super_admin'::app_role) THEN
     v_org_efectiva := p_organization_id;
@@ -15608,8 +15863,18 @@ BEGIN
   IF p_proforma_ids IS NULL OR array_length(p_proforma_ids, 1) IS NULL OR array_length(p_proforma_ids, 1) < 2 THEN
     RAISE EXCEPTION 'Selecciona al menos 2 proformas para consolidar';
   END IF;
+  v_cached := public.idempotency_claim(p_request_id, 'consolidar_proformas');
+  IF v_cached IS NOT NULL THEN
+    SELECT * INTO v_nueva FROM public.proformas WHERE id = (v_cached->>'id')::uuid AND organization_id = v_org_efectiva;
+    IF v_nueva.id IS NULL OR v_nueva.embarque_id IS DISTINCT FROM p_embarque_id OR v_nueva.cliente_id IS DISTINCT FROM p_cliente_id
+      OR (v_nueva.proformas_origen @> p_proforma_ids AND p_proforma_ids @> v_nueva.proformas_origen) IS DISTINCT FROM true
+      OR (v_nueva.evaluacion_fiscal IS NOT NULL AND v_org_efectiva IS DISTINCT FROM public.org_scope()) THEN
+      RAISE EXCEPTION 'LC_ISR_CONSOLIDACION_INCOMPATIBLE' USING ERRCODE = '23514';
+    END IF;
+    RETURN v_nueva;
+  END IF;
   PERFORM 1 FROM public.proformas
-  WHERE id = ANY(p_proforma_ids) AND organization_id = v_org_efectiva FOR UPDATE;
+  WHERE id = ANY(p_proforma_ids) AND organization_id = v_org_efectiva ORDER BY id FOR UPDATE;
   SELECT count(*) INTO v_count
   FROM public.proformas
   WHERE id = ANY(p_proforma_ids) AND organization_id = v_org_efectiva;
@@ -15643,6 +15908,13 @@ BEGIN
   IF v_no_soportados > 0 THEN
     RAISE EXCEPTION 'LC_MONEDA_VENTA_NO_SOPORTADA: % concepto(s) de venta tienen una moneda no soportada; sólo se puede facturar en MXN o USD', v_no_soportados
       USING ERRCODE = 'P0001';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.proformas p WHERE p.id = ANY(p_proforma_ids) AND p.organization_id = v_org_efectiva
+    AND p.evaluacion_fiscal IS NOT NULL) THEN
+    v_fiscal_id := public._isr_consolidar_proformas(v_org_efectiva, p_embarque_id, p_cliente_id, p_proforma_ids);
+    SELECT * INTO STRICT v_nueva FROM public.proformas WHERE id = v_fiscal_id;
+    PERFORM public.idempotency_store(p_request_id, jsonb_build_object('id', v_fiscal_id));
+    RETURN v_nueva;
   END IF;
   v_numero := public.generar_numero_proforma(v_org_efectiva);
   INSERT INTO public.proformas (
@@ -29726,12 +29998,22 @@ BEGIN
       INTO v_bloques FROM jsonb_array_elements(v_proforma.evaluacion_fiscal->'bloques') b;
     SELECT b INTO v_mxn FROM jsonb_array_elements(v_bloques) b WHERE b->>'moneda' = 'MXN';
     SELECT b INTO v_usd FROM jsonb_array_elements(v_bloques) b WHERE b->>'moneda' = 'USD';
-    SELECT jsonb_agg(jsonb_build_object('id', c->'id', 'descripcion', c->'descripcion', 'cantidad', c->'cantidad',
+    IF NOT v_proforma.es_consolidada THEN
+      SELECT jsonb_agg(jsonb_build_object('id', c->'id', 'descripcion', c->'descripcion', 'cantidad', c->'cantidad',
       'precio_unitario', c->'precio_unitario', 'importe', c->'total', 'moneda', c->'moneda',
       'tipo_iva', c->'tipo_iva', 'tasa_iva_aplicada', c->'tasa_iva_aplicada', 'aplica_iva', c->'aplica_iva') ORDER BY ord)
       INTO v_conceptos FROM jsonb_array_elements(v_proforma.conceptos_fiscales) WITH ORDINALITY AS l(c, ord);
+    END IF;
     v_moneda_legacy := CASE WHEN v_mxn IS NOT NULL THEN 'MXN' ELSE 'USD' END;
   ELSE
+    v_moneda_legacy := CASE
+      WHEN v_proforma.subtotal_mxn > 0
+        OR (v_proforma.subtotal_mxn = 0 AND v_proforma.subtotal_usd = 0)
+      THEN 'MXN' ELSE 'USD' END;
+    v_mxn := jsonb_build_object('subtotal', v_proforma.subtotal_mxn, 'iva', v_proforma.iva_mxn, 'total', v_proforma.total_mxn);
+    v_usd := jsonb_build_object('subtotal', v_proforma.subtotal_usd, 'iva', v_proforma.iva_usd, 'total', v_proforma.total_usd);
+  END IF;
+  IF v_conceptos IS NULL THEN
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
     'id', pcc.id,
     'descripcion', pcc.descripcion,
@@ -29745,16 +30027,7 @@ BEGIN
   ) ORDER BY pcc.created_at), '[]'::jsonb)
     INTO v_conceptos
     FROM public.proforma_conceptos_consolidados pcc
-   WHERE pcc.proforma_id = v_proforma.id;
-  -- FIX4 N-2: las columnas singulares ya no existen (multimoneda dual). Las
-  -- claves legacy se derivan: MXN si hay subtotal_mxn o si ambos son cero
-  -- (default histórico); si no, USD. El front nuevo usa los juegos duales.
-    v_moneda_legacy := CASE
-      WHEN v_proforma.subtotal_mxn > 0
-        OR (v_proforma.subtotal_mxn = 0 AND v_proforma.subtotal_usd = 0)
-      THEN 'MXN' ELSE 'USD' END;
-    v_mxn := jsonb_build_object('subtotal', v_proforma.subtotal_mxn, 'iva', v_proforma.iva_mxn, 'total', v_proforma.total_mxn);
-    v_usd := jsonb_build_object('subtotal', v_proforma.subtotal_usd, 'iva', v_proforma.iva_usd, 'total', v_proforma.total_usd);
+   WHERE pcc.proforma_id = v_proforma.id AND pcc.deleted_at IS NULL;
   END IF;
   RETURN jsonb_build_object(
     'estado_link', v_estado_link,
@@ -34878,6 +35151,8 @@ DECLARE
   v_intento public.proforma_email_intentos%ROWTYPE;
   v_ahora timestamptz := clock_timestamp();
   v_dias integer := (p_solicitud->>'dias_vigencia')::integer;
+  v_total_mxn numeric;
+  v_total_usd numeric;
 BEGIN
   SELECT * INTO v_proforma FROM public.proformas
   WHERE id = p_proforma_id AND deleted_at IS NULL FOR UPDATE;
@@ -34886,6 +35161,14 @@ BEGIN
     SELECT 1 FROM public.organization_members
     WHERE user_id = p_usuario_id AND organization_id = v_proforma.organization_id
   ) THEN RETURN jsonb_build_object('estado', 'sin_acceso'); END IF;
+  IF v_proforma.evaluacion_fiscal IS NOT NULL AND v_proforma.consolidada_en IS NOT NULL THEN
+    RETURN jsonb_build_object('estado', 'fuente_consolidada');
+  END IF;
+  IF v_proforma.es_consolidada AND v_proforma.ajuste_consolidacion_aprobado_at IS NULL
+    AND EXISTS (SELECT 1 FROM jsonb_array_elements(v_proforma.evaluacion_fiscal->'ajustes_consolidacion') a
+      WHERE (a->>'diferencia')::numeric <> 0) THEN
+    RETURN jsonb_build_object('estado', 'ajuste_pendiente');
+  END IF;
   SELECT * INTO v_intento FROM public.proforma_email_intentos WHERE id = p_intento FOR UPDATE;
   IF FOUND THEN
     IF (v_intento.proforma_id, v_intento.usuario_id, v_intento.solicitud)
@@ -34908,12 +35191,20 @@ BEGIN
         token_expira_at = v_ahora + make_interval(days => v_dias)
       WHERE id = v_proforma.id RETURNING * INTO v_proforma;
     END IF;
+    IF v_proforma.evaluacion_fiscal IS NOT NULL THEN
+      SELECT COALESCE(max((b->>'total')::numeric) FILTER (WHERE b->>'moneda'='MXN'),0),
+        COALESCE(max((b->>'total')::numeric) FILTER (WHERE b->>'moneda'='USD'),0) INTO v_total_mxn, v_total_usd
+      FROM jsonb_array_elements(v_proforma.evaluacion_fiscal->'bloques') b;
+    ELSE
+      v_total_mxn := v_proforma.total_mxn;
+      v_total_usd := v_proforma.total_usd;
+    END IF;
     INSERT INTO public.proforma_email_intentos (id, proforma_id, usuario_id, solicitud, contenido)
     VALUES (p_intento, p_proforma_id, p_usuario_id, p_solicitud, jsonb_build_object(
       'token', v_proforma.token_publico, 'expira', v_proforma.token_expira_at,
       'enlace', rtrim(p_portal_base, '/') || '/portal/proformas/' || v_proforma.token_publico,
       'numero', v_proforma.numero, 'cliente', v_proforma.cliente_nombre, 'expediente', v_proforma.expediente,
-      'total_mxn', v_proforma.total_mxn, 'total_usd', v_proforma.total_usd
+      'total_mxn', v_total_mxn, 'total_usd', v_total_usd
     )) RETURNING * INTO v_intento;
   END IF;
   UPDATE public.proforma_email_intentos SET reserva = p_reserva,
@@ -41427,6 +41718,8 @@ CREATE TABLE public.proforma_conceptos_consolidados (
     tasa_ret_isr numeric,
     monto_ret_isr numeric,
     evaluacion_fiscal jsonb,
+    linaje_fiscal jsonb,
+    CONSTRAINT pcc_linaje_fiscal_chk CHECK (((linaje_fiscal IS NULL) OR ((evaluacion_fiscal IS NOT NULL) AND (jsonb_typeof(linaje_fiscal) = 'array'::text) AND (jsonb_array_length(linaje_fiscal) > 0)))),
     CONSTRAINT pcc_tasa_iva_presente_chk CHECK (((tasa_iva_aplicada IS NOT NULL) OR (NOT (tipo_iva IS DISTINCT FROM 'no_objeto'::text)))),
     CONSTRAINT pcc_tipo_iva_chk CHECK (((tipo_iva IS NULL) OR (tipo_iva = ANY (ARRAY['gravado_16'::text, 'gravado_8'::text, 'tasa_0'::text, 'exento'::text, 'no_objeto'::text]))))
 );
@@ -43091,6 +43384,7 @@ CREATE TRIGGER zz_isr_contrato BEFORE INSERT OR DELETE OR UPDATE ON public.conce
 CREATE TRIGGER zz_isr_contrato BEFORE INSERT OR DELETE OR UPDATE ON public.cotizaciones FOR EACH ROW EXECUTE FUNCTION public._isr_guard_cotizacion();
 CREATE TRIGGER zz_isr_contrato BEFORE INSERT OR DELETE OR UPDATE ON public.proforma_conceptos_consolidados FOR EACH ROW EXECUTE FUNCTION public._isr_guard_concepto();
 CREATE TRIGGER zz_isr_conversion BEFORE INSERT OR UPDATE ON public.conceptos_factura FOR EACH ROW EXECUTE FUNCTION public._isr_guard_conversion_factura();
+CREATE TRIGGER zz_isr_grupo_consolidado BEFORE INSERT OR DELETE OR UPDATE ON public.proforma_conceptos_consolidados FOR EACH ROW EXECUTE FUNCTION public._isr_guard_concepto_consolidado();
 CREATE TRIGGER zz_isr_padre BEFORE UPDATE ON public.embarques FOR EACH ROW EXECUTE FUNCTION public._isr_guard_padre();
 CREATE TRIGGER zz_isr_padre BEFORE UPDATE ON public.proformas FOR EACH ROW EXECUTE FUNCTION public._isr_guard_padre();
 CREATE TRIGGER zz_isr_proforma_factura BEFORE INSERT OR UPDATE OF proforma_id ON public.facturas FOR EACH ROW EXECUTE FUNCTION public._isr_guard_conversion_factura();
@@ -43558,6 +43852,8 @@ ALTER TABLE ONLY public.proforma_liberaciones_portal
     ADD CONSTRAINT proforma_liberaciones_portal_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
 ALTER TABLE ONLY public.proforma_liberaciones_portal
     ADD CONSTRAINT proforma_liberaciones_portal_proforma_id_fkey FOREIGN KEY (proforma_id) REFERENCES public.proformas(id);
+ALTER TABLE ONLY public.proformas
+    ADD CONSTRAINT proformas_ajuste_consolidacion_aprobado_por_fkey FOREIGN KEY (ajuste_consolidacion_aprobado_por) REFERENCES auth.users(id);
 ALTER TABLE ONLY public.proformas
     ADD CONSTRAINT proformas_cliente_id_fkey FOREIGN KEY (cliente_id) REFERENCES public.clientes(id);
 ALTER TABLE ONLY public.proformas
@@ -44718,14 +45014,18 @@ REVOKE ALL ON FUNCTION public._h14_mutex_baja_embarque(p_org uuid, p_esperar boo
 REVOKE ALL ON FUNCTION public._h14_proformas_baja_embarque(p_embarque_id uuid, p_org uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._h14_validar_actor_org_baja(p_org uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._h14_validar_fila_org_baja(p_org uuid, p_tabla text, p_fila jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._isr_armar_consolidacion_proformas(p_proforma_ids uuid[], p_org uuid, p_embarque_id uuid, p_cliente_id uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_base_revision_venta(p_linea jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_concepto_proforma_normal(p_linea jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._isr_consolidar_proformas(p_org uuid, p_embarque_id uuid, p_cliente_id uuid, p_ids uuid[]) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_documento_habilitado(p_org_id uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_concepto() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._isr_guard_concepto_consolidado() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_conversion_factura() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_cotizacion() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_padre() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_guard_proforma_normal() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public._isr_insertar_grupos_consolidacion(p_proforma_id uuid, p_org uuid, p_embarque_id uuid, p_conceptos jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_plan_revision_embarque(p_embarque_id uuid, p_cliente_id uuid, p_conceptos_venta jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_snapshot_documento(p_org_id uuid, p_cliente_id uuid, p_ambiente text, p_conceptos jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._isr_snapshot_proforma_normal(p_org_id uuid, p_embarque_id uuid, p_cliente_id uuid, p_concepto_ids uuid[]) FROM PUBLIC;
@@ -44925,6 +45225,8 @@ GRANT ALL ON FUNCTION public.app_logs_health_summary(p_hours integer) TO authent
 GRANT ALL ON FUNCTION public.app_logs_health_summary(p_hours integer) TO service_role;
 GRANT ALL ON FUNCTION public.app_logs_health_timeline(p_hours integer, p_buckets integer) TO authenticated;
 GRANT ALL ON FUNCTION public.app_logs_health_timeline(p_hours integer, p_buckets integer) TO service_role;
+REVOKE ALL ON FUNCTION public.aprobar_ajuste_consolidacion_proforma(p_proforma_id uuid, p_huella text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.aprobar_ajuste_consolidacion_proforma(p_proforma_id uuid, p_huella text) TO authenticated;
 REVOKE ALL ON FUNCTION public.current_user_org_id() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.current_user_org_id() TO authenticated;
 GRANT ALL ON FUNCTION public.current_user_org_id() TO service_role;

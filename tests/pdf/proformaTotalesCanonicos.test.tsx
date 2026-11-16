@@ -49,17 +49,21 @@ describe("PDF real: proformas conservan totales por línea y divisa", () => {
       concepto(2, { descripcion: "Flete fiscal guardado B", precio_unitario: 100.40 })];
     const fiscal = {
       ...proforma, es_consolidada,
-      evaluacion_fiscal: fiscalCotizacionFixture({ organization_id: proforma.organization_id, cliente_id: proforma.cliente_id }),
+      evaluacion_fiscal: {
+        ...fiscalCotizacionFixture({ organization_id: proforma.organization_id, cliente_id: proforma.cliente_id }),
+        ...(es_consolidada ? { ajustes_consolidacion: [{ moneda: "MXN", anterior: 230.40, nuevo: 230.42, diferencia: .02 }] } : {}),
+      },
       conceptos_fiscales: venta,
     };
     const doc = es_consolidada ? (
       <ProformaConsolidadaDocument proforma={fiscal} embarque={embarque} emisor={emisor}
-        conceptosConsolidados={venta.map((fila) => ({ ...fila, proforma_id: proforma.id, total: 100.40, iva: 16.06 }))} />
+        conceptosConsolidados={[{ ...venta[0], proforma_id: proforma.id, cantidad: 2, total: 200.80, iva: 32.13, monto_ret_isr: 2.51 }]} />
     ) : <ProformaDocument proforma={{ ...fiscal, estado_proforma: "cancelada" }} embarque={embarque} conceptos={[]} emisor={emisor} />;
     const pdf = await inspectPdf(`proforma-fiscal-${es_consolidada}`, doc);
     expect(pdf.text).toContain("IVA MXN 32.13");
     expect(pdf.text).toContain("ISR retenido −MXN 2.51");
     expect(pdf.text).toContain("Total neto MXN 230.42");
     expect(pdf.text).toContain("Flete fiscal guardado A");
+    if (es_consolidada) expect(pdf.text).toContain("ajuste de redondeo pendiente de aprobación");
   });
 });
