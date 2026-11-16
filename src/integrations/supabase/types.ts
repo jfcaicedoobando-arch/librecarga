@@ -7276,6 +7276,79 @@ export type Database = {
           },
         ]
       }
+      intentos_rep_isr: {
+        Row: {
+          actor_id: string
+          actualizado_at: string | null
+          ambiente: Database["public"]["Enums"]["ambiente_facturapi"]
+          creado_at: string
+          esperado: Json
+          estado: string
+          factura_id: string
+          facturapi_id: string | null
+          id: string
+          id_anterior: string | null
+          organization_id: string
+          pago_id: string
+          resultado: Json | null
+          uuid_fiscal: string | null
+        }
+        Insert: {
+          actor_id: string
+          actualizado_at?: string | null
+          ambiente: Database["public"]["Enums"]["ambiente_facturapi"]
+          creado_at?: string
+          esperado: Json
+          estado?: string
+          factura_id: string
+          facturapi_id?: string | null
+          id?: string
+          id_anterior?: string | null
+          organization_id: string
+          pago_id: string
+          resultado?: Json | null
+          uuid_fiscal?: string | null
+        }
+        Update: {
+          actor_id?: string
+          actualizado_at?: string | null
+          ambiente?: Database["public"]["Enums"]["ambiente_facturapi"]
+          creado_at?: string
+          esperado?: Json
+          estado?: string
+          factura_id?: string
+          facturapi_id?: string | null
+          id?: string
+          id_anterior?: string | null
+          organization_id?: string
+          pago_id?: string
+          resultado?: Json | null
+          uuid_fiscal?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intentos_rep_isr_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intentos_rep_isr_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intentos_rep_isr_pago_id_fkey"
+            columns: ["pago_id"]
+            isOneToOne: false
+            referencedRelation: "pagos_factura"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intentos_timbrado_isr: {
         Row: {
           actor_id: string
@@ -13517,6 +13590,10 @@ export type Database = {
         Args: { p_claim: string; p_nota_id: string; p_organization_id: string }
         Returns: Json
       }
+      obtener_intento_rep_isr: {
+        Args: { p_claim: string; p_organization_id: string; p_pago_id: string }
+        Returns: Json
+      }
       obtener_intento_timbrado_isr: {
         Args: { p_claim: string; p_factura_id: string; p_organization_id: string }
         Returns: Json
@@ -14045,6 +14122,10 @@ export type Database = {
         Args: { p_claim: string; p_estado: string; p_nota_id: string; p_organization_id: string; p_resultado: Json }
         Returns: Json
       }
+      registrar_resultado_rep_isr: {
+        Args: { p_claim: string; p_estado: string; p_organization_id: string; p_pago_id: string; p_resultado: Json }
+        Returns: Json
+      }
       registrar_resultado_timbrado_isr: {
         Args: { p_factura_id: string; p_claim: string; p_estado: string; p_resultado: Json }
         Returns: Json
@@ -14081,6 +14162,10 @@ export type Database = {
       }
       reservar_nota_credito_isr: {
         Args: { p_actor: string; p_nota_id: string; p_organization_id: string; p_updated_at: string }
+        Returns: Json
+      }
+      reservar_rep_isr: {
+        Args: { p_actor: string; p_esperado: Json; p_organization_id: string; p_pago_id: string; p_updated_at: string }
         Returns: Json
       }
       reservar_timbrado_isr: {

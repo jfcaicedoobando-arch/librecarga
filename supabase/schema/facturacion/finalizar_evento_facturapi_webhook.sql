@@ -91,6 +91,16 @@ BEGIN
         'facturapi_webhook_isr_conciliado', p_documento_id, '',
         jsonb_build_object('event_type', v_evento.event_type, 'event_id', v_evento.event_id));
     END IF;
+  ELSIF p_resultado = 'conciliado_rep_isr' THEN
+    IF p_tabla IS DISTINCT FROM 'pagos_factura' OR v_evento.event_type NOT IN ('receipt.status_updated','invoice.status_updated')
+      OR NOT public._isr_rep_confirmado_webhook(p_documento_id,v_evento.organization_id,p_claim,
+        v_evento.payload#>>'{data,object,id}',v_evento.payload->>'ambiente_firma') THEN
+      v_estado := 'reintentable';
+      v_motivo := 'timbrado_isr_pendiente';
+    ELSE
+      v_estado := 'procesado';
+      v_motivo := 'timbrado_rep_isr_conciliado';
+    END IF;
   ELSIF p_resultado IS NULL OR p_resultado NOT IN ('ignorado', 'reintentable') THEN
     RAISE EXCEPTION 'Resultado de webhook inválido' USING ERRCODE = '22023';
   END IF;

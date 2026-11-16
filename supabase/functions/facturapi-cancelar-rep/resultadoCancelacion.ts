@@ -15,6 +15,7 @@ export interface ResultadoCancelacionArgs {
   supabase: SupabaseClient;
   json: (body: unknown, status?: number) => Response;
   pagoId: string;
+  facturapiId: string;
   organizationId: string;
   usuarioId: string;
   usuarioEmail?: string;
@@ -28,9 +29,13 @@ export async function resolverResultadoCancelacionRep(args: ResultadoCancelacion
   const cancellationStatus = (cancelResp.cancellation_status ?? "none").toLowerCase();
   const invoiceStatus = (cancelResp.status ?? "").toLowerCase();
   const bitacoraBase = { organizationId, usuarioId, usuarioEmail, modulo: "facturacion" as const };
+  const actualizar = (patch: Record<string, unknown>) => supabase.from("pagos_factura").update(patch)
+    .eq("id", pagoId).eq("organization_id", organizationId).eq("facturapi_rep_id", args.facturapiId)
+    .is("deleted_at", null).select("id").maybeSingle();
 
   if (cancellationStatus === "rejected" || cancellationStatus === "expired") {
-    await supabase.from("pagos_factura").update({ rep_cancellation_status: cancellationStatus }).eq("id", pagoId);
+    const resultado = await actualizar({ rep_cancellation_status: cancellationStatus });
+    if (resultado.error || !resultado.data) return json({ error: "db_update_failed" }, 409);
     await registrarBitacoraEdge(supabase, {
       ...bitacoraBase,
       accion: "facturapi_rep_cancelacion_rechazada",
@@ -47,11 +52,9 @@ export async function resolverResultadoCancelacionRep(args: ResultadoCancelacion
   }
 
   if (cancellationStatus === "pending" || cancellationStatus === "verifying") {
-    const { error: pendErr } = await supabase
-      .from("pagos_factura")
-      .update({ rep_cancellation_status: cancellationStatus, rep_motivo_cancel: motivo })
-      .eq("id", pagoId);
+    const { error: pendErr, data } = await actualizar({ rep_cancellation_status: cancellationStatus, rep_motivo_cancel: motivo });
     if (pendErr) return json({ error: "db_update_failed", detail: pendErr.message }, 500);
+    if (!data) return json({ error: "rep_actualizado" }, 409);
     await registrarBitacoraEdge(supabase, {
       ...bitacoraBase,
       accion: "facturapi_rep_cancelacion_solicitada",
@@ -81,16 +84,14 @@ export async function resolverResultadoCancelacionRep(args: ResultadoCancelacion
     }, 502);
   }
 
-  const { error: updErr } = await supabase
-    .from("pagos_factura")
-    .update({
+  const { error: updErr, data } = await actualizar({
       estado_rep: "Cancelado",
       rep_cancellation_status: "accepted",
       rep_cancelado_en: new Date().toISOString(),
       rep_motivo_cancel: motivo,
-    })
-    .eq("id", pagoId);
+    });
   if (updErr) return json({ error: "db_update_failed", detail: updErr.message }, 500);
+  if (!data) return json({ error: "rep_actualizado" }, 409);
 
   await registrarBitacoraEdge(supabase, {
     ...bitacoraBase,

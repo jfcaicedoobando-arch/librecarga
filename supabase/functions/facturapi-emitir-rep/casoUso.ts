@@ -19,6 +19,7 @@ import { emitirRepYPersistir } from "./etapaEmision.ts";
 import { verificarResumenProveedor } from "./resumenProveedor.ts";
 import type { JsonFn, UsuarioRep } from "./etapaResultado.ts";
 import { MENSAJE_PERFIL_CFDI_ORIGEN, perfilCfdiOrigen, type PerfilCfdiOrigen } from "../_shared/perfilCfdiOrigen.ts";
+import { emitirRepIsr } from "./emitirIsr.ts";
 
 /** Datos del SDK resueltos por organización (multi-tenant). */
 export interface FacturapiResuelto {
@@ -30,6 +31,7 @@ export interface FacturapiResuelto {
 
 export interface ArgsCasoUsoRep {
   supabase: SupabaseClient;
+  admin?: SupabaseClient;
   pagoId: string;
   usuario: UsuarioRep;
   json: JsonFn;
@@ -76,6 +78,12 @@ export async function emitirRepCasoUso(args: ArgsCasoUsoRep): Promise<Response> 
   );
   if (!etapaCtx.ok) return etapaCtx.response;
   const ctx = etapaCtx.valor;
+
+  if (origen) {
+    if (!args.admin || !pago.updated_at) return json({ error: "reserva_rep_fiscal" }, 503);
+    return emitirRepIsr({ rep: { admin: args.admin, pagoId: pago.id, organizationId: pago.organization_id },
+      ctx, actor: usuario.id, updatedAt: pago.updated_at, facturaRemota: factura.facturapi_id ?? null, origen, facturapi: sdk.data, json });
+  }
 
   // P1 · FacturAPI 5.0 — `invoices.paymentSummary` es la AUTORIDAD del saldo.
   // Si el proveedor difiere fuera de tolerancia, o no se puede consultar, NO se

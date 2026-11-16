@@ -9,10 +9,11 @@ import { createClient } from "npm:@supabase/supabase-js@2.119.0";
 import { buildCors, handlePreflightStrict } from "../_shared/cors.ts";
 import { wrapEdgeHandler } from "../_shared/sentry.ts";
 import { getFacturapiClient } from "../_shared/facturapiClient.ts";
-import { authorizeOrgRole, ROLES_EMISOR_FISCAL } from "../_shared/auth.ts";
+import { authorizeOrgRole, ROLES_COBRANZA_FISCAL, ROLES_EMISOR_FISCAL } from "../_shared/auth.ts";
 import { jsonResponse, makeJson } from "../_shared/response.ts";
 import { recuperarFacturaIsr } from "./recuperarIsr.ts";
 import { recuperarNotaIsr } from "./recuperarNotaIsr.ts";
+import { recuperarPagoIsr } from "./recuperarPagoIsr.ts";
 import {
   loadFactura, loadNotaCredito, loadPago, validarClaim, buscarCfdiPorExternalId,
   promoverFactura, promoverNc, promoverPago, liberarClaim, liberarClaimNc, liberarClaimPago,
@@ -140,7 +141,7 @@ async function recuperarPago(supabase: SB, user: Usuario, pagoId: string): Promi
   const pago = await loadPago(supabase, pagoId);
   if (pago instanceof Response) return pago;
 
-  if (!(await authorizeOrgRole(supabase, user.id, pago.organization_id, ROLES_EMISOR_FISCAL))) {
+  if (!(await authorizeOrgRole(supabase, user.id, pago.organization_id, ROLES_COBRANZA_FISCAL))) {
     return jsonResponse({ error: "forbidden" }, 403);
   }
 
@@ -149,6 +150,10 @@ async function recuperarPago(supabase: SB, user: Usuario, pagoId: string): Promi
     "REP",
   );
   if (validationResponse) return validationResponse;
+
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  const recuperado = await recuperarPagoIsr(admin, pago, claimTag);
+  if (recuperado) return recuperado;
 
   const resolved = await getFacturapiClient(supabase, pago.organization_id);
   if (!resolved.ok) {

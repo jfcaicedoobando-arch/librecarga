@@ -33,6 +33,9 @@ function datosFinalizacion(resultado: ResultadoWebhook | null) {
   if (resultado?.estado === "conciliado_isr") {
     return { p_resultado: "conciliado_isr", p_tabla: "facturas", p_documento_id: resultado.id, p_claim: resultado.claim };
   }
+  if (resultado?.estado === "conciliado_rep_isr") {
+    return { p_resultado: "conciliado_rep_isr", p_tabla: "pagos_factura", p_documento_id: resultado.id, p_claim: resultado.claim };
+  }
   return resultado?.estado === "aplicar"
     ? {
       p_resultado: "aplicar", p_tabla: resultado.tabla, p_documento_id: resultado.id,

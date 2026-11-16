@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
 import { consultarIntentoIsr, recuperarEmisionIsr } from "../recuperarEmisionIsr.ts";
+import { obtenerIntentoRepIsr } from "../registrarRepIsr.ts";
+import { recuperarRepConLlaveIsr, resolverLlaveRepIsr } from "../recuperarRepIsr.ts";
 import { sanearPatchFactura } from "./facturaPatch.ts";
 import { mapEventToFacturaPatch, mapEventToReceiptPatch, type FacturapiWebhookEvent, type MappedReceiptUpdate } from "./helpers.ts";
 import { COLS_FACTURA, COLS_REP, claimEsPendiente, externalIdDeEvento, localizarFila, patchAdopcionPendiente } from "./pendiente.ts";
@@ -23,6 +25,8 @@ interface PagoLocal extends VersionLocal {
   estado_rep: string | null;
   rep_cancellation_status: string | null;
   facturapi_rep_id: string | null;
+  uuid_rep: string | null;
+  ambiente: string | null;
 }
 
 export type ResultadoWebhook =
@@ -36,21 +40,49 @@ export type ResultadoWebhook =
     accion: string;
   }
   | { estado: "conciliado_isr"; id: string; claim: string }
+  | { estado: "conciliado_rep_isr"; id: string; claim: string }
   | { estado: "ignorar"; motivo: "evento_sin_efecto" | "estado_ya_avanzado" | "timbrado_pendiente" }
   | { estado: "reintentar"; motivo: "factura_not_found" | "pago_not_found" | "timbrado_isr_pendiente" };
+
+async function conciliarRepWebhookIsr(
+  supabase: SupabaseClient, orgId: string, pagoId: string, claim: string, event: FacturapiWebhookEvent, receipt: MappedReceiptUpdate,
+): Promise<ResultadoWebhook | null> {
+  const guardado = await obtenerIntentoRepIsr({ admin: supabase, pagoId, organizationId: orgId }, claim);
+  if (guardado.tipo === "legacy") return null;
+  if (guardado.tipo !== "vigente") return { estado: "reintentar", motivo: "timbrado_isr_pendiente" };
+  const { intento } = guardado;
+  const ambiente = intento.esperado.perfil.ambiente;
+  if (event.ambiente_firma !== ambiente || receipt.patch.estado_rep !== "Timbrado") {
+    return { estado: "ignorar", motivo: "evento_sin_efecto" };
+  }
+  if (guardado.facturapiId && guardado.facturapiId !== receipt.facturapi_rep_id) {
+    return { estado: "ignorar", motivo: "evento_sin_efecto" };
+  }
+  const llave = await resolverLlaveRepIsr(intento);
+  const remoto = llave ? await recuperarRepConLlaveIsr(intento, receipt.facturapi_rep_id, llave) : null;
+  return remoto ? { estado: "conciliado_rep_isr", id: pagoId, claim } : { estado: "reintentar", motivo: "timbrado_isr_pendiente" };
+}
 
 async function prepararPago(
   supabase: SupabaseClient, orgId: string, event: FacturapiWebhookEvent, receipt: MappedReceiptUpdate,
 ): Promise<ResultadoWebhook> {
   const localizado = await localizarFila<PagoLocal>({
     supabase, tabla: "pagos_factura", orgId, cols: COLS_REP,
-    select: "id, updated_at, estado_rep, rep_cancellation_status, facturapi_rep_id",
+    select: "id, updated_at, estado_rep, rep_cancellation_status, facturapi_rep_id, uuid_rep, ambiente",
     remoteId: receipt.facturapi_rep_id, externalId: externalIdDeEvento(event),
   });
   if (!localizado) return { estado: "reintentar", motivo: "pago_not_found" };
   const pago = localizado.fila;
+  if (localizado.via === "pendiente" && localizado.claimActual) {
+    const conciliado = await conciliarRepWebhookIsr(supabase, orgId, pago.id, localizado.claimActual, event, receipt);
+    if (conciliado) return conciliado;
+  }
+  if (firmaDeOtroAmbiente(event.ambiente_firma, pago.ambiente)) return { estado: "ignorar", motivo: "evento_sin_efecto" };
 
   const patch = { ...receipt.patch };
+  if (pago.estado_rep === "Timbrado" && pago.uuid_rep && patch.estado_rep === "Timbrado") {
+    return { estado: "ignorar", motivo: "estado_ya_avanzado" };
+  }
   if (pago.estado_rep === "Cancelado" && patch.estado_rep === "Timbrado") {
     delete patch.estado_rep;
     delete patch.timbrado_rep_en;

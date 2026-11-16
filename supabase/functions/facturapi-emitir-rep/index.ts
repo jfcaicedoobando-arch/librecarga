@@ -48,6 +48,7 @@ Deno.serve(wrapEdgeHandler("facturapi-emitir-rep", async (req) => {
 
   return await emitirRepCasoUso({
     supabase,
+    admin: createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } }),
     pagoId: body.pago_id,
     usuario: { id: userData.user.id, email: userData.user.email },
     json,

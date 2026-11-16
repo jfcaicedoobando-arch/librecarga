@@ -25,6 +25,7 @@ interface LocalPago {
   factura_id: string;
   facturapi_rep_id: string | null;
   estado_rep: string | null;
+  ambiente: "sandbox" | "live" | null;
   rep_cancellation_status: string | null;
 }
 
@@ -112,8 +113,9 @@ async function resolverPago(
 
   const { data, error } = await supabase
     .from("pagos_factura")
-    .select("id, organization_id, factura_id, facturapi_rep_id, estado_rep, rep_cancellation_status")
+    .select("id, organization_id, factura_id, facturapi_rep_id, estado_rep, rep_cancellation_status, ambiente")
     .eq("id", body.pago_id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error || !data) return { resp: json({ error: "pago_not_found" }, 404) };
   const pago = data as LocalPago;
@@ -137,7 +139,7 @@ async function traerRepRemoto(
   supabase: Supa,
   pago: LocalPago,
 ): Promise<{ remote: RemoteRep } | { resp: Response }> {
-  const resolved = await getFacturapiClient(supabase, pago.organization_id);
+  const resolved = await getFacturapiClient(supabase, pago.organization_id, pago.ambiente ?? undefined);
   if (!resolved.ok) {
     return {
       resp: json({ error: resolved.data.error, message: resolved.data.message }, resolved.data.status),
@@ -180,12 +182,14 @@ async function sincronizarPago(
   if (decision.outcome === "no_change" || Object.keys(decision.patch).length === 0) {
     return { actualizado: false, errorGuardado: null };
   }
-  const { error: upErr } = await supabase
+  const { error: upErr, data } = await supabase
     .from("pagos_factura")
     .update(decision.patch)
-    .eq("id", pago.id);
+    .eq("id", pago.id).eq("organization_id", pago.organization_id).eq("facturapi_rep_id", pago.facturapi_rep_id!)
+    .is("deleted_at", null).select("id").maybeSingle();
   // No silenciar: si un candado de BD impide sincronizar, el contador debe verlo.
   if (upErr) return { actualizado: false, errorGuardado: upErr.message };
+  if (!data) return { actualizado: false, errorGuardado: "El REP cambió durante la consulta." };
   await registrarBitacoraEdge(supabase, {
     organizationId: pago.organization_id,
     usuarioId: user.id,
@@ -228,7 +232,7 @@ async function handle(req: Request): Promise<Response> {
 
   const decision = resolverPatchRep(remote, pago, new Date().toISOString());
   const { actualizado, errorGuardado } = await sincronizarPago(
-    supabase,
+    createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } }),
     pago,
     { id: userData.user.id, email: userData.user.email },
     decision,

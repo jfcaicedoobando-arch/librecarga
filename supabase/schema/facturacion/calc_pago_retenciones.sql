@@ -9,6 +9,7 @@ DECLARE
   v_fac_ret_isr numeric; v_fac_ret_iva numeric;
   v_ncs numeric; v_base numeric; v_ratio numeric; v_monto numeric;
   v_prev_isr numeric; v_prev_iva numeric; v_prev_monto numeric;
+  v_proy record;
 BEGIN
   SELECT * INTO v_factura FROM public.facturas WHERE id = NEW.factura_id AND organization_id = NEW.organization_id;
   IF NOT FOUND THEN RETURN NEW; END IF;
@@ -28,6 +29,16 @@ BEGIN
     IF TG_OP = 'UPDATE' AND OLD.deleted_at IS NULL
       AND (NOT public.pago_rep_anulado(OLD.estado_rep) OR OLD.facturapi_rep_id LIKE 'PENDING:%')
       AND (OLD.factura_id, OLD.monto_aplicado_factura) IS NOT DISTINCT FROM (NEW.factura_id, NEW.monto_aplicado_factura) THEN
+      IF v_factura.metodo_pago='PPD' AND auth.role()='service_role' AND OLD.uuid_rep IS NULL
+        AND OLD.facturapi_rep_id IS NULL AND OLD.estado_rep IN ('Pendiente','Error')
+        AND (NEW.ret_isr,NEW.ret_iva) IS DISTINCT FROM (OLD.ret_isr,OLD.ret_iva) THEN
+        SELECT p.ret_isr,p.ret_iva INTO v_proy FROM public._isr_proyectar_retenciones_rep(v_factura) p WHERE p.pago_id=OLD.id;
+        IF FOUND THEN
+          NEW.ret_isr := v_proy.ret_isr;
+          NEW.ret_iva := v_proy.ret_iva;
+          RETURN NEW;
+        END IF;
+      END IF;
       NEW.ret_isr := OLD.ret_isr;
       NEW.ret_iva := OLD.ret_iva;
       RETURN NEW;

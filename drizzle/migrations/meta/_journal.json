@@ -568,6 +568,13 @@
       "when": 1794694500015,
       "tag": "0080_isr_resico_timbrado_notas",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1794694500016,
+      "tag": "0081_isr_resico_timbrado_rep",
+      "breakpoints": true
     }
   ]
 }

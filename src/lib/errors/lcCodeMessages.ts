@@ -62,6 +62,10 @@ export const LC_CODE_MESSAGES: Record<string, string> = {
     "La nota de crédito requiere confirmar su intento de timbrado desde la factura original.",
   LC_ISR_PAGO_NC_RESERVADA:
     "Una nota de crédito pendiente de timbrado tiene reservada parte del saldo fiscal. Consulta el intento antes de registrar este cobro.",
+  LC_ISR_REP_PROTEGIDO:
+    "El complemento requiere confirmar su intento de timbrado con el XML de Facturapi.",
+  LC_ISR_REP_CONTEXTO:
+    "Revisa el emisor, el saldo y las parcialidades anteriores antes de timbrar el complemento de pago.",
   LC_ISR_INTENTO_ACTIVO:
     "La factura tiene un intento de timbrado en curso. Consulta el resultado antes de iniciar otro.",
   LC_ANTICIPO_APLICACION_INCONSISTENTE:

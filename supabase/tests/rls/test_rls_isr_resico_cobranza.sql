@@ -44,6 +44,54 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION pg_temp.reservar_rep(
+  p_pago uuid,p_org uuid,p_actor uuid,p_saldo numeric,p_parcialidad int,p_base numeric
+) RETURNS text LANGUAGE plpgsql AS $$
+DECLARE v_pago public.pagos_factura; v_factura public.facturas; v_org jsonb; v_cliente jsonb; v_esperado jsonb; v_claim text;
+BEGIN
+  PERFORM pg_temp.as_postgres();
+  SELECT * INTO STRICT v_pago FROM public.pagos_factura WHERE id=p_pago;
+  SELECT * INTO STRICT v_factura FROM public.facturas WHERE id=v_pago.factura_id;
+  v_org := v_factura.snapshot_emision->'organizacion_snapshot';
+  v_cliente := v_factura.snapshot_emision->'cliente_snapshot';
+  v_esperado := jsonb_build_object('perfil',jsonb_build_object('ambiente','sandbox',
+    'emisor',jsonb_build_object('facturapiOrgId',v_org->>'facturapi_org_id','rfc',v_org->>'rfc',
+      'regimen',v_org->>'regimen_fiscal','cp',v_org->>'codigo_postal'),
+    'receptor',jsonb_build_object('id',v_cliente->>'id','nombre',v_cliente->>'nombre','rfc',v_cliente->>'rfc',
+      'regimen_fiscal',v_cliente->>'regimen_fiscal','codigo_postal',v_cliente->>'codigo_postal')),
+    'pago',jsonb_build_object('fecha',v_pago.fecha_pago,'moneda',v_pago.moneda,'monto',v_pago.monto,
+      'forma','03','tipo_cambio',v_pago.tipo_cambio),
+    'documento',jsonb_build_object('uuid',v_factura.uuid_fiscal,'moneda',v_factura.moneda,'parcialidad',p_parcialidad,
+      'equivalencia',v_pago.monto_aplicado_factura/v_pago.monto,'saldo_anterior',p_saldo,
+      'importe_pagado',v_pago.monto_aplicado_factura,'saldo_insoluto',p_saldo-v_pago.monto_aplicado_factura,
+      'objeto_impuesto','02','impuestos',jsonb_build_array(
+        jsonb_build_object('type','ISR','factor','Tasa','withholding',true,'rate',.0125,'base',p_base),
+        jsonb_build_object('type','IVA','factor','Tasa','withholding',true,'rate',.04,'base',p_base),
+        jsonb_build_object('type','IVA','factor','Tasa','withholding',false,'rate',.16,'base',p_base))));
+  PERFORM pg_temp.as_service_role();
+  PERFORM set_config('role','service_role',true);
+  v_claim := public.reservar_rep_isr(p_pago,p_org,p_actor,v_pago.updated_at,v_esperado)->>'claim';
+  RETURN v_claim;
+END;
+$$;
+
+CREATE FUNCTION pg_temp.evidencia_rep(p_pago uuid,p_org uuid,p_claim text,p_remoto text,p_uuid text,p_isr numeric,p_iva numeric)
+RETURNS jsonb LANGUAGE plpgsql AS $$
+DECLARE v_esperado jsonb;
+BEGIN
+  v_esperado := public.obtener_intento_rep_isr(p_pago,p_org,p_claim)->'esperado';
+  RETURN jsonb_build_object('facturapi_id',p_remoto,'uuid',p_uuid,'external_id',p_claim,'ambiente','sandbox',
+    'facturapi_org_id','org-resico79-qa','total',0,'folio',81,'serie','REP',
+    'xml',jsonb_build_object('uuid',p_uuid,'factura_uuid',v_esperado#>'{documento,uuid}',
+      'emisor_rfc','GODE561231GR8','receptor_rfc','EKU9003173C9','sha256',repeat('c',64),
+      'ruta',p_org::text||'/rep/'||p_uuid||'.xml','moneda_factura',v_esperado#>'{documento,moneda}',
+      'moneda_pago',v_esperado#>'{pago,moneda}','monto_recibido',v_esperado#>'{pago,monto}',
+      'parcialidad',v_esperado#>'{documento,parcialidad}','saldo_anterior',v_esperado#>'{documento,saldo_anterior}',
+      'importe_pagado',v_esperado#>'{documento,importe_pagado}','saldo_insoluto',v_esperado#>'{documento,saldo_insoluto}',
+      'ret_isr',p_isr,'ret_iva',p_iva));
+END;
+$$;
+
 DO $$
 DECLARE
   fx record;
@@ -56,7 +104,6 @@ DECLARE
   pago_uno uuid;
   pago_dos uuid;
   pago_final uuid;
-  reemplazo uuid;
   nota_uno uuid;
   nota_dos uuid;
   bloqueado boolean;
@@ -65,6 +112,7 @@ DECLARE
   lineas jsonb;
   claim text;
   claim_nc text;
+  claim_rep text;
   folio_uuid constant text := '9DB0A395-76FD-42AE-8DB9-67F9EACD68F1';
   fecha date := public.fecha_negocio_mx();
 BEGIN
@@ -193,11 +241,35 @@ BEGIN
   PERFORM pg_temp.assert(bloqueado,'an issued credit retains the original rates and line id');
 
   PERFORM pg_temp.as_postgres();
-  INSERT INTO public.pagos_factura(organization_id,factura_id,fecha_pago,monto,moneda,tipo_cambio,forma_pago,ret_isr,ret_iva)
-    VALUES(fx.org_a,factura,fecha,50.00,'MXN',1,'03',999,999) RETURNING id INTO pago_uno;
+  INSERT INTO public.pagos_factura(organization_id,factura_id,fecha_pago,monto,moneda,tipo_cambio,forma_pago,ret_isr,ret_iva,created_at)
+    VALUES(fx.org_a,factura,fecha,50.00,'MXN',1,'03',999,999,clock_timestamp()) RETURNING id INTO pago_uno;
   PERFORM pg_temp.assert((SELECT (monto,monto_aplicado_factura,ret_isr,ret_iva)=(50.00,50.00,.56,1.80)
     FROM public.pagos_factura WHERE id=pago_uno), 'cash and both calculated retentions are independent');
 
+  INSERT INTO public.pagos_factura(organization_id,factura_id,fecha_pago,monto,moneda,tipo_cambio,forma_pago,created_at)
+    VALUES(fx.org_a,factura,fecha,2,'USD',20,'03',clock_timestamp()+interval '1 second') RETURNING id INTO pago_dos;
+  PERFORM pg_temp.assert((SELECT (monto,monto_aplicado_factura,ret_isr,ret_iva)=(2,40,.45,1.45)
+    FROM public.pagos_factura WHERE id=pago_dos), 'FX uses the amount applied in invoice currency');
+  bloqueado := false;
+  BEGIN UPDATE public.pagos_factura SET facturapi_rep_id='PENDING:rep-invalido' WHERE id=pago_uno;
+  EXCEPTION WHEN check_violation THEN bloqueado := SQLERRM='LC_ISR_REP_PROTEGIDO'; END;
+  PERFORM pg_temp.assert(bloqueado,'an evaluated payment cannot bypass reservation');
+  claim_rep := pg_temp.reservar_rep(pago_uno,fx.org_a,fx.admin_a,166.80,1,45.15);
+  evidencia := pg_temp.evidencia_rep(pago_uno,fx.org_a,claim_rep,'rep-81-first','9DB0A395-76FD-42AE-8DB9-67F9EACD68F4',.56,1.81);
+  PERFORM pg_temp.assert(public.registrar_resultado_rep_isr(pago_uno,fx.org_a,claim_rep,'confirmado',
+    jsonb_set(evidencia,'{xml,importe_pagado}','49.99')) ->>'estado'='conciliacion','different XML amounts leave REP pending');
+  bloqueado := false;
+  BEGIN PERFORM public.registrar_resultado_rep_isr(pago_uno,fx.org_a,claim_rep,'rechazado','{"http_status":422}');
+  EXCEPTION WHEN check_violation THEN bloqueado := SQLERRM='LC_ISR_RECHAZO_INCIERTO'; END;
+  PERFORM pg_temp.assert(bloqueado,'an uncertain attempt cannot be released');
+  PERFORM pg_temp.assert(public.registrar_resultado_rep_isr(pago_uno,fx.org_a,claim_rep,'confirmado',evidencia)->>'estado'='confirmado',
+    'certified retentions confirm the same attempt');
+  PERFORM pg_temp.assert(public.registrar_resultado_rep_isr(pago_uno,fx.org_a,claim_rep,'confirmado',evidencia)->>'estado'='confirmado',
+    'repeated evidence is idempotent');
+  PERFORM pg_temp.assert((SELECT (ret_isr,ret_iva)=(.56,1.81) FROM public.pagos_factura WHERE id=pago_uno),
+    'the certified XML updates collection and not the cash amount');
+  PERFORM pg_temp.assert((SELECT (monto_aplicado_factura,ret_isr,ret_iva)=(40,.45,1.44) FROM public.pagos_factura WHERE id=pago_dos),
+    'unissued payment estimates are reallocated after the certified cent difference');
   PERFORM pg_temp.as_user(fx.admin_a);
   lineas := jsonb_build_array(jsonb_build_object('concepto_factura_id',concepto_b,'cantidad',1,'precio_unitario',20,
     'tipo_iva','gravado_16','tasa_iva',.16,'tasa_ret_isr',.0125,'tasa_ret_iva',.04));
@@ -206,34 +278,43 @@ BEGIN
   claim_nc := pg_temp.reservar_nc(nota_dos,fx.org_a,fx.admin_a);
   PERFORM pg_temp.assert(pg_temp.confirmar_nc(nota_dos,fx.org_a,fx.admin_a,claim_nc,'nc-resico79-qa-2',
     '9DB0A395-76FD-42AE-8DB9-67F9EACD68F3')='confirmado','credit after a payment uses the approved allocation');
-  PERFORM pg_temp.assert(public.saldo_factura(factura)=94.65, 'a later credit preserves prior payment and reduces remaining net');
+  PERFORM pg_temp.assert(public.saldo_factura(factura)=54.65, 'a later credit preserves both prior payments and reduces remaining net');
 
   PERFORM pg_temp.as_postgres();
-  INSERT INTO public.pagos_factura(organization_id,factura_id,fecha_pago,monto,moneda,tipo_cambio,forma_pago)
-    VALUES(fx.org_a,factura,fecha,2,'USD',20,'03') RETURNING id INTO pago_dos;
-  PERFORM pg_temp.assert((SELECT (monto,monto_aplicado_factura,ret_isr,ret_iva)=(2,40,.45,1.45)
-    FROM public.pagos_factura WHERE id=pago_dos), 'FX uses the amount applied in invoice currency');
-  INSERT INTO public.pagos_factura(organization_id,factura_id,fecha_pago,monto,moneda,tipo_cambio,forma_pago)
-    VALUES(fx.org_a,factura,fecha,54.65,'MXN',1,'03') RETURNING id INTO pago_final;
+  INSERT INTO public.pagos_factura(organization_id,factura_id,fecha_pago,monto,moneda,tipo_cambio,forma_pago,created_at)
+    VALUES(fx.org_a,factura,fecha,54.65,'MXN',1,'03',clock_timestamp()+interval '2 seconds') RETURNING id INTO pago_final;
   PERFORM pg_temp.assert((SELECT (ret_isr,ret_iva)=(.62,1.97)
     FROM public.pagos_factura WHERE id=pago_final), 'final payment takes both rounding residues');
   PERFORM pg_temp.assert(public._saldo_factura_calc(factura)=0, 'the ledger is settled exactly');
 
-  UPDATE public.pagos_factura SET estado_rep='Cancelado' WHERE id=pago_dos;
+  claim_rep := pg_temp.reservar_rep(pago_dos,fx.org_a,fx.admin_a,94.65,2,36.12);
+  evidencia := pg_temp.evidencia_rep(pago_dos,fx.org_a,claim_rep,'rep-81-second','9DB0A395-76FD-42AE-8DB9-67F9EACD68F5',.45,1.44);
+  PERFORM pg_temp.assert(public.registrar_resultado_rep_isr(pago_dos,fx.org_a,claim_rep,'confirmado',evidencia)->>'estado'='confirmado',
+    'the second REP verifies cross-currency cash, balances and retained IVA');
+  UPDATE public.pagos_factura SET estado_rep='Cancelado',rep_cancellation_status='accepted',rep_cancelado_en=clock_timestamp() WHERE id=pago_dos;
   PERFORM pg_temp.assert(public._saldo_factura_calc(factura)=40, 'cancelling the REP reopens the applied net');
-  UPDATE public.pagos_factura SET facturapi_rep_id='PENDING:rep-resico79' WHERE id=pago_dos;
+  claim_rep := pg_temp.reservar_rep(pago_dos,fx.org_a,fx.admin_a,94.65,2,36.12);
   PERFORM pg_temp.assert(public._saldo_factura_calc(factura)=40, 'a REP retry reserves its payment without posting it');
   bloqueado := false;
   BEGIN
-    INSERT INTO public.pagos_factura(organization_id,factura_id,fecha_pago,monto,moneda,tipo_cambio,forma_pago)
-    VALUES(fx.org_a,factura,fecha,2,'USD',20,'03');
+    INSERT INTO public.pagos_factura(organization_id,factura_id,fecha_pago,monto,moneda,tipo_cambio,forma_pago,created_at)
+    VALUES(fx.org_a,factura,fecha,2,'USD',20,'03',clock_timestamp()+interval '3 seconds');
   EXCEPTION WHEN check_violation THEN bloqueado := SQLERRM LIKE 'LC_PAGO_SOBREPAGO:%'; END;
   PERFORM pg_temp.assert(bloqueado, 'the replacement cannot consume a balance reserved for the REP retry');
-  UPDATE public.pagos_factura SET facturapi_rep_id=NULL WHERE id=pago_dos;
-  INSERT INTO public.pagos_factura(organization_id,factura_id,fecha_pago,monto,moneda,tipo_cambio,forma_pago)
-    VALUES(fx.org_a,factura,fecha,2,'USD',20,'03') RETURNING id INTO reemplazo;
-  PERFORM pg_temp.assert((SELECT (ret_isr,ret_iva)=(.45,1.45)
-    FROM public.pagos_factura WHERE id=reemplazo), 'replacing the payment restores its fiscal amounts');
+  PERFORM pg_temp.assert(public.registrar_resultado_rep_isr(pago_dos,fx.org_a,claim_rep,'rechazado','{"http_status":422}')->>'estado'='rechazado',
+    'a first definitive rejection restores the cancelled REP');
+  PERFORM pg_temp.assert((SELECT estado_rep='Cancelado' AND facturapi_rep_id='rep-81-second' FROM public.pagos_factura WHERE id=pago_dos),
+    'a rejected replacement preserves the existing history');
+  claim_rep := pg_temp.reservar_rep(pago_dos,fx.org_a,fx.admin_a,94.65,2,36.12);
+  evidencia := pg_temp.evidencia_rep(pago_dos,fx.org_a,claim_rep,'rep-81-replace','9DB0A395-76FD-42AE-8DB9-67F9EACD68F6',.45,1.44);
+  PERFORM pg_temp.assert(public.registrar_resultado_rep_isr(pago_dos,fx.org_a,claim_rep,'confirmado',evidencia)->>'estado'='confirmado',
+    'replacement can be certified after rejection');
+  PERFORM pg_temp.assert((SELECT (ret_isr,ret_iva)=(.45,1.44) AND rep_cancelado_facturapi_id='rep-81-second'
+    FROM public.pagos_factura WHERE id=pago_dos), 'replacing the payment restores its fiscal amounts and archives the cancelled REP');
+  claim_rep := pg_temp.reservar_rep(pago_final,fx.org_a,fx.admin_a,54.65,3,49.35);
+  evidencia := pg_temp.evidencia_rep(pago_final,fx.org_a,claim_rep,'rep-81-final','9DB0A395-76FD-42AE-8DB9-67F9EACD68F7',.62,1.97);
+  PERFORM pg_temp.assert(public.registrar_resultado_rep_isr(pago_final,fx.org_a,claim_rep,'confirmado',evidencia)->>'estado'='confirmado',
+    'final REP posts the exact retained amounts');
   PERFORM pg_temp.assert((SELECT (sum(ret_isr),sum(ret_iva))=(1.63,5.22)
     FROM public.pagos_factura WHERE factura_id=factura AND NOT public.pago_rep_anulado(estado_rep)),
     'active collections plus both credits reconcile to the issued amounts');

@@ -37,7 +37,10 @@ BEGIN
     'public._isr_guard_nota_credito()', 'public._isr_validar_nota_timbrado()',
     'public.reservar_nota_credito_isr(uuid,uuid,uuid,timestamptz)',
     'public.obtener_intento_nota_credito_isr(uuid,uuid,text)',
-    'public.registrar_resultado_nota_credito_isr(uuid,uuid,text,text,jsonb)'
+    'public.registrar_resultado_nota_credito_isr(uuid,uuid,text,text,jsonb)',
+    'public._isr_guard_timbrado_rep()', 'public._isr_proyectar_retenciones_rep(public.facturas)',
+    'public.reservar_rep_isr(uuid,uuid,uuid,timestamptz,jsonb)', 'public.obtener_intento_rep_isr(uuid,uuid,text)',
+    'public.registrar_resultado_rep_isr(uuid,uuid,text,text,jsonb)', 'public._isr_rep_confirmado_webhook(uuid,uuid,text,text,text)'
   ]) LOOP
     oid_fn := to_regprocedure(fn);
     IF oid_fn IS NULL OR NOT EXISTS (SELECT 1 FROM pg_proc WHERE oid=oid_fn AND proowner='postgres'::regrole) THEN
@@ -58,7 +61,9 @@ BEGIN
         'public.reservar_timbrado_isr(uuid,uuid,jsonb,jsonb)', 'public.registrar_resultado_timbrado_isr(uuid,text,text,jsonb)',
         'public.obtener_intento_timbrado_isr(uuid,uuid,text)',
         'public.reservar_nota_credito_isr(uuid,uuid,uuid,timestamptz)', 'public.obtener_intento_nota_credito_isr(uuid,uuid,text)',
-        'public.registrar_resultado_nota_credito_isr(uuid,uuid,text,text,jsonb)'));
+        'public.registrar_resultado_nota_credito_isr(uuid,uuid,text,text,jsonb)',
+        'public.reservar_rep_isr(uuid,uuid,uuid,timestamptz,jsonb)', 'public.obtener_intento_rep_isr(uuid,uuid,text)',
+        'public.registrar_resultado_rep_isr(uuid,uuid,text,text,jsonb)', 'public._isr_rep_confirmado_webhook(uuid,uuid,text,text,text)'));
       IF has_function_privilege(rol, oid_fn, 'EXECUTE') IS DISTINCT FROM esperado THEN
         RAISE EXCEPTION 'CI_ISR_COMERCIAL_ACL: unexpected execute on % for %', fn, rol;
       END IF;
@@ -66,14 +71,14 @@ BEGIN
   END LOOP;
 
   FOREACH tabla IN ARRAY ARRAY['public.cotizacion_revisiones_fiscales','public.embarque_revisiones_fiscales',
-    'public.proforma_liberaciones_portal','public.intentos_timbrado_isr','public.intentos_nota_credito_isr'] LOOP
+    'public.proforma_liberaciones_portal','public.intentos_timbrado_isr','public.intentos_nota_credito_isr','public.intentos_rep_isr'] LOOP
     IF NOT EXISTS(SELECT 1 FROM pg_class WHERE oid=to_regclass(tabla) AND relrowsecurity AND relforcerowsecurity) THEN
       RAISE EXCEPTION 'CI_ISR_COMERCIAL_ACL: % must enforce RLS', tabla;
     END IF;
     FOREACH rol IN ARRAY ARRAY['anon','authenticated','service_role'] LOOP
       FOREACH privilegio IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER','MAINTAIN'] LOOP
         esperado := privilegio='SELECT' AND rol<>'anon'
-          AND tabla NOT IN ('public.proforma_liberaciones_portal','public.intentos_timbrado_isr','public.intentos_nota_credito_isr');
+          AND tabla NOT IN ('public.proforma_liberaciones_portal','public.intentos_timbrado_isr','public.intentos_nota_credito_isr','public.intentos_rep_isr');
         IF has_table_privilege(rol, tabla, privilegio) IS DISTINCT FROM esperado THEN
           RAISE EXCEPTION 'CI_ISR_COMERCIAL_ACL: unexpected % on % for %', privilegio, tabla, rol;
         END IF;
