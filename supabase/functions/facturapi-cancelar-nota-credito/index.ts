@@ -46,7 +46,7 @@ Deno.serve(wrapEdgeHandler("facturapi-cancelar-nota-credito", async (req) => {
   if (!ctxResult.ok) return ctxResult.response;
   const { nc, sustituyeFacturapiId } = ctxResult;
 
-  const resolved = await getFacturapiClient(supabase, nc.organization_id);
+  const resolved = await getFacturapiClient(supabase, nc.organization_id, nc.ambiente ?? undefined);
   if (!resolved.ok) return json({ error: resolved.data.error, message: resolved.data.message }, resolved.data.status);
   const facturapi = resolved.data.client;
 

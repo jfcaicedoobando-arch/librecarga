@@ -1,5 +1,6 @@
 import { consultarPerfilProveedor } from "./facturapiPerfilProveedor.ts";
-import type { DocumentoFacturapiIsr } from "./conciliarCfdiIsr.ts";
+import type { DocumentoFacturapiIsr, PrevalidacionTimbradoIsr } from "./conciliarCfdiIsr.ts";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
 import { getFacturapiClient, withFacturapiTimeout } from "./facturapiClient.ts";
 import { asFacturapiApi, exigirOperacion } from "./facturapiSdk.ts";
 import { conciliarYRegistrarIsr, obtenerIntentoIsr, type EmisionIsr } from "./registrarEmisionIsr.ts";
@@ -7,9 +8,16 @@ import { conciliarYRegistrarIsr, obtenerIntentoIsr, type EmisionIsr } from "./re
 export async function consultarIntentoIsr(intento: EmisionIsr, request: typeof fetch = fetch) {
   const guardado = await obtenerIntentoIsr(intento);
   if (!guardado) return null;
+  const resuelto = await resolverLlaveRecuperacionIsr(intento.admin, intento.organizationId, guardado.esperado, request);
+  return resuelto ? { ...intento, ...guardado, ...resuelto } : null;
+}
 
-  const { ambiente, emisor } = guardado.esperado;
-  const resuelto = await getFacturapiClient(intento.admin, intento.organizationId, ambiente);
+export async function resolverLlaveRecuperacionIsr(
+  admin: SupabaseClient, organizationId: string, esperado: Pick<PrevalidacionTimbradoIsr, "ambiente" | "emisor">,
+  request: typeof fetch = fetch,
+) {
+  const { ambiente, emisor } = esperado;
+  const resuelto = await getFacturapiClient(admin, organizationId, ambiente);
   if (!resuelto.ok || resuelto.data.ambiente !== ambiente || resuelto.data.facturapiOrgId !== emisor.facturapi_org_id) {
     return null;
   }
@@ -18,7 +26,7 @@ export async function consultarIntentoIsr(intento: EmisionIsr, request: typeof f
     // same organization. The XML is checked against the historical profile.
     const perfil = await consultarPerfilProveedor(resuelto.data.apiKey, request);
     if (perfil.facturapi_org_id !== emisor.facturapi_org_id) return null;
-    return { ...intento, ...guardado, ...resuelto.data };
+    return resuelto.data;
   } catch {
     return null;
   }
@@ -29,17 +37,22 @@ type IntentoConsultable = NonNullable<Awaited<ReturnType<typeof consultarIntento
 export async function recuperarEmisionIsr(
   intento: IntentoConsultable, id: string, request: typeof fetch = fetch,
 ) {
-  if (!/^[A-Za-z0-9_-]{1,150}$/.test(id) || (intento.facturapiId && intento.facturapiId !== id)) return null;
-  let remoto: DocumentoFacturapiIsr;
+  if (intento.facturapiId && intento.facturapiId !== id) return null;
+  const remoto = await consultarCfdiRemoto(intento.client, id);
+  if (!remoto) return null;
+  const resultado = await conciliarYRegistrarIsr({ ...intento, remoto }, request);
+  return { estado: resultado.estado, remoto };
+}
+
+export async function consultarCfdiRemoto(client: unknown, id: string): Promise<DocumentoFacturapiIsr | null> {
+  if (!/^[A-Za-z0-9_-]{1,150}$/.test(id)) return null;
   try {
     const consultar = exigirOperacion<(id: string) => Promise<DocumentoFacturapiIsr>>(
-      asFacturapiApi(intento.client), "invoices.retrieve",
+      asFacturapiApi(client), "invoices.retrieve",
     );
-    remoto = await withFacturapiTimeout("invoices.retrieve", consultar(id));
+    const remoto = await withFacturapiTimeout("invoices.retrieve", consultar(id));
+    return remoto?.id === id ? remoto : null;
   } catch {
     return null;
   }
-  if (remoto?.id !== id) return null;
-  const resultado = await conciliarYRegistrarIsr({ ...intento, remoto }, request);
-  return { estado: resultado.estado, remoto };
 }

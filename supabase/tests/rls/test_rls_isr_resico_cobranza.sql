@@ -1,6 +1,49 @@
 BEGIN;
 \ir _helpers.sql
 
+CREATE FUNCTION pg_temp.reservar_nc(p_nota uuid,p_org uuid,p_actor uuid)
+RETURNS text LANGUAGE plpgsql AS $$
+DECLARE v_version timestamptz; v_claim text;
+BEGIN
+  SELECT updated_at INTO STRICT v_version FROM public.factura_notas_credito WHERE id=p_nota;
+  PERFORM pg_temp.as_postgres();
+  PERFORM pg_temp.as_service_role();
+  PERFORM set_config('role','service_role',true);
+  v_claim := public.reservar_nota_credito_isr(p_nota,p_org,p_actor,v_version)->>'claim';
+  PERFORM pg_temp.as_user(p_actor);
+  RETURN v_claim;
+END;
+$$;
+
+CREATE FUNCTION pg_temp.confirmar_nc(
+  p_nota uuid,p_org uuid,p_actor uuid,p_claim text,p_remoto text,p_uuid text,p_origen_incorrecto boolean DEFAULT false
+) RETURNS text LANGUAGE plpgsql AS $$
+DECLARE v_datos jsonb; v_esperado jsonb; v_evidencia jsonb; v_estado text;
+BEGIN
+  PERFORM pg_temp.as_postgres();
+  PERFORM pg_temp.as_service_role();
+  PERFORM set_config('role','service_role',true);
+  v_datos := public.obtener_intento_nota_credito_isr(p_nota,p_org,p_claim);
+  v_esperado := v_datos->'esperado';
+  PERFORM pg_temp.assert(v_esperado->>'tipo'='E' AND v_esperado->>'ambiente'='sandbox','credit attempt retains the original environment');
+  v_evidencia := jsonb_build_object('facturapi_id',p_remoto,'uuid',p_uuid,'external_id',p_claim,'ambiente','sandbox',
+    'facturapi_org_id','org-resico79-qa','moneda','MXN','total',v_esperado#>'{totales,total}',
+    'folio',79+right(p_uuid,1)::integer,'serie','NC',
+    'xml',jsonb_build_object('uuid',p_uuid,'factura_uuid',
+      CASE WHEN p_origen_incorrecto THEN p_uuid ELSE v_esperado->>'factura_uuid' END,
+      'emisor_rfc','GODE561231GR8','emisor_regimen','626','receptor_rfc','EKU9003173C9','receptor_regimen','601',
+      'totales',v_esperado->'totales','uso_cfdi','G02','sha256',repeat('b',64),
+      'ruta',p_org::text || '/notas-credito/' || p_uuid || '.xml'));
+  v_estado := public.registrar_resultado_nota_credito_isr(p_nota,p_org,p_claim,'confirmado',v_evidencia)->>'estado';
+  IF v_estado='confirmado' THEN
+    PERFORM pg_temp.assert(public.registrar_resultado_nota_credito_isr(p_nota,p_org,p_claim,'confirmado',v_evidencia)->>'estado'
+      ='confirmado','credit confirmation is idempotent');
+  END IF;
+  PERFORM pg_temp.as_user(p_actor);
+  RETURN v_estado;
+END;
+$$;
+
 DO $$
 DECLARE
   fx record;
@@ -21,6 +64,7 @@ DECLARE
   evidencia jsonb;
   lineas jsonb;
   claim text;
+  claim_nc text;
   folio_uuid constant text := '9DB0A395-76FD-42AE-8DB9-67F9EACD68F1';
   fecha date := public.fecha_negocio_mx();
 BEGIN
@@ -73,8 +117,23 @@ BEGIN
       'tipo_iva','gravado_16','tasa_iva',.16,'tasa_ret_isr',.0125,'tasa_ret_iva',.04));
   INSERT INTO public.factura_notas_credito(organization_id,factura_id,folio,monto,conceptos,fecha_emision)
     VALUES(fx.org_a,factura,'NC-QA79-CANCELADA',222.39,lineas,fecha) RETURNING id INTO nota_uno;
-  UPDATE public.factura_notas_credito SET facturapi_id='nc-resico79-qa-cancelada',estado='Timbrada',
+  bloqueado := false;
+  BEGIN UPDATE public.factura_notas_credito SET facturapi_id='nc-falsa',estado='Timbrada',
     uuid_fiscal='9DB0A395-76FD-42AE-8DB9-67F9EACD68F4' WHERE id=nota_uno;
+  EXCEPTION WHEN check_violation THEN bloqueado := SQLERRM='LC_ISR_NC_TIMBRADO_PROTEGIDO'; END;
+  PERFORM pg_temp.assert(bloqueado,'a client cannot bypass the credit issuance attempt');
+  claim_nc := pg_temp.reservar_nc(nota_uno,fx.org_a,fx.admin_a);
+  PERFORM pg_temp.as_postgres();
+  PERFORM pg_temp.as_service_role();
+  PERFORM set_config('role','service_role',true);
+  PERFORM pg_temp.assert(public.registrar_resultado_nota_credito_isr(nota_uno,fx.org_a,claim_nc,'rechazado',
+    '{"http_status":422}')->>'estado'='rechazado','a definite initial rejection releases only its own claim');
+  PERFORM pg_temp.as_user(fx.admin_a);
+  PERFORM pg_temp.assert((SELECT facturapi_id IS NULL FROM public.factura_notas_credito WHERE id=nota_uno),
+    'an explicitly rejected note can be reserved again');
+  claim_nc := pg_temp.reservar_nc(nota_uno,fx.org_a,fx.admin_a);
+  PERFORM pg_temp.assert(pg_temp.confirmar_nc(nota_uno,fx.org_a,fx.admin_a,claim_nc,'nc-resico79-qa-cancelada',
+    '9DB0A395-76FD-42AE-8DB9-67F9EACD68F4')='confirmado','full credit has a confirmed XML');
   PERFORM pg_temp.assert(public.saldo_factura(factura)=0, 'a full credit matches both invoice lines exactly');
   UPDATE public.factura_notas_credito SET estado='Cancelada' WHERE id=nota_uno;
   PERFORM pg_temp.assert(public.saldo_factura(factura)=222.39, 'cancelling the full credit restores the original net');
@@ -96,7 +155,11 @@ BEGIN
 
   INSERT INTO public.factura_notas_credito(organization_id,factura_id,folio,monto,conceptos,fecha_emision)
     VALUES(fx.org_a,factura,'NC-QA79-1',55.59,lineas,fecha) RETURNING id INTO nota_uno;
-  UPDATE public.factura_notas_credito SET facturapi_id='PENDING:nota79-1' WHERE id=nota_uno;
+  claim_nc := pg_temp.reservar_nc(nota_uno,fx.org_a,fx.admin_a);
+  bloqueado := false;
+  BEGIN UPDATE public.factura_notas_credito SET facturapi_id=NULL WHERE id=nota_uno;
+  EXCEPTION WHEN check_violation THEN bloqueado := SQLERRM='LC_ISR_NC_TIMBRADO_PROTEGIDO'; END;
+  PERFORM pg_temp.assert(bloqueado,'only the protected operation can release a credit attempt');
   PERFORM pg_temp.assert(public.saldo_factura(factura)=222.39, 'a pending credit is not a posted ledger entry');
 
   PERFORM pg_temp.as_postgres();
@@ -108,8 +171,21 @@ BEGIN
   PERFORM pg_temp.assert(bloqueado,'a collection cannot consume credit reserved for issuance');
 
   PERFORM pg_temp.as_user(fx.admin_a);
-  UPDATE public.factura_notas_credito SET facturapi_id='nc-resico79-qa-1',estado='Timbrada',
-    uuid_fiscal='9DB0A395-76FD-42AE-8DB9-67F9EACD68F2' WHERE id=nota_uno;
+  PERFORM pg_temp.assert(pg_temp.confirmar_nc(nota_uno,fx.org_a,fx.admin_a,claim_nc,'nc-resico79-qa-1',
+    '9DB0A395-76FD-42AE-8DB9-67F9EACD68F2',true)='conciliacion','a different related UUID holds the note');
+  PERFORM pg_temp.assert(public.saldo_factura(factura)=222.39, 'an unmatched XML cannot post a credit');
+  PERFORM pg_temp.as_postgres();
+  PERFORM pg_temp.as_service_role();
+  PERFORM set_config('role','service_role',true);
+  PERFORM pg_temp.assert(public.obtener_intento_nota_credito_isr(nota_uno,fx.org_b,claim_nc)->'esperado' IS NULL,
+    'the stored note recovery cannot be read through another organization');
+  bloqueado := false;
+  BEGIN PERFORM public.registrar_resultado_nota_credito_isr(nota_uno,fx.org_a,claim_nc,'rechazado','{"http_status":422}');
+  EXCEPTION WHEN check_violation THEN bloqueado := SQLERRM='LC_ISR_RECHAZO_INCIERTO'; END;
+  PERFORM pg_temp.assert(bloqueado,'an uncertain attempt cannot be freed by a later rejection');
+  PERFORM pg_temp.as_user(fx.admin_a);
+  PERFORM pg_temp.assert(pg_temp.confirmar_nc(nota_uno,fx.org_a,fx.admin_a,claim_nc,'nc-resico79-qa-1',
+    '9DB0A395-76FD-42AE-8DB9-67F9EACD68F2')='confirmado','the correct XML completes the same note');
   PERFORM pg_temp.assert(public.saldo_factura(factura)=166.80, 'the first credit reduces the net before collection');
   bloqueado := false;
   BEGIN UPDATE public.factura_notas_credito SET conceptos='[]' WHERE id=nota_uno;
@@ -127,8 +203,9 @@ BEGIN
     'tipo_iva','gravado_16','tasa_iva',.16,'tasa_ret_isr',.0125,'tasa_ret_iva',.04));
   INSERT INTO public.factura_notas_credito(organization_id,factura_id,folio,monto,conceptos,fecha_emision)
     VALUES(fx.org_a,factura,'NC-QA79-2',22.15,lineas,fecha) RETURNING id INTO nota_dos;
-  UPDATE public.factura_notas_credito SET facturapi_id='nc-resico79-qa-2',estado='Timbrada',
-    uuid_fiscal='9DB0A395-76FD-42AE-8DB9-67F9EACD68F3' WHERE id=nota_dos;
+  claim_nc := pg_temp.reservar_nc(nota_dos,fx.org_a,fx.admin_a);
+  PERFORM pg_temp.assert(pg_temp.confirmar_nc(nota_dos,fx.org_a,fx.admin_a,claim_nc,'nc-resico79-qa-2',
+    '9DB0A395-76FD-42AE-8DB9-67F9EACD68F3')='confirmado','credit after a payment uses the approved allocation');
   PERFORM pg_temp.assert(public.saldo_factura(factura)=94.65, 'a later credit preserves prior payment and reduces remaining net');
 
   PERFORM pg_temp.as_postgres();

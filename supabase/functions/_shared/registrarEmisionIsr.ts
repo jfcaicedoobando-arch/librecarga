@@ -46,6 +46,8 @@ interface ConciliacionIsr extends EmisionIsr {
   apiKey: string;
 }
 
+type DatosEvidencia = Pick<ConciliacionIsr, "admin" | "organizationId" | "esperado" | "remoto" | "apiKey" | "claim">;
+
 async function leerXml(apiKey: string, id: string, request: typeof fetch): Promise<Uint8Array<ArrayBuffer> | null> {
   try {
     const respuesta = await request(`${FACTURAPI_BASE}/invoices/${id}/xml`, {
@@ -65,37 +67,46 @@ async function sha256(bytes: Uint8Array<ArrayBuffer>) {
 }
 
 export async function conciliarYRegistrarIsr(input: ConciliacionIsr, request: typeof fetch = fetch) {
+  const resultado = await obtenerEvidenciaCfdiIsr(input, "emitidas", request);
+  return registrarResultadoIsr(input, resultado.estado, resultado.datos);
+}
+
+export async function obtenerEvidenciaCfdiIsr(
+  input: DatosEvidencia, carpeta: "emitidas" | "notas-credito", request: typeof fetch = fetch,
+): Promise<{ estado: "pendiente" | "conciliacion" | "confirmado"; datos: Record<string, unknown> }> {
   const { admin, organizationId, esperado, remoto } = input;
   const id = remoto.id != null && /^[A-Za-z0-9_-]{1,150}$/.test(remoto.id) ? remoto.id : null;
-  const referencias = { facturapi_id: id, uuid: remoto.uuid ?? null, total: remoto.total ?? null };
+  const referencias = { facturapi_id: id, uuid: remoto.uuid ?? null, total: remoto.total ?? null,
+    external_id: input.claim, ambiente: esperado.ambiente, facturapi_org_id: esperado.emisor.facturapi_org_id };
   if (remoto.external_id == null || remoto.livemode == null) {
-    return registrarResultadoIsr(input, "pendiente", { motivo: "respuesta_sin_referencia" });
+    return { estado: "pendiente", datos: { motivo: "respuesta_sin_referencia" } };
   }
   if (remoto.external_id !== input.claim || remoto.livemode !== (esperado.ambiente === "live")
+    || (remoto.type != null && remoto.type !== (esperado.tipo ?? "I"))
     || (remoto.organization != null && remoto.organization !== esperado.emisor.facturapi_org_id)) {
     // The remote resource is unbound. Keep the original claim without adopting
     // an identifier that may belong to another invoice or environment.
-    return registrarResultadoIsr(input, "conciliacion", { motivo: "respuesta_ajena_al_intento" });
+    return { estado: "conciliacion", datos: { motivo: "respuesta_ajena_al_intento" } };
   }
   if (!id || !remoto.uuid || remoto.status !== "valid") {
-    return registrarResultadoIsr(input, "pendiente", { ...referencias, motivo: "pendiente_proveedor" });
+    return { estado: "pendiente", datos: { ...referencias, motivo: "pendiente_proveedor" } };
   }
 
   const bytes = await leerXml(input.apiKey, id, request);
-  if (!bytes) return registrarResultadoIsr(input, "pendiente", { ...referencias, motivo: "xml_pendiente" });
+  if (!bytes) return { estado: "pendiente", datos: { ...referencias, motivo: "xml_pendiente" } };
   let xml;
   try {
     xml = conciliarCfdiIsr(esperado, input.claim, remoto, new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   } catch {
-    return registrarResultadoIsr(input, "conciliacion", { ...referencias, motivo: "descuadre_cfdi" });
+    return { estado: "conciliacion", datos: { ...referencias, motivo: "descuadre_cfdi" } };
   }
 
-  const ruta = `${organizationId}/emitidas/${xml.uuid}.xml`;
+  const ruta = `${organizationId}/${carpeta}/${xml.uuid}.xml`;
   const { error } = await admin.storage.from("facturas").upload(ruta, bytes, { contentType: "application/xml", upsert: true });
-  if (error) return registrarResultadoIsr(input, "pendiente", { ...referencias, motivo: "respaldo_xml_pendiente" });
-  return registrarResultadoIsr(input, "confirmado", {
-    ...referencias, external_id: input.claim, ambiente: esperado.ambiente, facturapi_org_id: esperado.emisor.facturapi_org_id,
+  if (error) return { estado: "pendiente", datos: { ...referencias, motivo: "respaldo_xml_pendiente" } };
+  return { estado: "confirmado", datos: {
+    ...referencias,
     moneda: remoto.currency, folio: remoto.folio_number, serie: remoto.series ?? "",
-    xml: { ...xml, ruta, sha256: await sha256(bytes) },
-  });
+    xml: { ...xml, factura_uuid: esperado.factura_uuid, ruta, sha256: await sha256(bytes) },
+  } };
 }

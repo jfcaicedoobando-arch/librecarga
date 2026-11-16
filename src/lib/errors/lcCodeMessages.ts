@@ -58,6 +58,8 @@ export const LC_CODE_MESSAGES: Record<string, string> = {
     "Los impuestos y el total de la nota deben coincidir con el cálculo aprobado para sus renglones.",
   LC_ISR_NC_FACTURA:
     "Revisa que la factura esté timbrada y disponible para recibir la nota de crédito.",
+  LC_ISR_NC_TIMBRADO_PROTEGIDO:
+    "La nota de crédito requiere confirmar su intento de timbrado desde la factura original.",
   LC_ISR_PAGO_NC_RESERVADA:
     "Una nota de crédito pendiente de timbrado tiene reservada parte del saldo fiscal. Consulta el intento antes de registrar este cobro.",
   LC_ISR_INTENTO_ACTIVO:

@@ -7216,6 +7216,66 @@ export type Database = {
         }
         Relationships: []
       }
+      intentos_nota_credito_isr: {
+        Row: {
+          actor_id: string
+          actualizado_at: string | null
+          ambiente: Database["public"]["Enums"]["ambiente_facturapi"]
+          creado_at: string
+          estado: string
+          nota_id: string
+          facturapi_id: string | null
+          id: string
+          organization_id: string
+          esperado: Json
+          resultado: Json | null
+          uuid_fiscal: string | null
+        }
+        Insert: {
+          actor_id: string
+          actualizado_at?: string | null
+          ambiente: Database["public"]["Enums"]["ambiente_facturapi"]
+          creado_at?: string
+          estado?: string
+          nota_id: string
+          facturapi_id?: string | null
+          id?: string
+          organization_id: string
+          esperado: Json
+          resultado?: Json | null
+          uuid_fiscal?: string | null
+        }
+        Update: {
+          actor_id?: string
+          actualizado_at?: string | null
+          ambiente?: Database["public"]["Enums"]["ambiente_facturapi"]
+          creado_at?: string
+          estado?: string
+          nota_id?: string
+          facturapi_id?: string | null
+          id?: string
+          organization_id?: string
+          esperado?: Json
+          resultado?: Json | null
+          uuid_fiscal?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intentos_nota_credito_isr_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "factura_notas_credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intentos_nota_credito_isr_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intentos_timbrado_isr: {
         Row: {
           actor_id: string
@@ -13453,6 +13513,10 @@ export type Database = {
           uso_cfdi: string
         }[]
       }
+      obtener_intento_nota_credito_isr: {
+        Args: { p_claim: string; p_nota_id: string; p_organization_id: string }
+        Returns: Json
+      }
       obtener_intento_timbrado_isr: {
         Args: { p_claim: string; p_factura_id: string; p_organization_id: string }
         Returns: Json
@@ -13977,6 +14041,10 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_resultado_nota_credito_isr: {
+        Args: { p_claim: string; p_estado: string; p_nota_id: string; p_organization_id: string; p_resultado: Json }
+        Returns: Json
+      }
       registrar_resultado_timbrado_isr: {
         Args: { p_factura_id: string; p_claim: string; p_estado: string; p_resultado: Json }
         Returns: Json
@@ -14010,6 +14078,10 @@ export type Database = {
           procesadas: number
           resueltas: number
         }[]
+      }
+      reservar_nota_credito_isr: {
+        Args: { p_actor: string; p_nota_id: string; p_organization_id: string; p_updated_at: string }
+        Returns: Json
       }
       reservar_timbrado_isr: {
         Args: { p_factura_id: string; p_actor: string; p_prevalidacion: Json; p_emisor_observado: Json }

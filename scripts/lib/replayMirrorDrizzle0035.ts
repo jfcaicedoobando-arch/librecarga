@@ -104,6 +104,7 @@ const REVIEWED_FORWARD_FIXES: ReadonlyArray<readonly [string, string]> = [
   ["0077_isr_resico_intentos_timbrado.sql", "b88e723859b4a9398edcf50f19c0b348b93f22d7d3a952f213dd7c872efcbd80"],
   ["0078_isr_resico_recuperar_timbrado.sql", "8430edc3ef77b9b76072095a7ce1a4f8a87338291146a2ba7d376956bb3e9283"],
   ["0079_isr_resico_cobranza.sql", "1fc2d8d6ce3704a4523d8f71f287adedd931f6c4aceb85ace433d3d382461ef0"],
+  ["0080_isr_resico_timbrado_notas.sql", "fe4f54521ba3e3d057e401cbf4608a5cc7d57e49cb040f1000940880c410e4d4"],
 ];
 
 function verificarOrdenJournal(sources: ReadonlyMap<string, string>, journal: JournalEntry[]): void {

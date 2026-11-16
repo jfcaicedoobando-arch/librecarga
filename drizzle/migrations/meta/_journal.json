@@ -561,6 +561,13 @@
       "when": 1794694500014,
       "tag": "0079_isr_resico_cobranza",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1794694500015,
+      "tag": "0080_isr_resico_timbrado_notas",
+      "breakpoints": true
     }
   ]
 }

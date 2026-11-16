@@ -20,6 +20,7 @@ import { esIdempotencyKeyEnUso } from "../_shared/timbradoPendiente.ts";
 import { cuerpoRateLimit, esRateLimitFacturapi } from "../_shared/facturapiRateLimit.ts";
 import { MENSAJE_PERFIL_CFDI_ORIGEN, verificarLlaveCfdiOrigen } from "../_shared/perfilCfdiOrigen.ts";
 import { calcularTotalesNotaFiscal } from "./cuadreIsr.ts";
+import { emitirNotaCreditoIsr } from "./emitirIsr.ts";
 import { exigirInvoices, esContratoSdkError, cuerpoContratoSdk } from "../_shared/facturapiSdk.ts";
 
 import { respuestaSiNcPendiente, cuerpoIdempotencyEnUsoNc } from "./pendiente.ts";
@@ -165,12 +166,19 @@ Deno.serve(wrapEdgeHandler("facturapi-emitir-nota-credito", async (req) => {
     }, 422);
   }
 
+  if (origen && nc.updated_at) {
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+    return emitirNotaCreditoIsr({
+      nota: { admin, notaId: nc.id, organizationId: nc.organization_id },
+      actor: userData.user.id, updatedAt: nc.updated_at, facturapi: resolved.data, ctx, json,
+    });
+  }
 
   // Ola 4 · N1: claim atómico ANTES de timbrar (patrón facturapi-emitir).
   // Se toma DESPUÉS de validar para no tener que liberarlo en el 422.
   // El tag viaja como external_id a FacturAPI para recuperar el CFDI si la
   // edge muere tras timbrar y antes de persistir.
-  const claim = await claimNotaCredito(supabase, body.nota_credito_id, origen ? nc.updated_at ?? undefined : undefined);
+  const claim = await claimNotaCredito(supabase, body.nota_credito_id, nc.updated_at ?? undefined);
   if (!claim.ok) return json(claim.body, claim.status);
   ctx.external_id = claim.claimTag;
 

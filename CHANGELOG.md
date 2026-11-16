@@ -13,6 +13,7 @@
 - La migración 0078 conecta el timbrado, la recuperación y los avisos de Facturapi con la reserva de la factura. La recuperación consulta el ambiente original con la llave de la organización y registra la emisión al comprobar y respaldar el XML.
 - La migración 0079 calcula cobros de facturas evaluadas sobre el neto y las retenciones disponibles después de las notas de crédito. Respeta la moneda aplicada, separa el efectivo recibido y excluye los REP cancelados. Las notas usan el cuadre agrupado y conservan los impuestos y el origen de sus renglones.
 - La emisión de REP y notas de crédito de facturas evaluadas toma el receptor guardado en el CFDI original. Usa la credencial del ambiente de esa factura y comprueba el emisor antes de enviar el comprobante.
+- La migración 0080 protege la reserva de las notas de crédito evaluadas. Una nota afecta cartera después de confirmar y respaldar su XML, y la recuperación consulta el mismo intento en el ambiente original.
 
 ## [13.824.91] - Unreleased
 

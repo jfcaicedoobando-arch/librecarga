@@ -71,6 +71,7 @@ export const HISTORY = [
   { file: '0077_isr_resico_intentos_timbrado.sql', sha256: 'b88e723859b4a9398edcf50f19c0b348b93f22d7d3a952f213dd7c872efcbd80', eligibleName: '20261115210000_isr_resico_intentos_timbrado.sql' },
   { file: '0078_isr_resico_recuperar_timbrado.sql', sha256: '8430edc3ef77b9b76072095a7ce1a4f8a87338291146a2ba7d376956bb3e9283', eligibleName: '20261115220000_isr_resico_recuperar_timbrado.sql' },
   { file: '0079_isr_resico_cobranza.sql', sha256: '1fc2d8d6ce3704a4523d8f71f287adedd931f6c4aceb85ace433d3d382461ef0', eligibleName: '20261115230000_isr_resico_cobranza.sql' },
+  { file: '0080_isr_resico_timbrado_notas.sql', sha256: 'fe4f54521ba3e3d057e401cbf4608a5cc7d57e49cb040f1000940880c410e4d4', eligibleName: '20261116000000_isr_resico_timbrado_notas.sql' },
 ];
 const ARCHIVED_METADATA = [
   [`${ARCHIVE}/meta/0022_snapshot.json`, '002a1cff39197fe3431f23193a4229e1c845cbcd0ab5eaa074efded812b0081d'],

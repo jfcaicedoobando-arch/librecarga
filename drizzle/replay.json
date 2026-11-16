@@ -624,5 +624,13 @@
       "0079_isr_resico_cobranza.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0080_isr_resico_timbrado_notas.sql",
+    "sha256": "fe4f54521ba3e3d057e401cbf4608a5cc7d57e49cb040f1000940880c410e4d4",
+    "replays": [
+      "0080_isr_resico_timbrado_notas.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

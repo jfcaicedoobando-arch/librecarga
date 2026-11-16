@@ -147,7 +147,9 @@ La 0078 conecta emisión, recuperación y webhook al intento guardado. El adapta
 
 **Avance local 5B.** La 0079 usa el neto de la factura y resta los importes de las notas de crédito vigentes. Prorratea ambos impuestos en moneda de la factura y aplica el residuo en la liquidación. PostgreSQL 17.9 verificó una factura de $222.39 con $2.51 de ISR y $8.03 de IVA retenido, notas antes y después de un cobro, una parcialidad recibida en USD, saldo cero y reemplazo de un pago con REP cancelado. La nota de crédito guarda el cuadre por impuesto y tasa. El atajo de saldo completo conserva los renglones de origen, y el servidor valida sus tasas y reserva el saldo durante el timbrado.
 
-El REP y la nota de crédito usan el receptor guardado en el CFDI original y verifican la llave del mismo ambiente y organización. Las pruebas con respuestas simuladas cubren el receptor histórico, el cálculo del saldo y la parcialidad después de una cancelación, y el cuadre de un egreso de dos renglones. Falta conciliar el XML devuelto por el proveedor con los importes de ambos documentos y probar la sustitución.
+El REP y la nota de crédito usan el receptor guardado en el CFDI original y verifican la llave del mismo ambiente y organización. Las pruebas con respuestas simuladas cubren el receptor histórico, el cálculo del saldo y la parcialidad después de una cancelación, y el cuadre de un egreso de dos renglones.
+
+La 0080 concilia y recupera notas de crédito. La nota conserva la reserva hasta comprobar el XML y el UUID de la factura relacionada. Se revisan el subtotal, el IVA, ambas retenciones, el total y la identidad fiscal antes de aplicar el crédito a cartera. Un XML discordante conserva el mismo intento. Se verificó la recuperación, el rechazo definitivo y el registro idempotente con datos sintéticos. La cancelación usa el ambiente guardado en la nota y, si se solicita una sustitución, exige que el comprobante sustituto pertenezca a esa organización y ambiente.
 
 1. Usar el neto aprobado en cartera y distinguir efectivo recibido de ISR retenido. Revisar `calc_pago_retenciones` con pagos parciales PPD, complemento de pago (REP), liquidación final, otra moneda y residuos de centavos. El pago toma los datos fiscales de la factura origen.
 2. Preservar tasas y `concepto_factura_id` en notas de crédito, limitar el crédito disponible y comprobar el efecto en cartera antes y después de un pago. Probar coexistencia de retenciones de ISR e IVA, cancelación y sustitución a partir de los datos fiscales de los CFDI originales.
@@ -188,4 +190,4 @@ Ejecutar pruebas de dominio, UI, PDF con el renderizador real, Deno y PostgreSQL
 
 ## Siguiente entrega
 
-Continuar con **5B** para conciliar y recuperar los REP y notas de crédito con sus importes y XML, y verificar la sustitución. La validación integral de 5A y 5B requiere cotejar la respuesta de Facturapi, el XML y el PDF con una identidad PF 626 aceptada por Facturapi sandbox y la llave de prueba de esa organización.
+Continuar con **5B** para conciliar y recuperar los REP con sus importes y XML, y verificar la sustitución de facturas. La validación integral de 5A y 5B requiere cotejar la respuesta de Facturapi, el XML y el PDF con una identidad PF 626 aceptada por Facturapi sandbox y la llave de prueba de esa organización.

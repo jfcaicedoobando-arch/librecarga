@@ -12,6 +12,7 @@ import { getFacturapiClient } from "../_shared/facturapiClient.ts";
 import { authorizeOrgRole, ROLES_EMISOR_FISCAL } from "../_shared/auth.ts";
 import { jsonResponse, makeJson } from "../_shared/response.ts";
 import { recuperarFacturaIsr } from "./recuperarIsr.ts";
+import { recuperarNotaIsr } from "./recuperarNotaIsr.ts";
 import {
   loadFactura, loadNotaCredito, loadPago, validarClaim, buscarCfdiPorExternalId,
   promoverFactura, promoverNc, promoverPago, liberarClaim, liberarClaimNc, liberarClaimPago,
@@ -58,6 +59,10 @@ async function recuperarNotaCredito(supabase: SB, user: Usuario, ncId: string): 
 
   const { claimTag, edadMin, response: ncValidation } = validarClaim(nc, "nota de crédito");
   if (ncValidation) return ncValidation;
+
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  const recuperada = await recuperarNotaIsr(admin, nc, claimTag);
+  if (recuperada) return recuperada;
 
   const resolved = await getFacturapiClient(supabase, nc.organization_id);
   if (!resolved.ok) {
