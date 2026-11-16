@@ -80,7 +80,7 @@ describe("registrarActividad", () => {
 
   it("un caller sin destino explícito conserva su contrato anterior", async () => {
     await registrarActividad({ modulo: "cxp", accion: "crear" });
-    const args = vi.mocked(supabase.rpc).mock.calls[0][1];
+    const args = (supabase.rpc as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][1];
     expect(args).not.toHaveProperty("p_organization_id");
   });
 
