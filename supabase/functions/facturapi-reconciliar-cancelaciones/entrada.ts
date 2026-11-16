@@ -95,9 +95,11 @@ export async function cargarPendientes(
 ): Promise<{ ok: true; data: Pendientes } | { ok: false; res: Response }> {
   const { data: pendientes, error: fetchErr } = await supabase
     .from("facturas")
-    .select("id, organization_id, facturapi_id, cancellation_status, sustituida_por, reconciliacion_checked_at")
+    .select("id, organization_id, facturapi_id, ambiente, cancellation_status, sustituida_por, reconciliacion_checked_at")
     .in("cancellation_status", ["pending", "verifying"])
+    .is("deleted_at", null)
     .not("facturapi_id", "is", null)
+    .not("facturapi_id", "like", "PENDING:%")
     .order("reconciliacion_checked_at", { ascending: true, nullsFirst: true })
     .limit(FETCH_LIMIT);
   if (fetchErr) {
@@ -115,9 +117,11 @@ export async function cargarPendientes(
 
   const { data: ncPendientes, error: ncFetchErr } = await supabase
     .from("factura_notas_credito")
-    .select("id, organization_id, facturapi_id, cancellation_status, reconciliacion_checked_at")
+    .select("id, organization_id, facturapi_id, ambiente, cancellation_status, reconciliacion_checked_at")
     .in("cancellation_status", ["pending", "verifying"])
+    .is("deleted_at", null)
     .not("facturapi_id", "is", null)
+    .not("facturapi_id", "like", "PENDING:%")
     .order("reconciliacion_checked_at", { ascending: true, nullsFirst: true })
     .limit(FETCH_LIMIT);
   if (ncFetchErr) {
@@ -128,8 +132,9 @@ export async function cargarPendientes(
   // EF-01 (REP aún no timbrado; los resuelve facturapi-recuperar-claim).
   const { data: repPendientes, error: repFetchErr } = await supabase
     .from("pagos_factura")
-    .select("id, organization_id, facturapi_rep_id, rep_cancellation_status, rep_reconciliacion_checked_at")
+    .select("id, organization_id, facturapi_rep_id, ambiente, rep_cancellation_status, rep_reconciliacion_checked_at")
     .in("rep_cancellation_status", ["pending", "verifying"])
+    .is("deleted_at", null)
     .not("facturapi_rep_id", "is", null)
     .not("facturapi_rep_id", "like", "PENDING:%")
     .order("rep_reconciliacion_checked_at", { ascending: true, nullsFirst: true })

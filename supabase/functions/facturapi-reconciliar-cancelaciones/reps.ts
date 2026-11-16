@@ -10,22 +10,20 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
 import { captureEdgeException } from "../_shared/sentry.ts";
 import { registrarBitacoraEdge } from "../_shared/bitacora.ts";
-import { withFacturapiTimeout } from "../_shared/facturapiClient.ts";
-import { CRON_RETRIEVE_TIMEOUT_MS } from "./presupuesto.ts";
+import { consultarCancelacion, type ReconcileCtx } from "./ejecutar.ts";
 import {
   acumularOutcome,
   resolveNextActionRep,
-  type FapiInvoiceStatus,
   type RepPendiente,
-  type Resumen,
 } from "./reconcile.ts";
 import { marcarRevisado } from "./cursor.ts";
 
-interface RepCtx {
-  supabase: SupabaseClient;
-  facturapi: { invoices: { retrieve: (id: string) => Promise<unknown> } };
-  orgId: string;
-  resumen: Resumen;
+async function actualizarRep(supabase: SupabaseClient, rep: RepPendiente, patch: Record<string, unknown>) {
+  const { data, error } = await supabase.from("pagos_factura").update(patch)
+    .eq("id", rep.id).eq("organization_id", rep.organization_id).eq("facturapi_rep_id", rep.facturapi_rep_id)
+    .eq("rep_cancellation_status", rep.rep_cancellation_status).is("deleted_at", null).select("id").maybeSingle();
+  if (error) throw error;
+  return Boolean(data);
 }
 
 /** Cierra un REP cuya cancelación el SAT aceptó asíncronamente. */
@@ -37,8 +35,7 @@ async function applyAcceptedRep(
 ): Promise<boolean> {
   // `pagos_factura` no tiene columnas de acuse de cancelación de REP: el cierre
   // replica la rama aceptada de `facturapi-cancelar-rep` (update + bitácora).
-  const { error: upErr } = await supabase.from("pagos_factura").update(patchBase).eq("id", rep.id);
-  if (upErr) return false;
+  if (!await actualizarRep(supabase, rep, patchBase)) return false;
 
   await registrarBitacoraEdge(supabase, {
     organizationId: orgId,
@@ -52,7 +49,7 @@ async function applyAcceptedRep(
 }
 
 /** Espejo de `reconcileOneNc` para `pagos_factura` (REP). */
-export async function reconcileOneRep(ctx: RepCtx, rep: RepPendiente): Promise<void> {
+export async function reconcileOneRep(ctx: ReconcileCtx, rep: RepPendiente): Promise<void> {
   const { supabase, facturapi, orgId, resumen } = ctx;
   resumen.revisadas++;
   try {
@@ -70,15 +67,10 @@ export async function reconcileOneRep(ctx: RepCtx, rep: RepPendiente): Promise<v
   }
 }
 
-async function reconcileOneRepInner(ctx: RepCtx, rep: RepPendiente): Promise<void> {
-  const { supabase, facturapi, orgId, resumen } = ctx;
+async function reconcileOneRepInner(ctx: ReconcileCtx, rep: RepPendiente): Promise<void> {
+  const { supabase, orgId, resumen } = ctx;
   try {
-    // P1-3b: timeout compartido (12 s) con las familias factura/NC.
-    const remote = await withFacturapiTimeout(
-      "invoices.retrieve",
-      facturapi.invoices.retrieve(rep.facturapi_rep_id),
-      CRON_RETRIEVE_TIMEOUT_MS,
-    ) as FapiInvoiceStatus;
+    const remote = await consultarCancelacion(ctx, rep.facturapi_rep_id);
     const decision = resolveNextActionRep(remote, rep, new Date().toISOString());
 
     if (decision.outcome === "no_change") {
@@ -88,13 +80,13 @@ async function reconcileOneRepInner(ctx: RepCtx, rep: RepPendiente): Promise<voi
 
     if (decision.outcome === "accepted") {
       const ok = await applyAcceptedRep(supabase, rep, decision.patch, orgId);
-      if (!ok) { resumen.errores++; return; }
+      if (!ok) { resumen.sin_cambio++; return; }
       resumen.aceptadas++;
       return;
     }
 
     // rejected / expired / transition
-    await supabase.from("pagos_factura").update(decision.patch).eq("id", rep.id);
+    if (!await actualizarRep(supabase, rep, decision.patch)) { resumen.sin_cambio++; return; }
     if (decision.outcome === "rejected" || decision.outcome === "expired") {
       await registrarBitacoraEdge(supabase, {
         organizationId: orgId,

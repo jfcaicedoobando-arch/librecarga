@@ -11,7 +11,8 @@
  */
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
 import { wrapEdgeHandler, captureEdgeException } from "../_shared/sentry.ts";
-import { getFacturapiClient, withFacturapiTimeout } from "../_shared/facturapiClient.ts";
+import { getFacturapiClient } from "../_shared/facturapiClient.ts";
+import type { FacturapiAmbiente } from "../_shared/facturapiAuth.ts";
 import { registrarBitacoraEdge } from "../_shared/bitacora.ts";
 import { jsonResponse } from "../_shared/response.ts";
 import { tomarCronLock, soltarCronLock } from "../_shared/cronLock.ts";
@@ -20,16 +21,15 @@ import { marcarRevisado } from "./cursor.ts";
 import { reconcileOneRep } from "./reps.ts";
 import { reconcileOneNc } from "./ncs.ts";
 import { planificarTareas } from "./plan.ts";
-import { crearPresupuesto, CRON_RETRIEVE_TIMEOUT_MS } from "./presupuesto.ts";
+import { crearPresupuesto } from "./presupuesto.ts";
 import { cerrarFacturaConAcuse } from "./cierreFactura.ts";
 import { reprocesarWebhooksPendientes } from "../_shared/facturapi-webhook/reprocesar.ts";
-import { ejecutarPlan, type ReconcileCtx, type ClienteResuelto, type RetrieveClient } from "./ejecutar.ts";
+import { consultarCancelacion, ejecutarPlan, type ReconcileCtx, type ClienteResuelto, type RetrieveClient } from "./ejecutar.ts";
 import {
   descargarAcuse,
   resolveNextAction,
   acumularOutcome,
   type FacturaPendiente,
-  type FapiInvoiceStatus,
 } from "./reconcile.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -69,13 +69,9 @@ async function reconcileOne(ctx: ReconcileCtx, factura: FacturaPendiente): Promi
 }
 
 async function reconcileOneInner(ctx: ReconcileCtx, factura: FacturaPendiente): Promise<void> {
-  const { supabase, facturapi, apiKey, orgId, resumen } = ctx;
+  const { supabase, apiKey, orgId, resumen } = ctx;
   try {
-    const remote = await withFacturapiTimeout(
-      "invoices.retrieve",
-      facturapi.invoices.retrieve(factura.facturapi_id),
-      CRON_RETRIEVE_TIMEOUT_MS,
-    ) as FapiInvoiceStatus;
+    const remote = await consultarCancelacion(ctx, factura.facturapi_id);
     const decision = resolveNextAction(remote, factura, new Date().toISOString());
 
     if (decision.outcome === "no_change") {
@@ -92,6 +88,7 @@ async function reconcileOneInner(ctx: ReconcileCtx, factura: FacturaPendiente): 
     // rejected / expired / transition
     const { data, error } = await supabase.from("facturas").update(decision.patch)
       .eq("id", factura.id).eq("organization_id", orgId).is("deleted_at", null)
+      .eq("facturapi_id", factura.facturapi_id)
       .eq("cancellation_status", factura.cancellation_status).select("id").maybeSingle();
     if (error) throw error;
     if (!data) { resumen.sin_cambio++; return; }
@@ -123,14 +120,15 @@ async function reconcileOneInner(ctx: ReconcileCtx, factura: FacturaPendiente): 
   }
 }
 
-async function resolverCliente(supabase: SupabaseClient, orgId: string): Promise<ClienteResuelto> {
-  const resolved = await getFacturapiClient(supabase, orgId);
+async function resolverCliente(supabase: SupabaseClient, orgId: string, ambiente?: FacturapiAmbiente): Promise<ClienteResuelto> {
+  const resolved = await getFacturapiClient(supabase, orgId, ambiente);
   if (!resolved.ok) return { ok: false };
   return {
     ok: true,
     // SAFE-CAST: el SDK `facturapi` no expone typings; sólo se usa invoices.retrieve.
     client: resolved.data.client as unknown as RetrieveClient,
     apiKey: resolved.data.apiKey,
+    ambiente: resolved.data.ambiente,
   };
 }
 
@@ -158,7 +156,7 @@ Deno.serve(wrapEdgeHandler("facturapi-reconciliar-cancelaciones", async (req) =>
     const resumen = await ejecutarPlan(planificarTareas(pendientes.data), {
       supabase,
       presupuesto: crearPresupuesto(),
-      resolverCliente: (orgId) => resolverCliente(supabase, orgId),
+      resolverCliente: (orgId, ambiente) => resolverCliente(supabase, orgId, ambiente),
       procesar: { factura: reconcileOne, nc: reconcileOneNc, rep: reconcileOneRep },
     });
     return jsonResponse({ ok: true, resumen });

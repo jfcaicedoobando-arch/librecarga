@@ -16,6 +16,7 @@
 - La migración 0080 protege la reserva de las notas de crédito evaluadas. Una nota afecta cartera después de confirmar y respaldar su XML, y la recuperación consulta el mismo intento en el ambiente original.
 - La migración 0081 registra las retenciones del REP después de verificar su XML y recalcula los importes estimados de los cobros sin complemento. El mismo intento se conserva durante la emisión, la recuperación y el webhook.
 - La migración 0082 conserva el origen de los conceptos en los borradores de sustitución y refacturación. La relación con el CFDI original se verifica al timbrar una sustituta y el ISR se evalúa con el receptor de la factura nueva.
+- La reconciliación programada de cancelaciones distingue las credenciales por organización y ambiente del CFDI y comprueba la identidad del comprobante antes de actualizar el estado local.
 
 ## [13.824.91] - Unreleased
 

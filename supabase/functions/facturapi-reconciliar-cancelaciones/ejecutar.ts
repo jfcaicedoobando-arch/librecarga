@@ -7,10 +7,12 @@
  * errores. La corrida termina limpia, responde y suelta el lock de cron.
  */
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
-import type { FacturaPendiente, NotaCreditoPendiente, RepPendiente, Resumen } from "./reconcile.ts";
+import type { FacturaPendiente, FapiInvoiceStatus, NotaCreditoPendiente, RepPendiente, Resumen } from "./reconcile.ts";
 import { nuevoResumen } from "./reconcile.ts";
+import type { FacturapiAmbiente } from "../_shared/facturapiAuth.ts";
+import { withFacturapiTimeout } from "../_shared/facturapiClient.ts";
 import type { Tarea } from "./plan.ts";
-import type { Presupuesto } from "./presupuesto.ts";
+import { CRON_RETRIEVE_TIMEOUT_MS, type Presupuesto } from "./presupuesto.ts";
 
 export interface RetrieveClient {
   invoices: { retrieve: (id: string) => Promise<unknown> };
@@ -20,18 +22,19 @@ export interface ReconcileCtx {
   supabase: SupabaseClient;
   facturapi: RetrieveClient;
   apiKey: string;
+  ambiente: FacturapiAmbiente;
   orgId: string;
   resumen: Resumen;
 }
 
 export type ClienteResuelto =
-  | { ok: true; client: RetrieveClient; apiKey: string }
+  | { ok: true; client: RetrieveClient; apiKey: string; ambiente: FacturapiAmbiente }
   | { ok: false };
 
 export interface EjecutarDeps {
   supabase: SupabaseClient;
   presupuesto: Presupuesto;
-  resolverCliente: (orgId: string) => Promise<ClienteResuelto>;
+  resolverCliente: (orgId: string, ambiente?: FacturapiAmbiente) => Promise<ClienteResuelto>;
   procesar: {
     factura: (ctx: ReconcileCtx, doc: FacturaPendiente) => Promise<void>;
     nc: (ctx: ReconcileCtx, doc: NotaCreditoPendiente) => Promise<void>;
@@ -45,16 +48,26 @@ async function despachar(ctx: ReconcileCtx, tarea: Tarea, deps: EjecutarDeps): P
   return await deps.procesar.rep(ctx, tarea.doc);
 }
 
-/** Cachea la resolución de cliente por organización durante la corrida. */
-function memoResolver(deps: EjecutarDeps): (orgId: string) => Promise<ClienteResuelto> {
+/** Agrupa consultas por organización y ambiente, incluso si cambió el ambiente activo. */
+function memoResolver(deps: EjecutarDeps): EjecutarDeps["resolverCliente"] {
   const cache = new Map<string, ClienteResuelto>();
-  return async (orgId: string) => {
-    const hit = cache.get(orgId);
+  return async (orgId, ambiente) => {
+    const clave = `${orgId}:${ambiente ?? "activo"}`;
+    const hit = cache.get(clave);
     if (hit) return hit;
-    const resuelto = await deps.resolverCliente(orgId);
-    cache.set(orgId, resuelto);
+    const resuelto = await deps.resolverCliente(orgId, ambiente);
+    cache.set(clave, resuelto);
     return resuelto;
   };
+}
+
+export async function consultarCancelacion(ctx: Pick<ReconcileCtx, "facturapi" | "ambiente">, facturapiId: string): Promise<FapiInvoiceStatus> {
+  const remote = await withFacturapiTimeout("invoices.retrieve", ctx.facturapi.invoices.retrieve(facturapiId), CRON_RETRIEVE_TIMEOUT_MS) as
+    (FapiInvoiceStatus & { id?: string; livemode?: boolean }) | null;
+  if (remote?.id !== facturapiId || remote.livemode !== (ctx.ambiente === "live")) {
+    throw new Error("Respuesta de cancelación de otro CFDI o ambiente");
+  }
+  return remote;
 }
 
 export async function ejecutarPlan(tareas: Tarea[], deps: EjecutarDeps): Promise<Resumen> {
@@ -69,20 +82,15 @@ export async function ejecutarPlan(tareas: Tarea[], deps: EjecutarDeps): Promise
       break;
     }
     const tarea = tareas[i];
-    const cliente = await resolver(tarea.orgId);
-    if (!cliente.ok) {
-      resumen.errores++;
-      continue;
-    }
-    const ctx: ReconcileCtx = {
-      supabase: deps.supabase,
-      facturapi: cliente.client,
-      apiKey: cliente.apiKey,
-      orgId: tarea.orgId,
-      resumen,
-    };
     try {
-      await despachar(ctx, tarea, deps);
+      const ambiente = tarea.doc.ambiente ?? undefined;
+      const cliente = await resolver(tarea.orgId, ambiente);
+      if (!cliente.ok || (ambiente && cliente.ambiente !== ambiente)) {
+        resumen.errores++;
+        continue;
+      }
+      await despachar({ supabase: deps.supabase, facturapi: cliente.client, apiKey: cliente.apiKey,
+        ambiente: cliente.ambiente, orgId: tarea.orgId, resumen }, tarea, deps);
     } catch (err) {
       // Blindaje: un fallo inesperado de un documento no debe abortar la
       // corrida (el lock se libera en el `finally` del handler).

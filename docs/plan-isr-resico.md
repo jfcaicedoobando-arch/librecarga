@@ -155,6 +155,8 @@ La 0081 incorpora el verificador del REP a emisión, recuperación manual y webh
 
 La 0082 conserva los conceptos y su procedencia al crear el borrador sustituto y genera una evaluación fiscal propia. La sustitución exige la relación 04 con el UUID original en el XML verificado. La ruta 02 reevalúa el ISR con el receptor elegido y conserva las tasas de IVA. En PostgreSQL 17.9, la sustituta mantuvo $222.39 y la refacturación a persona física dio $224.90, con $0 de ISR y $8.03 de IVA retenido. El CFDI original conservó su perfil y totales.
 
+La conciliación programada usa la credencial de la organización y el ambiente registrado en cada factura, nota de crédito o REP. Verifica el ID remoto y el ambiente de la respuesta antes de actualizar el estado. Los registros históricos sin ambiente guardado conservan la consulta con la credencial activa de su organización.
+
 1. Usar el neto aprobado en cartera y distinguir efectivo recibido de ISR retenido. Revisar `calc_pago_retenciones` con pagos parciales PPD, complemento de pago (REP), liquidación final, otra moneda y residuos de centavos. El pago toma los datos fiscales de la factura origen.
 2. Preservar tasas y `concepto_factura_id` en notas de crédito, limitar el crédito disponible y comprobar el efecto en cartera antes y después de un pago. Probar coexistencia de retenciones de ISR e IVA, cancelación y sustitución a partir de los datos fiscales de los CFDI originales.
 
@@ -194,4 +196,4 @@ Ejecutar pruebas de dominio, UI, PDF con el renderizador real, Deno y PostgreSQL
 
 ## Siguiente entrega
 
-Cerrar la conciliación programada de cancelaciones en el ambiente histórico antes de la prueba integral. Facturapi vincula el RFC de la organización al certificado de sello digital y la llave Test consulta los datos de su propia organización. La validación de 5A y 5B requiere confirmar una identidad de prueba PF 626 aceptada por Facturapi y cotejar su respuesta, XML y PDF con la llave Test de esa organización. [Organizaciones y credenciales de Facturapi](https://docs.facturapi.io/docs/guides/organizations/)
+La prueba integral sigue pendiente de un emisor PF 626. El selector de la cuenta accesible en Facturapi mostró tres emisores, todos con RFC de persona moral. Para 5A y 5B falta confirmar con el proveedor una identidad de prueba PF 626 y cotejar la respuesta, el XML y el PDF con la llave Test de esa organización. [Organizaciones y credenciales de Facturapi](https://docs.facturapi.io/docs/guides/organizations/)
