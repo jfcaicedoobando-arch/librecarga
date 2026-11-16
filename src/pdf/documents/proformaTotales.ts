@@ -1,10 +1,19 @@
-import { calcularTotalesProformaConRespaldo } from "@/features/proformas/domain";
+import { calcularTotalesProformaConRespaldo, leerFiscalProforma } from "@/features/proformas/domain";
 import type { ConceptoVentaLite } from "@/features/proformas/domain";
 import type { TotalesMoneda } from "../components/TotalesBox";
 import type { ProformaRow } from "./proformaShared";
 
 /** Mismo BL-12 que detalle/listado: con desglose, importes por moneda sin convertir. */
 export function totalesProformaPdf(proforma: ProformaRow, conceptos: ConceptoVentaLite[], tasaIva: number) {
+  const fiscal = leerFiscalProforma(proforma);
+  if (fiscal) {
+    return {
+      bloques: fiscal.bloques.map(({ moneda, subtotal, iva, ret_isr, ret_iva, total }) => ({
+        moneda, subtotal, iva, total, retIsr: ret_isr, retIva: ret_iva,
+      })),
+      nota: "Los importes de los conceptos se muestran antes de retenciones. El total neto usa el desglose fiscal aprobado.",
+    };
+  }
   const { totales, origen } = calcularTotalesProformaConRespaldo(proforma, conceptos, tasaIva);
   const bloques: TotalesMoneda[] = [
     { moneda: "USD", subtotal: totales.subtotal_usd, iva: totales.iva_usd, total: totales.total_usd },

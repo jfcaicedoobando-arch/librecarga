@@ -113,7 +113,7 @@ export async function fetchProformasTodas(organizationId: string): Promise<Profo
     return mergeFacturasVinculadas({
       ...proforma,
       // Un snapshot legacy ausente no demuestra que el importe histórico sea cero.
-      totales_calculados: calculo.origen === "conceptos" ? calculo.totales : undefined,
+      totales_calculados: calculo.origen === "encabezado_sin_detalle" ? undefined : calculo.totales,
       totales_origen: calculo.origen,
       requiere_autorizacion_proforma:
         cliente_autorizacion?.requiere_autorizacion_proforma ?? true,
@@ -168,7 +168,7 @@ export async function fetchProformasPendientes(
   return fromDb<ProformaPendienteConEmbarque[]>(enriched);
 }
 
-export { fetchClienteParaPdf, fetchEmbarqueParaPdf } from "./queries.pdf";
+export { fetchClienteParaPdf, fetchEmbarqueParaPdf, fetchConceptosFiscalesParaPdf } from "./queries.pdf";
 
 
 export async function fetchConceptosProforma(proformaId: string): Promise<ConceptoVentaRow[]> {

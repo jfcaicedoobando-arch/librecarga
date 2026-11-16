@@ -512,6 +512,13 @@
       "when": 1794694500007,
       "tag": "0072_isr_resico_revision_embarque",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1794694500008,
+      "tag": "0073_isr_resico_proforma_normal",
+      "breakpoints": true
     }
   ]
 }

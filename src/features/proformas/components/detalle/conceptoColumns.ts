@@ -7,10 +7,10 @@
 import { defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
 import { etiquetaTratamientoFila } from "@/lib/financial/etiquetaTratamientoFila";
-import type { ConceptoVentaRow } from "@/features/proformas/services";
+import type { ConceptoProformaDocumento } from "@/features/proformas/domain/proformaFiscal";
 
 /** Devuelve la moneda común de los conceptos, o `null` si hay mezcla. */
-export function monedaComun(conceptos: ConceptoVentaRow[]): string | null {
+export function monedaComun(conceptos: ConceptoProformaDocumento[]): string | null {
   const monedas = new Set(conceptos.map((c) => c.moneda));
   return monedas.size === 1 ? (conceptos[0]?.moneda ?? null) : null;
 }
@@ -23,11 +23,11 @@ export function monedaComun(conceptos: ConceptoVentaRow[]): string | null {
  */
 export function buildConceptoColumns(
   moneda: string | null,
-): ColumnDef<ConceptoVentaRow, unknown>[] {
+): ColumnDef<ConceptoProformaDocumento, unknown>[] {
   const sufijo = moneda ? ` (${moneda})` : "";
-  const importe = (row: ConceptoVentaRow) =>
+  const importe = (row: ConceptoProformaDocumento) =>
     Number(row.cantidad) * Number(row.precio_unitario);
-  return defineColumns<ConceptoVentaRow>([
+  return defineColumns<ConceptoProformaDocumento>([
     { id: "descripcion", header: "Descripción", cell: ({ row }) => row.original.descripcion },
     {
       id: "cantidad",

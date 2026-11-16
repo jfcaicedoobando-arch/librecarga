@@ -70,15 +70,25 @@ describe("isolated Drizzle history is not deployment-eligible", () => {
       "0070_factura_resico_totales_agrupados.sql",
       "0071_isr_resico_cotizacion_embarque.sql",
       "0072_isr_resico_revision_embarque.sql",
+      "0073_isr_resico_proforma_normal.sql",
     ]);
-    expect(readIsolatedDrizzleReplay().size).toBe(50);
+    expect(readIsolatedDrizzleReplay().size).toBe(51);
     const archive = paths[1].replace("0022_refacturar_proforma_abre_edicion.sql", "meta/_journal.json");
     expect(JSON.parse(read(archive)).entries[22]).toMatchObject({ idx: 22, when: 1792518064767, tag: "0022_refacturar_proforma_abre_edicion" });
     expect(JSON.parse(read("drizzle/migrations/meta/_journal.json")).entries[22].tag).toBe("0022_cotizacion_comercial");
     const historical = read(paths[1]);
     expect(Buffer.byteLength(historical)).toBe(3307);
     const body = historical.split("AS $function$\n")[1].split("$function$;")[0];
-    expect(read("supabase/schema/baseline.sql")).toContain(body);
+    const cancelar = "  UPDATE public.proformas SET estado_proforma = 'cancelada' WHERE id = p_proforma_id;\n";
+    const scopeFiscal = `  IF v_old.evaluacion_fiscal IS NOT NULL AND v_old.organization_id IS DISTINCT FROM public.org_scope() THEN
+    RAISE EXCEPTION 'LC_ORG_AJENA' USING ERRCODE = '42501';
+  END IF;
+`;
+    const ajustado = body.replace("  IF NOT public.has_any_role_efectivo", scopeFiscal + "  IF NOT public.has_any_role_efectivo")
+      .replace(cancelar, "").replace("  UPDATE public.conceptos_venta", cancelar + "  UPDATE public.conceptos_venta");
+    const actual = read("supabase/schema/baseline.sql").split("CREATE FUNCTION public.refacturar_proforma_rpc(")[1]
+      .split("AS $$\n")[1].split("$$;")[0];
+    expect(actual).toBe(ajustado);
     expect(historical).not.toContain("public.crear_proforma_atomica(");
   });
 

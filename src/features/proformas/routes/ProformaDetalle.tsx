@@ -139,6 +139,7 @@ function ProformaDetalleContent({ data }: ContentProps) {
           conceptos={conceptos}
           totales={totales}
           emptyConceptos={emptyConceptos}
+          bloquesFiscales={calculo.origen === "fiscal" ? calculo.bloques : undefined}
         />
       </DocumentoDetalleShell>
     </PageContainer>

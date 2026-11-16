@@ -8478,6 +8478,7 @@ export type Database = {
           bl_master: string | null
           cliente_id: string
           cliente_nombre: string
+          conceptos_fiscales: Json | null
           consolidada_en: string | null
           created_at: string
           created_by: string | null
@@ -8493,6 +8494,7 @@ export type Database = {
           estado_cliente: string
           estado_proforma: string
           estado_revision: string
+          evaluacion_fiscal: Json | null
           expediente: string
           factura_id: string | null
           factura_secundaria_id: string | null
@@ -8527,6 +8529,7 @@ export type Database = {
           bl_master?: string | null
           cliente_id: string
           cliente_nombre: string
+          conceptos_fiscales?: Json | null
           consolidada_en?: string | null
           created_at?: string
           created_by?: string | null
@@ -8542,6 +8545,7 @@ export type Database = {
           estado_cliente?: string
           estado_proforma?: string
           estado_revision?: string
+          evaluacion_fiscal?: Json | null
           expediente: string
           factura_id?: string | null
           factura_secundaria_id?: string | null
@@ -8576,6 +8580,7 @@ export type Database = {
           bl_master?: string | null
           cliente_id?: string
           cliente_nombre?: string
+          conceptos_fiscales?: Json | null
           consolidada_en?: string | null
           created_at?: string
           created_by?: string | null
@@ -8591,6 +8596,7 @@ export type Database = {
           estado_cliente?: string
           estado_proforma?: string
           estado_revision?: string
+          evaluacion_fiscal?: Json | null
           expediente?: string
           factura_id?: string | null
           factura_secundaria_id?: string | null

@@ -6,6 +6,7 @@ CREATE OR REPLACE FUNCTION public.crear_proforma_atomica(p_organization_id uuid,
 DECLARE
   v_numero text;
   v_estado_embarque text;
+  v_cliente_embarque uuid;
   v_proforma public.proformas;
   v_override record;
   v_org uuid;
@@ -13,6 +14,11 @@ DECLARE
   v_iva_usd numeric := 0;
   v_sub_mxn numeric := 0;
   v_iva_mxn numeric := 0;
+  v_total_usd numeric;
+  v_total_mxn numeric;
+  v_fiscal jsonb;
+  v_usd jsonb;
+  v_mxn jsonb;
   v_tc numeric;
   v_ocupados int;
   v_actualizados int;
@@ -45,8 +51,12 @@ BEGIN
   END IF;
   -- El cierre operativo no se elude por un efecto lateral del trigger
   -- que mantiene tiene_proforma. Los guards vuelven a validar al vincular.
-  SELECT estado::text INTO v_estado_embarque FROM public.embarques
-  WHERE id = p_embarque_id AND organization_id = v_org FOR KEY SHARE;
+  SELECT estado::text, cliente_id, tipo_cambio_usd INTO v_estado_embarque, v_cliente_embarque, v_tc
+  FROM public.embarques WHERE id = p_embarque_id AND organization_id = v_org AND deleted_at IS NULL
+    AND (p_cliente_id IS NULL OR cliente_id = p_cliente_id) FOR NO KEY UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'LC_PROFORMA_EMBARQUE_INVALIDO: recarga el embarque y verifica el cliente' USING ERRCODE = 'P0001';
+  END IF;
   IF v_estado_embarque = 'Cerrado' THEN
     RAISE EXCEPTION 'LC_EMBARQUE_CERRADO: reabre el embarque antes de generar una proforma'
       USING ERRCODE = '23514';
@@ -116,7 +126,9 @@ BEGIN
   END IF;
   PERFORM public._assert_iva_proforma_coherente(tipo_iva, tasa_iva_aplicada, aplica_iva)
   FROM public.conceptos_venta WHERE id = ANY(p_concepto_ids) AND organization_id = v_org;
-  SELECT
+  v_fiscal := public._isr_snapshot_proforma_normal(v_org, p_embarque_id, v_cliente_embarque, p_concepto_ids);
+  IF v_fiscal IS NULL THEN
+    SELECT
     COALESCE(SUM(CASE WHEN moneda='USD' THEN ROUND(cantidad*precio_unitario, 2) ELSE 0 END), 0),
     COALESCE(SUM(CASE WHEN moneda='USD'
                       THEN ROUND(ROUND(cantidad*precio_unitario, 2) * public._tasa_iva_canonica(tipo_iva, tasa_iva_aplicada, aplica_iva), 2)
@@ -125,19 +137,34 @@ BEGIN
     COALESCE(SUM(CASE WHEN moneda='MXN'
                       THEN ROUND(ROUND(cantidad*precio_unitario, 2) * public._tasa_iva_canonica(tipo_iva, tasa_iva_aplicada, aplica_iva), 2)
                       ELSE 0 END), 0)
-  INTO v_sub_usd, v_iva_usd, v_sub_mxn, v_iva_mxn
-  FROM public.conceptos_venta
-  WHERE id = ANY(p_concepto_ids) AND organization_id = v_org;
+    INTO v_sub_usd, v_iva_usd, v_sub_mxn, v_iva_mxn
+    FROM public.conceptos_venta WHERE id = ANY(p_concepto_ids) AND organization_id = v_org;
+    v_total_usd := v_sub_usd + v_iva_usd;
+    v_total_mxn := v_sub_mxn + v_iva_mxn;
+  ELSE
+    IF v_org IS DISTINCT FROM public.org_scope() THEN RAISE EXCEPTION 'LC_ISR_SIN_PERMISO' USING ERRCODE = '42501'; END IF;
+    SELECT b INTO v_usd FROM jsonb_array_elements(v_fiscal->'bloques') b WHERE b->>'moneda' = 'USD';
+    SELECT b INTO v_mxn FROM jsonb_array_elements(v_fiscal->'bloques') b WHERE b->>'moneda' = 'MXN';
+    v_sub_usd := COALESCE((v_usd->>'subtotal')::numeric, 0);
+    v_iva_usd := COALESCE((v_usd->>'iva')::numeric, 0);
+    v_total_usd := COALESCE((v_usd->>'total')::numeric, 0);
+    v_sub_mxn := COALESCE((v_mxn->>'subtotal')::numeric, 0);
+    v_iva_mxn := COALESCE((v_mxn->>'iva')::numeric, 0);
+    v_total_mxn := COALESCE((v_mxn->>'total')::numeric, 0);
+  END IF;
   IF v_sub_usd > 0 THEN
-    SELECT tipo_cambio_usd INTO v_tc
-    FROM public.embarques
-    WHERE id = p_embarque_id AND organization_id = v_org;
     IF v_tc IS NULL OR v_tc <= 0 THEN
       RAISE EXCEPTION 'LC_PROFORMA_TC_REQUERIDO: el embarque no tiene tipo de cambio USD para convertir los conceptos en dólares'
         USING ERRCODE='P0001';
     END IF;
     v_sub_mxn := v_sub_mxn + round(v_sub_usd * v_tc, 2);
     v_iva_mxn := v_iva_mxn + round(v_iva_usd * v_tc, 2);
+    IF v_fiscal IS NULL THEN
+      v_total_mxn := v_sub_mxn + v_iva_mxn;
+    ELSE
+      v_total_mxn := v_total_mxn + round(v_total_usd * v_tc, 2);
+      v_fiscal := v_fiscal || jsonb_build_object('tipo_cambio_usd', v_tc, 'total_equivalente_mxn', v_total_mxn);
+    END IF;
   END IF;
   IF ABS(COALESCE(p_iva_usd,0) - v_iva_usd) > 0.01
      OR ABS(COALESCE(p_iva_mxn,0) - v_iva_mxn) > 0.01 THEN
@@ -148,13 +175,14 @@ BEGIN
     numero, embarque_id, cliente_id, cliente_nombre, expediente, bl_master,
     subtotal_usd, iva_usd, total_usd, subtotal_mxn, iva_mxn, total_mxn,
     notas, operador, dias_credito, organization_id, tasa_iva_aplicada,
-    fecha_emision
+    fecha_emision, evaluacion_fiscal, conceptos_fiscales
   ) VALUES (
-    v_numero, p_embarque_id, p_cliente_id, p_cliente_nombre, p_expediente, p_bl_master,
-    v_sub_usd, v_iva_usd, v_sub_usd + v_iva_usd,
-    v_sub_mxn, v_iva_mxn, v_sub_mxn + v_iva_mxn,
+    v_numero, p_embarque_id, CASE WHEN v_fiscal IS NULL THEN p_cliente_id ELSE v_cliente_embarque END,
+    p_cliente_nombre, p_expediente, p_bl_master,
+    v_sub_usd, v_iva_usd, v_total_usd,
+    v_sub_mxn, v_iva_mxn, v_total_mxn,
     p_notas, p_operador, p_dias_credito, v_org, p_tasa_iva,
-    v_hoy_mx
+    v_hoy_mx, v_fiscal - 'conceptos', v_fiscal->'conceptos'
   )
   RETURNING * INTO v_proforma;
   UPDATE public.conceptos_venta

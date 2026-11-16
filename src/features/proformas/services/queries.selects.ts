@@ -22,7 +22,7 @@ export const PROFORMA_LISTA_SELECT = [
   // consolidadas con individuales en una fusión.
   "es_consolidada", "estado_revision",
   "dias_credito", "organization_id",
-  "subtotal_usd", "iva_usd", "total_usd", "subtotal_mxn", "iva_mxn", "total_mxn",
+  "subtotal_usd", "iva_usd", "total_usd", "subtotal_mxn", "iva_mxn", "total_mxn", "evaluacion_fiscal",
   // 38: cálculo BL-12 por línea para lista y CSV, sin lecturas por cada fila.
   "conceptos_lista:conceptos_venta(" + CONCEPTO_TOTALES + ")",
   "consolidados_lista:proforma_conceptos_consolidados(" + CONCEPTO_TOTALES + ")",
@@ -59,7 +59,7 @@ export const PROFORMA_EMBARQUE_SELECT = [
   // operador y días de crédito por fila; sin estas columnas el select nunca
   // las trae y la tabla las pinta como '-'/'—'.
   "fecha_emision", "operador", "dias_credito",
-  "total_mxn", "total_usd", "created_at",
+  "total_mxn", "total_usd", "created_at", "organization_id", "cliente_id", "evaluacion_fiscal",
   "facturas:factura_id(factura_pdf_url, factura_xml_url)",
   "facturas_asociadas:facturas!proforma_id(" + FACTURA_DOC + ")",
   "factura_vinculada:factura_id(" + FACTURA_DOC + ")",

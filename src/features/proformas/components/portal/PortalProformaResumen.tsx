@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components
 import { DetailTableHead } from "@/components/shared/DetailTable";
 import { etiquetaTratamientoFila } from "@/lib/financial/etiquetaTratamientoFila";
 import { TASA_IVA } from "@/lib/financial/financialUtils";
+import { TotalesFiscalesProforma } from "../TotalesFiscalesProforma";
 import {
   AVISO_IVA_POR_CONFIRMAR,
   hayLineasIvaPorConfirmar,
@@ -56,10 +57,11 @@ interface Props {
 
 export function PortalProformaResumen({ proforma, conceptos }: Props) {
   const moneda = proforma.moneda ?? "MXN";
+  const fiscal = proforma.totales_fiscales;
   // P1 · Auditoría IVA: el portal no conoce la tasa de la organización, así que
   // se usa la tasa general del país como referencia SÓLO para detectar el caso
   // (renglón sin clasificar al que el cálculo ya aplicó IVA). No se recategoriza.
-  const porConfirmar = hayLineasIvaPorConfirmar(conceptos, TASA_IVA);
+  const porConfirmar = !fiscal && hayLineasIvaPorConfirmar(conceptos, TASA_IVA);
   return (
     <Card>
       <CardHeader>
@@ -81,7 +83,7 @@ export function PortalProformaResumen({ proforma, conceptos }: Props) {
           </div>
           <div>
             <div className="text-body-sm uppercase text-muted-foreground">Moneda</div>
-            <div className="font-semibold">{moneda}</div>
+            <div className="font-semibold">{fiscal?.map((bloque) => bloque.moneda).join(" · ") ?? moneda}</div>
           </div>
         </div>
 
@@ -124,7 +126,9 @@ export function PortalProformaResumen({ proforma, conceptos }: Props) {
         {/* FIX4 N-2: si la proforma mezcla monedas se muestran los dos
             bloques duales (como la vista interna ProformaConceptosCard);
             si no, el bloque legacy singular derivado en el backend. */}
-        {(proforma.subtotal_mxn ?? 0) > 0 && (proforma.subtotal_usd ?? 0) > 0 ? (
+        {fiscal ? (
+          <div className="border-t pt-3"><TotalesFiscalesProforma bloques={fiscal} /></div>
+        ) : (proforma.subtotal_mxn ?? 0) > 0 && (proforma.subtotal_usd ?? 0) > 0 ? (
           <div className="border-t pt-3 flex flex-col sm:flex-row sm:justify-end gap-6">
             <BloqueTotalesPortal
               moneda="USD"

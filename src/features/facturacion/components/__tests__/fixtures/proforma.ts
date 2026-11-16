@@ -13,6 +13,7 @@ const BASE_PROFORMA: ProformaConFactura = {
   fecha_facturacion: null, folio_factura_externa: null, motivo_rechazo: null,
   notas: null, origen: null, proformas_origen: null, rechazada_at: null,
   snapshot_emision: null, tasa_iva_aplicada: TASA_IVA, token_expira_at: null,
+  evaluacion_fiscal: null, conceptos_fiscales: null,
   token_publico: null, ultimo_envio_email: null, updated_at: "2024-01-05",
   facturas: null, subtotal_mxn: 0, subtotal_usd: 0, iva_mxn: 0, iva_usd: 0,
   total_mxn: 0, total_usd: 0,

@@ -28,7 +28,7 @@ export function computarFlags(
     facturada,
     cancelada,
     puedeConvertir:
-      clienteAcepto && !facturada && !cancelada && !proforma.factura_id && canEmitirFactura,
+      clienteAcepto && !facturada && !cancelada && !proforma.factura_id && proforma.evaluacion_fiscal == null && canEmitirFactura,
     puedeResponder:
       !facturada && !cancelada && estadoCliente === "pendiente" && canResponderProformaManual,
     mostrarHint: !clienteAcepto && !facturada && !cancelada,

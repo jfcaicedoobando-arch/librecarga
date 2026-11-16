@@ -568,5 +568,13 @@
       "0072_isr_resico_revision_embarque.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0073_isr_resico_proforma_normal.sql",
+    "sha256": "dd198ea737366b1a53d121c426b90603df582fc2c9f7334fff9a62682ad6ae8f",
+    "replays": [
+      "0073_isr_resico_proforma_normal.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

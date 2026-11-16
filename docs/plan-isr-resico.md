@@ -115,6 +115,8 @@ El margen se calcula sobre la venta base y los costos. Una venta de $10,000 con 
 
 ## Etapa 4 Proforma y conversión a factura
 
+**Avance local 4A.** La 0073 guarda el desglose por moneda y los renglones de la proforma normal. Las pruebas cubren $2.51 de ISR y $230.42 de neto, USD sin duplicar su equivalente en MXN, respuesta por token, cancelación y regeneración. Consolidación y conversión fiscal siguen pendientes.
+
 1. **Proforma normal.** Extender `crear_proforma_atomica` para calcular desde los conceptos elegibles y guardar el desglose aprobado por moneda. Distinguir importes en moneda original de la equivalencia en MXN que ya calcula la proforma.
 2. **Consolidación.** Extender `consolidar_proformas` para conservar conceptos origen, bases exactas y grupos compatibles de IVA y retenciones. Recalcular el documento consolidado por moneda, impuesto y tasa. Si el redondeo cambia el importe frente a los documentos aprobados, mostrar la diferencia y obtener nueva aprobación antes de convertir.
 3. **Factura desde proforma.** Completar ambas ramas de `_convertir_proformas_insertar_conceptos` y la cabecera de `convertir_proformas_a_factura`. Conservar aceptación, idempotencia, separación por moneda y trazabilidad hasta el concepto de origen. Validar que perfil y receptor siguen siendo compatibles con la versión aprobada.
@@ -172,4 +174,4 @@ Ejecutar pruebas de dominio, UI, PDF con el renderizador real, Deno y PostgreSQL
 
 ## Primer cambio implementable
 
-Continuar con **4A**. Crear una proforma normal desde el embarque evaluado con dos conceptos de $100.40 y comprobar que el desglose de $2.51 de ISR y $230.42 de total se guarda en PostgreSQL y llega al PDF y al portal. Buscar en paralelo la identidad de prueba de Facturapi para el futuro timbrado.
+Continuar con **4B**. Consolidar proformas normales con evaluación compatible, conservar el origen y la base de cada línea y mostrar la diferencia cuando la consolidación cambie el redondeo. Buscar en paralelo la identidad de prueba PF 626 de Facturapi para el futuro timbrado.

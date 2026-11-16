@@ -23,6 +23,7 @@ import {
 import type { ProformaFacturaAsociadaLite } from "../types";
 import { totalesListadoProforma } from "@/features/proformas/domain/proformaListado";
 import { proformaFixture } from "@/features/facturacion/components/__tests__/fixtures/proforma";
+import { fiscalCotizacionFixture } from "@/test/fixtures/snapshotFiscalCotizacion";
 
 describe("proformas queries", () => {
   it("excluye canceladas de la selección operativa y mantiene el detalle histórico", async () => {
@@ -83,6 +84,18 @@ describe("proformas queries", () => {
     }], error: null });
     const rows = await fetchProformasTodas("org");
     expect(rows[0].totales_calculados).toEqual({ subtotal_usd: 50, iva_usd: 4, total_usd: 54, subtotal_mxn: 100, iva_mxn: 0, total_mxn: 100 });
+  });
+
+  it("lista el neto de la proforma fiscal aunque ya se hayan liberado sus ventas", async () => {
+    const fiscal = proformaFixture({ estado_proforma: "cancelada", total_mxn: 4838.82, total_usd: 230.42 });
+    const snapshot = fiscalCotizacionFixture({ organization_id: fiscal.organization_id, cliente_id: fiscal.cliente_id });
+    mock.setTableResult("proformas", { data: [{ ...fiscal, conceptos_lista: [], evaluacion_fiscal: {
+      ...snapshot, bloques: [...snapshot.bloques, ...snapshot.bloques.map((b) => ({ ...b, moneda: "USD" }))],
+    } }], error: null });
+    const [row] = await fetchProformasTodas(fiscal.organization_id);
+    expect(row.totales_origen).toBe("fiscal");
+    expect(totalesListadoProforma(row)).toEqual({ subtotal_mxn: 200.8, iva_mxn: 32.13, total_mxn: 230.42,
+      subtotal_usd: 200.8, iva_usd: 32.13, total_usd: 230.42 });
   });
 
   it("fetchProformasEmbarque devuelve filas y filtra por embarque_id", async () => {

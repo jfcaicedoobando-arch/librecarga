@@ -374,6 +374,11 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN
 REVOKE ALL ON FUNCTION public._isr_base_revision_venta(jsonb),
   public._isr_plan_revision_embarque(uuid,uuid,jsonb) FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.preparar_revision_fiscal_embarque(uuid,uuid,jsonb,timestamptz) FROM PUBLIC,anon,service_role;
+REVOKE ALL ON TABLE public.proforma_liberaciones_portal FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public._isr_concepto_proforma_normal(jsonb),
+  public._isr_snapshot_proforma_normal(uuid,uuid,uuid,uuid[]), public._isr_guard_proforma_normal(),
+  public._isr_validar_vinculo_proforma_normal(jsonb,jsonb), public._liberar_conceptos_proforma_portal(uuid,uuid),
+  public._h14_lock_grafo_baja_embarque(uuid,boolean) FROM PUBLIC,anon,authenticated,service_role;
 \ir _ci_check_isr_resico_acl.sql
 \ir _ci_check_factura_resico_totales_acl.sql
 \ir _ci_check_isr_resico_comercial_acl.sql

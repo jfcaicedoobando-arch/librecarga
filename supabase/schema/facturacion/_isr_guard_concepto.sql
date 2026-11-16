@@ -13,6 +13,11 @@ BEGIN
   IF TG_OP = 'UPDATE' AND OLD.evaluacion_fiscal IS NOT NULL AND NEW.evaluacion_fiscal IS NULL THEN
     RAISE EXCEPTION 'LC_ISR_NO_DESACTIVAR' USING ERRCODE = '23514';
   END IF;
+  IF TG_TABLE_NAME = 'conceptos_venta' AND TG_OP = 'UPDATE' AND OLD.evaluacion_fiscal IS NOT NULL
+    AND (OLD.proforma_id IS NOT NULL OR NEW.proforma_id IS NOT NULL) THEN
+    PERFORM public._isr_validar_vinculo_proforma_normal(to_jsonb(OLD), to_jsonb(NEW));
+    RETURN NEW;
+  END IF;
   IF TG_TABLE_NAME = 'conceptos_venta' THEN
     -- An authenticated writer cannot create an open audit row or reuse a completed review.
     SELECT EXISTS (SELECT 1 FROM public.embarque_revisiones_fiscales r
@@ -71,7 +76,8 @@ BEGIN
   END IF;
   IF TG_TABLE_NAME = 'conceptos_venta' THEN
     SELECT cliente_id,organization_id INTO v_cliente,v_parent_org FROM public.embarques WHERE id=NEW.embarque_id FOR NO KEY UPDATE;
-    IF EXISTS(SELECT 1 FROM public.conceptos_venta WHERE embarque_id=NEW.embarque_id AND proforma_id IS NOT NULL) THEN
+    IF EXISTS(SELECT 1 FROM public.conceptos_venta c JOIN public.proformas pf ON pf.id = c.proforma_id
+      WHERE c.embarque_id = NEW.embarque_id AND pf.evaluacion_fiscal IS NULL) THEN
       RAISE EXCEPTION 'LC_ISR_FLUJO_NO_HABILITADO' USING ERRCODE='23514';
     END IF;
     IF NEW.proforma_id IS NOT NULL OR NEW.estado_facturacion <> 'pendiente' THEN
@@ -80,6 +86,7 @@ BEGIN
   ELSE
     SELECT cliente_id,organization_id INTO v_cliente,v_parent_org FROM public.proformas
       WHERE id=NEW.proforma_id AND estado_aprobacion='borrador' AND estado_proforma='pendiente'
+      AND evaluacion_fiscal IS NULL
       AND enviada_at IS NULL AND factura_id IS NULL AND factura_secundaria_id IS NULL
       AND estado_cliente='pendiente' AND consolidada_en IS NULL FOR NO KEY UPDATE;
     IF EXISTS(SELECT 1 FROM public.conceptos_factura WHERE proforma_id_origen=NEW.proforma_id) THEN

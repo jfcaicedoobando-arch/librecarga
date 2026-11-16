@@ -5,6 +5,7 @@
 - Integra la evaluación fiscal por organización con los borradores de cotización y embarque. La migración 0071 conserva el cálculo agrupado y el origen de los renglones al convertir una cotización aprobada.
 - El detalle, el PDF y el correo de la cotización leen el desglose fiscal aprobado. La revisión de una cotización enviada conserva la versión anterior y vuelve a solicitar autorización.
 - La migración 0072 permite que Administración o Contabilidad revise el cliente o los importes fiscales de un embarque. El guardado compara los montos mostrados por moneda, conserva la procedencia de los renglones y registra la revisión en la misma transacción.
+- La migración 0073 guarda el desglose fiscal y los conceptos seleccionados al crear una proforma normal. Detalle, PDF y portal leen el total neto por moneda. El rechazo y la cancelación liberan las ventas y conservan los importes y renglones del documento histórico.
 
 ## [13.824.91] - Unreleased
 

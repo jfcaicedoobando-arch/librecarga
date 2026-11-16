@@ -12,15 +12,15 @@ import { cargarEmisorDocumento } from "@/pdf/emisor";
 import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
 import { slugifyOrg } from "@/lib/filenames";
 import type { EmbarqueLite, ClienteLite } from "@/pdf/documents/proformaShared";
+import type { ConceptoProformaDocumento } from "@/features/proformas/domain";
 
 type ProformaRow = Tables<"proformas">;
-type ConceptoVenta = Tables<"conceptos_venta">;
 type ConceptoConsolidado = Tables<"proforma_conceptos_consolidados">;
 
 interface GenerarPdfProformaParams {
   proforma: ProformaRow;
   embarque: EmbarqueLite;
-  conceptos: ConceptoVenta[];
+  conceptos: ConceptoProformaDocumento[];
   cliente?: ClienteLite;
   tasaIva?: number;
   conceptosConsolidados?: ConceptoConsolidado[];
