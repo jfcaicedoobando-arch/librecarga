@@ -66,11 +66,10 @@ export function useAutoSyncEstadoEmbarque(
  * Extraído de `useEmbarqueEstadoActions` para reducir su complejidad ciclomática.
  */
 export function useCierreGate(siguienteEstado: string | null, id: string | undefined) {
-  const { canEditFinance, isAdmin } = usePermissions();
+  const { canCerrarEmbarque: rolPuedeCerrar, isAdmin } = usePermissions();
   const cierreEsSiguiente = siguienteEstado === "Cerrado";
   const idCierre = cierreEsSiguiente ? id : undefined;
   const { data: validacionCierre } = useValidacionCierre(idCierre);
-  const rolPuedeCerrar = isAdmin || canEditFinance;
   // v13.135.59 — Admins pueden forzar el cierre aunque el checklist esté incompleto.
   const validacionOk = validacionCierre?.puede_cerrar === true || isAdmin;
   const motivo = resolveCierreGate(cierreEsSiguiente, rolPuedeCerrar, validacionOk);

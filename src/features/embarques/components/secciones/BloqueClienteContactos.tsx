@@ -25,9 +25,12 @@ interface Props {
   clienteNombre: string;
   contactos: Contacto[];
   errors: EmbarqueValidationErrors;
+  esBorrador: boolean;
 }
 
-export function BloqueClienteContactos({ clientes, clienteNombre, contactos, errors }: Props) {
+const requisitoContactosId = "emb-contactos-requisito";
+
+export function BloqueClienteContactos({ clientes, clienteNombre, contactos, errors, esBorrador }: Props) {
   const { register, watch, setValue } = useFormContext<EmbarqueFormValues>();
   const shipper = watch('shipper');
   const consignatario = watch('consignatario');
@@ -36,9 +39,7 @@ export function BloqueClienteContactos({ clientes, clienteNombre, contactos, err
   // "Proveedor" es un contacto de la cadena de suministro del cliente y no aplica aquí.
   const contactosShipper = contactos.filter(ct => ct.tipo === 'Exportador');
   const contactosConsignatario = contactos.filter(ct => ct.tipo === 'Importador');
-
-
-
+  const indicadorRequerido = esBorrador ? "" : " *";
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -105,11 +106,16 @@ export function BloqueClienteContactos({ clientes, clienteNombre, contactos, err
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="emb-shipper">Shipper (Exportador) *</Label>
+        <p id={requisitoContactosId} className="text-body-sm text-muted-foreground">
+          Exportador y consignatario son obligatorios para confirmar el embarque.
+          {esBorrador ? " Puedes guardar el borrador sin estos datos." : ""}
+        </p>
+        <Label htmlFor="emb-shipper">Shipper (Exportador){indicadorRequerido}</Label>
         <Controller name="shipper" render={({ field }) => (
           <Select value={field.value} onValueChange={(v) => { field.onChange(v); if (v !== '__otro__') setValue('shipperManual', ''); }}>
             <SelectTrigger
               id="emb-shipper"
+              aria-describedby={requisitoContactosId}
               aria-invalid={errors.shipper ? true : undefined}
               className={cn(errors.shipper && 'border-destructive')}
             >
@@ -129,11 +135,12 @@ export function BloqueClienteContactos({ clientes, clienteNombre, contactos, err
         {shipper === '__otro__' && <Input aria-label="Nombre del exportador" placeholder="Nombre del exportador" {...register('shipperManual')} className="mt-2" />}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="emb-consignatario">Consignatario *</Label>
+        <Label htmlFor="emb-consignatario">Consignatario{indicadorRequerido}</Label>
         <Controller name="consignatario" render={({ field }) => (
           <Select value={field.value} onValueChange={(v) => { field.onChange(v); if (v !== '__otro__') setValue('consignatarioManual', ''); }}>
             <SelectTrigger
               id="emb-consignatario"
+              aria-describedby={requisitoContactosId}
               aria-invalid={errors.consignatario ? true : undefined}
               className={cn(errors.consignatario && 'border-destructive')}
             >
@@ -153,11 +160,6 @@ export function BloqueClienteContactos({ clientes, clienteNombre, contactos, err
         {errors.consignatario && <p className="text-body-sm text-destructive">{errors.consignatario}</p>}
         {consignatario === '__otro__' && <Input aria-label="Nombre del consignatario" placeholder="Nombre del consignatario" {...register('consignatarioManual')} className="mt-2" />}
       </div>
-      {/* v13.823.321: el borrador se guarda incompleto, pero estos datos se
-          exigen al avanzar a Confirmado (misma regla que la RPC). */}
-      <p className="text-body-sm text-muted-foreground md:col-span-2">
-        Shipper y consignatario son necesarios para avanzar a Confirmado; el borrador puede guardarse sin ellos.
-      </p>
     </>
 
   );

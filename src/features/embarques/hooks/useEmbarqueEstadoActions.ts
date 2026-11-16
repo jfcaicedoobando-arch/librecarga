@@ -158,8 +158,8 @@ export function useEmbarqueEstadoActions(embarque: EmbarqueRow | undefined, id: 
     if (bloqueo === "gate_cierre") {
       notifyError(undefined, {
         title: cierre.motivo === "rol"
-          ? "Solo administración/finanzas pueden cerrar el embarque"
-          : "Pendientes administrativos. Revisa el Tab Cierre.",
+          ? "El cierre corresponde a coordinación o gerencia de operaciones, o a administración."
+          : "Hay pendientes de cierre. Revisa la pestaña Cierre.",
         method: "GATE_CERRAR_EMBARQUE",
       });
       return;

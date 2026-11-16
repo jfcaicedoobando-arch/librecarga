@@ -114,6 +114,7 @@ export default function Embarques() {
               <EmbarquesFiltros
                 search={search}
                 onSearchChange={setSearch}
+                onClearAll={limpiarFiltros}
                 filterModo={filterModo}
                 onFilterModoChange={setFilterModo}
                 filterEstado={filterEstado}

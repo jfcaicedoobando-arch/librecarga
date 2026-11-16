@@ -168,6 +168,7 @@ export default function EditarEmbarque() {
             cotizacionVinculada={cotizacionVinculada}
             cotizacionesAceptadas={cotizacionesAceptadas}
             mostrarSelectorExpediente={false}
+            esBorrador={embarque.estado === "Borrador"}
           />
         )}
         {currentStep === 2 && <StepDatosRuta />}

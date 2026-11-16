@@ -6,7 +6,9 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { CERRAR_EMBARQUE, FINANCE, OPERATIONS, TENANT_ADMINS, hasRole } from "@/lib/access/permissionMatrix";
 import { createWrapper } from "@/test/utils/queryWrapper";
+import type { AppRole } from "@/types/appRole";
 
 const h = vi.hoisted(() => ({
   avanzar: vi.fn(),
@@ -15,7 +17,7 @@ const h = vi.hoisted(() => ({
   calcEstado: vi.fn(),
   conceptos: [] as Array<{ estado_facturacion: string }>,
   docs: { faltantes: [] as string[], bloqueante: false, loading: false },
-  perms: { isAdmin: false, canEditFinance: false, canEditOperations: false, isSuperAdmin: false },
+  perms: { isAdmin: false, canCerrarEmbarque: false, canEditFinance: false, canEditOperations: false, isSuperAdmin: false },
   validacion: { data: undefined as undefined | { puede_cerrar: boolean } },
   sonnerSuccess: vi.fn(),
   sonnerError: vi.fn(),
@@ -77,6 +79,16 @@ function renderH(emb: Partial<typeof base> = {}, id: string | undefined = "e-1")
   );
 }
 
+function permisosDeRol(role: AppRole | null) {
+  return {
+    isAdmin: hasRole(TENANT_ADMINS, role),
+    canCerrarEmbarque: hasRole(CERRAR_EMBARQUE, role),
+    canEditFinance: hasRole(FINANCE, role),
+    canEditOperations: hasRole(OPERATIONS, role),
+    isSuperAdmin: role === "super_admin",
+  };
+}
+
 beforeEach(() => {
   h.avanzar.mockReset().mockResolvedValue({});
   h.reabrir.mockReset().mockResolvedValue({});
@@ -84,7 +96,7 @@ beforeEach(() => {
   h.calcEstado.mockReset().mockImplementation((_m, _t, _e, _a, estado) => estado);
   h.conceptos = [];
   h.docs = { faltantes: [], bloqueante: false, loading: false };
-  h.perms = { isAdmin: false, canEditFinance: false, canEditOperations: false, isSuperAdmin: false };
+  h.perms = permisosDeRol(null);
   h.validacion = { data: undefined };
   h.sonnerSuccess.mockReset(); h.sonnerError.mockReset();
   h.notifyError.mockReset(); h.notifySuccess.mockReset();
@@ -152,8 +164,8 @@ describe("useEmbarqueEstadoActions — candado de documentos", () => {
 });
 
 describe("useEmbarqueEstadoActions — gate de cierre", () => {
-  it("gate_cierre por rol: usuario sin permiso financiero no puede cerrar", async () => {
-    h.perms = { isAdmin: false, canEditFinance: false, canEditOperations: false, isSuperAdmin: false };
+  it("gate_cierre por rol: contador puede editar finanzas pero no cerrar", async () => {
+    h.perms = permisosDeRol("contador");
     h.validacion = { data: { puede_cerrar: true } };
     const { result } = renderH({ estado: "Por liquidar" });
     expect(result.current.cierreEsSiguiente).toBe(true);
@@ -162,13 +174,28 @@ describe("useEmbarqueEstadoActions — gate de cierre", () => {
     await act(async () => { await result.current.handleAvanzarEstado(); });
     expect(h.notifyError).toHaveBeenCalledWith(
       undefined,
-      expect.objectContaining({ method: "GATE_CERRAR_EMBARQUE" }),
+      expect.objectContaining({
+        method: "GATE_CERRAR_EMBARQUE",
+        title: "El cierre corresponde a coordinación o gerencia de operaciones, o a administración.",
+      }),
     );
     expect(h.avanzar).not.toHaveBeenCalled();
   });
 
-  it("gate_cierre por checklist: rol OK pero validacion bloquea", async () => {
-    h.perms = { isAdmin: false, canEditFinance: true, canEditOperations: false, isSuperAdmin: false };
+  it.each(["coordinador_logistico", "gerente_operaciones"] as const)(
+    "%s puede cerrar cuando el checklist está completo",
+    async (role) => {
+      h.perms = permisosDeRol(role);
+      h.validacion = { data: { puede_cerrar: true } };
+      const { result } = renderH({ estado: "Por liquidar" });
+      expect(result.current.cierrePuedeAvanzar).toBe(true);
+      await act(async () => { await result.current.handleAvanzarEstado(); });
+      expect(h.avanzar).toHaveBeenCalledWith(expect.objectContaining({ nuevoEstado: "Cerrado" }));
+    },
+  );
+
+  it("gate_cierre por checklist: coordinación tiene permiso y debe atender pendientes", async () => {
+    h.perms = permisosDeRol("coordinador_logistico");
     h.validacion = { data: { puede_cerrar: false } };
     const { result } = renderH({ estado: "Por liquidar" });
     expect(result.current.cierreMotivoBloqueo).toBe("checklist");
@@ -177,7 +204,7 @@ describe("useEmbarqueEstadoActions — gate de cierre", () => {
   });
 
   it("admin bypassea checklist incompleto y avanza a Cerrado", async () => {
-    h.perms = { isAdmin: true, canEditFinance: false, canEditOperations: false, isSuperAdmin: false };
+    h.perms = permisosDeRol("admin_org");
     h.validacion = { data: { puede_cerrar: false } };
     const { result } = renderH({ estado: "Por liquidar" });
     expect(result.current.cierrePuedeAvanzar).toBe(true);
@@ -186,7 +213,7 @@ describe("useEmbarqueEstadoActions — gate de cierre", () => {
   });
 
   it("confirmarCierreSinProforma cierra dialog y dispara avance a Cerrado", async () => {
-    h.perms = { isAdmin: true, canEditFinance: true, canEditOperations: true, isSuperAdmin: false };
+    h.perms = permisosDeRol("admin");
     const { result } = renderH({ estado: "Por liquidar" });
     await act(async () => { await result.current.confirmarCierreSinProforma(); });
     await waitFor(() => expect(h.avanzar).toHaveBeenCalledWith(
@@ -198,7 +225,7 @@ describe("useEmbarqueEstadoActions — gate de cierre", () => {
 
 describe("useEmbarqueEstadoActions — sync automático", () => {
   it("sincroniza sólo arribo respaldado por llegada real", async () => {
-    h.perms = { isAdmin: false, canEditFinance: false, canEditOperations: true, isSuperAdmin: false };
+    h.perms = permisosDeRol("operador");
     h.calcEstado.mockReturnValue("Arribo");
     renderH({ estado: "En Tránsito", fecha_llegada_real: "2026-10-10" });
     await waitFor(() => expect(h.sync).toHaveBeenCalledWith(
@@ -207,7 +234,7 @@ describe("useEmbarqueEstadoActions — sync automático", () => {
   });
 
   it("NO dispara sync cuando el calculado coincide con el actual", async () => {
-    h.perms = { isAdmin: true, canEditFinance: false, canEditOperations: true, isSuperAdmin: false };
+    h.perms = permisosDeRol("admin");
     h.calcEstado.mockReturnValue("Confirmado");
     renderH({ estado: "Confirmado" });
     await new Promise((r) => setTimeout(r, 0));
@@ -215,7 +242,7 @@ describe("useEmbarqueEstadoActions — sync automático", () => {
   });
 
   it("NO dispara sync cuando el usuario no tiene permisos (rol contador)", async () => {
-    h.perms = { isAdmin: false, canEditFinance: false, canEditOperations: false, isSuperAdmin: false };
+    h.perms = permisosDeRol("contador");
     h.calcEstado.mockReturnValue("Arribo");
     renderH({ estado: "En Tránsito", fecha_llegada_real: "2026-10-10" });
     await new Promise((r) => setTimeout(r, 0));

@@ -117,12 +117,12 @@ export function AvanzarEstadoButton({
           <TooltipTrigger asChild>
             <Button size="sm" onClick={onIrACierre} disabled={avanzandoEstado}>
               <ChevronRight className="h-4 w-4 mr-1" />
-              Avanzar a {siguienteLabel}
+              Revisar pendientes de cierre
             </Button>
           </TooltipTrigger>
           <TooltipContent>
             <p className="text-body-sm">Hay pendientes administrativos.</p>
-            <p className="text-body-sm font-medium">Ir al tab Cierre.</p>
+            <p className="text-body-sm font-medium">Abre la pestaña Cierre.</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
