@@ -2,7 +2,7 @@ import { authenticate, authorizeOrgRole, ROLES_EMISOR_FISCAL } from "../_shared/
 import { handlePreflightStrict } from "../_shared/cors.ts";
 import { makeJson } from "../_shared/response.ts";
 import { captureEdgeException } from "../_shared/sentry.ts";
-import { PerfilFiscalError } from "./proveedor.ts";
+import { PerfilFiscalError } from "../_shared/facturapiPerfilProveedor.ts";
 import { errorRpc, sincronizarPerfil } from "./sincronizar.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -4,6 +4,7 @@
  */
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
 import type { NotaCreditoContext, ConceptoNC, ReferenciasEmbarque } from "./helpers.ts";
+import { MENSAJE_PERFIL_CFDI_ORIGEN, perfilCfdiOrigen, type PerfilCfdiOrigen } from "../_shared/perfilCfdiOrigen.ts";
 
 export type SupabaseLike = SupabaseClient;
 
@@ -20,10 +21,16 @@ interface NcRow {
   conceptos: unknown;
   facturapi_id: string | null;
   estado: string;
+  monto?: number | string | null;
+  updated_at?: string | null;
 }
 
 interface FacturaRow {
   id: string;
+  organization_id?: string;
+  ambiente?: string | null;
+  evaluacion_fiscal?: unknown;
+  snapshot_emision?: unknown;
   uuid_fiscal: string | null;
   cliente_id: string;
   rfc_cliente: string | null;
@@ -40,7 +47,7 @@ interface ClienteRow {
   rfc: string | null;
   codigo_postal: string | null;
   regimen_fiscal: string | null;
-  uso_cfdi_default: string | null;
+  uso_cfdi_default?: string | null;
 }
 
 /**
@@ -54,7 +61,7 @@ export const ESTADOS_NC_TIMBRABLES: readonly string[] = ["Borrador", "Aprobada"]
 export async function loadNc(supabase: SupabaseLike, id: string): Promise<NcRow | null> {
   const { data } = await supabase
     .from("factura_notas_credito")
-    .select("id, factura_id, organization_id, serie, uso_cfdi, forma_pago, moneda, tipo_cambio, conceptos, facturapi_id, estado")
+    .select("id, factura_id, organization_id, serie, uso_cfdi, forma_pago, moneda, tipo_cambio, conceptos, facturapi_id, estado, monto, updated_at")
     .eq("id", id)
     // Ola 3 · B: una NC en papelera no es timbrable ni por llamada directa.
     .is("deleted_at", null)
@@ -63,11 +70,12 @@ export async function loadNc(supabase: SupabaseLike, id: string): Promise<NcRow 
 }
 
 
-export async function loadFactura(supabase: SupabaseLike, id: string): Promise<FacturaRow | null> {
+export async function loadFactura(supabase: SupabaseLike, id: string, organizationId: string): Promise<FacturaRow | null> {
   const { data } = await supabase
     .from("facturas")
-    .select("id, uuid_fiscal, cliente_id, rfc_cliente, uso_cfdi, forma_pago, embarque_id, expediente, referencia_bl")
+    .select("id, organization_id, uuid_fiscal, cliente_id, rfc_cliente, uso_cfdi, forma_pago, embarque_id, expediente, referencia_bl, ambiente, evaluacion_fiscal, snapshot_emision")
     .eq("id", id)
+    .eq("organization_id", organizationId)
     // Ola 3 · B: no se timbra una NC contra una factura en papelera.
     .is("deleted_at", null)
     .maybeSingle();
@@ -128,10 +136,11 @@ export function buildNcContextFromRows(
   email: string | null,
   referencias: ReferenciasEmbarque | null = null,
 ): NotaCreditoContext {
-  const usoCfdi = nc.uso_cfdi ?? factura.uso_cfdi ?? cliente.uso_cfdi_default ?? "G02";
+  const fiscal = factura.evaluacion_fiscal != null;
+  const usoCfdi = nc.uso_cfdi ?? (fiscal ? "G02" : factura.uso_cfdi ?? cliente.uso_cfdi_default ?? "G02");
   const formaPago = nc.forma_pago ?? factura.forma_pago ?? "";
   const moneda = nc.moneda ?? "MXN";
-  const taxId = factura.rfc_cliente ?? cliente.rfc ?? "";
+  const taxId = (fiscal ? cliente.rfc : factura.rfc_cliente ?? cliente.rfc) ?? "";
   const taxSystem = cliente.regimen_fiscal ?? "";
   const zip = cliente.codigo_postal ?? "";
   const conceptos = (Array.isArray(nc.conceptos) ? nc.conceptos : []) as ConceptoNC[];
@@ -165,10 +174,10 @@ export type NcClaimResult =
   | { ok: true; claimTag: string; claimAt: string; release: () => Promise<void> }
   | { ok: false; status: number; body: unknown };
 
-export async function claimNotaCredito(supabase: SupabaseLike, notaCreditoId: string): Promise<NcClaimResult> {
+export async function claimNotaCredito(supabase: SupabaseLike, notaCreditoId: string, updatedAt?: string): Promise<NcClaimResult> {
   const claimTag = `PENDING:${crypto.randomUUID()}`;
   const claimAt = new Date().toISOString();
-  const { data: claimed, error: claimErr } = await supabase
+  let query = supabase
     .from("factura_notas_credito")
     .update({ facturapi_id: claimTag, facturapi_claim_at: claimAt })
     .eq("id", notaCreditoId)
@@ -176,10 +185,11 @@ export async function claimNotaCredito(supabase: SupabaseLike, notaCreditoId: st
     // Ola 3 · B: el claim repite el guard de vivo + estado timbrable para
     // cerrar la carrera entre preload y claim.
     .is("deleted_at", null)
-    .in("estado", ESTADOS_NC_TIMBRABLES)
-    .select("id")
-    .maybeSingle();
-  if (claimErr) return { ok: false, status: 500, body: { error: "claim_failed", detail: claimErr.message } };
+    .in("estado", ESTADOS_NC_TIMBRABLES);
+  if (updatedAt) query = query.eq("updated_at", updatedAt);
+  const { data: claimed, error: claimErr } = await query.select("id").maybeSingle();
+  if (claimErr) return { ok: false, status: claimErr.code === "23514" ? 409 : 500,
+    body: { error: "claim_failed", message: claimErr.message } };
   if (!claimed) {
     return { ok: false, status: 409, body: { error: "ya_timbrada", message: "Otro proceso ya está timbrando esta nota de crédito." } };
   }
@@ -194,7 +204,8 @@ export async function claimNotaCredito(supabase: SupabaseLike, notaCreditoId: st
 }
 
 export type PreloadResult =
-  | { ok: true; nc: NcRow; factura: FacturaRow; cliente: ClienteRow; email: string | null; referencias: ReferenciasEmbarque }
+  | { ok: true; nc: NcRow; factura: FacturaRow; cliente: ClienteRow; email: string | null; referencias: ReferenciasEmbarque;
+    origen: PerfilCfdiOrigen | null }
   | { ok: false; status: number; body: unknown };
 
 export async function preloadNcContext(
@@ -208,13 +219,15 @@ export async function preloadNcContext(
   if (!ESTADOS_NC_TIMBRABLES.includes(nc.estado)) {
     return { ok: false, status: 409, body: { error: "estado_no_timbrable", message: `Esta nota de crédito está en estado "${nc.estado}" y ya no se puede timbrar.` } };
   }
-  const factura = await loadFactura(supabase, nc.factura_id);
+  const factura = await loadFactura(supabase, nc.factura_id, nc.organization_id);
   if (!factura) return { ok: false, status: 404, body: { error: "factura_not_found" } };
   if (!factura.uuid_fiscal) return { ok: false, status: 409, body: { error: "factura_sin_uuid", message: "La factura original no tiene UUID fiscal. Timbra la factura primero." } };
-  const cliente = await loadCliente(supabase, factura.cliente_id);
+  const origen = perfilCfdiOrigen(factura, nc.organization_id);
+  if (origen === "incompleto") return { ok: false, status: 409, body: { error: "perfil_cfdi_origen", message: MENSAJE_PERFIL_CFDI_ORIGEN } };
+  const cliente = origen?.receptor ?? await loadCliente(supabase, factura.cliente_id);
   if (!cliente) return { ok: false, status: 404, body: { error: "cliente_not_found" } };
   const email = await loadEmailPrincipal(supabase, factura.cliente_id);
   const referencias = await loadReferenciasEmbarque(supabase, factura);
-  return { ok: true, nc, factura, cliente, email, referencias };
+  return { ok: true, nc, factura, cliente, email, referencias, origen };
 }
 

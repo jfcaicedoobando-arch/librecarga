@@ -1,6 +1,6 @@
 /** Sólo I/O en memoria para el caso de uso real (sin SDK ni DB remotos). */
-interface Options { factura?: { deleted_at?: string | null; organization_id?: string }; summary?: "divergent" | "unavailable"; claimTaken?: boolean; pending?: boolean; persistenceFails?: boolean }
 type Row = Record<string, unknown>;
+interface Options { factura?: Row; summary?: "divergent" | "unavailable"; claimTaken?: boolean; pending?: boolean; persistenceFails?: boolean }
 
 export function fixtureRep(options: Options = {}) {
   const events: string[] = [];

@@ -16,3 +16,15 @@ Deno.test("REP balance rejects an invalid amount before fiscal emission", () => 
   try { calcularParcialidad(null, "current", 10, Infinity); } catch { rejected = true; }
   if (!rejected) throw new Error("Infinite payment accepted");
 });
+
+Deno.test("un pago con REP cancelado se excluye del saldo y de la parcialidad fiscal", () => {
+  const result = calcularParcialidad([
+    { id: "cancelado", monto_aplicado_factura: 80, estado_rep: "Cancelado" },
+    { id: "previo", monto_aplicado_factura: 50, estado_rep: "Timbrado" },
+    { id: "current", monto_aplicado_factura: 40, estado_rep: "Cancelado" },
+    { id: "siguiente", monto_aplicado_factura: 54.65, estado_rep: "Pendiente" },
+  ], "current", 222.39, 40, 77.74);
+  if (result.numParcialidad !== 2 || result.saldoAnt !== 94.65 || result.saldoInsoluto !== 54.65) {
+    throw new Error(`unexpected REP balance: ${JSON.stringify(result)}`);
+  }
+});

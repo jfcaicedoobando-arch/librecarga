@@ -18,7 +18,7 @@ import { claimNotaCredito, preloadNcContext, ESTADOS_NC_TIMBRABLES, type Supabas
 
 /** Simula una tabla en memoria con soporte de `.update().eq().is().select().maybeSingle()`. */
 function makeFakeSupabase(
-  row: { id: string; facturapi_id: string | null; estado?: string; deleted_at?: string | null },
+  row: { id: string; facturapi_id: string | null; estado?: string; deleted_at?: string | null; updated_at?: string },
 ): SupabaseLike {
   const state = { estado: "Borrador", deleted_at: null as string | null, ...row };
   // RTC-01: sin la aserción sobre el literal, `this` queda bien inferido y
@@ -34,6 +34,7 @@ function makeFakeSupabase(
     eq(col: string, val: unknown) {
       if (col === "id" && val !== state.id) this._matchesId = false;
       if (col === "facturapi_id" && val !== state.facturapi_id) this._matchesId = false;
+      if (col === "updated_at" && val !== state.updated_at) this._matchesIsNull = false;
       return this;
     },
     is(col: string, val: null) {
@@ -73,6 +74,13 @@ Deno.test("claimNotaCredito: reclama la NC cuando facturapi_id es NULL", async (
   if (claim.ok) {
     assert(claim.claimTag.startsWith("PENDING:"));
   }
+});
+
+Deno.test("claimNotaCredito: una versión fiscal editada después de leerla falla antes del PAC", async () => {
+  const supabase = makeFakeSupabase({ id: "nc-qa", facturapi_id: null, updated_at: "vigente" });
+  const claim = await claimNotaCredito(supabase, "nc-qa", "anterior");
+  assert(!claim.ok);
+  assertEquals(claim.status, 409);
 });
 
 Deno.test("claimNotaCredito: NO timbra dos veces — el segundo claim sobre una NC ya reclamada falla con 409", async () => {

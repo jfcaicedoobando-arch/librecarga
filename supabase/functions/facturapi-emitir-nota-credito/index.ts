@@ -18,6 +18,8 @@ import { registrarBitacoraEdge } from "../_shared/bitacora.ts";
 import { jsonResponse, makeJson } from "../_shared/response.ts";
 import { esIdempotencyKeyEnUso } from "../_shared/timbradoPendiente.ts";
 import { cuerpoRateLimit, esRateLimitFacturapi } from "../_shared/facturapiRateLimit.ts";
+import { MENSAJE_PERFIL_CFDI_ORIGEN, verificarLlaveCfdiOrigen } from "../_shared/perfilCfdiOrigen.ts";
+import { calcularTotalesNotaFiscal } from "./cuadreIsr.ts";
 import { exigirInvoices, esContratoSdkError, cuerpoContratoSdk } from "../_shared/facturapiSdk.ts";
 
 import { respuestaSiNcPendiente, cuerpoIdempotencyEnUsoNc } from "./pendiente.ts";
@@ -136,17 +138,23 @@ Deno.serve(wrapEdgeHandler("facturapi-emitir-nota-credito", async (req) => {
 
   const pre = await preloadNcContext(supabase, body.nota_credito_id);
   if (!pre.ok) return json(pre.body, pre.status);
-  const { nc, factura, cliente, email, referencias } = pre;
+  const { nc, factura, cliente, email, referencias, origen } = pre;
   if (!(await authorizeOrgRole(supabase, userData.user.id, nc.organization_id, ROLES_EMISOR_FISCAL))) {
     return json({ error: "forbidden" }, 403);
   }
 
-  const resolved = await getFacturapiClient(supabase, nc.organization_id);
+  const resolved = await getFacturapiClient(supabase, nc.organization_id, origen?.ambiente);
   if (!resolved.ok) return json({ error: resolved.data.error, message: resolved.data.message }, resolved.data.status);
+  if (origen && !(await verificarLlaveCfdiOrigen(origen, resolved.data))) {
+    return json({ error: "perfil_cfdi_origen", message: MENSAJE_PERFIL_CFDI_ORIGEN }, 409);
+  }
 
   const ctx = buildNcContextFromRows(nc, factura, cliente, email, referencias);
   const issues = validateNcContext(ctx);
   if (issues.length > 0) return json({ error: "validation_failed", issues }, 422);
+  if (origen && (!nc.updated_at || ctx.uso_cfdi !== "G02" || calcularTotalesNotaFiscal(ctx).total !== Number(nc.monto))) {
+    return json({ error: "cuadre_nota_credito", message: "Revisa el uso fiscal y el total de la nota antes de timbrarla." }, 422);
+  }
 
   // Ola 4 · A — una NC en $0 no es timbrable (el SAT la rechaza y en la
   // práctica es captura incompleta). Se valida ANTES del claim y del PAC.
@@ -162,7 +170,7 @@ Deno.serve(wrapEdgeHandler("facturapi-emitir-nota-credito", async (req) => {
   // Se toma DESPUÉS de validar para no tener que liberarlo en el 422.
   // El tag viaja como external_id a FacturAPI para recuperar el CFDI si la
   // edge muere tras timbrar y antes de persistir.
-  const claim = await claimNotaCredito(supabase, body.nota_credito_id);
+  const claim = await claimNotaCredito(supabase, body.nota_credito_id, origen ? nc.updated_at ?? undefined : undefined);
   if (!claim.ok) return json(claim.body, claim.status);
   ctx.external_id = claim.claimTag;
 

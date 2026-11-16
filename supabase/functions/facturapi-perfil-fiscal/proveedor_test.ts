@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { consultarPerfilProveedor, normalizarPerfilProveedor, PerfilFiscalError } from "./proveedor.ts";
+import { consultarPerfilProveedor, normalizarPerfilProveedor, PerfilFiscalError } from "../_shared/facturapiPerfilProveedor.ts";
 
 Deno.test("importa exclusivamente datos fiscales del objeto legal", () => {
   const result = normalizarPerfilProveedor({ id: "org-test", certificate: { private_key: "no-exportar" },

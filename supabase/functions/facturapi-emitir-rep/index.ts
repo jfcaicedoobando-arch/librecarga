@@ -15,6 +15,7 @@ import { resolveFacturapiKey } from "../_shared/facturapiAuth.ts";
 import { getFacturapiClient } from "../_shared/facturapiClient.ts";
 import { makeJson } from "../_shared/response.ts";
 import { emitirRepCasoUso } from "./casoUso.ts";
+import { MENSAJE_PERFIL_CFDI_ORIGEN, verificarLlaveCfdiOrigen } from "../_shared/perfilCfdiOrigen.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -51,13 +52,16 @@ Deno.serve(wrapEdgeHandler("facturapi-emitir-rep", async (req) => {
     usuario: { id: userData.user.id, email: userData.user.email },
     json,
     // Multi-tenant: el cliente del SDK se crea aquí (adaptador) por organización.
-    resolverFacturapi: async (organizationId: string) => {
-      const resolved = await getFacturapiClient(supabase, organizationId);
+    resolverFacturapi: async (organizationId, origen) => {
+      const resolved = await getFacturapiClient(supabase, organizationId, origen?.ambiente);
       if (!resolved.ok) {
         return {
           ok: false as const,
           response: json({ error: resolved.data.error, message: resolved.data.message }, resolved.data.status),
         };
+      }
+      if (origen && !(await verificarLlaveCfdiOrigen(origen, resolved.data))) {
+        return { ok: false as const, response: json({ error: "perfil_cfdi_origen", message: MENSAJE_PERFIL_CFDI_ORIGEN }, 409) };
       }
       return { ok: true as const, data: resolved.data };
     },

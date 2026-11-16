@@ -9,12 +9,17 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
 import { calcularParcialidad, resolverReferenciasEmbarque, type ParcialidadInfo, type RefsEmbarque } from "./context.ts";
 import { ncAplicadasEnMonedaFactura } from "./ncDr.ts";
 import { etapaCorte, etapaOk, type Etapa, type JsonFn } from "./etapaResultado.ts";
+import type { PerfilCfdiOrigen } from "../_shared/perfilCfdiOrigen.ts";
 
 const COLS_FACTURA =
-  "id, numero, serie, total, subtotal, iva, moneda, tipo_cambio, metodo_pago, uuid_fiscal, folio_fiscal, cliente_id, rfc_cliente, embarque_id, expediente, referencia_bl, facturapi_id";
+  "id, organization_id, numero, serie, total, subtotal, iva, moneda, tipo_cambio, metodo_pago, uuid_fiscal, folio_fiscal, cliente_id, rfc_cliente, embarque_id, expediente, referencia_bl, facturapi_id, ambiente, evaluacion_fiscal, snapshot_emision";
 
 export interface FacturaRep {
   id: string;
+  organization_id?: string;
+  ambiente?: string | null;
+  evaluacion_fiscal?: unknown;
+  snapshot_emision?: unknown;
   numero?: string | null;
   serie?: string | null;
   total?: number | null;
@@ -90,12 +95,14 @@ export async function cargarDatosPago(
   factura: FacturaRep,
   pago: PagoRep,
   json: JsonFn,
+  origen?: PerfilCfdiOrigen | null,
 ): Promise<Etapa<DatosPagoRep>> {
-  const { data: cliente, error: cErr } = await supabase
+  const clienteFiscal = origen ? { data: origen.receptor, error: null } : await supabase
     .from("clientes")
     .select("id, nombre, rfc, codigo_postal, regimen_fiscal")
     .eq("id", factura.cliente_id)
     .maybeSingle();
+  const { data: cliente, error: cErr } = clienteFiscal;
   if (cErr || !cliente) return etapaCorte(json({ error: "cliente_not_found", detail: cErr?.message }, 404));
 
   // La columna `es_principal` fue removida; tomamos el contacto más antiguo con email.
@@ -111,11 +118,12 @@ export async function cargarDatosPago(
   // Pagos previos de la misma factura para calcular num_parcialidad e imp_saldo_ant.
   const { data: pagosPrev, error: ppErr } = await supabase
     .from("pagos_factura")
-    .select("id, fecha_pago, monto_aplicado_factura, created_at")
+    .select("id, fecha_pago, monto_aplicado_factura, created_at, estado_rep")
     .eq("factura_id", factura.id)
     .is("deleted_at", null)
     .order("fecha_pago", { ascending: true })
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
   if (ppErr) return etapaCorte(json({ error: "pagos_query_failed", detail: ppErr.message }, 500));
 
   // Ola E3 · N1 — notas de crédito timbradas al momento de emitir el REP.

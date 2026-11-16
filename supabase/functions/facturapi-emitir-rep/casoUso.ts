@@ -18,6 +18,7 @@ import { construirPagoContext, validarPagoContext } from "./etapaContexto.ts";
 import { emitirRepYPersistir } from "./etapaEmision.ts";
 import { verificarResumenProveedor } from "./resumenProveedor.ts";
 import type { JsonFn, UsuarioRep } from "./etapaResultado.ts";
+import { MENSAJE_PERFIL_CFDI_ORIGEN, perfilCfdiOrigen, type PerfilCfdiOrigen } from "../_shared/perfilCfdiOrigen.ts";
 
 /** Datos del SDK resueltos por organización (multi-tenant). */
 export interface FacturapiResuelto {
@@ -35,6 +36,7 @@ export interface ArgsCasoUsoRep {
   /** Resuelve el cliente de FacturApi de la organización, o la Response de corte. */
   resolverFacturapi: (
     organizationId: string,
+    origen: PerfilCfdiOrigen | null,
   ) => Promise<{ ok: true; data: FacturapiResuelto } | { ok: false; response: Response }>;
 }
 
@@ -46,20 +48,22 @@ export async function emitirRepCasoUso(args: ArgsCasoUsoRep): Promise<Response> 
   if ("response" in precarga) return precarga.response;
   const { pago } = precarga;
 
-  // 2) Multi-tenant: SDK de FacturApi de esta organización (v13.136.4).
-  const sdk = await args.resolverFacturapi(pago.organization_id);
-  if (!sdk.ok) return sdk.response;
-  const facturapi = sdk.data.client;
-
-  // 3) Factura relacionada, tratamiento fiscal autoritativo y datos del pago.
+  // 2) La factura relacionada identifica el ambiente fiscal del REP.
   const etapaFactura = await cargarFacturaPpd(supabase, pago.factura_id, pago.organization_id, json);
   if (!etapaFactura.ok) return etapaFactura.response;
   const factura = etapaFactura.valor;
+  const origen = perfilCfdiOrigen(factura, pago.organization_id);
+  if (origen === "incompleto") return json({ error: "perfil_cfdi_origen", message: MENSAJE_PERFIL_CFDI_ORIGEN }, 409);
 
+  const sdk = await args.resolverFacturapi(pago.organization_id, origen);
+  if (!sdk.ok) return sdk.response;
+  const facturapi = sdk.data.client;
+
+  // 3) Tratamiento fiscal autoritativo y datos del pago.
   const etapaFiscal = await resolverFiscalRep(supabase, factura, pago.id, json);
   if (!etapaFiscal.ok) return etapaFiscal.response;
 
-  const etapaDatos = await cargarDatosPago(supabase, factura, pago, json);
+  const etapaDatos = await cargarDatosPago(supabase, factura, pago, json, origen);
   if (!etapaDatos.ok) return etapaDatos.response;
 
   // 4) Contexto del REP + validación + paridad con el proveedor.

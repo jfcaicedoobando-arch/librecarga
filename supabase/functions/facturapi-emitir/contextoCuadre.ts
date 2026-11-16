@@ -9,8 +9,8 @@ import {
   recalcularTotalesConceptos,
   toleranciaCentavos,
   type ConceptoCuadre,
-} from "./cuadreFiscal.ts";
-import { usaCuadreFacturapi, diferenciasCuadreFacturapi } from "./cuadreFacturapi.ts";
+} from "../_shared/cuadreFiscal.ts";
+import { usaCuadreFacturapi, diferenciasCuadreFacturapi } from "../_shared/cuadreFacturapi.ts";
 import type { FacturaContext } from "./helpers.ts";
 import type { FacturaRow } from "./types.ts";
 

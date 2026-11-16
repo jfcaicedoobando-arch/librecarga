@@ -1,4 +1,4 @@
-import { consultarPerfilProveedor } from "../facturapi-perfil-fiscal/proveedor.ts";
+import { consultarPerfilProveedor } from "./facturapiPerfilProveedor.ts";
 import type { DocumentoFacturapiIsr } from "./conciliarCfdiIsr.ts";
 import { getFacturapiClient, withFacturapiTimeout } from "./facturapiClient.ts";
 import { asFacturapiApi, exigirOperacion } from "./facturapiSdk.ts";

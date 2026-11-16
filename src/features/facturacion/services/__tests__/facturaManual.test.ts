@@ -9,7 +9,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: { from, rpc } }));
 import { crearFacturaManual } from "../facturaManual";
 import { construirLineasManuales } from "../facturaManualLineas";
 import { calcularTotalesConceptos } from "@/features/facturacion/utils/totalesConceptos";
-import { recalcularTotalesConceptos } from "../../../../../supabase/functions/facturapi-emitir/cuadreFiscal.ts";
+import { recalcularTotalesConceptos } from "../../../../../supabase/functions/_shared/cuadreFiscal.ts";
 
 const baseInput = {
   organizationId: "org",

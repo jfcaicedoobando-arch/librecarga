@@ -3,6 +3,7 @@
  * reverso de retenciones ISR/IVA.
  */
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { calcularTotalesNotaFiscal } from "./cuadreIsr.ts";
 import {
   buildTaxesNc,
   tratamientoNcIndeterminado,
@@ -19,6 +20,13 @@ const concepto = (extra: Partial<ConceptoNC> = {}): ConceptoNC => ({
   clave_sat: "84111506",
   clave_unidad: "E48",
   ...extra,
+});
+
+Deno.test("cuadre agrupado de egreso con dos renglones y dos retenciones", () => {
+  const linea = concepto({ precio_unitario: 100.4, tipo_iva: "gravado_16", tasa_ret_isr: .0125, tasa_ret_iva: .04 });
+  assertEquals(calcularTotalesNotaFiscal({ conceptos: [linea, linea] }), {
+    subtotal: 200.8, iva_trasladado: 32.13, ret_isr: 2.51, ret_iva: 8.03, total: 222.39,
+  });
 });
 
 Deno.test("gravado 16% y 8% conservan su tasa", () => {

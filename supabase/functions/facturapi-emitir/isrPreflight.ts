@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
 import { jsonResponse } from "../_shared/response.ts";
-import { consultarPerfilProveedor } from "../facturapi-perfil-fiscal/proveedor.ts";
+import { consultarPerfilProveedor } from "../_shared/facturapiPerfilProveedor.ts";
 import type { FacturaRow } from "./types.ts";
 import type { PrevalidacionTimbradoIsr } from "../_shared/conciliarCfdiIsr.ts";
 
