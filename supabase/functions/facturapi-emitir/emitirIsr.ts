@@ -1,12 +1,9 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
-import { FACTURAPI_BASE } from "../_shared/facturapiAuth.ts";
-import { describeFacturapiError, withFacturapiTimeout } from "../_shared/facturapiClient.ts";
-import { asFacturapiApi, exigirOperacion } from "../_shared/facturapiSdk.ts";
 import { conciliarYRegistrarIsr, registrarResultadoIsr } from "../_shared/registrarEmisionIsr.ts";
-import type { DocumentoFacturapiIsr } from "../_shared/conciliarCfdiIsr.ts";
-import { cuerpoTimbradoPendiente, esIdempotencyKeyEnUso } from "../_shared/timbradoPendiente.ts";
+import { datosTimbradoConfirmado, prepararSolicitudTimbradoIsr } from "../_shared/solicitarTimbradoIsr.ts";
+import { cuerpoTimbradoPendiente } from "../_shared/timbradoPendiente.ts";
 import { jsonResponse } from "../_shared/response.ts";
-import { buildFacturapiPayload, type FacturaContext, type FacturapiPayload } from "./helpers.ts";
+import { buildFacturapiPayload, type FacturaContext } from "./helpers.ts";
 import { respuestaRevision, type BorradorIsrValidado, type PrevalidacionIsr } from "./isrPreflight.ts";
 import type { FacturaRow } from "./types.ts";
 
@@ -21,14 +18,21 @@ interface EmisionIsrArgs {
   apiKey: string;
 }
 
+function mismoReceptor(esperado: BorradorIsrValidado["captura"]["receptor"], receptor: FacturaContext["receptor"]) {
+  return esperado?.rfc === receptor.tax_id && esperado.regimen_fiscal === receptor.tax_system
+    && esperado.nombre === receptor.legal_name && esperado.codigo_postal === receptor.address.zip;
+}
+
+function mismoUuidSustituido(esperado?: string, observado?: string | null) {
+  return (esperado?.toUpperCase() ?? null) === (observado?.toUpperCase() ?? null);
+}
+
 function mismoContexto(prevalidacion: BorradorIsrValidado, ctx: FacturaContext) {
   const { receptor, datos_factura, totales } = prevalidacion.captura;
-  return receptor?.rfc === ctx.receptor.tax_id && receptor.regimen_fiscal === ctx.receptor.tax_system
-    && receptor.nombre === ctx.receptor.legal_name && receptor.codigo_postal === ctx.receptor.address.zip
-    && datos_factura?.uso_cfdi === ctx.uso_cfdi && datos_factura.forma_pago === ctx.forma_pago
+  return mismoReceptor(receptor, ctx.receptor) && datos_factura?.uso_cfdi === ctx.uso_cfdi && datos_factura.forma_pago === ctx.forma_pago
     && datos_factura.metodo_pago === ctx.metodo_pago && (datos_factura.serie ?? null) === (ctx.serie ?? null)
     && Number(datos_factura.tipo_cambio ?? 1) === ctx.tipo_cambio && totales?.moneda === ctx.moneda
-    && (prevalidacion.captura.sustituye_uuid?.toUpperCase() ?? null) === (ctx.sustituye_uuid?.toUpperCase() ?? null);
+    && mismoUuidSustituido(prevalidacion.captura.sustituye_uuid, ctx.sustituye_uuid);
 }
 
 function pendienteIsr(claim: string, conciliacion = false) {
@@ -42,9 +46,7 @@ function pendienteIsr(claim: string, conciliacion = false) {
 export async function emitirFacturaConIsr(args: EmisionIsrArgs, request: typeof fetch = fetch) {
   const { admin, factura, prevalidacion } = args;
   if (!mismoContexto(prevalidacion, args.ctx)) return respuestaRevision();
-  const crear = exigirOperacion<(payload: FacturapiPayload) => Promise<DocumentoFacturapiIsr>>(
-    asFacturapiApi(args.facturapi), "invoices.create",
-  );
+  const solicitar = prepararSolicitudTimbradoIsr(args.facturapi);
   // Build and validate the payload before taking the reservation.
   const payload = buildFacturapiPayload(args.ctx);
   const { data, error } = await admin.rpc("reservar_timbrado_isr", {
@@ -59,27 +61,16 @@ export async function emitirFacturaConIsr(args: EmisionIsrArgs, request: typeof 
     message: "No se pudo confirmar la reserva de timbrado. Revisa el estado de la factura." }, 503);
 
   const intento = { admin, facturaId: factura.id, organizationId: factura.organization_id, claim };
-  let remoto: DocumentoFacturapiIsr;
-  try {
-    remoto = await withFacturapiTimeout("invoices.create", crear({ ...payload, external_id: claim, idempotency_key: claim }));
-  } catch (fallo) {
-    const { status, detail } = describeFacturapiError(fallo);
-    const rechazo = [400, 401, 403, 422, 429].includes(status) && !esIdempotencyKeyEnUso(detail, status);
-    const respuesta = await registrarResultadoIsr(intento, rechazo ? "rechazado" : "pendiente", {
-      http_status: status, motivo: rechazo ? "rechazo_facturapi" : "respuesta_incierta",
-    });
+  const solicitud = await solicitar(payload, claim);
+  if (solicitud.tipo === "sin_cfdi") {
+    const respuesta = await registrarResultadoIsr(intento, solicitud.estado, solicitud.datos);
     return respuesta.estado === "rechazado"
-      ? jsonResponse({ error: "facturapi_rechazo", message: "Facturapi rechazó la solicitud. Revisa los datos antes de volver a timbrar." }, status)
+      ? jsonResponse({ error: "facturapi_rechazo", message: "Facturapi rechazó la solicitud. Revisa los datos antes de volver a timbrar." }, solicitud.httpStatus)
       : pendienteIsr(claim);
   }
-  if (!remoto) {
-    await registrarResultadoIsr(intento, "pendiente", { motivo: "respuesta_vacia" });
-    return pendienteIsr(claim);
-  }
+  const { remoto } = solicitud;
   const resultado = await conciliarYRegistrarIsr({ ...intento, esperado: prevalidacion.captura, remoto, apiKey: args.apiKey }, request);
   if (resultado.estado !== "confirmado") return pendienteIsr(claim, resultado.estado === "conciliacion");
 
-  const ruta = `${FACTURAPI_BASE}/invoices/${remoto.id}`;
-  return jsonResponse({ uuid: remoto.uuid?.toUpperCase(), folio: remoto.folio_number, serie: remoto.series ?? "",
-    facturapi_id: remoto.id, pdf_url: ruta + "/pdf", xml_url: ruta + "/xml" });
+  return jsonResponse(datosTimbradoConfirmado(remoto));
 }

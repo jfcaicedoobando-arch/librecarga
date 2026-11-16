@@ -116,31 +116,11 @@ async function createNcInvoice(
   }
 }
 
-Deno.serve(wrapEdgeHandler("facturapi-emitir-nota-credito", async (req) => {
-  // EF-10: endpoints con JWT usan CORS de whitelist (guía _shared/cors.ts).
-  const preflight = handlePreflightStrict(req);
-  if (preflight) return preflight;
-  const json = makeJson(req);
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
-
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return json({ error: "unauthorized" }, 401);
-
-  const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
-    global: { headers: { Authorization: authHeader } },
-    auth: { persistSession: false },
-  });
-
-  const { data: userData, error: uErr } = await supabase.auth.getUser();
-  if (uErr || !userData.user) return json({ error: "unauthorized" }, 401);
-
-  const body = (await req.json().catch(() => ({}))) as ReqBody;
-  if (!body.nota_credito_id) return json({ error: "nota_credito_id_required" }, 400);
-
-  const pre = await preloadNcContext(supabase, body.nota_credito_id);
+async function prepararNota(supabase: SupabaseClient, notaId: string, usuarioId: string, json: ReturnType<typeof makeJson>) {
+  const pre = await preloadNcContext(supabase, notaId);
   if (!pre.ok) return json(pre.body, pre.status);
   const { nc, factura, cliente, email, referencias, origen } = pre;
-  if (!(await authorizeOrgRole(supabase, userData.user.id, nc.organization_id, ROLES_EMISOR_FISCAL))) {
+  if (!(await authorizeOrgRole(supabase, usuarioId, nc.organization_id, ROLES_EMISOR_FISCAL))) {
     return json({ error: "forbidden" }, 403);
   }
 
@@ -165,12 +145,38 @@ Deno.serve(wrapEdgeHandler("facturapi-emitir-nota-credito", async (req) => {
       message: "La nota de crédito tiene un total de $0. Revisa los conceptos (cantidad y precio) antes de timbrar.",
     }, 422);
   }
+  return { nc, ctx, origen, facturapi: resolved.data };
+}
+
+Deno.serve(wrapEdgeHandler("facturapi-emitir-nota-credito", async (req) => {
+  // EF-10: endpoints con JWT usan CORS de whitelist (guía _shared/cors.ts).
+  const preflight = handlePreflightStrict(req);
+  if (preflight) return preflight;
+  const json = makeJson(req);
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return json({ error: "unauthorized" }, 401);
+
+  const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
+    global: { headers: { Authorization: authHeader } },
+    auth: { persistSession: false },
+  });
+
+  const { data: userData, error: uErr } = await supabase.auth.getUser();
+  if (uErr || !userData.user) return json({ error: "unauthorized" }, 401);
+
+  const body = (await req.json().catch(() => ({}))) as ReqBody;
+  if (!body.nota_credito_id) return json({ error: "nota_credito_id_required" }, 400);
+  const preparado = await prepararNota(supabase, body.nota_credito_id, userData.user.id, json);
+  if (preparado instanceof Response) return preparado;
+  const { nc, ctx, origen, facturapi } = preparado;
 
   if (origen && nc.updated_at) {
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
     return emitirNotaCreditoIsr({
       nota: { admin, notaId: nc.id, organizationId: nc.organization_id },
-      actor: userData.user.id, updatedAt: nc.updated_at, facturapi: resolved.data, ctx, json,
+      actor: userData.user.id, updatedAt: nc.updated_at, facturapi, ctx, json,
     });
   }
 
@@ -182,7 +188,7 @@ Deno.serve(wrapEdgeHandler("facturapi-emitir-nota-credito", async (req) => {
   if (!claim.ok) return json(claim.body, claim.status);
   ctx.external_id = claim.claimTag;
 
-  const created = await createNcInvoice(supabase, resolved.data.client, buildNcPayload(ctx), {
+  const created = await createNcInvoice(supabase, facturapi.client, buildNcPayload(ctx), {
     organizationId: nc.organization_id,
     userId: userData.user.id,
     userEmail: userData.user.email,
@@ -207,8 +213,8 @@ Deno.serve(wrapEdgeHandler("facturapi-emitir-nota-credito", async (req) => {
     invoice: created.invoice,
     ctx,
     nc,
-    apiKey: resolved.data.apiKey,
-    ambiente: resolved.data.ambiente,
+    apiKey: facturapi.apiKey,
+    ambiente: facturapi.ambiente,
     notaCreditoId: body.nota_credito_id,
     claimTag: claim.claimTag,
     userId: userData.user.id,

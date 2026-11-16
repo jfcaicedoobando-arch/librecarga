@@ -70,6 +70,12 @@ export const LC_CODE_MESSAGES: Record<string, string> = {
     "Si cambió el RFC del receptor, usa la ruta 02 de refacturación para generar la factura nueva.",
   LC_ISR_INTENTO_ACTIVO:
     "La factura tiene un intento de timbrado en curso. Consulta el resultado antes de iniciar otro.",
+  LC_ISR_INTENTO_NO_VIGENTE:
+    "El intento de timbrado cambió. Actualiza el documento y consulta su estado.",
+  LC_ISR_RECHAZO_INCIERTO:
+    "El timbrado sigue pendiente de confirmación. Recupera el intento antes de volver a emitir.",
+  LC_ISR_RESULTADO_INVALIDO:
+    "El resultado del timbrado requiere revisión. Consulta el intento desde Facturación.",
   LC_ANTICIPO_APLICACION_INCONSISTENTE:
     "No se pudo confirmar la aplicación del anticipo. Revisa el vínculo entre factura, pago y anticipo antes de continuar.",
   LC_ANTICIPO_MOVIMIENTO_INCONSISTENTE:

@@ -38,6 +38,17 @@ export interface DocumentoFacturapiIsr {
   total?: number;
 }
 
+function sumarTraslados(xml: string) {
+  let total = new Decimal(0);
+  for (const nodo of nodos(xml, "Traslado")) {
+    if (atributo(nodo, "Impuesto") !== "002") throw new Error("traslado_cfdi_desconocido");
+    const monto = atributo(nodo, "Importe");
+    if (monto != null) total = total.plus(importe(monto));
+    else if (atributo(nodo, "TipoFactor") !== "Exento") throw new Error("traslado_cfdi_sin_importe");
+  }
+  return total;
+}
+
 function impuestosRaiz(xml: string) {
   const encabezados = nodos(xml, "Impuestos").filter((nodo) =>
     atributo(nodo, "TotalImpuestosTrasladados") != null || atributo(nodo, "TotalImpuestosRetenidos") != null);
@@ -57,20 +68,14 @@ function impuestosRaiz(xml: string) {
   const retenido = importe(atributo(cabecera, "TotalImpuestosRetenidos") ?? 0);
   let isr = new Decimal(0);
   let ivaRet = new Decimal(0);
-  let traslados = new Decimal(0);
   for (const nodo of nodos(hijos, "Retencion")) {
     const codigo = atributo(nodo, "Impuesto");
     if (codigo === "001") isr = isr.plus(importe(atributo(nodo, "Importe")));
     else if (codigo === "002") ivaRet = ivaRet.plus(importe(atributo(nodo, "Importe")));
     else throw new Error("retencion_cfdi_desconocida");
   }
-  for (const nodo of nodos(hijos, "Traslado")) {
-    if (atributo(nodo, "Impuesto") !== "002") throw new Error("traslado_cfdi_desconocido");
-    const monto = atributo(nodo, "Importe");
-    if (monto != null) traslados = traslados.plus(importe(monto));
-    else if (atributo(nodo, "TipoFactor") !== "Exento") throw new Error("traslado_cfdi_sin_importe");
-  }
-  if (!isr.plus(ivaRet).eq(retenido) || !traslados.eq(iva)) throw new Error("impuestos_cfdi_no_cuadran");
+  const trasladado = sumarTraslados(hijos);
+  if (!isr.plus(ivaRet).eq(retenido) || !trasladado.eq(iva)) throw new Error("impuestos_cfdi_no_cuadran");
   if ([iva, isr, ivaRet].some((monto) => monto.decimalPlaces() > 2)) throw new Error("impuesto_cfdi_no_exacto");
   return { iva: iva.toNumber(), ret_isr: isr.toNumber(), ret_iva: ivaRet.toNumber() };
 }
@@ -81,22 +86,20 @@ function coincidenDatosXml(
   const datos = esperado.datos_factura;
   const serie = atributo(encabezado, "Serie");
   const folio = atributo(encabezado, "Folio");
-  return (!esperado.emisor.codigo_postal || atributo(encabezado, "LugarExpedicion") === esperado.emisor.codigo_postal)
-    && (!esperado.receptor.codigo_postal || atributo(receptor, "DomicilioFiscalReceptor") === esperado.receptor.codigo_postal)
-    && (!datos.uso_cfdi || normalizarUsoCfdi(atributo(receptor, "UsoCFDI")) === datos.uso_cfdi)
-    && (!datos.forma_pago || atributo(encabezado, "FormaPago") === datos.forma_pago)
-    && (!datos.metodo_pago || atributo(encabezado, "MetodoPago") === datos.metodo_pago)
-    && (!datos.serie || remoto.series === datos.serie)
+  const campos = [
+    [esperado.emisor.codigo_postal, atributo(encabezado, "LugarExpedicion")],
+    [esperado.receptor.codigo_postal, atributo(receptor, "DomicilioFiscalReceptor")],
+    [datos.uso_cfdi, normalizarUsoCfdi(atributo(receptor, "UsoCFDI"))],
+    [datos.forma_pago, atributo(encabezado, "FormaPago")],
+    [datos.metodo_pago, atributo(encabezado, "MetodoPago")],
+    [datos.serie, remoto.series],
+  ];
+  return campos.every(([requerido, observado]) => !requerido || requerido === observado)
     && (serie == null || serie === (remoto.series ?? ""))
     && (folio == null || (/^\d+$/.test(folio) && Number(folio) === remoto.folio_number));
 }
 
-export function conciliarCfdiIsr(
-  esperado: PrevalidacionTimbradoIsr,
-  claim: string,
-  remoto: DocumentoFacturapiIsr,
-  xml: string,
-) {
+function verificarRespuesta(esperado: PrevalidacionTimbradoIsr, claim: string, remoto: DocumentoFacturapiIsr) {
   const uuid = remoto.uuid?.toUpperCase();
   const tipo = esperado.tipo ?? "I";
   if (remoto.status !== "valid" || remoto.type !== tipo || remoto.external_id !== claim
@@ -106,8 +109,12 @@ export function conciliarCfdiIsr(
     || (remoto.organization != null && remoto.organization !== esperado.emisor.facturapi_org_id)) {
     throw new Error("respuesta_facturapi_no_coincide");
   }
+  return { uuid, tipo };
+}
 
-  const documento = xml.replace(/<!--[\s\S]*?-->/g, "");
+function verificarCabecera(esperado: PrevalidacionTimbradoIsr, remoto: DocumentoFacturapiIsr, documento: string,
+  referencia: ReturnType<typeof verificarRespuesta>) {
+  const { uuid, tipo } = referencia;
   const cfdi = parseCfdi(documento);
   const encabezado = nodos(documento, "Comprobante")[0] ?? "";
   const receptor = nodos(documento, "Receptor")[0] ?? "";
@@ -117,15 +124,19 @@ export function conciliarCfdiIsr(
     || cfdi.emisor.rfc !== esperado.emisor.rfc || cfdi.emisor.regimen !== esperado.emisor.regimen_fiscal
     || cfdi.receptor.rfc !== esperado.receptor.rfc || regimenReceptor !== esperado.receptor.regimen_fiscal || !uso
     || !coincidenDatosXml(esperado, remoto, encabezado, receptor)
-    || (cfdi.moneda !== "MXN" && !importe(atributo(encabezado, "TipoCambio")).eq(esperado.datos_factura.tipo_cambio ?? 0))
+    || !coincideTipoCambio(esperado, cfdi.moneda, encabezado)
     || !importe(atributo(encabezado, "SubTotal")).eq(esperado.totales.subtotal)
     || !importe(atributo(encabezado, "Total")).eq(esperado.totales.total)) {
     throw new Error("identidad_o_cabecera_xml_no_coincide");
   }
-  if (tipo === "E") verificarRelacionCfdi(documento, esperado.factura_uuid, "01", "cfdi_egreso_relacion_no_coincide");
-  if (tipo === "I" && esperado.sustituye_uuid) {
-    verificarRelacionCfdi(documento, esperado.sustituye_uuid, "04", "cfdi_sustitucion_relacion_no_coincide");
-  }
+  return { cfdi, regimenReceptor, uso };
+}
+
+function coincideTipoCambio(esperado: PrevalidacionTimbradoIsr, moneda: string, encabezado: string) {
+  return moneda === "MXN" || importe(atributo(encabezado, "TipoCambio")).eq(esperado.datos_factura.tipo_cambio ?? 0);
+}
+
+function verificarImpuestos(esperado: PrevalidacionTimbradoIsr, documento: string) {
   const impuestos = impuestosRaiz(documento);
   if (impuestos.iva !== esperado.totales.iva || impuestos.ret_isr !== esperado.totales.ret_isr
     || impuestos.ret_iva !== esperado.totales.ret_iva) throw new Error("impuestos_xml_no_coinciden");
@@ -137,6 +148,19 @@ export function conciliarCfdiIsr(
     throw new Error("tasa_isr_xml_no_coincide");
   }
   if (esperado.tasas_iva_retenido) verificarTasasIvaRetenido(retenciones, esperado.tasas_iva_retenido);
+  return impuestos;
+}
+
+export function conciliarCfdiIsr(esperado: PrevalidacionTimbradoIsr, claim: string, remoto: DocumentoFacturapiIsr, xml: string) {
+  const referencia = verificarRespuesta(esperado, claim, remoto);
+  const { uuid, tipo } = referencia;
+  const documento = xml.replace(/<!--[\s\S]*?-->/g, "");
+  const { cfdi, regimenReceptor, uso } = verificarCabecera(esperado, remoto, documento, referencia);
+  if (tipo === "E") verificarRelacionCfdi(documento, esperado.factura_uuid, "01", "cfdi_egreso_relacion_no_coincide");
+  if (tipo === "I" && esperado.sustituye_uuid) {
+    verificarRelacionCfdi(documento, esperado.sustituye_uuid, "04", "cfdi_sustitucion_relacion_no_coincide");
+  }
+  const impuestos = verificarImpuestos(esperado, documento);
   return {
     uuid, emisor_rfc: cfdi.emisor.rfc, emisor_regimen: cfdi.emisor.regimen, receptor_rfc: cfdi.receptor.rfc,
     receptor_regimen: regimenReceptor, uso_cfdi: uso, totales: { ...esperado.totales, ...impuestos },

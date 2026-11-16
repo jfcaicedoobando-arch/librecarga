@@ -29,8 +29,8 @@ Deno.test("el webhook ISR sólo despierta la conciliación, aun con una notifica
   let conciliaciones = 0;
   for (const object of [{ id: facturapiId }, { id: facturapiId, status: "valid", uuid, external_id: claim }]) {
     const resultado = await despacharEvento(fakeDb(fila), org, { type: "invoice.status_updated", data: { object } },
-      (_db, orgId, facturaId, intento, remoto) => {
-        assertEquals([orgId, facturaId, intento, remoto], [org, fila.id, claim, facturapiId]);
+      (_db, orgId, facturaId, intento, { remoteId }) => {
+        assertEquals([orgId, facturaId, intento, remoteId], [org, fila.id, claim, facturapiId]);
         conciliaciones++;
         return Promise.resolve({ estado: "reintentar", motivo: "timbrado_isr_pendiente" });
       });

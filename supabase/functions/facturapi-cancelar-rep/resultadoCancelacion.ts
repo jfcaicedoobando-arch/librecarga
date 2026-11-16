@@ -24,6 +24,10 @@ export interface ResultadoCancelacionArgs {
   cancelResp: FapiCancelResponse;
 }
 
+function cancelacionAceptada(cancellationStatus: string, invoiceStatus: string) {
+  return cancellationStatus === "accepted" || (invoiceStatus === "canceled" && cancellationStatus === "none");
+}
+
 export async function resolverResultadoCancelacionRep(args: ResultadoCancelacionArgs): Promise<Response> {
   const { supabase, json, pagoId, organizationId, usuarioId, usuarioEmail, motivo, cancelResp } = args;
   const cancellationStatus = (cancelResp.cancellation_status ?? "none").toLowerCase();
@@ -33,7 +37,7 @@ export async function resolverResultadoCancelacionRep(args: ResultadoCancelacion
     .eq("id", pagoId).eq("organization_id", organizationId).eq("facturapi_rep_id", args.facturapiId)
     .is("deleted_at", null).select("id").maybeSingle();
 
-  if (cancellationStatus === "rejected" || cancellationStatus === "expired") {
+  if (["rejected", "expired"].includes(cancellationStatus)) {
     const resultado = await actualizar({ rep_cancellation_status: cancellationStatus });
     if (resultado.error || !resultado.data) return json({ error: "db_update_failed" }, 409);
     await registrarBitacoraEdge(supabase, {
@@ -51,26 +55,8 @@ export async function resolverResultadoCancelacionRep(args: ResultadoCancelacion
     }, 409);
   }
 
-  if (cancellationStatus === "pending" || cancellationStatus === "verifying") {
-    const { error: pendErr, data } = await actualizar({ rep_cancellation_status: cancellationStatus, rep_motivo_cancel: motivo });
-    if (pendErr) return json({ error: "db_update_failed", detail: pendErr.message }, 500);
-    if (!data) return json({ error: "rep_actualizado" }, 409);
-    await registrarBitacoraEdge(supabase, {
-      ...bitacoraBase,
-      accion: "facturapi_rep_cancelacion_solicitada",
-      entidadId: pagoId,
-      detalles: { motivo, cancellation_status: cancellationStatus },
-    });
-    return json({
-      ok: true,
-      pending: true,
-      cancellation_status: cancellationStatus,
-      message: "Cancelación del REP enviada al SAT. El receptor tiene hasta 72 h hábiles para aceptar o rechazar (silencio positivo).",
-    });
-  }
-
-  const esAceptada = cancellationStatus === "accepted" || (invoiceStatus === "canceled" && cancellationStatus === "none");
-  if (!esAceptada) {
+  const pendiente = ["pending", "verifying"].includes(cancellationStatus);
+  if (!pendiente && !cancelacionAceptada(cancellationStatus, invoiceStatus)) {
     await registrarBitacoraEdge(supabase, {
       ...bitacoraBase,
       accion: "facturapi_rep_cancelacion_estado_desconocido",
@@ -84,14 +70,28 @@ export async function resolverResultadoCancelacionRep(args: ResultadoCancelacion
     }, 502);
   }
 
-  const { error: updErr, data } = await actualizar({
+  const patch = pendiente
+    ? { rep_cancellation_status: cancellationStatus, rep_motivo_cancel: motivo }
+    : {
       estado_rep: "Cancelado",
       rep_cancellation_status: "accepted",
       rep_cancelado_en: new Date().toISOString(),
       rep_motivo_cancel: motivo,
-    });
+    };
+  const { error: updErr, data } = await actualizar(patch);
   if (updErr) return json({ error: "db_update_failed", detail: updErr.message }, 500);
   if (!data) return json({ error: "rep_actualizado" }, 409);
+
+  if (pendiente) {
+    await registrarBitacoraEdge(supabase, {
+      ...bitacoraBase,
+      accion: "facturapi_rep_cancelacion_solicitada",
+      entidadId: pagoId,
+      detalles: { motivo, cancellation_status: cancellationStatus },
+    });
+    return json({ ok: true, pending: true, cancellation_status: cancellationStatus,
+      message: "Cancelación del REP enviada al SAT. El receptor tiene hasta 72 h hábiles para aceptar o rechazar (silencio positivo)." });
+  }
 
   await registrarBitacoraEdge(supabase, {
     ...bitacoraBase,

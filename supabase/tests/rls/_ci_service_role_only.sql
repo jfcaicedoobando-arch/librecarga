@@ -191,5 +191,17 @@ INSERT INTO _ci_service_role_only (fn) VALUES
    ('public._crm_lead_sync_estado_empresa()'),
    -- Private explicit identity resolver, called only by authorized conversion RPCs.
    ('public._crm_empresa_para_conversion(uuid, uuid, uuid)'),
-   ('public._crm_empresa_validar_lead()');
+   ('public._crm_empresa_validar_lead()'),
+   -- Timbrado evaluado y verificación fiscal desde las funciones Edge.
+   ('public.validar_cotizacion_fiscal_envio(uuid, text, uuid)'),
+   ('public.reservar_timbrado_isr(uuid, uuid, jsonb, jsonb)'),
+   ('public.obtener_intento_timbrado_isr(uuid, uuid, text)'),
+   ('public.registrar_resultado_timbrado_isr(uuid, text, text, jsonb)'),
+   ('public.reservar_nota_credito_isr(uuid, uuid, uuid, timestamp with time zone)'),
+   ('public.obtener_intento_nota_credito_isr(uuid, uuid, text)'),
+   ('public.registrar_resultado_nota_credito_isr(uuid, uuid, text, text, jsonb)'),
+   ('public.reservar_rep_isr(uuid, uuid, uuid, timestamp with time zone, jsonb)'),
+   ('public.obtener_intento_rep_isr(uuid, uuid, text)'),
+   ('public.registrar_resultado_rep_isr(uuid, uuid, text, text, jsonb)'),
+   ('public._isr_rep_confirmado_webhook(uuid, uuid, text, text, text)');
 

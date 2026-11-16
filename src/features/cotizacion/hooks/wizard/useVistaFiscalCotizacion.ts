@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Json } from "@/integrations/supabase/types";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 import type { ConceptoVentaCotizacion } from "../../types";
 import { cotizaciones } from "../../queryKeys";
@@ -15,7 +14,7 @@ export function useVistaFiscalCotizacion({
   cotizacionId: string | null;
   conceptos: readonly ConceptoVentaCotizacion[];
 }) {
-  const firma = JSON.stringify(conceptos.filter((c) => c.descripcion?.trim()).map((c) => ({
+  const conceptosFiscales = conceptos.filter((c) => c.descripcion?.trim()).map((c) => ({
     cantidad: c.cantidad,
     precio_unitario: c.precio_unitario,
     moneda: c.moneda,
@@ -23,13 +22,14 @@ export function useVistaFiscalCotizacion({
     tasa_iva_aplicada: c.tasa_iva_aplicada,
     aplica_iva: c.aplica_iva,
     tasa_ret_iva: c.tasa_ret_iva,
-  })));
+  }));
+  const firma = JSON.stringify(conceptosFiscales);
   const firmaEstable = useDebouncedValue(firma);
   const coinciden = firma === firmaEstable;
   const consulta = useQuery({
     queryKey: cotizaciones.vistaFiscal(scope, clienteId, cotizacionId, firma),
     queryFn: ({ signal }) => evaluarFiscalCotizacion({
-      organizationId, clienteId, cotizacionId, conceptos: JSON.parse(firma) as Json, signal, scope,
+      organizationId, clienteId, cotizacionId, conceptos: conceptosFiscales, signal, scope,
     }),
     enabled: coinciden && Boolean(cotizacionId || clienteId),
     staleTime: 0,

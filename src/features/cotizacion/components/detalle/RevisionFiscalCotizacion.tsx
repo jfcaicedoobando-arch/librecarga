@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FileCheck2 } from "lucide-react";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { SectionHeading } from "@/components/shared/SectionHeading";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,11 +59,11 @@ function DialogoRevision({ cotizacion, fiscal, cerrar }: Props & { cerrar: () =>
     >
       <div className="space-y-4">
         <div className="space-y-2">
-          <h3 className="text-body font-semibold">Desglose aprobado</h3>
+          <SectionHeading as="h3" variant="subsection">Desglose aprobado</SectionHeading>
           <ResumenFiscalCotizacion {...fiscal} />
         </div>
         <div className="space-y-2">
-          <h3 className="text-body font-semibold">Evaluación vigente</h3>
+          <SectionHeading as="h3" variant="subsection">Evaluación vigente</SectionHeading>
           {verificado ? <ResumenFiscalCotizacion {...vigente} /> : (
             <ResumenFiscalCotizacion estado={vigente.estado === "cargando" ? "cargando" : "error"} />
           )}

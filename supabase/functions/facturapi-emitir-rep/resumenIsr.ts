@@ -33,33 +33,45 @@ function basesAutorizadas(grupos: ImpuestoRepIsr[], dr: PagoContext["documento_r
   }));
 }
 
-export function impuestosResumenIsr(
+function resumenCoincide(
+  resumen: ResumenIsrRemoto, documento: DocumentoRep, dr: PagoContext["documento_relacionado"],
+): resumen is ResumenIsrRemoto & { taxes: Array<Partial<ImpuestoRepIsr> | null> } {
+  return !!resumen && typeof resumen.uuid === "string" && resumen.uuid.toUpperCase() === documento.uuid.toUpperCase()
+    && resumen.currency === documento.currency && resumen.amount === documento.amount
+    && resumen.installment === documento.installment && resumen.last_balance === documento.last_balance
+    && (resumen.total == null || resumen.total === dr.total_factura)
+    && (resumen.taxability == null || resumen.taxability === documento.taxability)
+    && Array.isArray(resumen.taxes) && resumen.taxes.length === documento.taxes.length;
+}
+
+function normalizarGrupo(grupo: Partial<ImpuestoRepIsr> | null): ImpuestoRepIsr | null {
+  if (!grupo || (grupo.type !== "IVA" && grupo.type !== "ISR") || typeof grupo.base !== "number"
+    || !Number.isFinite(grupo.base) || grupo.base <= 0) return null;
+  const factor = grupo.factor ?? "Tasa";
+  const rate = grupo.rate ?? (factor === "Exento" ? 0 : null);
+  if ((factor !== "Tasa" && factor !== "Exento") || typeof rate !== "number" || !Number.isFinite(rate)
+    || (grupo.withholding != null && typeof grupo.withholding !== "boolean")) return null;
+  return { type: grupo.type, rate, factor, base: grupo.base, withholding: grupo.withholding === true };
+}
+
+function impuestosResumenIsr(
   resumen: ResumenIsrRemoto, documento: DocumentoRep, dr: PagoContext["documento_relacionado"],
 ): ImpuestoRepIsr[] | null {
-  if (!resumen || typeof resumen.uuid !== "string" || resumen.uuid.toUpperCase() !== documento.uuid.toUpperCase()
-    || resumen.currency !== documento.currency || resumen.amount !== documento.amount
-    || resumen.installment !== documento.installment || resumen.last_balance !== documento.last_balance
-    || (resumen.total != null && resumen.total !== dr.total_factura)
-    || (resumen.taxability != null && resumen.taxability !== documento.taxability)
-    || !Array.isArray(resumen.taxes) || resumen.taxes.length !== documento.taxes.length) return null;
+  if (!resumenCoincide(resumen, documento, dr)) return null;
   const pendientes = basesAutorizadas(documento.taxes, dr);
   const grupos: ImpuestoRepIsr[] = [];
   let netoGravado = new Decimal(0);
-  for (const grupo of resumen.taxes) {
-    if (!grupo || (grupo.type !== "IVA" && grupo.type !== "ISR") || !Number.isFinite(grupo.base) || grupo.base <= 0) return null;
-    const factor = grupo.factor ?? "Tasa";
-    const rate = grupo.rate ?? (factor === "Exento" ? 0 : null);
-    if ((factor !== "Tasa" && factor !== "Exento") || typeof rate !== "number" || !Number.isFinite(rate)
-      || (grupo.withholding != null && typeof grupo.withholding !== "boolean")) return null;
-    const withholding = grupo.withholding === true;
-    const llave = clave(grupo.type, factor, rate, withholding);
+  for (const crudo of resumen.taxes) {
+    const grupo = normalizarGrupo(crudo);
+    if (!grupo) return null;
+    const llave = clave(grupo.type, grupo.factor, grupo.rate, grupo.withholding);
     const maximo = pendientes.get(llave);
     const base = new Decimal(grupo.base);
     if (maximo == null || base.decimalPlaces() > 6 || base.gt(new Decimal(maximo).toDecimalPlaces(base.decimalPlaces()))) return null;
     pendientes.delete(llave);
-    const impuesto = base.times(rate);
-    netoGravado = withholding ? netoGravado.minus(impuesto) : netoGravado.plus(base).plus(impuesto);
-    grupos.push({ type: grupo.type, rate, factor, base: grupo.base, withholding });
+    const impuesto = base.times(grupo.rate);
+    netoGravado = grupo.withholding ? netoGravado.minus(impuesto) : netoGravado.plus(base).plus(impuesto);
+    grupos.push(grupo);
   }
   // Las bases del PAC pueden redondearse al centavo por grupo. El pago aprobado sigue intacto.
   const diferencia = new Decimal(documento.amount).minus(netoGravado);

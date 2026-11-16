@@ -3,8 +3,8 @@ import { consultarIntentoIsr, recuperarEmisionIsr } from "../recuperarEmisionIsr
 import { obtenerIntentoRepIsr } from "../registrarRepIsr.ts";
 import { recuperarRepConLlaveIsr, resolverLlaveRepIsr } from "../recuperarRepIsr.ts";
 import { sanearPatchFactura } from "./facturaPatch.ts";
-import { mapEventToFacturaPatch, mapEventToReceiptPatch, type FacturapiWebhookEvent, type MappedReceiptUpdate } from "./helpers.ts";
-import { COLS_FACTURA, COLS_REP, claimEsPendiente, externalIdDeEvento, localizarFila, patchAdopcionPendiente } from "./pendiente.ts";
+import { mapEventToFacturaPatch, mapEventToReceiptPatch, type FacturapiWebhookEvent, type MappedReceiptUpdate, type MappedUpdate } from "./helpers.ts";
+import { COLS_FACTURA, COLS_REP, claimEsPendiente, externalIdDeEvento, localizarFila, patchAdopcionPendiente, type FilaLocalizada } from "./pendiente.ts";
 
 interface VersionLocal {
   id: string;
@@ -45,14 +45,15 @@ export type ResultadoWebhook =
   | { estado: "reintentar"; motivo: "factura_not_found" | "pago_not_found" | "timbrado_isr_pendiente" };
 
 async function conciliarRepWebhookIsr(
-  supabase: SupabaseClient, orgId: string, pagoId: string, claim: string, event: FacturapiWebhookEvent, receipt: MappedReceiptUpdate,
+  supabase: SupabaseClient, orgId: string, pagoId: string, claim: string,
+  { ambienteFirma, receipt }: { ambienteFirma: FacturapiWebhookEvent["ambiente_firma"]; receipt: MappedReceiptUpdate },
 ): Promise<ResultadoWebhook | null> {
   const guardado = await obtenerIntentoRepIsr({ admin: supabase, pagoId, organizationId: orgId }, claim);
   if (guardado.tipo === "legacy") return null;
   if (guardado.tipo !== "vigente") return { estado: "reintentar", motivo: "timbrado_isr_pendiente" };
   const { intento } = guardado;
   const ambiente = intento.esperado.perfil.ambiente;
-  if (event.ambiente_firma !== ambiente || receipt.patch.estado_rep !== "Timbrado") {
+  if (ambienteFirma !== ambiente || receipt.patch.estado_rep !== "Timbrado") {
     return { estado: "ignorar", motivo: "evento_sin_efecto" };
   }
   if (guardado.facturapiId && guardado.facturapiId !== receipt.facturapi_rep_id) {
@@ -74,7 +75,7 @@ async function prepararPago(
   if (!localizado) return { estado: "reintentar", motivo: "pago_not_found" };
   const pago = localizado.fila;
   if (localizado.via === "pendiente" && localizado.claimActual) {
-    const conciliado = await conciliarRepWebhookIsr(supabase, orgId, pago.id, localizado.claimActual, event, receipt);
+    const conciliado = await conciliarRepWebhookIsr(supabase, orgId, pago.id, localizado.claimActual, { ambienteFirma: event.ambiente_firma, receipt });
     if (conciliado) return conciliado;
   }
   if (firmaDeOtroAmbiente(event.ambiente_firma, pago.ambiente)) return { estado: "ignorar", motivo: "evento_sin_efecto" };
@@ -104,8 +105,8 @@ async function prepararPago(
 }
 
 async function conciliarFacturaWebhookIsr(
-  supabase: SupabaseClient, organizationId: string, facturaId: string, claim: string, remoteId: string,
-  ambienteFirma: FacturapiWebhookEvent["ambiente_firma"],
+  supabase: SupabaseClient, organizationId: string, facturaId: string, claim: string,
+  { remoteId, ambienteFirma }: { remoteId: string; ambienteFirma: FacturapiWebhookEvent["ambiente_firma"] },
 ): Promise<ResultadoWebhook> {
   const intento = await consultarIntentoIsr({ admin: supabase, organizationId, facturaId, claim });
   if (intento && firmaDeOtroAmbiente(ambienteFirma, intento.ambiente)) {
@@ -138,11 +139,17 @@ async function prepararFactura(
   const claim = localizada.claimActual;
   if (factura.evaluacion_fiscal != null && claim && claimEsPendiente(claim)) {
     if (event.type !== "invoice.status_updated") return { estado: "ignorar", motivo: "timbrado_pendiente" };
-    return conciliarIsr(supabase, orgId, factura.id, claim, remoteId, event.ambiente_firma);
+    return conciliarIsr(supabase, orgId, factura.id, claim, { remoteId, ambienteFirma: event.ambiente_firma });
   }
   if (!mapped) return { estado: "ignorar", motivo: "evento_sin_efecto" };
+  return prepararActualizacionFactura(localizada, mapped, event.ambiente_firma);
+}
+
+function prepararActualizacionFactura(localizada: FilaLocalizada<FacturaLocal>, mapped: MappedUpdate,
+  ambienteFirma: FacturapiWebhookEvent["ambiente_firma"]): ResultadoWebhook {
+  const factura = localizada.fila;
   if (factura.evaluacion_fiscal != null
-    && (mapped.patch.estado === "Emitida" || firmaDeOtroAmbiente(event.ambiente_firma, factura.ambiente))) {
+    && (mapped.patch.estado === "Emitida" || firmaDeOtroAmbiente(ambienteFirma, factura.ambiente))) {
     return { estado: "ignorar", motivo: "estado_ya_avanzado" };
   }
   const patch = sanearPatchFactura(mapped, factura);

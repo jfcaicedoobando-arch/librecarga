@@ -129,6 +129,12 @@ export async function loadReferenciasEmbarque(
 }
 
 
+function receptorNc(factura: FacturaRow, cliente: ClienteRow, email: string | null) {
+  const rfc = factura.evaluacion_fiscal != null ? cliente.rfc : factura.rfc_cliente ?? cliente.rfc;
+  return { legal_name: cliente.nombre, tax_id: rfc ?? "", tax_system: cliente.regimen_fiscal ?? "",
+    address: { zip: cliente.codigo_postal ?? "" }, email };
+}
+
 export function buildNcContextFromRows(
   nc: NcRow,
   factura: FacturaRow,
@@ -140,9 +146,6 @@ export function buildNcContextFromRows(
   const usoCfdi = nc.uso_cfdi ?? (fiscal ? "G02" : factura.uso_cfdi ?? cliente.uso_cfdi_default ?? "G02");
   const formaPago = nc.forma_pago ?? factura.forma_pago ?? "";
   const moneda = nc.moneda ?? "MXN";
-  const taxId = (fiscal ? cliente.rfc : factura.rfc_cliente ?? cliente.rfc) ?? "";
-  const taxSystem = cliente.regimen_fiscal ?? "";
-  const zip = cliente.codigo_postal ?? "";
   const conceptos = (Array.isArray(nc.conceptos) ? nc.conceptos : []) as ConceptoNC[];
   return {
     serie: nc.serie ?? null,
@@ -151,13 +154,7 @@ export function buildNcContextFromRows(
     moneda,
     tipo_cambio: Number(nc.tipo_cambio ?? 1),
     uuid_factura_relacionada: factura.uuid_fiscal as string,
-    receptor: {
-      legal_name: cliente.nombre,
-      tax_id: taxId,
-      tax_system: taxSystem,
-      address: { zip },
-      email,
-    },
+    receptor: receptorNc(factura, cliente, email),
     conceptos,
     referencias,
   };

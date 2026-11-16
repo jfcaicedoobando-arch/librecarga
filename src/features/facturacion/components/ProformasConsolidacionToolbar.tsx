@@ -45,7 +45,7 @@ export function ProformasConsolidacionToolbar({ proformas, onConsolidada }: Prop
   };
 
   return (
-    <Card className="border-primary/30 bg-primary/5">
+    <Card>
       <CardContent className="flex flex-wrap items-center gap-3 p-3">
         <div className="flex-1 text-body-sm">
           <strong>{proformas.length}</strong> {proformas.length === 1 ? "proforma seleccionada" : "proformas seleccionadas"}

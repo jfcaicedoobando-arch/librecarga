@@ -21,8 +21,7 @@ export interface PrevalidacionRepIsr {
   };
 }
 
-function verificarPago(esperado: PrevalidacionRepIsr, encabezado: string, relacionado: string) {
-  const { pago, documento } = esperado;
+function verificarPago(pago: PrevalidacionRepIsr["pago"], encabezado: string) {
   const fecha = atributo(encabezado, "FechaPago");
   const efectivo = importe(atributo(encabezado, "Monto"));
   const tipoCambio = importe(atributo(encabezado, "TipoCambioP") ?? (pago.moneda === "MXN" ? "1" : null));
@@ -32,7 +31,10 @@ function verificarPago(esperado: PrevalidacionRepIsr, encabezado: string, relaci
     || !efectivo.eq(pago.monto) || !tipoCambio.eq(pago.tipo_cambio) || !tipoCambio.gt(0)) {
     throw new Error("pago_rep_no_coincide");
   }
+  return { efectivo, tipoCambio };
+}
 
+function verificarDocumento(documento: PrevalidacionRepIsr["documento"], relacionado: string, efectivo: Decimal) {
   const saldoAnterior = importe(atributo(relacionado, "ImpSaldoAnt"));
   const importePagado = importe(atributo(relacionado, "ImpPagado"));
   const saldoInsoluto = importe(atributo(relacionado, "ImpSaldoInsoluto"));
@@ -47,14 +49,10 @@ function verificarPago(esperado: PrevalidacionRepIsr, encabezado: string, relaci
     || !importePagado.div(equivalencia).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).eq(efectivo)) {
     throw new Error("documento_relacionado_rep_no_coincide");
   }
-  return { efectivo, equivalencia, tipoCambio };
+  return equivalencia;
 }
 
-/** Reads certified withholding in the invoice currency, before any conversion to the payment currency. */
-export function conciliarRepIsr(
-  esperado: PrevalidacionRepIsr, claim: string, remoto: DocumentoFacturapiIsr, xml: string,
-) {
-  const { perfil, documento, pago: cobro } = esperado;
+function verificarRespuesta(perfil: PerfilCfdiOrigen, claim: string, remoto: DocumentoFacturapiIsr) {
   const uuid = remoto.uuid?.toUpperCase();
   if (!remoto.id || !uuid || !/^[0-9A-F]{8}(?:-[0-9A-F]{4}){3}-[0-9A-F]{12}$/.test(uuid)
     || remoto.status !== "valid" || remoto.type !== "P" || remoto.external_id !== claim
@@ -62,25 +60,39 @@ export function conciliarRepIsr(
     || (remoto.organization != null && remoto.organization !== perfil.emisor.facturapiOrgId)) {
     throw new Error("respuesta_facturapi_rep_no_coincide");
   }
+  return uuid;
+}
 
-  const limpio = xml.replace(/<!--[\s\S]*?-->/g, "");
-  const cfdi = parseCfdi(limpio);
-  const comprobante = seccion(limpio, "Comprobante");
-  const receptor = seccion(comprobante.contenido, "Receptor").etiqueta;
-  const folio = atributo(comprobante.etiqueta, "Folio");
-  const serie = atributo(comprobante.etiqueta, "Serie");
-  if (atributo(comprobante.etiqueta, "Version") !== "4.0" || cfdi.uuid.toUpperCase() !== uuid
-    || cfdi.tipo_comprobante !== "P" || cfdi.moneda !== "XXX"
-    || !importe(atributo(comprobante.etiqueta, "SubTotal")).isZero() || !importe(atributo(comprobante.etiqueta, "Total")).isZero()
-    || cfdi.emisor.rfc !== perfil.emisor.rfc || cfdi.emisor.regimen !== perfil.emisor.regimen
-    || atributo(comprobante.etiqueta, "LugarExpedicion") !== perfil.emisor.cp
+function verificarIdentidad(perfil: PerfilCfdiOrigen, cfdi: ReturnType<typeof parseCfdi>, comprobante: string, receptor: string) {
+  if (cfdi.emisor.rfc !== perfil.emisor.rfc || cfdi.emisor.regimen !== perfil.emisor.regimen
+    || atributo(comprobante, "LugarExpedicion") !== perfil.emisor.cp
     || cfdi.receptor.rfc !== perfil.receptor.rfc || atributo(receptor, "RegimenFiscalReceptor") !== perfil.receptor.regimen_fiscal
-    || atributo(receptor, "DomicilioFiscalReceptor") !== perfil.receptor.codigo_postal || atributo(receptor, "UsoCFDI") !== "CP01"
+    || atributo(receptor, "DomicilioFiscalReceptor") !== perfil.receptor.codigo_postal || atributo(receptor, "UsoCFDI") !== "CP01") {
+    throw new Error("identidad_o_cabecera_rep_no_coincide");
+  }
+}
+
+function verificarCabecera(uuid: string, remoto: DocumentoFacturapiIsr, cfdi: ReturnType<typeof parseCfdi>, comprobante: string) {
+  const folio = atributo(comprobante, "Folio");
+  const serie = atributo(comprobante, "Serie");
+  if (atributo(comprobante, "Version") !== "4.0" || cfdi.uuid.toUpperCase() !== uuid
+    || cfdi.tipo_comprobante !== "P" || cfdi.moneda !== "XXX"
+    || !importe(atributo(comprobante, "SubTotal")).isZero() || !importe(atributo(comprobante, "Total")).isZero()
     || (folio != null && !importe(folio).eq(remoto.folio_number ?? -1))
     || (serie != null && serie !== (remoto.series ?? ""))) {
     throw new Error("identidad_o_cabecera_rep_no_coincide");
   }
+}
 
+/** Reads certified withholding in the invoice currency, before any conversion to the payment currency. */
+export function conciliarRepIsr(esperado: PrevalidacionRepIsr, claim: string, remoto: DocumentoFacturapiIsr, xml: string) {
+  const { perfil, documento, pago: cobro } = esperado;
+  const uuid = verificarRespuesta(perfil, claim, remoto);
+  const limpio = xml.replace(/<!--[\s\S]*?-->/g, "");
+  const cfdi = parseCfdi(limpio);
+  const comprobante = seccion(limpio, "Comprobante");
+  verificarCabecera(uuid, remoto, cfdi, comprobante.etiqueta);
+  verificarIdentidad(perfil, cfdi, comprobante.etiqueta, seccion(comprobante.contenido, "Receptor").etiqueta);
   const complemento = seccion(comprobante.contenido, "Complemento");
   const timbre = seccion(complemento.contenido, "TimbreFiscalDigital").etiqueta;
   const pagos = seccion(complemento.contenido, "Pagos");
@@ -91,7 +103,8 @@ export function conciliarRepIsr(
   const pago = seccion(pagos.contenido, "Pago");
   const relacionado = seccion(pago.contenido, "DoctoRelacionado");
   const totales = seccion(pagos.contenido, "Totales");
-  const { efectivo, equivalencia, tipoCambio } = verificarPago(esperado, pago.etiqueta, relacionado.etiqueta);
+  const { efectivo, tipoCambio } = verificarPago(cobro, pago.etiqueta);
+  const equivalencia = verificarDocumento(documento, relacionado.etiqueta, efectivo);
   const retenciones = verificarImpuestosRepIsr({
     documento: relacionado.contenido, pago: pago.contenido, totales: totales.etiqueta, grupos: documento.impuestos,
     equivalencia, tipoCambioP: tipoCambio, efectivo,

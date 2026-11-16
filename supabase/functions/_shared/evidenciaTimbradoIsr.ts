@@ -33,21 +33,28 @@ async function sha256(bytes: Uint8Array<ArrayBuffer>) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-export async function obtenerEvidenciaTimbradoIsr(
-  input: EvidenciaTimbradoIsr, request: typeof fetch = fetch,
-): Promise<{ estado: "pendiente" | "conciliacion" | "confirmado"; datos: Record<string, unknown> }> {
-  const { admin, organizationId, remoto } = input;
-  const id = remoto.id != null && /^[A-Za-z0-9_-]{1,150}$/.test(remoto.id) ? remoto.id : null;
-  const referencias = { facturapi_id: id, uuid: remoto.uuid ?? null, total: remoto.total ?? null,
-    external_id: input.claim, ambiente: input.ambiente, facturapi_org_id: input.facturapiOrgId };
+function revisarReferencia(input: EvidenciaTimbradoIsr) {
+  const { remoto } = input;
   if (remoto.external_id == null || remoto.livemode == null) {
-    return { estado: "pendiente", datos: { motivo: "respuesta_sin_referencia" } };
+    return { estado: "pendiente", datos: { motivo: "respuesta_sin_referencia" } } as const;
   }
   if (remoto.external_id !== input.claim || remoto.livemode !== (input.ambiente === "live")
     || (remoto.type != null && remoto.type !== input.tipo)
     || (remoto.organization != null && remoto.organization !== input.facturapiOrgId)) {
-    return { estado: "conciliacion", datos: { motivo: "respuesta_ajena_al_intento" } };
+    return { estado: "conciliacion", datos: { motivo: "respuesta_ajena_al_intento" } } as const;
   }
+  return null;
+}
+
+export async function obtenerEvidenciaTimbradoIsr(
+  input: EvidenciaTimbradoIsr, request: typeof fetch = fetch,
+): Promise<{ estado: "pendiente" | "conciliacion" | "confirmado"; datos: Record<string, unknown> }> {
+  const corte = revisarReferencia(input);
+  if (corte) return corte;
+  const { admin, organizationId, remoto } = input;
+  const id = remoto.id != null && /^[A-Za-z0-9_-]{1,150}$/.test(remoto.id) ? remoto.id : null;
+  const referencias = { facturapi_id: id, uuid: remoto.uuid ?? null, total: remoto.total ?? null,
+    external_id: input.claim, ambiente: input.ambiente, facturapi_org_id: input.facturapiOrgId };
   if (!id || !remoto.uuid || remoto.status !== "valid") {
     return { estado: "pendiente", datos: { ...referencias, motivo: "pendiente_proveedor" } };
   }
