@@ -38,7 +38,8 @@ function rpc(): RpcCaller {
   // SAFE-CAST: las RPCs nuevas (Fase 2) aún no están en los tipos generados.
   // .bind(supabase) preserva el contexto `this` (de lo contrario el cliente
   // intenta leer `this.rest` y truena con "Cannot read properties of undefined").
-  return supabase.rpc.bind(supabase) as unknown as RpcCaller;
+  const client = supabase as unknown as { rpc: RpcCaller };
+  return client.rpc.bind(supabase);
 }
 
 export async function recotizarCotizacion(
