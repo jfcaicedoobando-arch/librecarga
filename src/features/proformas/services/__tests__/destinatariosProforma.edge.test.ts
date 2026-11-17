@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { destinatariosAjenos } from "../../../../../supabase/functions/enviar-proforma-email/destinatarios.ts";
+// Ruta dinámica: el archivo es de Deno y no debe entrar al typecheck de la app.
+const RUTA = "../../../../../supabase/functions/enviar-proforma-email/destinatarios.ts";
+type Fn = (admin: never, proformaId: string, usuarioId: string, correos: string[]) => Promise<{ code: string } | null>;
+const { destinatariosAjenos } = (await import(/* @vite-ignore */ RUTA)) as { destinatariosAjenos: Fn };
 
 function admin(opts: { proforma?: unknown; miembro?: unknown; contactos?: string[]; clienteEmail?: string | null }) {
   return { from(table: string) {
