@@ -1,5 +1,7 @@
 # Decisiones técnicas
 
+- Demo lead CSV export uses the existing formula sanitizer before CSV quoting in `demoLeadsCsv`. Why: untrusted lead fields must open as text, not spreadsheet instructions, without changing stored data or enabling the demo.
+
 - Notas de crédito por embarque: cada renglón de NC copiado de la factura guarda `concepto_factura_id`; `_venta_facturada_por_embarque` resta esa base al embarque del concepto y sólo prorratea renglones sin linaje (manuales o históricos), y el trigger `_nc_validar_linaje_conceptos` rechaza ids ajenos o créditos mayores al subtotal del concepto. Why: atribución exacta sin inventar linaje histórico ni tocar XML/PDF.
 - Seguros de embarque: una póliza puede ligarse opcionalmente a la factura de proveedor que documenta su prima (`seguros_embarque.proveedor_factura_id`); el trigger `_seguro_validar_factura_proveedor` exige misma org, factura vigente del embarque (también al restaurar), un índice único impide dos pólizas activas con la misma factura, y `pnl_financiero_embarque` omite la prima ligada porque ya cuenta la factura. Why: no contar dos veces el mismo gasto sin inferir vínculos ni tocar históricos.
 
