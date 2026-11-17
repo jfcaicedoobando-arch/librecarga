@@ -5,7 +5,8 @@ const DOMAIN_NAMES = new Set([
 ]);
 // LC_COSTO_VINCULADO_CXP (Sentry 7T): candado de costo ligado a factura de proveedor.
 // LC_EMBARQUE_CERRADO: candado de cierre; el usuario ve el aviso y debe reabrir.
-const DOMAIN_CODES = /\bLC_(?:COT_TRANSICION_INVALIDA|TRANSICION_INVALIDA|CONFLICTO_CONCURRENCIA|(?:CRM_)?MONEDA_INCOMPATIBLE|CREDITO_TC_INVALIDO|COSTO_VINCULADO_CXP|EMBARQUE_CERRADO|COTIZACION_ACEPTACION_INCONSISTENTE)\b/;
+// LC_COT_MARGEN_BAJO_MINIMO (Sentry 8V): la autorización pide motivo al usuario.
+const DOMAIN_CODES = /\bLC_(?:COT_TRANSICION_INVALIDA|TRANSICION_INVALIDA|CONFLICTO_CONCURRENCIA|(?:CRM_)?MONEDA_INCOMPATIBLE|CREDITO_TC_INVALIDO|COSTO_VINCULADO_CXP|EMBARQUE_CERRADO|COTIZACION_ACEPTACION_INCONSISTENTE|COT_MARGEN_BAJO_MINIMO)\b/;
 // Guards de datos (Sentry 7Q/77): el usuario ve el mensaje; no es falla de código.
 const KNOWN_MESSAGES = [
   "ya está registrado en este embarque", "verifica el uuid en el sat",
@@ -14,6 +15,8 @@ const KNOWN_MESSAGES = [
   "no coinciden con el resumen del proveedor de timbrado",
   // Sentry 8C: contenedor repetido; la UI muestra el aviso de pgConstraintMessages.
   "unique constraint \"contenedores_numero_unico\"",
+  // Sentry 8Z: destinatario fuera de los contactos del cliente; la UI muestra el aviso.
+  "no pertenecen a los contactos del cliente",
 ];
 
 export function isExpectedTelemetryError(error: unknown): boolean {
