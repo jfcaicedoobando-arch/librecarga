@@ -9,6 +9,7 @@ import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { formatDate } from "@/lib/formatters/dates";
+import { NotasTarifa } from "./NotasTarifa";
 import type { CargoTarifario, TarifaTarifario } from "@/features/costeo";
 import { useOpcionesTarifario } from "@/features/crm/hooks/useOpcionesTarifario";
 import type { SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
@@ -91,6 +92,7 @@ function ResumenTarifa({ tarifa: t }: Pick<CardProps, "tarifa">) {
       <div><span className="text-muted-foreground">Agente: </span>{t.agente?.nombre ?? "—"}<br /><span className="text-muted-foreground">Naviera: </span>{t.naviera?.name ?? "—"}</div>
       <div><span className="text-muted-foreground">Tipo de contenedor: </span>{t.tipo?.code ?? "—"}<br /><span className="text-muted-foreground">Flete base: </span>{formatCurrency(t.flete_base, t.moneda || "USD")}</div>
       <div><span className="text-muted-foreground">Vigencia hasta: </span>{t.vigente_hasta ? formatDate(t.vigente_hasta) : "—"}</div>
+      <NotasTarifa notas={t.notas} />
     </>
   );
 }
