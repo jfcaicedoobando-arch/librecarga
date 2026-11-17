@@ -3,6 +3,7 @@ import { wrapEdgeHandler, captureEdgeException } from '../_shared/sentry.ts';
 import { buildCors, handlePreflightStrict } from '../_shared/cors.ts';
 import { enviarEmailPlantilla } from '../_shared/enviarEmailPlantilla.ts';
 import { jsonResponse } from '../_shared/response.ts';
+import { destinatariosAjenos } from './destinatarios.ts';
 
 const APP_URL = Deno.env.get('APP_PUBLIC_URL') ?? 'https://elogistix.lovable.app';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -149,6 +150,8 @@ async function procesar(
   if (!validada.entrada) return responder({ error: validada.error }, 400);
 
   const { proformaId, intento, entrada } = validada;
+  const ajenos = await destinatariosAjenos(admin, proformaId, usuarioId, entrada.recipients.map((r) => r.email));
+  if (ajenos) return responder(ajenos, 400);
   const reserva = crypto.randomUUID();
   const { data, error } = await admin.rpc('reservar_proforma_email', {
     p_proforma_id: proformaId, p_usuario_id: usuarioId, p_intento: intento, p_reserva: reserva,

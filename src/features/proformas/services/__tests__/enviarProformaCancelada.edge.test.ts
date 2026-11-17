@@ -10,7 +10,7 @@ const contenido = {
   total_mxn: 116, total_usd: 0,
 };
 
-function entorno(estado = "reservado", cancelarAntesEntregar = false) {
+function entorno(estado = "reservado", cancelarAntesEntregar = false, ajenos: unknown = null) {
   const confirmados = new Set<string>();
   const entrega = vi.fn(async (_admin: unknown, args: { messageId: string; recipientEmail: string }) => {
     confirmados.add(args.messageId);
@@ -44,6 +44,7 @@ function entorno(estado = "reservado", cancelarAntesEntregar = false) {
     wrapEdgeHandler: (_name: string, fn: typeof handler) => fn,
     captureEdgeException: vi.fn(), buildCors: () => ({}), handlePreflightStrict: () => null,
     enviarEmailPlantilla: entrega,
+    destinatariosAjenos: async () => ajenos,
     jsonResponse: (data: unknown, status: number) => new Response(JSON.stringify(data), { status }),
     Date, Intl, crypto, console,
   });
@@ -59,6 +60,15 @@ function entorno(estado = "reservado", cancelarAntesEntregar = false) {
 }
 
 describe("envío recuperable de proformas", () => {
+  it("rechaza destinatarios fuera de los contactos del cliente antes de reservar o entregar", async () => {
+    const { enviar, entrega, rpc } = entorno("reservado", false, { error: "Uno o más correos no pertenecen a los contactos del cliente", code: "DESTINATARIO_NO_PERMITIDO" });
+    const response = await enviar();
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: "DESTINATARIO_NO_PERMITIDO" });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(entrega).not.toHaveBeenCalled();
+  });
+
   it.each([["cancelada", 409], ["no_encontrada", 404], ["sin_acceso", 403]])(
     "rechaza proforma %s antes de entregar o registrar el envío",
     async (estado, status) => {
