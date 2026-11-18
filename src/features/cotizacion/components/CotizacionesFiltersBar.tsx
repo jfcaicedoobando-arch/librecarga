@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { UnifiedFiltersBar } from "@/components/shared/filters/UnifiedFiltersBar";
+import { estadoCompatibleConAceptadasSinEmbarque } from "@/features/cotizacion/domain/filtroAceptadasSinEmbarque";
 import type { useCotizacionesPageController } from "@/features/cotizacion/hooks/useCotizacionesPageController";
 import { EstadoSelect, ClienteSelect } from "./CotizacionesFilterSelects";
 import { CotizacionesSecondaryFilters } from "./CotizacionesSecondaryFilters";
@@ -15,6 +16,17 @@ const EMPTY_DRAFT = {
   sinCostos: "no", incluirInactivas: "no",
 };
 
+type FilterDraft = typeof EMPTY_DRAFT;
+
+function cambiarFiltro(current: FilterDraft, key: keyof FilterDraft, value: string): FilterDraft {
+  const next = { ...current, [key]: value };
+  if (next.aceptadasSinEmbarque === "si" && !estadoCompatibleConAceptadasSinEmbarque(next.estado)) {
+    if (key === "estado") next.aceptadasSinEmbarque = "no";
+    if (key === "aceptadasSinEmbarque") next.estado = EMPTY_DRAFT.estado;
+  }
+  return next;
+}
+
 export function CotizacionesFiltersBar(c: Props) {
   const applied = {
     estado: c.filterEstado,
@@ -24,14 +36,16 @@ export function CotizacionesFiltersBar(c: Props) {
     incluirInactivas: c.incluirInactivas ? "si" : "no",
   };
   const [draft, setDraft] = useState(applied);
-  const setDraftFilter = (key: keyof typeof draft, value: string) =>
-    setDraft((current) => ({ ...current, [key]: value }));
-  const apply = () => {
-    for (const key of Object.keys(draft) as (keyof typeof draft)[]) {
-      if (draft[key] !== applied[key]) c.setFilter(key, draft[key]);
+  const setDraftFilter = (key: keyof FilterDraft, value: string) =>
+    setDraft((current) => cambiarFiltro(current, key, value));
+  const commit = (next: FilterDraft) => {
+    for (const key of Object.keys(next) as (keyof FilterDraft)[]) {
+      if (next[key] !== applied[key]) c.setFilter(key, next[key]);
     }
   };
-  const primary = (values: typeof draft, setFilter: typeof setDraftFilter) => (
+  const setAppliedFilter = (key: keyof FilterDraft, value: string) =>
+    commit(cambiarFiltro(applied, key, value));
+  const primary = (values: FilterDraft, setFilter: typeof setDraftFilter) => (
     <>
       <EstadoSelect value={values.estado} onChange={(v) => setFilter("estado", v)} />
       <ClienteSelect value={values.cliente} onChange={(v) => setFilter("cliente", v)} clientes={c.clientes} />
@@ -43,7 +57,7 @@ export function CotizacionesFiltersBar(c: Props) {
       search={c.search}
       onSearchChange={c.setSearch}
       searchPlaceholder="Buscar por folio, cliente o mercancía…"
-      primary={primary(applied, c.setFilter)}
+      primary={primary(applied, setAppliedFilter)}
       sheetPrimary={primary(draft, setDraftFilter)}
       secondary={
         <CotizacionesSecondaryFilters
@@ -55,7 +69,7 @@ export function CotizacionesFiltersBar(c: Props) {
         />
       }
       onSheetOpenChange={(open) => { if (open) setDraft(applied); }}
-      onApply={apply}
+      onApply={() => commit(draft)}
       onSheetClearAll={() => setDraft(EMPTY_DRAFT)}
       sheetActiveCount={Object.keys(draft).filter((key) =>
         draft[key as keyof typeof draft] !== EMPTY_DRAFT[key as keyof typeof draft]).length}

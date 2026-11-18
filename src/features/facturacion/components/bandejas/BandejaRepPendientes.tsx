@@ -4,10 +4,11 @@
  * v13.491.0 — timbrado desde la propia bandeja: botón por renglón y selección
  * múltiple para timbrar varios REP en una sola pasada.
  */
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReceiptText } from "lucide-react";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
+import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useOrgFilter } from "@/hooks/shared";
 import { useRowSelection } from "@/components/shared/dataTable/useRowSelection";
@@ -32,33 +33,54 @@ function BandejaRepPendientesContenido({ organizationId }: { organizationId: str
   const selection = useRowSelection();
   const { timbrar, enProceso, progreso } = useTimbrarRepsLote();
   const [pagoEnProceso, setPagoEnProceso] = useState<string | null>(null);
+  const [lotePorConfirmar, setLotePorConfirmar] = useState<ReadonlySet<string> | null>(null);
+  const timbrando = useRef(false);
+  const vistaNoDisponible = paged.isLoading || paged.isStaleView || Boolean(paged.error);
+  const timbradoBloqueado = vistaNoDisponible || enProceso;
+  const fueraDePagina = vistaNoDisponible ? 0 : selection.selectedCount - paged.rows.filter(
+    (row) => selection.isSelected(row.id),
+  ).length;
 
-  const timbrarUno = useCallback(async (pagoId: string) => {
+  const timbrarPagos = useCallback(async (ids: readonly string[], pagoId: string | null = null) => {
+    if (timbradoBloqueado || timbrando.current || ids.length === 0) return false;
+    timbrando.current = true;
     setPagoEnProceso(pagoId);
     try {
-      await timbrar([pagoId]);
+      await timbrar(ids);
+      return true;
     } finally {
+      timbrando.current = false;
       setPagoEnProceso(null);
     }
-  }, [timbrar]);
+  }, [timbrar, timbradoBloqueado]);
 
-  const timbrarSeleccion = async () => {
-    const ids = [...selection.selectedIds];
-    if (ids.length === 0 || paged.isStaleView) return;
-    await timbrar(ids);
-    selection.clear();
+  const timbrarSeleccion = async (ids: ReadonlySet<string>) => {
+    const pagos = [...ids];
+    if (await timbrarPagos(pagos)) {
+      selection.remove(pagos);
+      setLotePorConfirmar(null);
+    }
+  };
+
+  const solicitarTimbrado = () => {
+    if (timbradoBloqueado || timbrando.current || selection.selectedCount === 0) return;
+    if (fueraDePagina > 0) {
+      setLotePorConfirmar(selection.selectedIds);
+      return;
+    }
+    void timbrarSeleccion(selection.selectedIds);
   };
 
   const columns = useMemo(
     () => [
       buildSelectionColumn<FilaRepPendiente>(),
       ...buildRepPendientesColumns({
-        onTimbrar: (id) => void timbrarUno(id),
+        onTimbrar: (id) => void timbrarPagos([id], id),
         pagoEnProceso,
-        bloqueado: enProceso,
+        bloqueado: timbradoBloqueado,
       }),
     ],
-    [pagoEnProceso, enProceso, timbrarUno],
+    [pagoEnProceso, timbradoBloqueado, timbrarPagos],
   );
 
   return (
@@ -89,12 +111,27 @@ function BandejaRepPendientesContenido({ organizationId }: { organizationId: str
     >
       <BandejaRepAcciones
         seleccionados={selection.selectedCount}
+        fueraDePagina={fueraDePagina}
         enProceso={enProceso}
-        deshabilitado={paged.isStaleView}
+        deshabilitado={vistaNoDisponible}
         progreso={progreso}
-        onTimbrar={() => void timbrarSeleccion()}
+        onTimbrar={solicitarTimbrado}
         onLimpiar={selection.clear}
       />
+      {lotePorConfirmar && (
+        <ConfirmActionDialog
+          open
+          onOpenChange={(open) => { if (!open && !timbrando.current) setLotePorConfirmar(null); }}
+          title="Confirmar timbrado de REP"
+          description={`El lote contiene ${lotePorConfirmar.size} REP.${fueraDePagina > 0 ? ` ${fueraDePagina} fuera de esta página.` : ""}`}
+          confirmLabel="Timbrar lote"
+          isPending={enProceso}
+          confirmDisabled={vistaNoDisponible || lotePorConfirmar !== selection.selectedIds}
+          onConfirm={async () => {
+            if (lotePorConfirmar === selection.selectedIds) await timbrarSeleccion(lotePorConfirmar);
+          }}
+        />
+      )}
       <Card>
         <CardContent className="p-0">
           <ResponsiveDataTable
@@ -130,9 +167,9 @@ function BandejaRepPendientesContenido({ organizationId }: { organizationId: str
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={enProceso}
+                    disabled={timbradoBloqueado}
                     loading={pagoEnProceso === r.id}
-                    onClick={() => void timbrarUno(r.id)}
+                    onClick={() => void timbrarPagos([r.id], r.id)}
                     aria-label={`Timbrar REP de la factura ${r.factura_numero}`}
                   >
                     {pagoEnProceso !== r.id && <ReceiptIcon className="mr-2 h-3.5 w-3.5" />}

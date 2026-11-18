@@ -42,6 +42,44 @@ describe("NuevoClienteDialog save dismissal", () => {
   beforeEach(() => { vi.resetAllMocks(); mock.parse.mockResolvedValue({ nombre: "Synthetic" }); });
   afterEach(cleanup);
 
+  it.each(["Cancelar", "Escape", "Cerrar"])("cierra el alta intacta con %s", (accion) => {
+    const onOpenChange = vi.fn();
+    render(<NuevoClienteDialog open onOpenChange={onOpenChange} />);
+    if (accion === "Escape") {
+      fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    } else {
+      fireEvent.click(screen.getByRole("button", { name: accion }));
+    }
+    expect(screen.queryByText("¿Descartar el alta del cliente?")).not.toBeInTheDocument();
+    expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it("protege los datos editados y cierra directo si se restauran los valores iniciales", () => {
+    const onOpenChange = vi.fn();
+    render(<NuevoClienteDialog open onOpenChange={onOpenChange} />);
+    const rfc = screen.getByLabelText(/RFC/);
+    fireEvent.change(rfc, { target: { value: "XAXX010101000" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.getByText("¿Descartar el alta del cliente?")).toBeVisible();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Seguir editando" }));
+    expect(rfc).toHaveValue("XAXX010101000");
+    fireEvent.change(rfc, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it("protege una CSF adjunta aunque falle la extracción y el formulario siga intacto", async () => {
+    mock.parse.mockRejectedValue(new Error("Synthetic extraction failure"));
+    const onOpenChange = vi.fn();
+    render(<NuevoClienteDialog open onOpenChange={onOpenChange} />);
+    await act(async () => selectOriginal(document.body, new File(["Synthetic PDF"], "synthetic.pdf", { type: "application/pdf" })));
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
+    expect(screen.getByText("¿Descartar el alta del cliente?")).toBeVisible();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
   it("keeps the real dialog open on Escape and X through creation and upload", async () => {
     const client = { id: "synthetic-client", organization_id: "synthetic-org" };
     const create = deferred<typeof client>();
