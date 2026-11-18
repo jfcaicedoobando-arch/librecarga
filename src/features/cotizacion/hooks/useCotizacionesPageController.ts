@@ -7,6 +7,7 @@
  * y todo se filtraba/paginaba en memoria: con más de 1000 cotizaciones las más
  * viejas desaparecían del listado, de los KPIs y del CSV.
  */
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerPagedList } from "@/hooks/shared/useServerPagedList";
 import { useOrgFilter } from "@/hooks/shared/useOrgFilter";
@@ -21,6 +22,7 @@ import {
   type CotizacionesFiltrosSql,
 } from "@/features/cotizacion/services/paginados";
 import { fetchCotizacionAgregados } from "@/features/cotizacion/services/agregados";
+import { estadoCompatibleConAceptadasSinEmbarque } from "@/features/cotizacion/domain/filtroAceptadasSinEmbarque";
 import type { CotizacionListItem, SegmentoCotizacion } from "@/features/cotizacion/services/cotizacionListTypes";
 
 export const ESTADOS_COTIZACION = [
@@ -111,6 +113,15 @@ export function useCotizacionesPageController() {
       }),
   });
 
+  const { setFilter } = lista;
+  const soloAceptadasSinEmbarque = lista.filters.aceptadasSinEmbarque === "si";
+  const estadoIncompatible = soloAceptadasSinEmbarque &&
+    !estadoCompatibleConAceptadasSinEmbarque(lista.filters.estado);
+  // Un enlace anterior puede contener ambos filtros. La bandeja es el más específico.
+  useEffect(() => {
+    if (estadoIncompatible) setFilter("estado", DEFAULT_FILTERS.estado);
+  }, [estadoIncompatible, setFilter]);
+
   const segmento = normalizarSegmento(lista.filters.segmento);
 
   // COT-NEW-01: los conteos comparten el filtro de vigencia con la tabla.
@@ -138,11 +149,11 @@ export function useCotizacionesPageController() {
     canEdit,
     // filtros
     search: lista.search,
-    filterEstado: lista.filters.estado,
+    filterEstado: estadoIncompatible ? DEFAULT_FILTERS.estado : lista.filters.estado,
     filterCliente: lista.filters.cliente,
     filterSinCostos: lista.filters.sinCostos === "si",
     incluirInactivas: lista.filters.incluirInactivas === "si",
-    soloAceptadasSinEmbarque: lista.filters.aceptadasSinEmbarque === "si",
+    soloAceptadasSinEmbarque,
     segmento,
     segmentoConteos: agregados?.segmentoConteos ?? CONTEOS_VACIOS,
     totalAceptadasSinEmbarque: agregados?.totalAceptadasSinEmbarque ?? 0,
@@ -150,15 +161,15 @@ export function useCotizacionesPageController() {
     pageSize: lista.pageSize,
     totalPages: lista.totalPages,
     setSearch: lista.setSearch,
-    setFilter: lista.setFilter,
+    setFilter,
     setPage: lista.setPage,
     setPageSize: lista.setPageSize,
     controlledSort: lista.controlledSort,
     setSort: lista.setSort,
     pagination: lista.pagination,
     // UnifiedFiltersBar
-    activeChips: lista.activeChips,
-    activeCount: lista.activeCount,
+    activeChips: estadoIncompatible ? lista.activeChips.filter((chip) => chip.key !== "filter:estado") : lista.activeChips,
+    activeCount: lista.activeCount - Number(estadoIncompatible),
     resetAll: lista.resetAll,
     // acciones (delegadas a useCotizacionActions)
     cotizacionAEliminar: actions.cotizacionAEliminar,

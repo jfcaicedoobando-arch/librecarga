@@ -148,6 +148,24 @@ describe("fetchCotizacionesPaginadas", () => {
       fetchCotizacionesPaginadas({ ...FILTROS, page: 0, pageSize: 50 }),
     ).rejects.toMatchObject({ message: "boom" });
   });
+
+  it("resuelve filtros heredados incompatibles de la misma forma en tabla y CSV", async () => {
+    const filtros = {
+      ...FILTROS, filterEstado: "Borrador", soloAceptadasSinEmbarque: true, filterCliente: "c1", filterSinCostos: true,
+    };
+    await fetchCotizacionesPaginadas({ ...filtros, page: 0, pageSize: 50 });
+    await fetchTodasCotizacionesParaExportar(filtros);
+
+    for (const indice of [0, 1]) {
+      expect(ops(indice).filter((o) => o.op === "eq" && o.args[0] === "estado"))
+        .toEqual([{ op: "eq", args: ["estado", "Aceptada"] }]);
+      expect(ops(indice)).toEqual(expect.arrayContaining([
+        { op: "is", args: ["embarque_id", null] },
+        { op: "is", args: ["cotizacion_costos", null] },
+        { op: "eq", args: ["cliente_id", "c1"] },
+      ]));
+    }
+  });
 });
 
 describe("filtro Sin costos (YG-03)", () => {

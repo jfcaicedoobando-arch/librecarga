@@ -3,13 +3,28 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { brokeredPreviewStorage } from './previewAuthStorage';
 
+type PublicFunctions = Database['public']['Functions'];
+type FiscalRpc = 'evaluar_documento_isr_resico' | 'preparar_revision_fiscal_embarque';
+
+// PostgreSQL no expone en la firma si el cuerpo de una RPC admite NULL.
+// Estas dos RPC esperan que p_cliente_id esté presente, incluso cuando es null.
+type ClientDatabase = Omit<Database, 'public'> & {
+  public: Omit<Database['public'], 'Functions'> & {
+    Functions: Omit<PublicFunctions, FiscalRpc> & {
+      [Name in FiscalRpc]: Omit<PublicFunctions[Name], 'Args'> & {
+        Args: Omit<PublicFunctions[Name]['Args'], 'p_cliente_id'> & { p_cliente_id: string | null };
+      };
+    };
+  };
+};
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<ClientDatabase>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: brokeredPreviewStorage(),
     persistSession: true,

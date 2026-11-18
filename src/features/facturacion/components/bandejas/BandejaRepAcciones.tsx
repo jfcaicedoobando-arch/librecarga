@@ -7,6 +7,7 @@ import { ReceiptText, X } from "lucide-react";
 
 interface Props {
   seleccionados: number;
+  fueraDePagina: number;
   enProceso: boolean;
   deshabilitado: boolean;
   progreso: { hechos: number; total: number } | null;
@@ -20,10 +21,12 @@ export function BandejaRepAcciones(p: Props) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
       <p className="text-body text-muted-foreground">
-        <strong className="text-foreground">{p.seleccionados}</strong> pago(s) seleccionado(s)
+        <strong className="text-foreground">{p.seleccionados}</strong>{" "}
+        {p.seleccionados === 1 ? "pago seleccionado" : "pagos seleccionados"}
+        {p.fueraDePagina > 0 && <> · <strong>{p.fueraDePagina}</strong> fuera de esta página</>}
         {p.progreso ? ` · timbrando ${p.progreso.hechos} de ${p.progreso.total}…` : ""}
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={p.onTimbrar} disabled={p.enProceso || p.deshabilitado} loading={p.enProceso}>
           {!p.enProceso && <ReceiptText className="mr-2 h-4 w-4" />}
           Timbrar REP seleccionados

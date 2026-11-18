@@ -29,8 +29,10 @@ export function useClienteDetalleController() {
   // Queries
   const { data: cliente, isLoading: loadingCliente, error: errorCliente, refetch: refetchCliente } = useCliente(id);
   const { data: contactos = [], isLoading: loadingContactos } = useContactosCliente(id);
-  const { data: embarquesCliente = [], isLoading: loadingEmbarques } = useEmbarquesCliente(id);
-  const { data: cotizacionesCliente = [], isLoading: loadingCotizaciones } = useCotizacionesCliente(id);
+  const { data: embarquesCliente = [], isLoading: loadingEmbarques, error: errorEmbarques,
+    refetch: refetchEmbarques, isFetching: fetchingEmbarques } = useEmbarquesCliente(id);
+  const { data: cotizacionesCliente = [], isLoading: loadingCotizaciones, error: errorCotizaciones,
+    refetch: refetchCotizaciones, isFetching: fetchingCotizaciones } = useCotizacionesCliente(id);
   const { data: financials, error: errorFinancials, refetch: refetchFinancials,
     isFetching: fetchingFinancials } = useClienteFinancials(id);
 
@@ -64,8 +66,10 @@ export function useClienteDetalleController() {
     loadingContactos,
     embarquesCliente,
     loadingEmbarques,
+    errorEmbarques, refetchEmbarques, fetchingEmbarques,
     cotizacionesCliente,
     loadingCotizaciones,
+    errorCotizaciones, refetchCotizaciones, fetchingCotizaciones,
     financials,
     errorFinancials, refetchFinancials, fetchingFinancials,
     canEdit,

@@ -132,6 +132,34 @@ describe.each([false, true])("Cotizaciones · borrador móvil=%s", (isMobile) =>
     expect(url).not.toHaveBeenCalled();
     expect(query()).toContain('"page":3');
   });
+
+  it("aplica el último filtro incompatible y conserva la búsqueda y los demás filtros", async () => {
+    mount("?q=barco&page=3&estado=Borrador&cliente=c1&segmento=prospectos");
+    const before = query();
+    open();
+    fireEvent.click(screen.getByRole("button", { name: "Aceptadas sin embarque" }));
+    if (isMobile) expect(screen.getByRole("combobox", { name: "Estado" })).toHaveValue("todos");
+    expect(query()).toBe(before);
+    fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
+    await waitFor(() => expect(query()).toContain('"page":0'));
+    expect(commit.mock.calls).toEqual([["estado", "todos"], ["aceptadasSinEmbarque", "si"]]);
+    expect(query()).toContain('"aceptadasSinEmbarque":"si"');
+
+    commit.mockClear();
+    if (isMobile) open();
+    fireEvent.change(screen.getByRole("combobox", { name: "Estado" }), { target: { value: "Enviada" } });
+    if (isMobile) {
+      expect(screen.getByRole("button", { name: "Aceptadas sin embarque" })).toHaveAttribute("aria-pressed", "false");
+      expect(commit).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
+    }
+    expect(commit.mock.calls).toEqual([["estado", "Enviada"], ["aceptadasSinEmbarque", "no"]]);
+    expect(query()).toContain('"estado":"Enviada"');
+    expect(query()).toContain('"aceptadasSinEmbarque":"no"');
+    expect(query()).toContain('"cliente":"c1"');
+    expect(query()).toContain('"search":"barco"');
+    expect(query()).toContain('"segmento":"prospectos"');
+  });
 });
 
 it("conserva vivos los primarios de escritorio, búsqueda, chips y Limpiar todo", async () => {

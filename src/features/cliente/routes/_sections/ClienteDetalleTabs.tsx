@@ -42,8 +42,14 @@ interface Props {
   canEdit: boolean;
   embarquesCliente: EmbarqueCliente[];
   loadingEmbarques: boolean;
+  errorEmbarques: Error | null;
+  refetchEmbarques: () => void;
+  fetchingEmbarques: boolean;
   cotizacionesCliente: CotizacionCliente[];
   loadingCotizaciones: boolean;
+  errorCotizaciones: Error | null;
+  refetchCotizaciones: () => void;
+  fetchingCotizaciones: boolean;
   openNewContact: () => void;
   openEditContact: (c: ContactoCliente) => void;
   startDelete: (contactoId: string) => void;
@@ -57,8 +63,10 @@ export function ClienteDetalleTabs({
   canEdit,
   embarquesCliente,
   loadingEmbarques,
+  errorEmbarques, refetchEmbarques, fetchingEmbarques,
   cotizacionesCliente,
   loadingCotizaciones,
+  errorCotizaciones, refetchCotizaciones, fetchingCotizaciones,
   openNewContact,
   openEditContact,
   startDelete,
@@ -114,8 +122,14 @@ export function ClienteDetalleTabs({
         canEdit={canEdit}
         embarquesCliente={embarquesCliente}
         loadingEmbarques={loadingEmbarques}
+        errorEmbarques={errorEmbarques}
+        refetchEmbarques={refetchEmbarques}
+        fetchingEmbarques={fetchingEmbarques}
         cotizacionesCliente={cotizacionesCliente}
         loadingCotizaciones={loadingCotizaciones}
+        errorCotizaciones={errorCotizaciones}
+        refetchCotizaciones={refetchCotizaciones}
+        fetchingCotizaciones={fetchingCotizaciones}
       />
 
 

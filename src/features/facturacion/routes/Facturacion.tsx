@@ -115,13 +115,10 @@ export default function Facturacion() {
             title="Facturación"
             description="Panel fiscal: CFDI, complemento de pagos (REP) y cartera de clientes"
           />
-          <div className="flex items-center gap-2 shrink-0">
-            <PeriodoFiscalSelector
-              desdeIso={desdeIso} hastaIso={hastaIso}
-              // Igual que los inputs manuales: un preset cambia el universo,
-              // así que hay que volver a la página 0 o el usuario cae en vacío.
-              onChange={setRango}
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            {activeBandeja === "emitidas" && (
+              <PeriodoFiscalSelector desdeIso={desdeIso} hastaIso={hastaIso} onChange={setRango} />
+            )}
             {canEmitirFactura && (
               <Button onClick={() => setOpenFacturaManual(true)}>
                 <FilePlus2 className="h-4 w-4 mr-2" /> Nueva factura manual
