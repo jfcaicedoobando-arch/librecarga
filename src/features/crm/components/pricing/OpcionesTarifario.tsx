@@ -25,9 +25,11 @@ export function OpcionesTarifario({ solicitud: s, puedeElegir }: Props) {
     navigate(`/cotizaciones/nueva?${q.toString()}`);
   };
   const cotizar = async (id: string) => {
-    if (elegida === id || await elegir(id)) irACotizar(id);
+    if (elegida === id || respondida || await elegir(id)) irACotizar(id);
   };
-  if (!elegida && s.estado !== "borrador" && s.estado !== "enviada") return null;
+  // Respondida: las opciones del tarifario siguen visibles junto a las tarifas nuevas de Pricing.
+  const respondida = s.estado === "respondida";
+  if (!elegida && !respondida && s.estado !== "borrador" && s.estado !== "enviada") return null;
 
   return (
     <div className="space-y-2">
@@ -38,7 +40,7 @@ export function OpcionesTarifario({ solicitud: s, puedeElegir }: Props) {
       {opciones.map((t) => (
         <OpcionTarifarioCard key={t.id} tarifa={t}
           cargosFob={esFob ? cargosFob : []} cargosLocales={cargosLocales}
-          puedeElegir={!elegida && puedeElegir} busy={busy !== null} elegir={elegir}
+          puedeElegir={!elegida && !respondida && puedeElegir} busy={busy !== null} elegir={elegir}
           puedeCotizar={puedeElegir && (!elegida || elegida === t.id)} cotizar={cotizar} />
       ))}
     </div>
