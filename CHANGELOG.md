@@ -1,5 +1,8 @@
 # Changelog
 
+## [13.824.92] - 2026-11-20
+- **Vendedor externo en oportunidades:** muestra automáticamente el nombre del broker de la empresa, sin cambiar el vendedor interno ni las comisiones. Consulta limitada a lectores de la oportunidad y organización activa; ajustes de seguridad adicionales preparados sin aplicar.
+
 ## Pendiente de publicación
 
 - Integra la evaluación fiscal por organización con los borradores de cotización y embarque. La migración 0071 conserva el cálculo agrupado y el origen de los renglones al convertir una cotización aprobada.

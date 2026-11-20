@@ -1,5 +1,9 @@
 # Roadmap: flujo de cotización + Handover
 
+- [x] Mostrar vendedor externo automático en datos comerciales de oportunidad, usando el broker de la empresa vinculada; 17 pruebas JS y 7 casos SQL aislados. Verificación visual autenticada sin broker; no existe oportunidad activa del broker para verificar ese caso en pantalla.
+- [x] Preparar sin aplicar los ajustes de los tres avisos automáticos de seguridad, según autorización; ver docs/releases/security-readers/review.md y candidate.sql. Hallazgos activos hasta revisión y autorización de activación.
+- [ ] Cierre completo de base para vendedor externo: baseline/postcheck/CI/RLS pendientes de GitHub Actions según política de validación; no ejecutar suites completas localmente.
+
 - [x] Preparar etiqueta de margen bajo en listado/detalle y registro transaccional del autorizador para cambios operativos; candidata 0084 sin aplicar, 25 pruebas JS/React y 53 casos SQL locales; verificación visual autenticada con respuestas simuladas.
 
 - [x] Preparar guardado de borradores bajo margen, notificación a Administración y aprobación vigente antes de confirmar; SQL candidato sin registrar/aplicar, 45 pruebas JS y 38 casos SQL locales, pantalla verificada con respuestas simuladas.

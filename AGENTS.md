@@ -1,5 +1,7 @@
 # Decisiones técnicas
 
+- Opportunity external seller is read-only and resolved by `crm_oportunidad_vendedor_externo` from the company's broker (explicit company link or originating lead), with existing opportunity reader permissions and active tenant checks. Why: show broker attribution without duplicating names or changing KAM assignment or commissions.
+
 - Demo lead CSV export uses the existing formula sanitizer before CSV quoting in `demoLeadsCsv`. Why: untrusted lead fields must open as text, not spreadsheet instructions, without changing stored data or enabling the demo.
 
 - Notas de crédito por embarque: cada renglón de NC copiado de la factura guarda `concepto_factura_id`; `_venta_facturada_por_embarque` resta esa base al embarque del concepto y sólo prorratea renglones sin linaje (manuales o históricos), y el trigger `_nc_validar_linaje_conceptos` rechaza ids ajenos o créditos mayores al subtotal del concepto. Why: atribución exacta sin inventar linaje histórico ni tocar XML/PDF.

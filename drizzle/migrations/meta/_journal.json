@@ -610,6 +610,20 @@
       "when": 1795214694896,
       "tag": "0086_empresa_prospecto_externo",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1795215212890,
+      "tag": "0087_oportunidad_vendedor_externo",
+      "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1795215233459,
+      "tag": "0088_oportunidad_vendedor_externo_guard_null",
+      "breakpoints": true
     }
   ]
 }

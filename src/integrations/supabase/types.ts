@@ -12847,6 +12847,10 @@ export type Database = {
           telefono_norm: string
         }[]
       }
+      crm_oportunidad_vendedor_externo: {
+        Args: { p_oportunidad_id: string }
+        Returns: string
+      }
       crm_pagar_liquidacion_broker: {
         Args: { p_fecha: string; p_id: string; p_referencia: string }
         Returns: undefined
