@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useOrgActiva } from "@/hooks/shared/useOrgActiva";
 import { useMutationWithFeedback } from "@/hooks/shared";
 import {
-  liquidacionesPendientesBroker, liquidarBroker, pagarLiquidacionBroker, resumenComisionesBroker, setPorcentajesBroker,
+  liquidacionesPendientesBroker, liquidarBroker, recalcularComisionesBroker, pagarLiquidacionBroker, resumenComisionesBroker, setPorcentajesBroker,
 } from "@/features/admin/services/brokers";
 
 import { brokers } from "../queryKeys";
@@ -38,4 +38,11 @@ export const usePagarLiquidacionBroker = () =>
   useMutationWithFeedback({
     mutationFn: (v: { id: string; fecha: string; referencia: string }) => pagarLiquidacionBroker(v.id, v.fecha, v.referencia),
     invalidate: [...brokers.all], successTitle: "Liquidación marcada como pagada", errorTitle: "No se pudo registrar el pago",
+  });
+
+export const useRecalcularComisionesBroker = () =>
+  useMutationWithFeedback({
+    mutationFn: () => recalcularComisionesBroker(),
+    invalidate: [...brokers.all], successTitle: "Comisiones recalculadas",
+    successDescription: "Sólo se ajustaron las que aún no estaban liquidadas.", errorTitle: "No se pudieron recalcular",
   });

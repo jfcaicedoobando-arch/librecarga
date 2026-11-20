@@ -589,6 +589,13 @@
       "when": 1795197629441,
       "tag": "0083_selected_security_internal_helpers_snapshot_writes",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1795204152189,
+      "tag": "0084_brokers_tabulador_comisiones",
+      "breakpoints": true
     }
   ]
 }

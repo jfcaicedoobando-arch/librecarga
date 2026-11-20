@@ -55,6 +55,7 @@ export async function misSolicitudes(): Promise<SolicitudBroker[]> {
 export interface ComisionBrokerFila {
   id: string; organizacion: string; empresa: string; factura: string; fecha: string;
   utilidad_mxn: number; porcentaje: number; comision_mxn: number; estado: string; pagada: boolean;
+  desglose: unknown;
 }
 
 export async function misComisiones(): Promise<ComisionBrokerFila[]> {

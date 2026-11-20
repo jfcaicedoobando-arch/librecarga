@@ -1092,6 +1092,7 @@ export type Database = {
           comision_devengada_id: string
           comision_mxn: number
           created_at: string
+          desglose: Json | null
           embarque_id: string | null
           estado: Database["public"]["Enums"]["estado_comision"]
           factura_id: string
@@ -1108,6 +1109,7 @@ export type Database = {
           comision_devengada_id: string
           comision_mxn?: number
           created_at?: string
+          desglose?: Json | null
           embarque_id?: string | null
           estado?: Database["public"]["Enums"]["estado_comision"]
           factura_id: string
@@ -1124,6 +1126,7 @@ export type Database = {
           comision_devengada_id?: string
           comision_mxn?: number
           created_at?: string
+          desglose?: Json | null
           embarque_id?: string | null
           estado?: Database["public"]["Enums"]["estado_comision"]
           factura_id?: string
@@ -10895,6 +10898,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _broker_comision_embarque: {
+        Args: { p_embarque_id: string }
+        Returns: Json
+      }
       _broker_de_pago: {
         Args: { p_factura_id: string; p_org: string; p_pago_id: string }
         Returns: {
@@ -10916,6 +10923,18 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      _broker_es_despacho: { Args: { p_texto: string }; Returns: boolean }
+      _broker_monto_renglon: {
+        Args: { p_cobrado_mxn: number; p_embarque_id: string }
+        Returns: Json
+      }
+      _broker_tabulador: {
+        Args: { p_servicio: string }
+        Returns: {
+          minimo_usd: number
+          pct: number
+        }[]
       }
       _calcular_demoras_montos_contenedor: {
         Args: {
@@ -11808,6 +11827,7 @@ export type Database = {
         Args: never
         Returns: {
           comision_mxn: number
+          desglose: Json
           empresa: string
           estado: string
           factura: string
@@ -12729,6 +12749,7 @@ export type Database = {
           pagado_mxn: number
         }[]
       }
+      crm_brokers_recalcular_comisiones: { Args: never; Returns: number }
       crm_calificar_prospecto: { Args: { p_lead_id: string }; Returns: Json }
       crm_cancelar_solicitud_pricing: {
         Args: { p_id: string }

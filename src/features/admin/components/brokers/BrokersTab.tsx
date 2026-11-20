@@ -19,8 +19,7 @@ export function BrokersTab() {
   const columns = defineColumns<BrokerFila>([
     { id: "nombre", accessorKey: "nombre", header: "Nombre" },
     { id: "email", accessorKey: "email", header: "Correo" },
-    { id: "comision", header: "% broker", meta: { align: "right" },
-      cell: ({ row }) => `${formatNumber(Number(row.original.comision_pct), { maximumFractionDigits: 2 })}%` },
+    { id: "comision", header: "Broker", cell: () => "Tabulador" },
     { id: "kam", header: "% KAM", meta: { align: "right" },
       cell: ({ row }) => row.original.comision_kam_pct == null
         ? "Normal" : `${formatNumber(Number(row.original.comision_kam_pct), { maximumFractionDigits: 2 })}%` },

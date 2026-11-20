@@ -9,7 +9,7 @@ import { formatCurrency } from "@/lib/formatters/numbers";
 import { hoyMx, ymMx } from "@/lib/date/mx";
 import type { ResumenComisionBroker } from "@/features/admin/services/brokers";
 import {
-  useLiquidacionesBroker, useLiquidarBroker, usePagarLiquidacionBroker, useResumenComisionesBroker,
+  useLiquidacionesBroker, useLiquidarBroker, usePagarLiquidacionBroker, useRecalcularComisionesBroker, useResumenComisionesBroker,
 } from "@/features/admin/hooks/useBrokerComisiones";
 
 const mxn = (n: number) => formatCurrency(Number(n), "MXN");
@@ -21,6 +21,7 @@ export function BrokersComisiones() {
   const liqs = useLiquidacionesBroker();
   const liquidar = useLiquidarBroker();
   const pago = usePagarLiquidacionBroker();
+  const recalcular = useRecalcularComisionesBroker();
   const nombre = (id: string) => resumen.data?.find((r) => r.broker_id === id)?.broker ?? "";
   const columns = defineColumns<ResumenComisionBroker>([
     { id: "broker", accessorKey: "broker", header: "Broker" },
@@ -38,10 +39,15 @@ export function BrokersComisiones() {
     <section className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h3 className="text-h4">Comisiones de brokers</h3>
+        <div className="flex flex-wrap items-end gap-2">
+        <Button size="sm" variant="outline" loading={recalcular.isPending} onClick={() => recalcular.mutate()}>
+          Recalcular no liquidadas
+        </Button>
         <label htmlFor="broker-periodo" className="flex items-center gap-2 text-body-sm">
           Mes a liquidar
           <Input id="broker-periodo" type="month" className="w-40" value={periodo} onChange={(e) => setPeriodo(e.target.value)} />
         </label>
+        </div>
       </div>
       <DataTable columns={columns} data={resumen.data ?? []} rowKey={(r) => r.broker_id}
         isLoading={resumen.isLoading} isError={resumen.isError} onRetry={resumen.refetch}

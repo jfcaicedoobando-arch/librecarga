@@ -50,6 +50,12 @@ export async function setPorcentajesBroker(id: string, brokerPct: number, kamPct
   if (error) throw error;
 }
 
+export async function recalcularComisionesBroker(): Promise<number> {
+  const { data, error } = await supabase.rpc("crm_brokers_recalcular_comisiones");
+  if (error) throw error;
+  return data ?? 0;
+}
+
 export async function resumenComisionesBroker(): Promise<ResumenComisionBroker[]> {
   const { data, error } = await supabase.rpc("crm_brokers_comisiones_resumen");
   if (error) throw error;
