@@ -1,5 +1,7 @@
 # Roadmap: flujo de cotización + Handover
 
+- [ ] Permitir al coordinador guardar borradores bajo margen, notificar a Administración y exigir aprobación vigente antes de confirmar. — pendiente de autorización para preparar cambios de base; no aplicar cambios remotos ni publicar.
+
 - [x] Usar la moneda de la tarifa elegida: USD sin TC por moneda previa de CRM; MXN pide DOF de hoy, conservando validación de conversiones.
 
 - [x] Conservar el borrador automático y «Aceptada» hasta confirmar el embarque; corregir Kuartz y validar la transición.
