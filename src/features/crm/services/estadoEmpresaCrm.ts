@@ -5,7 +5,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { LC_CODE_MESSAGES_CRM_EMPRESAS } from "@/lib/errors/lcCodeMessages.crmEmpresas";
 
-export const ESTADOS_EMPRESA_CRM = ["Lead", "Sospechoso", "Prospecto", "Cliente"] as const;
+export const ESTADOS_EMPRESA_CRM = ["Lead", "Sospechoso", "Prospecto", "Prospecto externo", "Cliente"] as const;
 export type EstadoEmpresaCrm = (typeof ESTADOS_EMPRESA_CRM)[number];
 export const FILTRO_ESTADO_EMPRESA = ["todos", ...ESTADOS_EMPRESA_CRM] as const;
 export type FiltroEstadoEmpresa = (typeof FILTRO_ESTADO_EMPRESA)[number];
@@ -13,7 +13,7 @@ export type FiltroEstadoEmpresa = (typeof FILTRO_ESTADO_EMPRESA)[number];
 /** Normaliza el valor de la base; si falta, se deduce del alta a Clientes. */
 export function estadoEmpresa(fila: { estado_crm?: string | null; cliente_id: string | null }): EstadoEmpresaCrm {
   const v = fila.estado_crm;
-  if (v === "Lead" || v === "Sospechoso" || v === "Prospecto" || v === "Cliente") return v;
+  if (v === "Lead" || v === "Sospechoso" || v === "Prospecto" || v === "Prospecto externo" || v === "Cliente") return v;
   return fila.cliente_id ? "Cliente" : "Lead";
 }
 

@@ -603,6 +603,13 @@
       "when": 1795214364163,
       "tag": "0085_broker_alta_prospecto_propiedades_empresa",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1795214694896,
+      "tag": "0086_empresa_prospecto_externo",
+      "breakpoints": true
     }
   ]
 }
