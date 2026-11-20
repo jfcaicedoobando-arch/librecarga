@@ -1,5 +1,11 @@
 # Roadmap: flujo de cotización + Handover
 
+- [x] Aplicar comisión exclusiva del broker en sus empresas, conservar KAM operativo y comisiones normales sin broker; 10 casos SQL, 16 pruebas JS, ESLint y pantalla autenticada verificados.
+- [x] Revisar comisiones KAM anteriores sólo Devengadas y sin liquidación: la base activa contiene 0 renglones elegibles, por lo que no hay históricos que modificar; liquidadas, pagadas y recuperaciones intactas.
+- [x] Activar lectores de membresías y libro con permisos vigentes; 3 casos SQL, 25 movimientos reales idénticos y guardia de Pricing verificados; dos hallazgos registrados como corregidos.
+- [ ] Ajustar lector de demoras: falta validar permisos de sus lectores y escritura transaccional sin afectar costos/ventas reales; hallazgo activo, sin ignorar.
+- [ ] Baseline/postcheck/CI/RLS completos de 0089–0090 pendientes de GitHub Actions; no ejecutar suites completas localmente según política del usuario.
+
 - [x] Mostrar vendedor externo automático en datos comerciales de oportunidad, usando el broker de la empresa vinculada; 17 pruebas JS y 7 casos SQL aislados. Verificación visual autenticada sin broker; no existe oportunidad activa del broker para verificar ese caso en pantalla.
 - [x] Preparar sin aplicar los ajustes de los tres avisos automáticos de seguridad, según autorización; ver docs/releases/security-readers/review.md y candidate.sql. Hallazgos activos hasta revisión y autorización de activación.
 - [ ] Cierre completo de base para vendedor externo: baseline/postcheck/CI/RLS pendientes de GitHub Actions según política de validación; no ejecutar suites completas localmente.

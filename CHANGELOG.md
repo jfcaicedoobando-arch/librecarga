@@ -1,5 +1,9 @@
 # Changelog
 
+## [13.824.93] - 2026-11-20
+- **Comisión exclusiva del broker:** las cuentas de brokers no generan comisión KAM; conservan su responsable y el tabulador del broker. Se ponen en cero sólo las pendientes sin liquidación, sin alterar liquidadas, pagadas ni recuperaciones.
+- **Seguridad de lectura:** membresías y libro de pagos respetan los permisos vigentes por registro; Pricing conserva su verificación de permisos. El ajuste de demoras permanece pendiente de validación operativa.
+
 ## [13.824.92] - 2026-11-20
 - **Vendedor externo en oportunidades:** muestra automáticamente el nombre del broker de la empresa, sin cambiar el vendedor interno ni las comisiones. Consulta limitada a lectores de la oportunidad y organización activa; ajustes de seguridad adicionales preparados sin aplicar.
 

@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CargaGuard } from "@/components/shared/states/CargaGuard";
 import { DataTable, defineColumns } from "@/components/shared/DataTable";
-import { formatNumber } from "@/lib/formatters/numbers";
 import { useBrokers } from "@/features/admin/hooks/useBrokers";
 import NuevoBrokerDialog from "./NuevoBrokerDialog";
 import PorcentajesBrokerDialog from "./PorcentajesBrokerDialog";
@@ -21,13 +20,12 @@ export function BrokersTab() {
     { id: "email", accessorKey: "email", header: "Correo" },
     { id: "comision", header: "Broker", cell: () => "Tabulador" },
     { id: "kam", header: "% KAM", meta: { align: "right" },
-      cell: ({ row }) => row.original.comision_kam_pct == null
-        ? "Normal" : `${formatNumber(Number(row.original.comision_kam_pct), { maximumFractionDigits: 2 })}%` },
+      cell: () => "0%" },
     { id: "estado", header: "Estado", cell: ({ row }) => (
       <Badge variant={row.original.activo ? "secondary" : "outline"}>{row.original.activo ? "Activo" : "Inactivo"}</Badge>
     ) },
     { id: "acciones", header: "Acciones", enableSorting: false, meta: { align: "right" },
-      cell: ({ row }) => <Button size="sm" variant="ghost" onClick={() => setEditar(row.original)}>Porcentajes</Button> },
+      cell: ({ row }) => <Button size="sm" variant="ghost" onClick={() => setEditar(row.original)}>Tabulador</Button> },
   ]);
 
   return (

@@ -624,6 +624,20 @@
       "when": 1795215233459,
       "tag": "0088_oportunidad_vendedor_externo_guard_null",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1795216114678,
+      "tag": "0089_brokers_comision_exclusiva_sin_kam",
+      "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1795216317917,
+      "tag": "0090_lectores_membresias_y_libro_respetan_rls",
+      "breakpoints": true
     }
   ]
 }
