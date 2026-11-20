@@ -18,6 +18,8 @@ import { EmbarqueMobileCard } from "@/features/embarques/components/EmbarqueMobi
 import { EmbarquesTablaVacia } from "@/features/embarques/components/EmbarquesTablaVacia";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { FloatingActionButton } from "@/components/shared/FloatingActionButton";
+import { EtiquetaMargenBajo } from '../components/EtiquetaMargenBajo';
+import { Button } from '@/components/ui/button';
 
 
 import { buildEmbarquesDescription } from "@/features/embarques/domain/embarquesPageHelpers";
@@ -29,6 +31,7 @@ export default function Embarques() {
     state, clientes, operadoresUnicos, columns, isLoading, isError, refetch, isEmptyState,
     exportarCsv, exportandoCsv,
     navigate, prefetchEmbarque,
+    etiquetasMargen, etiquetasMargenError, refetchEtiquetasMargen,
   } = useEmbarquesPageController();
   // v13.303.26 — el CTA "Nuevo embarque" desaparece: los embarques sólo se crean
   // desde una cotización Aceptada (política tarifa-first, sin excepciones).
@@ -136,6 +139,10 @@ export default function Embarques() {
 
           <Card>
             <CardContent className="p-0">
+              {etiquetasMargenError && <div className="flex flex-wrap items-center gap-2 p-3 text-body-sm text-warning">
+                No se pudieron consultar las etiquetas de margen.
+                <Button variant="outline" size="sm" onClick={() => void refetchEtiquetasMargen()}>Reintentar</Button>
+              </div>}
               <EmbarquesSortIndicator
                 sortKey={sortKey}
                 sortDir={sortDir}
@@ -155,7 +162,7 @@ export default function Embarques() {
                 onSortChange={handleSortChange}
                 density={TABLE_DENSITY.listado}
                 className="pb-24 sm:pb-0"
-                mobileCard={(e) => <EmbarqueMobileCard embarque={e} />}
+                mobileCard={(e) => <div><EmbarqueMobileCard embarque={e} /><EtiquetaMargenBajo data={etiquetasMargen?.[e.id]} /></div>}
                 pagination={{
                   page,
                   totalPages,

@@ -1,5 +1,7 @@
 # Roadmap: flujo de cotización + Handover
 
+- [x] Preparar etiqueta de margen bajo en listado/detalle y registro transaccional del autorizador para cambios operativos; candidata 0084 sin aplicar, 25 pruebas JS/React y 53 casos SQL locales; verificación visual autenticada con respuestas simuladas.
+
 - [x] Preparar guardado de borradores bajo margen, notificación a Administración y aprobación vigente antes de confirmar; SQL candidato sin registrar/aplicar, 45 pruebas JS y 38 casos SQL locales, pantalla verificada con respuestas simuladas.
 - [ ] Activar este flujo: registrar candidata en historial y espejos, regenerar baseline y pasar CI/RLS/postchecks completos en GitHub Actions antes de aplicar/publicar. — requiere autorización adicional; base activa y publicación intactas.
 

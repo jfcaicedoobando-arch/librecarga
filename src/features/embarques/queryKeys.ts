@@ -1,4 +1,7 @@
 export const embarques = {
+  etiquetasMargenRoot: ['embarques', 'etiquetas-margen'] as const,
+  etiquetasMargen: (org: string | null, user: string | undefined, role: string | null | undefined, ids: string[]) =>
+    ['embarques', 'etiquetas-margen', org, user, role, ids] as const,
   fiscalGuardado: (id: string, org: string | null, user: string | undefined, revision: string) =>
     ['conceptos_venta', id, 'fiscal', org, user, revision] as const,
   fiscalPreview: (contexto: string) => ['embarques', 'fiscal-preview', contexto] as const,

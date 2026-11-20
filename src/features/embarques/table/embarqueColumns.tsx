@@ -16,11 +16,14 @@ import { ContenedorCell, type ContenedorInfo } from "@/features/embarques/compon
 import { COL_W } from "@/components/shared/dataTable/columnWidths";
 import { Hint } from "@/components/shared/Hint";
 import { labelExpediente } from "@/lib/domain/labelExpediente";
+import { EtiquetaMargenBajo } from '../components/EtiquetaMargenBajo';
+import type { EtiquetaMargen } from '../services/etiquetasMargen';
 
 export type { ContenedorInfo };
 export interface DocsInfo { pendientes: number; total: number }
 
 export interface BuildColumnsParams {
+  etiquetasMargen?: Record<string, EtiquetaMargen>;
   docsMap: Record<string, DocsInfo>;
   /**
    * @deprecated MR-UI-03: contaba embarques por expediente, no contenedores.
@@ -46,7 +49,7 @@ export interface BuildColumnsParams {
  * origen/destino) permanecen como columnas nativas.
  */
 export function buildEmbarqueColumns({
-  docsMap, contenedoresInfoMap = {},
+  docsMap, contenedoresInfoMap = {}, etiquetasMargen = {},
 }: BuildColumnsParams): ColumnDef<EmbarqueRow, unknown>[] {
   return defineColumns<EmbarqueRow>([
     {
@@ -105,6 +108,7 @@ export function buildEmbarqueColumns({
             <Hint label={ruta}>
               <span className="block max-w-[220px] truncate text-label font-normal text-muted-foreground">{ruta}</span>
             </Hint>
+            <EtiquetaMargenBajo data={etiquetasMargen[e.id]} />
           </span>
         );
       },

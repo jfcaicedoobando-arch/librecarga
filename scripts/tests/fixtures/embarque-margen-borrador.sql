@@ -15,10 +15,11 @@ CREATE TABLE public.conceptos_costo(id uuid PRIMARY KEY DEFAULT gen_random_uuid(
   moneda text, monto numeric, proveedor_nombre text, deleted_at timestamptz);
 CREATE TABLE public.configuracion(organization_id uuid, categoria text, clave text, valor jsonb);
 CREATE TABLE public.organization_members(organization_id uuid, user_id uuid, role public.app_role);
-CREATE TABLE public.bitacora_actividad(organization_id uuid, usuario_id uuid, modulo text, accion text, entidad_id uuid, detalles jsonb);
+CREATE TABLE public.bitacora_actividad(organization_id uuid, usuario_id uuid, modulo text, accion text, entidad_id uuid, detalles jsonb, usuario_email text);
 CREATE TABLE public.notificaciones_internas(organization_id uuid, usuario_id uuid, tipo text, titulo text,
   mensaje text, enlace text, entidad_tipo text, entidad_id uuid);
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT current_setting('test.uid')::uuid $$;
+CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT jsonb_build_object('email','administracion@example.test') $$;
 CREATE FUNCTION public.org_scope() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT current_setting('test.org')::uuid $$;
 CREATE FUNCTION public.has_any_role_in_org_exact(u uuid, roles public.app_role[], org uuid)
 RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT EXISTS(SELECT 1 FROM organization_members WHERE user_id=u AND organization_id=org AND role=ANY(roles)) $$;
@@ -39,6 +40,7 @@ BEGIN
  END; RAISE EXCEPTION 'FAIL: % did not reject',label;
 END $$;
 \ir ../../../docs/releases/embarque-margen/0083_embarque_margen_borrador.sql
+\ir ../../../docs/releases/embarque-margen/0084_embarque_margen_etiqueta.sql
 INSERT INTO organization_members VALUES
  ('00000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','coordinador_logistico'),
  ('00000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002','admin_org'),
@@ -181,3 +183,4 @@ SELECT set_config('test.uid','10000000-0000-0000-0000-000000000006',false);
 SET ROLE authenticated;
 SELECT test_rejected($cmd$SELECT consultar_aprobacion_margen_embarque('20000000-0000-0000-0000-000000000003')$cmd$,'42501','broker no recibe costos internos');
 RESET ROLE;
+\ir embarque-margen-etiqueta.sql

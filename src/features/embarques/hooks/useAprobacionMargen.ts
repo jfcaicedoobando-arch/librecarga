@@ -5,6 +5,7 @@ import { consultarAprobacionMargen, solicitarAprobacionMargen, aprobarMargen, ty
 import { getErrorMessage } from '@/lib/errors';
 import { notifyError, notifySuccess, notifyWarning } from '@/lib/ui/appFeedback';
 import { isExpectedTelemetryError } from '@/lib/observability/expectedTelemetryError';
+import { embarques } from '../queryKeys';
 
 export function useAprobacionMargen(id: string, enabled: boolean) {
   const { user, effectiveRole } = useAuth();
@@ -20,6 +21,7 @@ export function useAprobacionMargen(id: string, enabled: boolean) {
       ? aprobarMargen(id, input.snapshot, input.motivo ?? '') : solicitarAprobacionMargen(id),
     onSuccess: (data) => {
       client.setQueryData(key, data);
+      void client.invalidateQueries({ queryKey: embarques.etiquetasMargenRoot });
       notifySuccess(undefined, { title: data?.estado === 'aprobada' ? 'Margen aprobado' : 'Solicitud registrada' });
     },
     onError: (error) => {

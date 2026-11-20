@@ -19,6 +19,7 @@ import { useOrgFilter } from "@/hooks/shared";
 
 import { ERROR_CODES } from "@/lib/domain/errorCatalog";
 import { todayLocalISO } from "@/lib/date/today";
+import { useEtiquetasMargen } from './useEtiquetasMargen';
 /**
  * Controller que centraliza estado, queries y handlers de la página de Embarques.
  * Mantiene la página enfocada únicamente en JSX/composición.
@@ -37,6 +38,7 @@ export function useEmbarquesPageController() {
 
   const visibleIds = useMemo(() => embarques.map((e) => e.id), [embarques]);
   const { data: contenedoresInfoMap = {} } = useContenedoresInfoMap(visibleIds);
+  const etiquetas = useEtiquetasMargen(visibleIds);
 
   const [exportandoCsv, setExportandoCsv] = useState(false);
 
@@ -51,8 +53,9 @@ export function useEmbarquesPageController() {
       docsMap,
       contenedoresPorExpediente,
       contenedoresInfoMap,
+      etiquetasMargen: etiquetas.data,
     }),
-    [docsMap, contenedoresPorExpediente, contenedoresInfoMap],
+    [docsMap, contenedoresPorExpediente, contenedoresInfoMap, etiquetas.data],
   );
 
 
@@ -148,5 +151,8 @@ export function useEmbarquesPageController() {
     exportandoCsv,
     navigate,
     prefetchEmbarque,
+    etiquetasMargenError: etiquetas.isError,
+    etiquetasMargen: etiquetas.data,
+    refetchEtiquetasMargen: etiquetas.refetch,
   };
 }
