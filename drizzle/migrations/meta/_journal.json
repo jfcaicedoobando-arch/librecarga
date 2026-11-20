@@ -582,6 +582,13 @@
       "when": 1794694500017,
       "tag": "0082_isr_resico_reemplazo",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1795197629441,
+      "tag": "0083_selected_security_internal_helpers_snapshot_writes",
+      "breakpoints": true
     }
   ]
 }
