@@ -65,12 +65,12 @@ export default function BrokerConsultar() {
                 <Accion e={e} onPedir={() => setPedir(e)} />
               </div>
             ))}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-3">
-              <span className="text-body-sm text-muted-foreground">
-                {res.length === 0 ? "No encontramos esa empresa." : "¿No es ninguna de estas?"}
-              </span>
-              <Button size="sm" onClick={() => setAlta(true)}><Plus className="h-4 w-4" /> Registrar empresa nueva</Button>
-            </div>
+            {res.length === 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 p-3">
+                <span className="text-body-sm text-muted-foreground">No encontramos esa empresa.</span>
+                <Button size="sm" onClick={() => setAlta(true)}><Plus className="h-4 w-4" /> Registrar empresa nueva</Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
