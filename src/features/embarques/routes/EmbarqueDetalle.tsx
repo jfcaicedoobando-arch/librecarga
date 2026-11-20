@@ -19,6 +19,7 @@ import { EmbarqueDetalleTabs } from "@/features/embarques/components/EmbarqueDet
 import { EnlaceTrackingCopiadoDialog } from "@/features/embarques/components/tracking/EnlaceTrackingCopiadoDialog";
 import { LoadingState, NotFoundState } from "./EmbarqueDetalleStates";
 import { useRegisterBreadcrumbLabel } from "@/lib/contexts/BreadcrumbContext";
+import { AprobacionMargenBorrador } from '../components/AprobacionMargenBorrador';
 
 // v13.66.15: reordenadas por flujo (operación → finanzas → cierre → bitácora)
 // y fusionadas (P&L+P&L Contenedor, Garantías+Demoras).
@@ -96,6 +97,7 @@ export default function EmbarqueDetalle() {
               onNavigateTab={(tab) => setActiveTab(tab)}
             />
 
+            <AprobacionMargenBorrador id={embarque.id} estado={embarque.estado} canEdit={canEdit} />
             <DialogEliminarEmbarque embarque={embarque} open={dialogEliminarAbierto} onOpenChange={setDialogEliminarAbierto} />
             <DialogDuplicarEmbarque embarque={embarque} open={dialogDuplicarAbierto} onOpenChange={setDialogDuplicarAbierto} />
 

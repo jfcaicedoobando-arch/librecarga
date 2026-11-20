@@ -1,6 +1,7 @@
 # Roadmap: flujo de cotización + Handover
 
-- [ ] Permitir al coordinador guardar borradores bajo margen, notificar a Administración y exigir aprobación vigente antes de confirmar. — pendiente de autorización para preparar cambios de base; no aplicar cambios remotos ni publicar.
+- [x] Preparar guardado de borradores bajo margen, notificación a Administración y aprobación vigente antes de confirmar; SQL candidato sin registrar/aplicar, 45 pruebas JS y 38 casos SQL locales, pantalla verificada con respuestas simuladas.
+- [ ] Activar este flujo: registrar candidata en historial y espejos, regenerar baseline y pasar CI/RLS/postchecks completos en GitHub Actions antes de aplicar/publicar. — requiere autorización adicional; base activa y publicación intactas.
 
 - [x] Usar la moneda de la tarifa elegida: USD sin TC por moneda previa de CRM; MXN pide DOF de hoy, conservando validación de conversiones.
 

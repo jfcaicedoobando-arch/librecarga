@@ -20,9 +20,12 @@ import { evaluarMargenMinimo } from "@/lib/domain/margenMinimo";
 import { totalesMargenUSD } from "@/features/embarques/domain/totalesMargenUSD";
 import { captureAuthDataScope } from "@/lib/auth/authOperationScope";
 import { prepararRevisionFiscalEmbarque, type PropuestaRevisionFiscalEmbarque } from "../services/evaluacionFiscalEmbarque";
+import { consultarAprobacionMargen } from "../services/aprobacionMargen";
 
 type ContactoRow = Pick<Tables<"contactos_cliente">, "id" | "nombre" | "tipo" | "pais">;
-
+async function usaAprobacionBorrador(id: string, estado: string) {
+  return estado === 'Borrador' && await consultarAprobacionMargen(id) !== null;
+}
 interface Deps {
   id: string | undefined;
   embarque: ReturnType<typeof useEmbarque>["data"];
@@ -146,9 +149,12 @@ export async function ejecutarGuardarEmbarque(deps: Deps): Promise<void> {
     const cambiosCosto = diffConceptos(conceptosCostoDb, nuevosCosto);
     const tocoMontos = cambiosVenta.agregados + cambiosVenta.eliminados + cambiosVenta.modificados
       + cambiosCosto.agregados + cambiosCosto.eliminados + cambiosCosto.modificados > 0;
-    if (tocoMontos && !validarMargenMinimo(deps)) return;
-
     const scope = captureAuthDataScope();
+    // Sólo liberar borradores si el servidor ya ofrece el guard de aprobación; candidata ausente => flujo previo.
+    const borradorConAprobacion = await usaAprobacionBorrador(id, embarque.estado);
+    if (signal.aborted) return;
+    scope.assertCurrent();
+    if (tocoMontos && !borradorConAprobacion && !validarMargenMinimo(deps)) return;
     const revisionFiscal = await confirmarCambiosFiscales(deps, embarque,
       nuevoEmbarquePayload.cliente_id ?? embarque.cliente_id, nuevosVenta, scope);
     if (revisionFiscal === null || signal.aborted) return;
