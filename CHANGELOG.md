@@ -1,5 +1,8 @@
 # Changelog
 
+## [13.824.95] - 2026-11-20
+- **Seguridad de consultas auxiliares e historial:** cuentas bancarias, demoras y claves fiscales respetan sus permisos de lectura; rechazo de facturas conserva sus puertas autorizadas. La actividad de embarques no mezcla bitácoras de empresas con expedientes iguales. Sin cambios en importes ni envíos de correo.
+
 ## [13.824.94] - 2026-11-20
 - **Seguridad de demoras y detalle de pagos:** se respetan los permisos existentes del embarque antes del recálculo y de cada registro consultado en pagos. Se conservan importes, tabuladores, disparadores y bloqueos fiscales; sólo se corrigieron los dos avisos seleccionados.
 

@@ -1,5 +1,8 @@
 # Roadmap: flujo de cotización + Handover
 
+- [x] Selección de seguridad del 20/11: cinco correcciones aplicadas (0092–0093), 51 avisos descartados por controles/intención verificados, 15 verificaciones SQL aisladas y 13 pruebas JS focalizadas.
+- [ ] Completar los 29 avisos seleccionados todavía activos: confirmar impacto de límites de destinatarios, permisos financieros, historial y rutas fiscales; validar casos inciertos antes de cambiar funciones. Cierre completo de baseline/postcheck/CI/RLS queda en GitHub Actions.
+
 - [x] Corregir exclusivamente acceso a `calcular_demoras_embarque` y `pago_detalle`: migración 0091 aplicada y ambos avisos registrados como corregidos; 12 verificaciones SQL, 18 pruebas JS y 10 detalles de pagos reales idénticos antes/después.
 - [ ] Cierre de 0091: baseline/postcheck/CI/RLS completos pendientes de GitHub Actions según política del usuario; no ejecutar suites completas localmente.
 

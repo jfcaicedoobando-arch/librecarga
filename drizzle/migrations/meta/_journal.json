@@ -645,6 +645,20 @@
       "when": 1795216947515,
       "tag": "0091_demoras_y_pago_detalle_acceso_protegido",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1795217713125,
+      "tag": "0092_auxiliares_seleccionados_acceso_protegido",
+      "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1795217798656,
+      "tag": "0093_actividad_embarque_bitacora_misma_organizacion",
+      "breakpoints": true
     }
   ]
 }

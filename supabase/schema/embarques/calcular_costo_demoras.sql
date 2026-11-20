@@ -3,7 +3,7 @@ CREATE OR REPLACE FUNCTION public.calcular_costo_demoras(
   p_tipo_contenedor_id uuid,
   p_dias_excedidos integer
 ) RETURNS TABLE (total numeric, moneda text, desglose jsonb)
-LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path = public AS $$
 DECLARE
   r record;
   v_total numeric := 0;
