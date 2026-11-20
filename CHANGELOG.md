@@ -1,5 +1,8 @@
 # Changelog
 
+## [13.824.94] - 2026-11-20
+- **Seguridad de demoras y detalle de pagos:** se respetan los permisos existentes del embarque antes del recálculo y de cada registro consultado en pagos. Se conservan importes, tabuladores, disparadores y bloqueos fiscales; sólo se corrigieron los dos avisos seleccionados.
+
 ## [13.824.93] - 2026-11-20
 - **Comisión exclusiva del broker:** las cuentas de brokers no generan comisión KAM; conservan su responsable y el tabulador del broker. Se ponen en cero sólo las pendientes sin liquidación, sin alterar liquidadas, pagadas ni recuperaciones.
 - **Seguridad de lectura:** membresías y libro de pagos respetan los permisos vigentes por registro; Pricing conserva su verificación de permisos. El ajuste de demoras permanece pendiente de validación operativa.

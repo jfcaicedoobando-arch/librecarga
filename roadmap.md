@@ -1,9 +1,12 @@
 # Roadmap: flujo de cotización + Handover
 
+- [x] Corregir exclusivamente acceso a `calcular_demoras_embarque` y `pago_detalle`: migración 0091 aplicada y ambos avisos registrados como corregidos; 12 verificaciones SQL, 18 pruebas JS y 10 detalles de pagos reales idénticos antes/después.
+- [ ] Cierre de 0091: baseline/postcheck/CI/RLS completos pendientes de GitHub Actions según política del usuario; no ejecutar suites completas localmente.
+
 - [x] Aplicar comisión exclusiva del broker en sus empresas, conservar KAM operativo y comisiones normales sin broker; 10 casos SQL, 16 pruebas JS, ESLint y pantalla autenticada verificados.
 - [x] Revisar comisiones KAM anteriores sólo Devengadas y sin liquidación: la base activa contiene 0 renglones elegibles, por lo que no hay históricos que modificar; liquidadas, pagadas y recuperaciones intactas.
 - [x] Activar lectores de membresías y libro con permisos vigentes; 3 casos SQL, 25 movimientos reales idénticos y guardia de Pricing verificados; dos hallazgos registrados como corregidos.
-- [ ] Ajustar lector de demoras: falta validar permisos de sus lectores y escritura transaccional sin afectar costos/ventas reales; hallazgo activo, sin ignorar.
+- [x] Ajustar lector de demoras: replica permisos de lectura antes de acceder al embarque, con cálculo positivo, idempotencia, disparador de fechas y aislamiento probados en datos temporales; no se recalcularon costos/ventas reales.
 - [ ] Baseline/postcheck/CI/RLS completos de 0089–0090 pendientes de GitHub Actions; no ejecutar suites completas localmente según política del usuario.
 
 - [x] Mostrar vendedor externo automático en datos comerciales de oportunidad, usando el broker de la empresa vinculada; 17 pruebas JS y 7 casos SQL aislados. Verificación visual autenticada sin broker; no existe oportunidad activa del broker para verificar ese caso en pantalla.
