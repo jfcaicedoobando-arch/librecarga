@@ -37,6 +37,10 @@ BEGIN
     v_org := current_user_org_id();
   END IF;
   PERFORM public._assert_writer(v_org);
+  IF NOT public.has_any_role_in_org(auth.uid(),
+    ARRAY['admin','operador','contador']::public.app_role[], v_org) THEN
+    RAISE EXCEPTION 'Permisos insuficientes' USING ERRCODE = '42501';
+  END IF;
   -- Ola E1 · C5: el embarque debe existir en la organización y coincidir con
   -- el cliente recibido; antes se confiaba en los argumentos del cliente.
   IF NOT EXISTS (

@@ -1,5 +1,8 @@
 # Changelog
 
+## [13.824.96] - 2026-11-20
+- **Permisos efectivos en la empresa:** cinco ajustes seleccionados protegen costos de cotizaciones, vinculación comercial, duplicación de embarques, creación de proformas y eliminación de pagos. Conservan cálculos, históricos y reintentos autorizados; sin cambios en envíos de correo.
+
 ## [13.824.95] - 2026-11-20
 - **Seguridad de consultas auxiliares e historial:** cuentas bancarias, demoras y claves fiscales respetan sus permisos de lectura; rechazo de facturas conserva sus puertas autorizadas. La actividad de embarques no mezcla bitácoras de empresas con expedientes iguales. Sin cambios en importes ni envíos de correo.
 
