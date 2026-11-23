@@ -10,7 +10,7 @@ import { paisesDePuertos, puertoTrasCambioPais } from "@/features/crm/services/p
 import { CampoPuerto } from "./CampoPuerto";
 import {
   INCOTERMS_PRICING, SERVICIOS_PRICING, type SolicitudPricingInsert,
-  aNumero, UNIDADES_MEDIDA_PRICING,
+  aNumero, unidadesMedidaCaptura,
 } from "@/features/crm/services/pricing/tiposPricing";
 import { CampoLista, CampoSiNo, CampoTexto } from "./CamposPricing";
 import { TIPOS } from "@/constants/wizardConstants";
@@ -70,7 +70,7 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
         <CampoSiNo id="pr-estibable" label="Estibable" {...d} value={datos.estibable} onChange={(v) => set("estibable", v)} />
         <CampoTexto id="pr-peso" label="Weight" {...d} value={datos.peso} onChange={txt("peso")} />
         <CampoLista id="pr-unidad-medida" label="Units of measurement" {...d} value={datos.unidad_medida}
-          opciones={UNIDADES_MEDIDA_PRICING} onChange={(v) => set("unidad_medida", v)} />
+          opciones={unidadesMedidaCaptura(datos.unidad_medida)} onChange={(v) => set("unidad_medida", v)} />
         <CampoTexto id="pr-dim" label="Dimensions" {...d} value={datos.dimensiones} onChange={txt("dimensiones")} />
       </FormDialogSection>
       <FormDialogSection title="Ruta">

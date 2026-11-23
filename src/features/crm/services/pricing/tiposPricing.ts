@@ -19,6 +19,10 @@ export const UNIDADES_MEDIDA_PRICING = [
   { value: "t", label: "Toneladas (t)" },
   { value: "g", label: "Gramos (g)" },
 ] as const;
+/** Captura nueva: sin gramos (los registros históricos en "g" siguen mostrándose). */
+export function unidadesMedidaCaptura(actual?: string | null) {
+  return UNIDADES_MEDIDA_PRICING.filter((u) => u.value !== "g" || actual === "g");
+}
 export type ComplejidadPricing = "baja" | "media" | "alta";
 
 export const ETIQUETA_COMPLEJIDAD: Record<ComplejidadPricing, string> = {
