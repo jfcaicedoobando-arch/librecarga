@@ -1,5 +1,11 @@
 # Changelog
 
+## [13.824.103] - 2026-11-23
+
+- **Embarques.** Volver desde el editor conserva la página y sus filtros. El panel aplica la selección al confirmar y conserva los filtros fuera del panel al limpiar.
+- **Accesibilidad.** Los cuatro campos generales de Embarques identifican su etiqueta y error. Al quitar un filtro, el foco pasa al siguiente botón o al buscador.
+- **Facturación.** La bandeja activa conserva su página y Vencidas indica el rango visible. La factura manual explica el bloqueo por total cero y la forma de pago en PPD, y enfoca cada concepto nuevo.
+
 ## [13.824.102] - 2026-11-23
 - **Compras y Tesorería:** la aprobación muestra los importes por moneda, incluidos los euros. Estado de cuenta responde a Enter y los reportes identifican saldos y equivalentes parciales.
 - **Cotizaciones, CRM y Facturación:** los borradores se protegen al salir, el tarifario permite reintentar la lectura y Vencidas distingue una búsqueda vacía de una cartera al día.
