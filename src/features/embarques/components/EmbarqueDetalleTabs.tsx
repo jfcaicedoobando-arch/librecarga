@@ -63,7 +63,7 @@ function useOpcionesContenedor(embarqueId: string, esMaritimo: boolean, activeTa
 }
 
 export function EmbarqueDetalleTabs({
-  embarque, embarqueId, activeTab, setActiveTab, estadoVisual, canEdit, borradorNota,
+  embarque, embarqueId, activeTab, setActiveTab, estadoVisual, canEdit, borradorNota, trackingGuard,
 }: EmbarqueDetalleTabsProps) {
   const [pnlView, setPnlView] = useState<PnlView>("global");
   // B1 (v13.823.395): «Cargar costos» exige la capacidad estrecha, no el
@@ -102,7 +102,7 @@ export function EmbarqueDetalleTabs({
         </TabsContent>
 
         <TabsContent value="tracking">
-          <TabTracking embarqueId={embarqueId} embarque={embarque} />
+          <TabTracking embarqueId={embarqueId} embarque={embarque} {...trackingGuard} />
         </TabsContent>
 
         <TabsContent value="documentos">

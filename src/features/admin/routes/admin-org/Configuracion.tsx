@@ -13,6 +13,7 @@ import { useDocumentTitle } from "@/hooks/shared";
 import { useDirtyGuard } from "@/hooks/shared/useDirtyGuard";
 import { usePermissions } from "@/hooks/shared/usePermissions";
 import { useTabsParam } from "@/hooks/shared/useTabsParam";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const TABS_CONFIGURACION = ["empresa", "facturacion", "catalogos", "operaciones", "compras", "herramientas"] as const;
 
@@ -21,9 +22,25 @@ function getSaveButtonLabel(isSaving: boolean): string {
   return isSaving ? "Guardando…" : "Guardar Cambios";
 }
 
+function AvisoCambioRemoto({ visible, guardando, recargar }: { visible: boolean; guardando: boolean; recargar: () => void }) {
+  if (!visible) return null;
+  return (
+    <Alert variant="info">
+      <AlertDescription className="flex flex-wrap items-center gap-3">
+        La configuración guardada cambió. Tu captura sigue disponible.
+        <Button type="button" size="sm" variant="outline" disabled={guardando} onClick={recargar}>
+          Descartar cambios y recargar
+        </Button>
+      </AlertDescription>
+    </Alert>
+  );
+}
+
 export default function Configuracion() {
   useDocumentTitle("Configuración");
-  const { s, set, isLoading, isError, refetch, isSaving, isDirty, handleSave } = useConfiguracionState();
+  const {
+    s, set, isLoading, isError, refetch, isSaving, isDirty, handleSave, cambioRemoto, recargarGuardada,
+  } = useConfiguracionState();
   const { effectiveRole } = useAuth();
   const esContador = effectiveRole === "contador";
   const { canEmitirFactura } = usePermissions();
@@ -87,6 +104,7 @@ export default function Configuracion() {
         {!esContador && (
           <TabsContent value="empresa" className="space-y-4">
             <OrgInfoCard />
+            <AvisoCambioRemoto visible={cambioRemoto} guardando={isSaving} recargar={recargarGuardada} />
             <TabEmpresa
               nombre={s.nombre} setNombre={set("nombre")}
               subtitulo={s.subtitulo} setSubtitulo={set("subtitulo")}

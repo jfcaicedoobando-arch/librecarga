@@ -21,12 +21,12 @@ export default function EditarProveedorIdentidadFields({ c }: Props) {
   return (
     <>
       <div className="space-y-2">
-        <Label>Origen *</Label>
+        <Label htmlFor="editar-proveedor-origen">Origen <span aria-hidden="true">*</span></Label>
         <Select
           value={c.form.origen_proveedor || ""}
           onValueChange={(v) => { c.setField("origen_proveedor", v as "Nacional" | "Extranjero"); c.markTouched("origen_proveedor"); }}
         >
-          <SelectTrigger><SelectValue placeholder="Selecciona origen" /></SelectTrigger>
+          <SelectTrigger id="editar-proveedor-origen" aria-required="true"><SelectValue placeholder="Selecciona origen" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="Nacional">Nacional</SelectItem>
             <SelectItem value="Extranjero">Extranjero</SelectItem>
@@ -48,9 +48,9 @@ export default function EditarProveedorIdentidadFields({ c }: Props) {
 
       {c.isLogistico && c.form.origen_proveedor === "Extranjero" && (
         <div className="space-y-2">
-          <Label>Tipo *</Label>
+          <Label htmlFor="editar-proveedor-tipo">Tipo <span aria-hidden="true">*</span></Label>
           <Select value={c.form.tipo ?? ""} onValueChange={c.handleTipoChange}>
-            <SelectTrigger><SelectValue placeholder="Selecciona tipo" /></SelectTrigger>
+            <SelectTrigger id="editar-proveedor-tipo" aria-required="true"><SelectValue placeholder="Selecciona tipo" /></SelectTrigger>
             <SelectContent>
               {tiposProveedorPorOrigen(c.form.origen_proveedor, c.form.tipo).map((t) => (
                 <SelectItem key={t} value={t}>{t}</SelectItem>
@@ -63,9 +63,9 @@ export default function EditarProveedorIdentidadFields({ c }: Props) {
 
       {c.isGasto && (
         <div className="space-y-2">
-          <Label>Subtipo de gasto *</Label>
+          <Label htmlFor="editar-proveedor-subtipo">Subtipo de gasto <span aria-hidden="true">*</span></Label>
           <Select value={c.form.subtipo_gasto ?? ""} onValueChange={c.handleSubtipoGastoChange}>
-            <SelectTrigger><SelectValue placeholder="Selecciona subtipo" /></SelectTrigger>
+            <SelectTrigger id="editar-proveedor-subtipo" aria-required="true"><SelectValue placeholder="Selecciona subtipo" /></SelectTrigger>
             <SelectContent>
               {SUBTIPOS_GASTO_OPERATIVO.map((s) => (
                 <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
@@ -78,12 +78,12 @@ export default function EditarProveedorIdentidadFields({ c }: Props) {
 
       {c.isAgenteCarga && (
         <div className="space-y-2">
-          <Label>País *</Label>
+          <Label htmlFor="editar-proveedor-pais">País <span aria-hidden="true">*</span></Label>
           <Select
             value={c.form.pais || ""}
             onValueChange={(v) => { c.setField("pais", v); c.setField("rfc", ""); c.markTouched("pais"); }}
           >
-            <SelectTrigger><SelectValue placeholder="Selecciona un país" /></SelectTrigger>
+            <SelectTrigger id="editar-proveedor-pais" aria-required="true"><SelectValue placeholder="Selecciona un país" /></SelectTrigger>
             <SelectContent>
               {PAISES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
             </SelectContent>

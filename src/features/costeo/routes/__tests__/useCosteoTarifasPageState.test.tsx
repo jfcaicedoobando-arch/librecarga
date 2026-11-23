@@ -1,11 +1,16 @@
 /** P2-A2/A3/A4: ruta del URL, "Nueva tarifa" desde ruta y KPIs excluyentes. */
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router";
 import type { ReactNode } from "react";
+import type { CosteoTarifaRow } from "@/features/costeo/types";
 
+const mocks = vi.hoisted(() => ({ organizationId: "org-a", tarifas: [] as CosteoTarifaRow[] }));
+vi.mock("@/hooks/shared/useOrgActiva", () => ({
+  useOrgActiva: () => ({ organizationId: mocks.organizationId }),
+}));
 vi.mock("@/features/costeo/hooks/useCosteoTarifas", () => ({
-  useCosteoTarifas: () => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() }),
+  useCosteoTarifas: () => ({ data: mocks.tarifas, isLoading: false, isError: false, refetch: vi.fn() }),
   useCosteoTarifaMutations: () => ({ eliminar: { mutate: vi.fn(), isPending: false } }),
 }));
 
@@ -21,6 +26,28 @@ function setup(url: string) {
 }
 
 describe("useCosteoTarifasPageState", () => {
+  beforeEach(() => {
+    mocks.organizationId = "org-a";
+    mocks.tarifas = [];
+  });
+
+  it("identifica la tarifa seleccionada hasta que cambia la organización", () => {
+    const primera = { id: "a", organization_id: "org-a", ruta_id: RUTA, agente_nombre: "Agente uno" } as CosteoTarifaRow;
+    const segunda = { ...primera, id: "b", agente_nombre: "Agente dos" };
+    mocks.tarifas = [primera, segunda];
+    const { result, rerender } = setup("/costeo/tarifas");
+    act(() => result.current.s.setAEliminar(segunda.id));
+    expect(result.current.s.aEliminar).toEqual(segunda);
+
+    mocks.tarifas = [];
+    rerender();
+    expect(result.current.s.aEliminar).toEqual(segunda);
+
+    mocks.organizationId = "org-b";
+    rerender();
+    expect(result.current.s.aEliminar).toBeNull();
+  });
+
   it("?ruta= cuenta como filtro activo y 'Limpiar filtros' la quita del URL", () => {
     const { result } = setup(`/costeo/tarifas?ruta=${RUTA}&aprobacion=borrador`);
     expect(result.current.s.hasActiveFilters).toBe(true);

@@ -31,7 +31,9 @@ export default function BrokerInicio() {
         errorDescription="Revisa tu conexión y vuelve a intentar."
       >
         {empresas.length === 0 ? (
-          <EmptyStateInline message="Aún no tienes empresas asignadas." />
+          <EmptyStateInline message="Aún no tienes empresas asignadas."
+            hint="Comprueba primero si la empresa ya está registrada."
+            action={{ label: "Consultar empresa", to: "/broker/consultar" }} />
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {empresas.map((e) => (

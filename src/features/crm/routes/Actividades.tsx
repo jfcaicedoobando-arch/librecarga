@@ -33,6 +33,7 @@ import { pluralizar } from "@/lib/format/pluralizar";
 import { baseActividadColumns, actividadActionColumn } from "./actividadesColumns";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { ErrorState } from "@/components/shared/states/ErrorState";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { ActividadesFiltros } from "@/features/crm/components/actividades/ActividadesFiltros";
 import { actividadEntidadHref, actividadEntidadNombre } from "@/features/crm/domain/actividadEntidad";
 import { ActividadMobileCard } from "@/features/crm/components/ActividadMobileCard";
@@ -41,6 +42,14 @@ import { ActividadMobileCard } from "@/features/crm/components/ActividadMobileCa
 type ActividadesFilters = { tipo: string; estado: string; responsable: string } & Record<string, string>;
 const DEFAULTS: ActividadesFilters = { tipo: "todos", estado: "pendientes", responsable: "todos" };
 const FILTROS_VENCIDAS = { estado: "pendientes", responsable: "mias" } as const;
+
+function vacioActividades(busqueda: string, vencidas: boolean, limpiarBusqueda: () => void, restablecer: () => void) {
+  return <EmptyStateInline message="No hay actividades con estos filtros."
+    hint={vencidas ? "Vencidas muestra solo tus actividades pendientes." : undefined}
+    action={busqueda.trim()
+      ? { label: "Limpiar búsqueda", onClick: limpiarBusqueda }
+      : { label: "Restablecer filtros", onClick: restablecer }} />;
+}
 
 export default function Actividades() {
   useDocumentTitle('Actividades CRM');
@@ -94,7 +103,6 @@ export default function Actividades() {
     list.resetAll();
     if (vencidasOnly) limpiarFiltro();
   };
-
   return (
     <PageContainer width="wide">
       <PageHeader
@@ -143,6 +151,7 @@ export default function Actividades() {
             data={items}
             isLoading={list.isLoading || list.isStaleView}
             emptyMessage="Sin actividades"
+            emptyState={activeCount > 0 && vacioActividades(list.search, vencidasOnly, () => list.setSearch(""), limpiarTodo)}
             rowKey={(a) => a.id}
             getRowHref={actividadEntidadHref}
             getRowAriaLabel={a => `Abrir ${actividadEntidadNombre(a)} · ${a.asunto}`}

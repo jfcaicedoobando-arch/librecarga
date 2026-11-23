@@ -16,7 +16,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   documentoNombre: string;
   pendiente: boolean;
-  onConfirm: (motivo: string) => Promise<void> | void;
+  onConfirm: (motivo: string) => Promise<boolean>;
 }
 
 const MIN_MOTIVO = 10;
@@ -25,10 +25,12 @@ export function RechazarDocumentoDialog({
   open, onOpenChange, documentoNombre, pendiente, onConfirm,
 }: Props) {
   const [motivo, setMotivo] = useState("");
+  const [fallo, setFallo] = useState(false);
   const valido = motivo.trim().length >= MIN_MOTIVO;
 
   const cerrar = () => {
     setMotivo("");
+    setFallo(false);
     onOpenChange(false);
   };
 
@@ -40,13 +42,18 @@ export function RechazarDocumentoDialog({
       title={`Rechazar "${documentoNombre}"`}
       description="Se quitará el archivo adjunto, el documento volverá a contar como faltante y se avisará a quien abrió el embarque."
       size="md"
+      busy={pendiente}
       footer={(
         <>
           <Button variant="outline" onClick={cerrar} disabled={pendiente}>Cancelar</Button>
           <Button
             variant="destructive"
             disabled={pendiente || !valido}
-            onClick={async () => { await onConfirm(motivo.trim()); setMotivo(""); }}
+            onClick={async () => {
+              setFallo(false);
+              if (await onConfirm(motivo.trim())) cerrar();
+              else setFallo(true);
+            }}
           >
             {pendiente ? "Rechazando…" : "Rechazar documento"}
           </Button>
@@ -61,11 +68,13 @@ export function RechazarDocumentoDialog({
           <Textarea
             id="motivo-rechazo-documento"
             rows={4}
+            disabled={pendiente}
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
             placeholder="Ej. El BL está ilegible y no coincide el número de contenedor."
           />
         </div>
+        {fallo && <p role="alert" className="text-body-sm text-destructive">No pudimos rechazar el documento. Conservamos el motivo para que puedas reintentar.</p>}
       </FormDialogSection>
     </FormDialogShell>
   );

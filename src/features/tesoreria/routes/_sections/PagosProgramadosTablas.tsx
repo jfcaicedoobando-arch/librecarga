@@ -23,6 +23,7 @@ interface Props {
   semanas: SemanaPagosProgramados[];
   sinFecha: FacturaProgramable[];
   columns: ColumnDef<FacturaProgramable, unknown>[];
+  onVerTodas?: () => void;
   onEjecutarPago: (f: FacturaProgramable) => void;
   /** MNY-P2.5: navegar a la factura de Compras (aprobar o programar fecha). */
   onAbrirFactura: (f: FacturaProgramable) => void;
@@ -82,9 +83,10 @@ function MobileCardFactura({ r, onEjecutarPago, onAbrirFactura }: AccionesProps)
             {r.folio_proveedor ?? "—"}
           </div>
         </Hint>
-        <div className="flex items-center gap-1.5 text-label text-muted-foreground">
-          <span>{fecha ? formatDate(fecha) : "—"}</span>
-          {r.fecha_programada_pago && <ToneBadge tone="info" size="sm">Prog.</ToneBadge>}
+        <div className="text-label text-muted-foreground">
+          {fecha
+            ? `${r.fecha_programada_pago ? "Pago programado" : "Vencimiento"}: ${formatDate(fecha)}`
+            : "Sin fecha"}
         </div>
         <AccionesFactura r={r} onEjecutarPago={onEjecutarPago} onAbrirFactura={onAbrirFactura} />
       </div>
@@ -102,15 +104,18 @@ function MobileCardFactura({ r, onEjecutarPago, onAbrirFactura }: AccionesProps)
   );
 }
 
-export function PagosProgramadosTablas({ semanas, sinFecha, columns, onEjecutarPago, onAbrirFactura }: Props) {
+export function PagosProgramadosTablas({ semanas, sinFecha, columns, onVerTodas, onEjecutarPago, onAbrirFactura }: Props) {
   if (semanas.length === 0 && sinFecha.length === 0) {
     return (
       <Card>
         <CardContent className="p-0">
           <EmptyState
             icon={Inbox}
-            title="Sin pagos para mostrar"
-            description="Las facturas de proveedor con fecha de vencimiento o programada aparecerán aquí."
+            title={onVerTodas ? "Sin pagos con este filtro" : "Sin pagos para mostrar"}
+            description={onVerTodas
+              ? "Vuelve a todas las pendientes para revisar las facturas que este filtro deja fuera."
+              : "Las facturas de proveedor con fecha de vencimiento o programada aparecerán aquí."}
+            primaryAction={onVerTodas ? { label: "Ver todas las pendientes", onClick: onVerTodas } : undefined}
           />
         </CardContent>
       </Card>

@@ -178,7 +178,7 @@ export default function ClienteDetalle() {
         startDelete={startDelete}
       />
 
-      <ClienteDetalleDialogs
+      <ClienteDetalleDialogs key={cliente.id}
         cliente={mapFormulario(cliente)}
         contactDialogOpen={contactDialogOpen}
         setContactDialogOpen={setContactDialogOpen}

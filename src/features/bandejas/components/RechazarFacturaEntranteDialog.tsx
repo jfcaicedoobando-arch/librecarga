@@ -14,24 +14,38 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pendiente: boolean;
+  nombreArchivo?: string | null;
+  expediente?: string | null;
   onConfirm: (motivo: string) => Promise<void> | void;
 }
 
 const MIN_MOTIVO = 10;
 
-export function RechazarFacturaEntranteDialog({ open, onOpenChange, pendiente, onConfirm }: Props) {
+export function RechazarFacturaEntranteDialog({ open, onOpenChange, pendiente, nombreArchivo, expediente, onConfirm }: Props) {
   const [motivo, setMotivo] = useState("");
   const valido = motivo.trim().length >= MIN_MOTIVO;
 
   const cerrar = () => {
+    if (pendiente) return;
     setMotivo("");
     onOpenChange(false);
+  };
+
+  const rechazar = async () => {
+    if (pendiente || !valido) return;
+    try {
+      await onConfirm(motivo.trim());
+      setMotivo("");
+    } catch {
+      // La mutación avisa del fallo. Conserva el motivo para corregirlo o reintentar.
+    }
   };
 
   return (
     <FormDialogShell
       open={open}
       onOpenChange={(v) => { if (!v) cerrar(); }}
+      busy={pendiente}
       icon={XCircle}
       title="Rechazar documento del buzón"
       description="Operación verá el motivo en el embarque para volver a enviarlo correctamente."
@@ -42,13 +56,17 @@ export function RechazarFacturaEntranteDialog({ open, onOpenChange, pendiente, o
           <Button
             variant="destructive"
             disabled={pendiente || !valido}
-            onClick={async () => { await onConfirm(motivo.trim()); setMotivo(""); }}
+            onClick={() => void rechazar()}
           >
             {pendiente ? "Rechazando…" : "Rechazar"}
           </Button>
         </>
       )}
     >
+      <p className="mb-3 break-words text-body-sm">
+        <strong>Archivo:</strong> {nombreArchivo || "Sin nombre"}
+        {" · "}<strong>Expediente:</strong> {expediente || "Sin referencia"}
+      </p>
       <FormDialogSection title="Motivo" cols={1}>
         <div className="space-y-2">
           <Label htmlFor="motivo-rechazo-entrante">Explica el motivo (mín. {MIN_MOTIVO} caracteres)</Label>

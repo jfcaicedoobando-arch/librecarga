@@ -1,15 +1,6 @@
 /**
- * useEnvioDocumentoForm — Estado unificado de envío de documentos por correo.
- *
- * Reutilizado por:
- *   - Cotizaciones (`useEnvioCotizacionForm`)
- *   - Facturas (`useEnviarFacturaEmail`)
- *   - Proformas (pendiente migración)
- *
- * Recibe `clienteId` y una función que construye el asunto inicial. Encapsula:
- *   - Carga de contactos con email.
- *   - Preselección del contacto principal / prioridad cliente.
- *   - Toggles, CC, emails manuales, memoria de sesión (asunto/mensaje).
+ * Carga los contactos del cliente y gestiona destinatarios, copias y mensaje
+ * para el diálogo compartido de envío de documentos.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -34,6 +25,8 @@ const EMPTY_CONTACTOS: readonly Contacto[] = Object.freeze([]);
 export interface EnvioFormState {
   contactos: Contacto[];
   loadingContactos: boolean;
+  errorContactos: boolean;
+  reintentarContactos: () => void;
   seleccionados: Record<string, boolean>;
   setSeleccionados: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   emailManual: string;
@@ -56,26 +49,31 @@ export interface EnvioFormState {
   userEmail: string | null;
 }
 
-export function useEnvioDocumentoForm(
-  open: boolean,
-  clienteId: string | null,
-  buildAsuntoInicial: () => string,
+interface OpcionesEnvioDocumento {
   /**
    * Correos CC a precargar cuando se abre el dialog (además del usuario logueado).
    * Se usa para heredar los CC de la última factura enviada al mismo cliente
    * (o los guardados como preferencia). Editable por el usuario.
    */
-  ccInicial?: string[] | null,
+  ccInicial?: string[] | null;
   /**
    * Correos manuales (destinatarios que NO vienen de la ficha del cliente) a
    * precargar como badges cuando se abre el dialog. Se usa para heredar la
    * lista del último envío o de la preferencia del cliente. Editable.
    */
-  destinatariosManualesInicial?: string[] | null,
+  destinatariosManualesInicial?: string[] | null;
+  copiaSoloContacto?: boolean;
+}
+
+export function useEnvioDocumentoForm(
+  open: boolean,
+  clienteId: string | null,
+  buildAsuntoInicial: () => string,
+  { ccInicial, destinatariosManualesInicial, copiaSoloContacto = false }: OpcionesEnvioDocumento = {},
 ): EnvioFormState {
   const { user } = useAuth();
 
-  const { data, isLoading: loadingContactos, isSuccess: contactosResueltos } = useQuery({
+  const { data, isLoading: loadingContactos, isError: errorContactos, isSuccess: contactosResueltos, refetch } = useQuery({
     queryKey: queryKeys.clientes.contactos(clienteId ?? "_none_"),
     enabled: !!clienteId && open,
     queryFn: () => fetchContactosClienteConEmail(clienteId!),
@@ -100,6 +98,9 @@ export function useEnvioDocumentoForm(
   const ccInicialRef = useRef(ccInicial);
   const destInicialRef = useRef(destinatariosManualesInicial);
   const userEmail = user?.email;
+  const correoCopia = copiaSoloContacto
+    ? contactos.find((c) => c.email.trim().toLowerCase() === userEmail?.trim().toLowerCase())?.email
+    : userEmail;
 
   // RG17 (Ola 3): las refs se sincronizan en efecto, no durante el render.
   useEffect(() => {
@@ -162,14 +163,16 @@ export function useEnvioDocumentoForm(
   );
 
   const ccEmails = useMemo(
-    () => computeCcEmails(user?.email, ccManual, destinatarios),
-    [user?.email, ccManual, destinatarios],
+    () => computeCcEmails(correoCopia, ccManual, destinatarios),
+    [correoCopia, ccManual, destinatarios],
   );
 
 
   return {
     contactos,
     loadingContactos,
+    errorContactos,
+    reintentarContactos: () => void refetch(),
     seleccionados,
     setSeleccionados,
     emailManual,
@@ -188,6 +191,6 @@ export function useEnvioDocumentoForm(
     setMarcarEnviada,
     destinatarios,
     ccEmails,
-    userEmail: user?.email ?? null,
+    userEmail: correoCopia ?? null,
   };
 }

@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { KpiCard } from "@/components/shared/KpiCard";
+import { ChartSkeleton } from "@/components/shared/ChartSkeleton";
 import { ChartTooltip } from "@/components/shared/ChartTooltip";
 import { CHART, CHART_TICK, CHART_AXIS_STROKE, CHART_LEGEND_STYLE, CHART_BAR_RADIUS } from "@/lib/chartTokens";
 import { formatCurrency } from "@/lib/formatters";
@@ -52,7 +53,6 @@ export default function ComprasReportes() {
 
       <p className="text-body-sm text-muted-foreground">
         Incluye facturas no canceladas ni eliminadas, de cualquier estado de aprobación.
-        En facturas históricas sin subtotal se usa el total registrado, que puede incluir IVA.
       </p>
 
       <Card>
@@ -77,11 +77,14 @@ export default function ComprasReportes() {
       <TipoCambioFallbackBanner />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-        <KpiCard label="Facturas en el período" value={String(numFacturas)} icon={TrendingUp} />
-        <KpiCard label="Facturado bruto MXN" sublabel="Sin IVA · antes de notas de crédito" value={formatCurrency(totalMxn, "MXN")} icon={Banknote} />
-        <KpiCard label="Facturado bruto USD" sublabel="Sin IVA · antes de notas de crédito" value={formatCurrency(totalUsd, "USD")} icon={Coins} />
-        <KpiCard label="Facturado bruto EUR" sublabel="Sin IVA · antes de notas de crédito" value={formatCurrency(totalEur, "EUR")} icon={Coins} />
+        <KpiCard label="Facturas en el período" value={String(numFacturas)} icon={TrendingUp} loading={isLoading} />
+        <KpiCard label="Facturado bruto MXN" sublabel="Antes de NC · base del documento" value={formatCurrency(totalMxn, "MXN")} icon={Banknote} loading={isLoading} />
+        <KpiCard label="Facturado bruto USD" sublabel="Antes de NC · base del documento" value={formatCurrency(totalUsd, "USD")} icon={Coins} loading={isLoading} />
+        <KpiCard label="Facturado bruto EUR" sublabel="Antes de NC · base del documento" value={formatCurrency(totalEur, "EUR")} icon={Coins} loading={isLoading} />
       </div>
+      <p className="text-body-sm text-muted-foreground">
+        En facturas históricas sin subtotal se usa el total registrado, que puede incluir IVA.
+      </p>
 
       <TopProveedoresCard isLoading={isLoading} rows={topProveedores} facturasSinTipoCambio={facturasSinTipoCambio} />
 
@@ -92,7 +95,9 @@ export default function ComprasReportes() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {evolucion.length === 0 ? (
+          {isLoading ? (
+            <div role="status" aria-label="Cargando evolución del período"><ChartSkeleton height={280} /></div>
+          ) : evolucion.length === 0 ? (
             <EmptyStateInline icon={TrendingUp} message="Sin datos para graficar." className="py-4" />
           ) : (
             <div className="w-full h-[280px]">

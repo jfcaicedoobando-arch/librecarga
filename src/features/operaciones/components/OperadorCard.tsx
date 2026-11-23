@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useId, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { User, ChevronRight, Users } from "lucide-react";
@@ -22,7 +22,9 @@ export const OperadorCard = memo(function OperadorCard({ operador }: { operador:
   const [estadoAbierto, setEstadoAbierto] = useState<EstadoUiKey | null>(null);
 
   // clientesDesglose ya viene ordenado por cantidad desc desde useOperacionesData
-  const clientesTop = operador.clientesDesglose.slice(0, TOP_CLIENTES);
+  const [mostrarClientes, setMostrarClientes] = useState(false);
+  const clientesId = useId();
+  const clientesVisibles = mostrarClientes ? operador.clientesDesglose : operador.clientesDesglose.slice(0, TOP_CLIENTES);
   const clientesRestantes = Math.max(operador.clientesDesglose.length - TOP_CLIENTES, 0);
 
   return (
@@ -102,15 +104,19 @@ export const OperadorCard = memo(function OperadorCard({ operador }: { operador:
           <EmptyStateInline icon={Users} message="Sin clientes activos" className="py-2" />
         ) : (
           <>
-            <ul className="space-y-0.5 max-h-56 overflow-y-auto">
-              {clientesTop.map((c) => (
+            <ul id={clientesId} className="space-y-0.5 max-h-56 overflow-y-auto">
+              {clientesVisibles.map((c) => (
                 <ClienteExpandible key={c.nombre} cliente={c} />
               ))}
             </ul>
             {clientesRestantes > 0 && (
-              <p className="text-2xs text-muted-foreground mt-1.5 pl-4">
-                +{clientesRestantes} {clientesRestantes === 1 ? "cliente más" : "clientes más"}
-              </p>
+              <Button type="button" variant="ghost" size="sm" className="mt-1.5"
+                aria-expanded={mostrarClientes} aria-controls={clientesId}
+                onClick={() => setMostrarClientes((valor) => !valor)}>
+                {mostrarClientes
+                  ? "Mostrar menos clientes"
+                  : `Mostrar ${clientesRestantes} ${clientesRestantes === 1 ? "cliente más" : "clientes más"}`}
+              </Button>
             )}
           </>
         )}

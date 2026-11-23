@@ -23,10 +23,9 @@ function renderUltimoAcceso(last: string | null): { text: string; muted: boolean
   };
 }
 
-function badgeEstado(u: ClientUserEnriched) {
-  if (!u.email_confirmed_at || !u.last_sign_in_at) {
-    return <Badge variant="outline">Pendiente</Badge>;
-  }
+export function EstadoUsuarioPortalCliente({ usuario: u }: { usuario: ClientUserEnriched }) {
+  if (!u.email_confirmed_at) return <Badge variant="outline">Invitación sin confirmar</Badge>;
+  if (!u.last_sign_in_at) return <Badge variant="outline">Correo confirmado · sin primer ingreso</Badge>;
   const dias = diasDesde(u.last_sign_in_at) ?? 0;
   if (dias > 60) return <Badge variant="secondary">Inactivo</Badge>;
   return <Badge variant="default">Activo</Badge>;
@@ -50,7 +49,7 @@ export function ClientUserMobileCard({
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0 flex-1">
         <div className="font-semibold text-body truncate">{u.email}</div>
-        <div className="mt-1">{badgeEstado(u)}</div>
+        <div className="mt-1"><EstadoUsuarioPortalCliente usuario={u} /></div>
         <div className={`text-label truncate mt-0.5 ${muted ? "text-muted-foreground" : ""}`}>
           Último acceso: {ultimo}
         </div>

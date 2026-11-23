@@ -4,7 +4,7 @@
  */
 import { Card, CardContent } from "@/components/ui/card";
 import { Stamp } from "lucide-react";
-import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { FilteredListEmptyState } from "@/components/empty/FilteredListEmptyState";
 import { defineColumns } from "@/components/shared/DataTable";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { Hint } from "@/components/shared/Hint";
@@ -15,6 +15,17 @@ import { useFacturasPorTimbrar, type FilaPorTimbrar } from "@/features/facturaci
 import { BandejaShell } from "./BandejaShell";
 import { COL_W } from "@/components/shared/dataTable/columnWidths";
 
+function referenciaBorrador(numero: string): string {
+  return numero.slice("BORRADOR-".length).slice(-8).toUpperCase();
+}
+
+function FolioInterno({ numero }: { numero: string }) {
+  if (!numero.startsWith("BORRADOR-")) return numero;
+  return <Hint label={numero}>
+    <span className="text-muted-foreground italic">Sin folio · {referenciaBorrador(numero)}</span>
+  </Hint>;
+}
+
 const columns = defineColumns<FilaPorTimbrar>([
   {
     id: "numero",
@@ -22,9 +33,7 @@ const columns = defineColumns<FilaPorTimbrar>([
     accessorFn: (r) => r.numero,
     enableSorting: true,
     meta: { width: COL_W.nombre, className: "font-mono whitespace-nowrap", sticky: true },
-    cell: ({ row }) => row.original.numero.startsWith("BORRADOR-")
-      ? <Hint label={row.original.numero}><span tabIndex={0} aria-label="Sin folio (borrador)" className="text-muted-foreground italic">Sin folio (borrador)</span></Hint>
-      : row.original.numero,
+    cell: ({ row }) => <FolioInterno numero={row.original.numero} />,
   },
   clientColumn<FilaPorTimbrar>({ accessor: (r) => r.cliente_nombre }),
   { ...dateColumn<FilaPorTimbrar>({ id: "emision", header: "Emisión prevista", accessor: (r) => r.fecha_emision }),
@@ -70,16 +79,17 @@ export function BandejaPorTimbrar() {
             data={paged.rows}
             isLoading={paged.isLoading}
             emptyState={
-              <EmptyStateInline
+              <FilteredListEmptyState
+                filtered={Boolean(paged.search?.trim()) || paged.activeCount > 0}
+                onClearFilters={paged.resetAll}
                 icon={Stamp}
                 message="No hay CFDI en borrador esperando timbrado."
-                className="py-12"
               />
             }
             rowKey={(r) => r.id}
             getRowHref={(r) => `/facturacion/${r.id}`}
             getRowAriaLabel={(r) => r.numero.startsWith("BORRADOR-")
-              ? `Abrir borrador de factura de ${r.cliente_nombre}`
+              ? `Abrir borrador ${referenciaBorrador(r.numero)} de ${r.cliente_nombre}`
               : `Abrir factura ${r.numero}`}
             sortMode="server"
             controlledSort={paged.controlledSort}
@@ -89,11 +99,7 @@ export function BandejaPorTimbrar() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold text-body truncate font-mono">
-                    {r.numero.startsWith("BORRADOR-") ? (
-                      <Hint label={r.numero}>
-                        <span tabIndex={0} aria-label="Sin folio (borrador)" className="text-muted-foreground italic font-sans">Sin folio (borrador)</span>
-                      </Hint>
-                    ) : r.numero}
+                    <FolioInterno numero={r.numero} />
                   </div>
                   <div className="text-body-sm text-muted-foreground truncate mt-0.5">{toTitleCase(r.cliente_nombre)}</div>
                   <div className="text-label text-muted-foreground mt-0.5">Emisión prevista: {formatDate(r.fecha_emision)}</div>

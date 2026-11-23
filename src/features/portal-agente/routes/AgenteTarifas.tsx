@@ -4,7 +4,7 @@
  * v13.172.17: migrado de `<Table>` crudo a `DataTable` (Fase 4 homologación).
  * v13.182.0: columnas + `EstadoBadge` extraídos a `_sections/agenteTarifasColumns.tsx`.
  */
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import {
 import { AgenteTarifaCard } from "./_sections/AgenteTarifaCard";
 import { todayLocalISO } from "@/lib/date/today";
 import { ErrorState } from "@/components/shared/states/ErrorState";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { FILTROS_TARIFAS_AGENTE, filtroDeTarifaAgente, type FiltroTarifasAgente } from "./_sections/agenteTarifasFiltros";
 import { notifyError } from "@/lib/ui/appFeedback";
 import { getErrorMessage } from "@/lib/errors";
@@ -63,6 +64,9 @@ export default function AgenteTarifas() {
     }, { replace: true });
   };
   const [editor, setEditor] = useState<EditorState>({ open: false, modo: "crear" });
+  const [tarifaEnCarga, setTarifaEnCarga] = useState<string | null>(null);
+  const solicitud = useRef(0);
+  useEffect(() => () => { solicitud.current += 1; }, []);
 
   const hoy = todayLocalISO();
   const clasificadas = useMemo(
@@ -75,38 +79,46 @@ export default function AgenteTarifas() {
     return clasificadas.filter((t) => t.filtro === filtro).map((t) => t.tarifa);
   }, [tarifas, filtro, clasificadas]);
 
-  const handleEditar = useCallback(async (t: AgenteTarifaRow) => {
+  const abrirTarifa = useCallback(async function cargarTarifa(t: AgenteTarifaRow, modo: "editar" | "duplicar") {
+    const pedido = ++solicitud.current;
+    setTarifaEnCarga(t.id);
+    const editar = modo === "editar";
     try {
       const rows = await fetchRecargosDeTarifa(t.id);
-      setEditor({ open: true, modo: "editar", tarifaId: t.id, initial: toInitial(t, recargosIniciales(rows, true)) });
+      if (solicitud.current !== pedido) return;
+      setEditor({
+        open: true, modo, tarifaId: editar ? t.id : undefined,
+        initial: toInitial(t, recargosIniciales(rows, editar)),
+      });
     } catch (error: unknown) {
-      notifyError(undefined, {
+      if (solicitud.current !== pedido) return;
+      notifyError(undefined, editar ? {
         title: "No se pudo abrir la tarifa para editar",
         description: getErrorMessage(error), error, method: "AGENTE_EDITAR_TARIFA",
-      });
-    }
-  }, []);
-
-  const handleDuplicar = useCallback(async function duplicarTarifa(t: AgenteTarifaRow) {
-    try {
-      const rows = await fetchRecargosDeTarifa(t.id);
-      setEditor({ open: true, modo: "duplicar", initial: toInitial(t, recargosIniciales(rows, false)) });
-    } catch (error: unknown) {
-      notifyError(undefined, {
+      } : {
         title: "No se pudieron cargar los recargos de la tarifa",
         description: "Reintenta para duplicar la tarifa con sus recargos.",
         error, method: "AGENTE_DUPLICAR_TARIFA", context: { tarifaId: t.id },
-        action: { label: "Reintentar", onClick: () => { void duplicarTarifa(t); } },
+        action: { label: "Reintentar", onClick: () => { void cargarTarifa(t, modo); } },
       });
+    } finally {
+      if (solicitud.current === pedido) setTarifaEnCarga(null);
     }
   }, []);
 
+  const nuevaTarifa = () => {
+    solicitud.current += 1;
+    setTarifaEnCarga(null);
+    setEditor({ open: true, modo: "crear" });
+  };
+
   const columns = useMemo(
     () => buildAgenteTarifasColumns({
-      onEditar: (t) => { void handleEditar(t); },
-      onDuplicar: (t) => { void handleDuplicar(t); },
+      onEditar: (t) => { void abrirTarifa(t, "editar"); },
+      onDuplicar: (t) => { void abrirTarifa(t, "duplicar"); },
+      tarifaEnCarga,
     }),
-    [handleDuplicar, handleEditar],
+    [abrirTarifa, tarifaEnCarga],
   );
 
   return (
@@ -116,7 +128,7 @@ export default function AgenteTarifas() {
         title="Mis tarifas marítimas"
         description="Tarifas que has subido para tus rutas marítimas. Las nuevas tarifas quedan en borrador hasta que operaciones las aprueba."
         actions={
-          <Button onClick={() => setEditor({ open: true, modo: "crear" })}>
+          <Button onClick={nuevaTarifa}>
             <Plus className="h-4 w-4 mr-1" /> Nueva tarifa
           </Button>
         }
@@ -149,12 +161,17 @@ export default function AgenteTarifas() {
         data={filtradas}
         rowKey={(t) => t.id}
         isLoading={isLoading}
-        emptyMessage="No hay tarifas para este filtro."
+        emptyState={tarifas.length === 0
+          ? <EmptyStateInline message="Aún no has registrado tarifas."
+              action={{ label: "Nueva tarifa", onClick: nuevaTarifa }} />
+          : <EmptyStateInline message="No hay tarifas en este estado."
+              action={{ label: "Ver todas las tarifas", onClick: () => setFiltro("todas") }} />}
         mobileCard={(t) => (
           <AgenteTarifaCard
             t={t}
-            onEditar={(x) => { void handleEditar(x); }}
-            onDuplicar={(x) => { void handleDuplicar(x); }}
+            onEditar={(x) => { void abrirTarifa(x, "editar"); }}
+            onDuplicar={(x) => { void abrirTarifa(x, "duplicar"); }}
+            tarifaEnCarga={tarifaEnCarga}
           />
         )}
       />

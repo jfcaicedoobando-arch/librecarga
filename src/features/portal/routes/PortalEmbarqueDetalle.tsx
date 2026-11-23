@@ -15,14 +15,13 @@ import { PortalEmbarqueDocumentos } from "@/features/portal/components/PortalEmb
 import { PortalEmbarqueResumenTab } from "@/features/portal/components/embarqueDetalle/PortalEmbarqueResumenTab";
 import { PortalEmbarqueStepper } from "@/features/portal/components/embarqueDetalle/PortalEmbarqueStepper";
 import { filtrarEventosVisiblesCliente } from "@/lib/domain/eventosVisiblesCliente";
-
-
 import { usePortalEmbarqueDetalleController } from "@/features/embarques/hooks";
 import { useRegisterBreadcrumbLabel } from "@/lib/contexts/BreadcrumbContext";
 import { useDocumentTitle } from "@/hooks/shared";
 import { useVolver } from "@/hooks/shared/useVolver";
 import { ErrorState } from "@/components/shared/states/ErrorState";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { Hint } from "@/components/shared/Hint";
 
 export default function PortalEmbarqueDetalle() {
@@ -35,9 +34,11 @@ export default function PortalEmbarqueDetalle() {
     refetch,
     eventos,
     eventosError,
+    eventosLoading,
     refetchEventos,
     documentos,
     documentosError,
+    documentosLoading,
     refetchDocumentos,
     estadoVisual,
     currentStepIndex,
@@ -75,7 +76,6 @@ export default function PortalEmbarqueDetalle() {
   // muestra (hitos visibles para el cliente), no los eventos crudos.
   const eventosVisiblesCount = filtrarEventosVisiblesCliente(eventos).length;
 
-
   return (
     <PortalPageShell>
       <DetailHeader
@@ -92,18 +92,21 @@ export default function PortalEmbarqueDetalle() {
         }
       />
 
-
-
-
-
       {/* Progress Tracker */}
-      <PortalEmbarqueStepper
-        progressSteps={progressSteps}
-        currentStepIndex={currentStepIndex}
-        diasParaEta={diasParaEta}
-        eta={embarque.eta}
-      />
-
+      {currentStepIndex < 0 ? (
+        <p className="rounded-md border p-3 text-body-sm text-muted-foreground">
+          {estadoVisual === "Cancelado"
+            ? "El embarque fue cancelado."
+            : "Este estado no tiene una etapa de avance asignada."}
+        </p>
+      ) : (
+        <PortalEmbarqueStepper
+          progressSteps={progressSteps}
+          currentStepIndex={currentStepIndex}
+          diasParaEta={diasParaEta}
+          eta={embarque.eta}
+        />
+      )}
 
       {/* Quick Info Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -165,7 +168,9 @@ export default function PortalEmbarqueDetalle() {
         <TabsContent value="tracking" className="space-y-4">
           {/* Defecto 5: un fallo de carga se muestra como error con reintento,
               nunca como una línea de tiempo vacía. */}
-          {eventosError ? (
+          {eventosLoading ? (
+            <EmptyStateInline loading message="Cargando la línea de tiempo…" />
+          ) : eventosError ? (
             <ErrorStateInline
               message="No pudimos cargar la línea de tiempo de este embarque."
               onRetry={() => void refetchEventos()}
@@ -176,7 +181,9 @@ export default function PortalEmbarqueDetalle() {
         </TabsContent>
 
         <TabsContent value="documentos">
-          {documentosError ? (
+          {documentosLoading ? (
+            <EmptyStateInline loading message="Cargando documentos…" />
+          ) : documentosError ? (
             <ErrorStateInline
               message="No pudimos cargar los documentos de este embarque."
               onRetry={() => void refetchDocumentos()}

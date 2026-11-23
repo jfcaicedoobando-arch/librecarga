@@ -62,6 +62,26 @@ export function CotizacionHandover({ cotizacion }: { cotizacion: CotizacionRow }
 }
 
 type TiposContenedor = ReturnType<typeof useTiposContenedor>["data"];
+function camposEquipo(cotizacion: CotizacionRow, tiposContenedor: NonNullable<TiposContenedor>): Array<[string, string]> {
+  if (cotizacion.modo === "Marítimo") {
+    if (cotizacion.tipo_embarque === "LCL") {
+      return [
+        ["Carga consolidada", "LCL"],
+        ["Piezas", cotizacion.piezas == null ? "—" : formatNumber(cotizacion.piezas)],
+      ];
+    }
+    return [
+      ["Contenedor", resolveTipoContenedorNombre(cotizacion.tipo_contenedor, tiposContenedor, "—")],
+      ["Número de contenedores", cotizacion.num_contenedores == null ? "—" : formatNumber(cotizacion.num_contenedores)],
+    ];
+  }
+  if (cotizacion.modo === "Terrestre") {
+    const equipo = cotizacion.tipo_unidad || cotizacion.modalidad_equipo;
+    return equipo ? [["Equipo terrestre", equipo]] : [];
+  }
+  return cotizacion.piezas ? [["Piezas", formatNumber(cotizacion.piezas)]] : [];
+}
+
 function handoverFields(
   cotizacion: CotizacionRow, createdAt: string,
   tiposContenedor: NonNullable<TiposContenedor>, prov: { agente: string | null; naviera: string | null } | null | undefined,
@@ -74,8 +94,7 @@ function handoverFields(
     ["Origen", cotizacion.origen || "—"],
     ["Destino", cotizacion.destino || "—"],
     ["Mercancía", cotizacion.descripcion_mercancia || "—"],
-    ["Contenedor", resolveTipoContenedorNombre(cotizacion.tipo_contenedor, tiposContenedor, "—")],
-    ["Número de contenedores", cotizacion.num_contenedores == null ? "—" : formatNumber(cotizacion.num_contenedores)],
+    ...camposEquipo(cotizacion, tiposContenedor),
     ["Peso", cotizacion.peso_kg == null ? "—" : `${formatNumber(cotizacion.peso_kg)} kg`],
     ["Volumen", cotizacion.volumen_m3 == null ? "—" : `${formatNumber(cotizacion.volumen_m3)} m³`],
     ["Agente en origen", prov?.agente ?? "—"],

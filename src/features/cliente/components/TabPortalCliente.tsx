@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
-import { ClientUserMobileCard } from "@/features/cliente/components/ClientUserMobileCard";
+import { ClientUserMobileCard, EstadoUsuarioPortalCliente } from "@/features/cliente/components/ClientUserMobileCard";
 import { UserPlus, Trash2, Globe, Mail } from "lucide-react";
 import { formatDate } from "@/lib/formatters";
 import {
@@ -38,15 +38,6 @@ function renderUltimoAcceso(last: string | null): { text: string; muted: boolean
     text: formatDate(last, "dd MMM yyyy HH:mm"),
     muted: dias > 30,
   };
-}
-
-function badgeEstado(u: ClientUserEnriched) {
-  if (!u.email_confirmed_at || !u.last_sign_in_at) {
-    return <Badge variant="outline">Pendiente</Badge>;
-  }
-  const dias = diasDesde(u.last_sign_in_at) ?? 0;
-  if (dias > 60) return <Badge variant="secondary">Inactivo</Badge>;
-  return <Badge variant="default">Activo</Badge>;
 }
 
 export default function TabPortalCliente({ clienteId, organizationId, canEdit }: Props) {
@@ -84,7 +75,7 @@ export default function TabPortalCliente({ clienteId, organizationId, canEdit }:
       id: "estado",
       header: "Estado",
       meta: { width: "w-28" },
-      cell: ({ row }) => badgeEstado(row.original),
+      cell: ({ row }) => <EstadoUsuarioPortalCliente usuario={row.original} />,
     },
     {
       id: "ultimo",

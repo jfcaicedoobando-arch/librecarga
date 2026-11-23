@@ -25,6 +25,7 @@ interface Resultado {
   categoria: ActividadCategoria | 'todos';
   setCategoria: (c: ActividadCategoria | 'todos') => void;
   isLoading: boolean;
+  isFetching: boolean;
   isError: boolean;
   refetch: () => void;
 }
@@ -51,6 +52,7 @@ export function useActividadEmbarque(embarqueId: string | undefined): Resultado 
     categoria,
     setCategoria,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     refetch: () => void query.refetch(),
   };

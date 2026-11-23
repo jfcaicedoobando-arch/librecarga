@@ -24,6 +24,7 @@ export interface EmbarqueDetalleTabsProps {
   activeTab: string;
   setActiveTab: (t: string) => void;
   estadoVisual: string;
+  trackingGuard?: { onDirtyChange: (dirty: boolean) => void; confirmarDescarte: (accion: () => void) => void };
   canEdit: boolean;
   borradorNota: Pick<ReturnType<typeof useBorradorNotaEmbarque>, "texto" | "setTexto" | "enviarNota" | "enviando">;
 }

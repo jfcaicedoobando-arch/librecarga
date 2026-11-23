@@ -1,11 +1,14 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
 import { Link } from "react-router";
+import { Button } from "@/components/ui/button";
 import { AvisoAccionable } from "@/components/shared/states/AvisoAccionable";
 import { COPY_ENLACE, COPY_PASOS } from "@/lib/copy/publicoCopy";
 import { mensajeTrackingAmigable } from "./trackingErrorCopy";
 
-export function TrackingPublicoErrorCard({ message }: { message?: string }) {
+export function TrackingPublicoErrorCard({ message, onRetry, retrying }: {
+  message?: string; onRetry?: () => void; retrying?: boolean;
+}) {
   const descripcion = mensajeTrackingAmigable(message);
   const esEnlace = descripcion === COPY_ENLACE.invalido;
 
@@ -20,9 +23,16 @@ export function TrackingPublicoErrorCard({ message }: { message?: string }) {
             descripcion={descripcion}
             pasos={esEnlace ? COPY_PASOS.enlaceInvalido : COPY_PASOS.servicioNoDisponible}
             accion={
-              <Link to="/" className="text-body font-medium text-accent hover:underline">
-                Volver al inicio
-              </Link>
+              <div className="flex flex-wrap items-center gap-3">
+                {!esEnlace && onRetry && (
+                  <Button type="button" onClick={onRetry} loading={retrying} disabled={retrying}>
+                    {retrying ? "Consultando seguimiento…" : "Reintentar seguimiento"}
+                  </Button>
+                )}
+                <Link to="/" className="text-body font-medium text-accent hover:underline">
+                  Volver al inicio
+                </Link>
+              </div>
             }
             className="border-0 p-0"
           />

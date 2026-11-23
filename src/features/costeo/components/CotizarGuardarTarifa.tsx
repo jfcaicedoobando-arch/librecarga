@@ -15,6 +15,7 @@ import type { CosteoTarifa } from "@/features/costeo/types";
 
 interface Props {
   disabled: boolean;
+  variasRutas: boolean;
   /** Guarda la tarifa y llama `onGuardada` con la fila creada. */
   guardar: (onGuardada: (t: CosteoTarifa) => void) => void;
 }
@@ -24,7 +25,7 @@ export function CotizarGuardarTarifa(props: Props) {
   return puedeCotizarYGuardar(effectiveRole) ? <CotizarGuardarTarifaPanel {...props} /> : null;
 }
 
-function CotizarGuardarTarifaPanel({ disabled, guardar }: Props) {
+function CotizarGuardarTarifaPanel({ disabled, variasRutas, guardar }: Props) {
   const navigate = useNavigate();
   const [clienteId, setClienteId] = useState("");
   const { data: clientes = [] } = useClientesEspeciales();
@@ -47,6 +48,11 @@ function CotizarGuardarTarifaPanel({ disabled, guardar }: Props) {
           Cotizar y guardar tarifa
         </Button>
       </Hint>
+      {variasRutas && (
+        <p className="basis-full text-body-sm text-muted-foreground">
+          Para cotizar con un cliente especial, selecciona una sola ruta.
+        </p>
+      )}
     </div>
   );
 }

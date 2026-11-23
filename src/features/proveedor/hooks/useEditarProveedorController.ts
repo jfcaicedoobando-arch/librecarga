@@ -125,6 +125,7 @@ export function useEditarProveedorController(
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
+    if (isSaving) return;
     if (!isValid) {
       setTouched({
         origen_proveedor: true,
@@ -160,6 +161,7 @@ export function useEditarProveedorController(
   return {
     form,
     isSaving,
+    isDirty: JSON.stringify(form) !== JSON.stringify(normalizarProveedor(proveedor)),
     isLogistico,
     isGasto,
     isAgenteCarga,

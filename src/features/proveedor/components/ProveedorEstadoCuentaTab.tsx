@@ -66,7 +66,6 @@ export function ProveedorEstadoCuentaTab({ proveedorId, proveedorNombre, rfc }: 
   const saldos = data?.saldos ?? [];
   const apertura = data?.saldo_apertura ?? [];
   const puedeDescargar = puedeExportarEstadoCuenta(consulta);
-
   const datosExport = {
     proveedorId, proveedorNombre, rfc, desde, hasta, movimientos, aging, saldos,
     saldoApertura: apertura, ...alcanceExport(data),
@@ -81,7 +80,6 @@ export function ProveedorEstadoCuentaTab({ proveedorId, proveedorNombre, rfc }: 
       setDescargando(false);
     }
   };
-
   const estadoConsulta = isLoading ? (
     <div role="status" aria-label="Cargando movimientos del periodo"><CardSkeleton /></div>
   ) : isError ? (
@@ -126,6 +124,9 @@ export function ProveedorEstadoCuentaTab({ proveedorId, proveedorNombre, rfc }: 
               <FileText className="mr-2 h-4 w-4" /> PDF
             </Button>
           </div>
+          <p hidden={!isFetching || !!estadoConsulta} role="status" className="basis-full text-body-sm text-muted-foreground">
+            Actualizando movimientos del periodo…
+          </p>
         </CardContent>
       </Card>
 

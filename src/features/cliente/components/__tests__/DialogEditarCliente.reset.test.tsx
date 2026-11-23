@@ -3,13 +3,15 @@
  * el modal. Si llega un refetch del cliente con el modal abierto, lo editado
  * NO se debe perder (antes provocaba el "parpadeo" de los interruptores).
  */
-import { render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import DialogEditarCliente from "../DialogEditarCliente";
 
 vi.mock("@/hooks/shared", () => ({
   usePermissions: () => ({ canConfigurarAutorizacionCliente: true }),
 }));
+const { parseCsf } = vi.hoisted(() => ({ parseCsf: vi.fn() }));
+vi.mock("@/features/cliente/services/csf", () => ({ parseCsf }));
 
 const base = {
   nombre: "ACME",
@@ -70,6 +72,34 @@ describe("DialogEditarCliente | reinicio del formulario", () => {
 });
 
 describe("DialogEditarCliente | datos fiscales", () => {
+  it("protege una edición y permite seguir capturando", () => {
+    const cerrar = vi.fn();
+    render(<DialogEditarCliente open onOpenChange={cerrar} cliente={base} onSave={vi.fn()} isSaving={false} />);
+    fireEvent.change(screen.getByRole("textbox", { name: /Nombre \/ Razón Social/ }), { target: { value: "Borrador" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.getByRole("alertdialog", { name: /Descartar los cambios/ })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Seguir capturando" }));
+    expect(screen.getByRole("textbox", { name: /Nombre \/ Razón Social/ })).toHaveValue("BORRADOR");
+    expect(cerrar).not.toHaveBeenCalled();
+  });
+
+  it("espera la CSF y descarta respuestas que llegan después de cerrar", async () => {
+    let resolverCsf!: (value: { nombre: string }) => void;
+    const respuesta = new Promise((resolve) => { resolverCsf = resolve; });
+    parseCsf.mockReturnValueOnce(respuesta);
+    const props = { cliente: base, onOpenChange: vi.fn(), isSaving: false, onSave: vi.fn() };
+    const { rerender } = render(<DialogEditarCliente {...props} open />);
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(input).not.toBeNull();
+    fireEvent.change(input!, { target: { files: [new File(["PDF"], "constancia.pdf", { type: "application/pdf" })] } });
+    expect(screen.getByRole("button", { name: "Leyendo constancia…" })).toBeDisabled();
+    rerender(<DialogEditarCliente {...props} open={false} />);
+    rerender(<DialogEditarCliente {...props} cliente={{ ...base, nombre: "Otro cliente" }} open />);
+    await act(async () => resolverCsf({ nombre: "Respuesta atrasada" }));
+    expect(screen.getByRole("textbox", { name: /Nombre \/ Razón Social/ })).toHaveValue("Otro cliente");
+    expect(props.onSave).not.toHaveBeenCalled();
+  });
+
   it("anuncia Régimen Fiscal SAT y Uso CFDI por nombre y conserva la etiqueta al elegir un valor", async () => {
     render(<DialogEditarCliente open onOpenChange={vi.fn()} cliente={base} onSave={vi.fn()} isSaving={false} />);
 

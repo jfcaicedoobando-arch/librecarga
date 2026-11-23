@@ -7,7 +7,7 @@
  *
  * Reusa hooks/servicios ya implementados (no toca backend).
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Receipt, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
@@ -16,15 +16,12 @@ import { notifySuccess } from "@/lib/ui/appFeedback";
 import {
   useFacturapiCredenciales,
   useUpsertFacturapiCredenciales,
-  useProbarFacturapiConexion,
 } from "@/features/configuracion/hooks/useFacturapiCredenciales";
-import type {
-  FacturapiAmbiente,
-  ProbarConexionResult,
-} from "@/features/configuracion/services/facturapiCredenciales";
+import type { FacturapiAmbiente } from "@/features/configuracion/services/facturapiCredenciales";
 import { PasoAmbiente } from "./wizard/PasoAmbiente";
 import { PasoApiKeys } from "./wizard/PasoApiKeys";
 import { PasoProbar } from "./wizard/PasoProbar";
+import { usePruebaFacturapiAmbiente } from "./wizard/usePruebaFacturapiAmbiente";
 
 const PASOS = ["Ambiente", "API keys", "Probar"] as const;
 
@@ -37,43 +34,24 @@ interface Props {
 export default function FacturapiOnboardingWizard({ orgId, open, onOpenChange }: Props) {
   const { data } = useFacturapiCredenciales(orgId);
   const upsert = useUpsertFacturapiCredenciales(orgId);
-  const probar = useProbarFacturapiConexion(orgId);
-
   const [paso, setPaso] = useState(1);
   const [ambiente, setAmbiente] = useState<FacturapiAmbiente>("sandbox");
-  const [resultado, setResultado] = useState<ProbarConexionResult | null>(null);
 
   // Hidratar ambiente desde la fila al abrir.
   useEffect(() => {
     if (!open) return;
     setPaso(1);
     setAmbiente((data?.ambiente as FacturapiAmbiente) ?? "sandbox");
-    setResultado(null);
-  }, [open, data?.ambiente]);
+  }, [open, orgId, data?.ambiente]);
 
   const sandboxLast4 = data?.api_key_sandbox_last4 ?? null;
   const liveLast4 = data?.api_key_live_last4 ?? null;
-  const keyActivaCargada = ambiente === "sandbox" ? !!sandboxLast4 : !!liveLast4;
-
-  const onCambiarAmbiente = (a: FacturapiAmbiente) => {
-    setAmbiente(a);
-    setResultado(null); // invalida prueba previa
-  };
-
-  const onProbar = async () => {
-    try {
-      const res = await probar.mutateAsync(ambiente);
-      setResultado(res);
-    } catch (err) {
-      setResultado({
-        ok: false,
-        status: 0,
-        message: err instanceof Error ? err.message : "Error desconocido",
-      });
-    }
-  };
+  const llaveActiva = ambiente === "sandbox" ? sandboxLast4 : liveLast4;
+  const { resultado, probando, aprobada, onProbar } = usePruebaFacturapiAmbiente(orgId, ambiente, llaveActiva, open);
+  const puedeFinalizar = aprobada && !upsert.isPending;
 
   const onFinalizar = async () => {
+    if (!puedeFinalizar) return;
     await upsert.mutateAsync({
       ambiente,
       facturapi_org_id:
@@ -88,12 +66,7 @@ export default function FacturapiOnboardingWizard({ orgId, open, onOpenChange }:
     onOpenChange(false);
   };
 
-  const puedeAvanzar = useMemo(() => {
-    if (paso === 1) return true;
-    if (paso === 2) return keyActivaCargada;
-    if (paso === 3) return !!resultado?.ok;
-    return false;
-  }, [paso, keyActivaCargada, resultado]);
+  const puedeAvanzar = paso === 1 || !!llaveActiva;
 
   const footer = (
     <>
@@ -101,7 +74,7 @@ export default function FacturapiOnboardingWizard({ orgId, open, onOpenChange }:
         type="button"
         variant="ghost"
         onClick={() => setPaso((p) => Math.max(1, p - 1))}
-        disabled={paso === 1}
+        disabled={paso === 1 || upsert.isPending}
       >
         <ArrowLeft className="h-4 w-4 mr-1" /> Atrás
       </Button>
@@ -110,7 +83,7 @@ export default function FacturapiOnboardingWizard({ orgId, open, onOpenChange }:
           Siguiente <ArrowRight className="h-4 w-4 ml-1" />
         </Button>
       ) : (
-        <Button type="button" onClick={onFinalizar} disabled={!puedeAvanzar || upsert.isPending}>
+        <Button type="button" onClick={onFinalizar} disabled={!puedeFinalizar}>
           <CheckCircle2 className="h-4 w-4 mr-1" />
           {upsert.isPending ? "Guardando…" : "Finalizar"}
         </Button>
@@ -122,6 +95,7 @@ export default function FacturapiOnboardingWizard({ orgId, open, onOpenChange }:
     <FormDialogShell
       open={open}
       onOpenChange={onOpenChange}
+      busy={upsert.isPending}
       icon={Receipt}
       title="Conectar FacturApi"
       description="Vincula tu cuenta de FacturApi en 3 pasos para empezar a timbrar CFDI 4.0."
@@ -131,7 +105,7 @@ export default function FacturapiOnboardingWizard({ orgId, open, onOpenChange }:
     >
       {paso === 1 && (
         <FormDialogSection flat title="Paso 1 · Ambiente">
-          <PasoAmbiente ambiente={ambiente} onChange={onCambiarAmbiente} />
+          <PasoAmbiente ambiente={ambiente} onChange={setAmbiente} />
         </FormDialogSection>
       )}
       {paso === 2 && (
@@ -149,7 +123,7 @@ export default function FacturapiOnboardingWizard({ orgId, open, onOpenChange }:
           <PasoProbar
             ambiente={ambiente}
             resultado={resultado}
-            probando={probar.isPending}
+            probando={probando}
             onProbar={onProbar}
           />
         </FormDialogSection>

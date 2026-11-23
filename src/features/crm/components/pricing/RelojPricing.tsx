@@ -23,8 +23,8 @@ export function RelojPricing({ enviadaAt, venceAt, respondidaAt, cancelada = fal
     return () => clearInterval(t);
   }, [respondidaAt, cancelada]);
 
-  // Una solicitud cancelada ya no corre contra el plazo.
-  const reloj = cancelada ? null : calcularReloj({ enviadaAt, venceAt, respondidaAt, ahora });
+  if (cancelada) return <Badge variant="neutral">Plazo detenido</Badge>;
+  const reloj = calcularReloj({ enviadaAt, venceAt, respondidaAt, ahora });
   if (!reloj) return <span className="text-body-sm text-muted-foreground">—</span>;
   return (
     <Badge variant={VARIANTE[reloj.nivel]} className="gap-1">

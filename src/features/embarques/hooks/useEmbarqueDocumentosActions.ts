@@ -129,7 +129,7 @@ export function useEmbarqueDocumentosActions(embarque: EmbarqueRow | undefined, 
   };
 
   const handleRechazarDoc = async (doc: DocumentoEmbarqueRow, motivo: string) => {
-    if (!id) return;
+    if (!id) return false;
     try {
       await rechazarDoc.mutateAsync({ embarqueId: id, docId: doc.id, motivo });
       registrarActividad.mutate({
@@ -141,6 +141,7 @@ export function useEmbarqueDocumentosActions(embarque: EmbarqueRow | undefined, 
         title: `"${doc.nombre}" fue rechazado`,
         description: 'Se avisó a quien abrió el embarque para que lo suba de nuevo.',
       });
+      return true;
     } catch (err: unknown) {
       notifyError(undefined, {
         phase: "rechazo de documento",
@@ -150,6 +151,7 @@ export function useEmbarqueDocumentosActions(embarque: EmbarqueRow | undefined, 
         context: { embarqueId: id, documentoId: doc.id, documentoNombre: doc.nombre },
         method: "HANDLE_RECHAZAR_DOC",
       });
+      return false;
     }
   };
 

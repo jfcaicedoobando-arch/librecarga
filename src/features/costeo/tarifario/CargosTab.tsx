@@ -27,7 +27,7 @@ export function CargosTab({ tipo, orgId, puedeEditar }: Props) {
   const filas = q.data ?? [];
 
   const descargar = () => exportToCsv(`${tipo === "fob" ? "cargos-fob" : "cargos-locales"}.csv`,
-    [{ key: "e", label: etiqueta }, { key: "c", label: "Concepto" }, { key: "m", label: "Monto" }, { key: "cur", label: "Currency" }, { key: "u", label: "Unidad" }, { key: "iva", label: "Aplica IVA" }, { key: "t", label: "Monto con IVA" }],
+    [{ key: "e", label: etiqueta }, { key: "c", label: "Concepto" }, { key: "m", label: "Monto" }, { key: "cur", label: "Moneda" }, { key: "u", label: "Unidad" }, { key: "iva", label: "Aplica IVA" }, { key: "t", label: "Monto con IVA" }],
     filas.map((c) => ({ e: c.entidad?.nombre ?? "", c: c.concepto, m: c.monto, cur: c.moneda, u: c.unidad ?? "", iva: c.aplica_iva ? "Sí" : "No", t: montoConIva(c.monto, c.aplica_iva, tasaIva) })));
 
   const archivar = async () => {
@@ -51,7 +51,7 @@ export function CargosTab({ tipo, orgId, puedeEditar }: Props) {
     { accessorKey: "monto", header: "Monto", cell: ({ row }) => formatCurrency(row.original.monto, row.original.moneda) },
     { id: "con_iva", header: "Monto con IVA", cell: ({ row }) => row.original.aplica_iva
       ? formatCurrency(montoConIva(row.original.monto, true, tasaIva), row.original.moneda) : "No aplica" },
-    { accessorKey: "moneda", header: "Currency" },
+    { accessorKey: "moneda", header: "Moneda" },
     { id: "unidad", header: "Unidad", accessorFn: (c) => c.unidad ?? "—" },
     ...(puedeEditar ? [{ id: "acciones", header: "Acciones", cell: ({ row }: { row: { original: CargoTarifario } }) => <>
       <Button size="icon" variant="ghost" aria-label="Editar" onClick={() => setEditando(row.original)}><Pencil className="size-4" /></Button>

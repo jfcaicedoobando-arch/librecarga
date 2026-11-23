@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
 import {
   useActualizarPlantilla,
@@ -33,9 +34,11 @@ export function EditarPlantillaDialog({ plantilla, organizationId, open, onOpenC
   const actualizar = useActualizarPlantilla();
 
   const puede = !!organizationId && nombre.trim().length >= 3;
+  const isDirty = nombre !== plantilla.nombre || descripcion !== (plantilla.descripcion ?? "")
+    || visibilidad !== plantilla.visibilidad;
 
   const handleGuardar = async () => {
-    if (!puede || !organizationId) return;
+    if (!puede || !organizationId || actualizar.isPending) return;
     try {
       await actualizar.mutateAsync({
         id: plantilla.id,
@@ -59,15 +62,15 @@ export function EditarPlantillaDialog({ plantilla, organizationId, open, onOpenC
     <FormDialogShell
       open={open}
       onOpenChange={onOpenChange}
+      isDirty={isDirty}
+      busy={actualizar.isPending}
       icon={Pencil}
       title="Editar plantilla"
       description="Actualiza el nombre, la descripción o la visibilidad. El contenido de la cotización base se preserva."
       size="md"
       footer={
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={actualizar.isPending}>
-            Cancelar
-          </Button>
+          <FormDialogCancelarBoton onCancelar={() => onOpenChange(false)} disabled={actualizar.isPending} />
           <Button onClick={handleGuardar} disabled={!puede || actualizar.isPending}>
             Guardar cambios
           </Button>

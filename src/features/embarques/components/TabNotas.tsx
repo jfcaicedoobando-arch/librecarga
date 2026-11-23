@@ -21,16 +21,19 @@ interface Props {
 export function TabNotas({ embarqueId, texto, setTexto, enviarNota, enviando }: Props) {
   const { canEdit } = usePermissions();
 
-  const { grupos, conteos, categoria, setCategoria, items, isLoading, isError, refetch } =
+  const { grupos, conteos, categoria, setCategoria, items, isLoading, isFetching, isError, refetch } =
     useActividadEmbarque(embarqueId);
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
         <CardTitle>Actividad y Notas</CardTitle>
-        <Button variant="ghost" size="sm" onClick={refetch} aria-label="Actualizar actividad">
-          <RefreshCw className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {isFetching && !isLoading && <span role="status" className="text-body-sm text-muted-foreground">Actualizando actividad…</span>}
+          <Button variant="ghost" size="sm" onClick={refetch} aria-label="Actualizar actividad" disabled={isFetching}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {canEdit && embarqueId && (
@@ -64,6 +67,7 @@ export function TabNotas({ embarqueId, texto, setTexto, enviarNota, enviando }: 
             title="No se pudo cargar la actividad"
             message="Ocurrió un error al obtener las notas y eventos del embarque."
             onRetry={() => void refetch()}
+            retrying={isFetching}
             className="py-6"
           />
         ) : items.length === 0 ? (

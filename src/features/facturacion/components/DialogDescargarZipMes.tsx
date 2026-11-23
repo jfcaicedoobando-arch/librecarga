@@ -53,6 +53,7 @@ export function DialogDescargarZipMes({ open, onOpenChange }: Props) {
   const [descargando, setDescargando] = useState(false);
 
   const descargar = async () => {
+    if (descargando) return;
     if (!organizationId) {
       notifyError(undefined, {
         title: "Selecciona una organización",
@@ -84,6 +85,7 @@ export function DialogDescargarZipMes({ open, onOpenChange }: Props) {
     <FormDialogShell
       open={open}
       onOpenChange={onOpenChange}
+      busy={descargando}
       icon={FileArchive}
       title="Descargar ZIP del mes (PAC)"
       description="FacturApi genera un paquete con el PDF y XML de todas las facturas, notas de crédito y REPs emitidos en el mes. Ideal para entregar al contador."
@@ -115,6 +117,7 @@ export function DialogDescargarZipMes({ open, onOpenChange }: Props) {
         <p className="text-caption text-muted-foreground">
           Si el mes tiene muchos CFDI, el PAC puede tardar hasta un minuto en generar el paquete.
         </p>
+        {descargando && <p role="status" className="text-body-sm">Generando ZIP del mes seleccionado…</p>}
       </div>
     </FormDialogShell>
   );

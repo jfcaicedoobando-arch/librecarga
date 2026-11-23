@@ -61,8 +61,7 @@ export function usePortalEmbarqueDetalleController(id: string | undefined) {
     if (estadoVisual === "Cerrado" || estadoVisual === "EIR" || estadoVisual === "Por liquidar") {
       return PORTAL_EMBARQUE_PROGRESS_STEPS.length;
     }
-    const idx = PORTAL_EMBARQUE_PROGRESS_STEPS.findIndex((s) => s.key === estadoVisual);
-    return idx >= 0 ? idx : 0;
+    return PORTAL_EMBARQUE_PROGRESS_STEPS.findIndex((s) => s.key === estadoVisual);
   }, [estadoVisual]);
 
   const diasParaEta = useMemo(() => {

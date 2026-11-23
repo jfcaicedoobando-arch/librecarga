@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { LoadingState } from "@/components/shared/states/LoadingState";
 import { ErrorState } from "@/components/shared/states/ErrorState";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import OportunidadKanban from "@/features/crm/components/OportunidadKanban";
 import type { ColumnDef } from "@/components/shared/dataTable/tanstackTypes";
@@ -26,11 +27,12 @@ interface Props {
   onClickCard: (id: string) => void;
   onNuevo?: (etapaId: string) => void;
   columnas: ColumnDef<CrmOportunidadRow, unknown>[];
+  onLimpiarFiltros?: () => void;
 }
 
 export default function OportunidadesTabsView({
   vista, onVistaChange, isError, isLoading, refetch,
-  etapas, ops, onMover, puedeMover, onClickCard, onNuevo, columnas,
+  etapas, ops, onMover, puedeMover, onClickCard, onNuevo, columnas, onLimpiarFiltros,
 }: Props) {
   return (
     <Tabs value={vista} onValueChange={(v) => onVistaChange(v === "tabla" ? "tabla" : "kanban")}>
@@ -65,6 +67,10 @@ export default function OportunidadesTabsView({
                 data={ops}
                 isLoading={isLoading}
                 emptyMessage="No hay oportunidades"
+                emptyState={onLimpiarFiltros && (
+                  <EmptyStateInline message="No hay oportunidades con estos filtros."
+                    action={{ label: "Limpiar filtros", onClick: onLimpiarFiltros }} />
+                )}
                 getRowHref={(o) => `/crm/oportunidades/${o.id}`}
                 rowKey={(o) => o.id}
                 density={TABLE_DENSITY.listado}

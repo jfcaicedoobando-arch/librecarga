@@ -47,7 +47,7 @@ export function SubirDocumentoDialog({
   open, onOpenChange, tipos, tiposConVencimiento, tipoSugerido,
   descripcion, isPending, onGuardar,
 }: Props) {
-  const [tipo, setTipo] = useState<string>(tipoSugerido ?? tipos[0]);
+  const [tipo, setTipo] = useState(tipoSugerido ?? "");
   const [archivo, setArchivo] = useState<File | null>(null);
   const [fechaDocumento, setFechaDocumento] = useState("");
   const [fechaVencimiento, setFechaVencimiento] = useState("");
@@ -57,7 +57,7 @@ export function SubirDocumentoDialog({
 
   // Ola 12 · R3FE-06: el diálogo NO se desmonta entre aperturas — sin esto el
   // tipo sugerido sólo aplicaba en el primer montaje.
-  const tipoInicial = tipoSugerido ?? tipos[0];
+  const tipoInicial = tipoSugerido ?? "";
   useEffect(() => {
     setTipo(tipoInicial);
     if (!open) {
@@ -84,7 +84,7 @@ export function SubirDocumentoDialog({
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isPending) return;
+    if (isPending || !tipo) return;
     if (!archivo) {
       setErrorArchivo(errorArchivo ?? "Selecciona un archivo (PDF, XML o imagen).");
       return;
@@ -122,7 +122,7 @@ export function SubirDocumentoDialog({
       footer={
         <>
           <FormDialogCancelarBoton onCancelar={() => onOpenChange(false)} disabled={isPending} />
-          <Button type="submit" form={FORM_ID} loading={isPending}>
+          <Button type="submit" form={FORM_ID} loading={isPending} disabled={!tipo}>
             Guardar documento
           </Button>
         </>
@@ -132,8 +132,8 @@ export function SubirDocumentoDialog({
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="doc-tipo">Tipo de documento</Label>
-            <Select value={tipo} onValueChange={(nuevoTipo) => { setTipo(nuevoTipo); setError(null); }}>
-              <SelectTrigger id="doc-tipo"><SelectValue /></SelectTrigger>
+            <Select required value={tipo} onValueChange={(nuevoTipo) => { setTipo(nuevoTipo); setError(null); }}>
+              <SelectTrigger id="doc-tipo" aria-required="true"><SelectValue placeholder="Selecciona el tipo de documento" /></SelectTrigger>
               <SelectContent>
                 {tipos.map((t) => (
                   <SelectItem key={t} value={t}>{t}</SelectItem>

@@ -3,8 +3,10 @@
  * Sólo lectura, sin datos comerciales (RLS lo restringe a esta vista mínima).
  * v13.172.17: migrado a `DataTable` (Fase 4 homologación).
  */
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
+import SearchInput from "@/components/shared/SearchInput";
+import { Button } from "@/components/ui/button";
 import { defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -28,6 +30,14 @@ function estadoVisible(e: EmbarqueAgente): string {
 export default function AgenteEmbarques() {
   useDocumentTitle('Mis Embarques');
   const { data: embarques = [], isLoading, isError, refetch } = useAgenteEmbarques();
+  const [busqueda, setBusqueda] = useState("");
+  const buscador = useRef<HTMLInputElement>(null);
+  const termino = busqueda.trim().toLocaleLowerCase("es-MX");
+  const encontrados = useMemo(() => !termino ? embarques : embarques.filter((e) =>
+    [etiquetaExpedienteAgente(e.expediente, e.id), e.bl_master].some(
+      (dato) => dato?.toLocaleLowerCase("es-MX").includes(termino),
+    ),
+  ), [embarques, termino]);
 
   const columns = useMemo<ColumnDef<EmbarqueAgente, unknown>[]>(
     () => defineColumns<EmbarqueAgente>([
@@ -96,15 +106,30 @@ export default function AgenteEmbarques() {
         description="Embarques donde figuras como agente de carga. Sólo lectura — sin datos comerciales del cliente final."
       />
 
+      {!isLoading && !isError && embarques.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput ref={buscador} value={busqueda} onChange={setBusqueda}
+            placeholder="Buscar por expediente o BL Master…" className="min-w-0 flex-1 sm:max-w-sm" />
+          {busqueda && (
+            <Button type="button" variant="outline" size="sm" onClick={() => { setBusqueda(""); buscador.current?.focus(); }}>
+              Limpiar búsqueda
+            </Button>
+          )}
+          {termino && <span role="status" className="text-body-sm text-muted-foreground">{encontrados.length} de {embarques.length} embarques</span>}
+        </div>
+      )}
+
       {isError ? (
         <ErrorState onRetry={() => void refetch()} />
       ) : (
       <ResponsiveDataTable<EmbarqueAgente>
         columns={columns}
-        data={embarques}
+        data={encontrados}
         rowKey={(e) => e.id}
         isLoading={isLoading}
-        emptyMessage="Aún no hay embarques asignados a tu agente. Operaciones asigna embarques al agente cuando la cotización u operación lo vincula."
+        emptyMessage={termino
+          ? "Sin coincidencias por expediente o BL Master."
+          : "Aún no hay embarques asignados a tu agente. Operaciones asigna embarques al agente cuando la cotización u operación lo vincula."}
         mobileCard={(e) => (
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-start justify-between gap-2">

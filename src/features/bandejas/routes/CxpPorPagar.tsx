@@ -1,11 +1,7 @@
 /**
- * CxP Por Pagar — facturas de proveedor vigentes con saldo.
- *
- * v13.173.0 (Ola 1 · Filtros globales) — migrada a `useClientPagedList` +
- * `<UnifiedFiltersBar />` con search, filtro de moneda, filtro de vencidas,
- * rango de fecha de vencimiento, orden y paginación sincronizados con la URL.
+ * Facturas vigentes de proveedor con saldo, filtros en la URL y programación de pagos.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Inbox } from "lucide-react";
 
@@ -26,6 +22,7 @@ import { CxpPorPagarMobileCard } from "@/features/bandejas/components/CxpPorPaga
 import { usePermissions } from "@/hooks/shared/usePermissions";
 import { CxpPorPagarHeaderActions } from "./_sections/CxpPorPagarHeaderActions";
 import { CxpPorPagarDialogs } from "./_sections/CxpPorPagarDialogs";
+import type { FalloProgramacion } from "./_sections/ProgramarPagoDialog";
 import {
   CXP_FILTERS_DEFAULTS,
   CXP_SORTERS,
@@ -43,6 +40,8 @@ export default function CxpPorPagar() {
   const [loteOpen, setLoteOpen] = useState(false);
 
   const [fechaProgramada, setFechaProgramada] = useState(todayLocalISO());
+  const fechasPorLote = useRef(new Map<string, string>());
+  const [fallosProgramacion, setFallosProgramacion] = useState<FalloProgramacion[]>([]);
   const { programar, isRunning, progreso } = useProgramarPagoLote();
   // RFE-04 (Ola 11): /compras/por-pagar admite gerentes de sólo lectura;
   // `registrar_pago_proveedor_lote` rechaza con 42501 (LC_LOTE_SIN_ROL) a
@@ -69,6 +68,7 @@ export default function CxpPorPagar() {
   const columns = useMemo(() => buildCxpPorPagarColumns(), []);
 
   const selectedIds = useMemo(() => Object.keys(rowSelection), [rowSelection]);
+  const claveLote = JSON.stringify([...selectedIds].sort());
   const hasSelection = selectedIds.length > 0;
 
   // Pago en lote: sólo si la selección es del mismo proveedor y la misma moneda.
@@ -79,9 +79,26 @@ export default function CxpPorPagar() {
   const lote = useMemo(() => derivarLote(seleccionadas), [seleccionadas]);
 
   const handleProgramar = async () => {
-    await programar(selectedIds, fechaProgramada);
-    setIsDialogOpen(false);
-    setRowSelection({});
+    if (isRunning || !hasSelection || !canPagarProveedor) return;
+    const resultado = await programar(selectedIds, fechaProgramada);
+    const fallos = resultado.fallos.map((fallo) => ({
+      ...fallo,
+      folio: seleccionadas.find((r) => r.factura_id === fallo.id)?.folio_proveedor ?? null,
+    }));
+    fechasPorLote.current.delete(claveLote);
+    if (fallos.length > 0) {
+      const claveFallidas = JSON.stringify(fallos.map(({ id }) => id).sort());
+      fechasPorLote.current.set(claveFallidas, fechaProgramada);
+    }
+    setFallosProgramacion(fallos);
+    setRowSelection(Object.fromEntries(fallos.map(({ id }) => [id, true])));
+    if (fallos.length === 0) setIsDialogOpen(false);
+  };
+
+  const abrirProgramacion = () => {
+    setFallosProgramacion([]);
+    setFechaProgramada(fechasPorLote.current.get(claveLote) ?? todayLocalISO());
+    setIsDialogOpen(true);
   };
 
   return (
@@ -94,7 +111,7 @@ export default function CxpPorPagar() {
             visible={canPagarProveedor && hasSelection}
             selectedCount={selectedIds.length}
             loteDisponible={!!lote}
-            onProgramar={() => setIsDialogOpen(true)}
+            onProgramar={abrirProgramacion}
             onPagarLote={() => setLoteOpen(true)}
           />
         }
@@ -159,9 +176,13 @@ export default function CxpPorPagar() {
         onDialogOpenChange={setIsDialogOpen}
         selectedCount={selectedIds.length}
         fechaProgramada={fechaProgramada}
-        onFechaChange={setFechaProgramada}
+        onFechaChange={(fecha) => {
+          fechasPorLote.current.set(claveLote, fecha);
+          setFechaProgramada(fecha);
+        }}
         isRunning={isRunning}
         progreso={progreso}
+        fallosProgramacion={fallosProgramacion}
         onConfirmarProgramar={handleProgramar}
         lote={lote}
         loteOpen={loteOpen}

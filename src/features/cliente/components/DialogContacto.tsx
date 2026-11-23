@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/select";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
+import { FormField } from "@/components/shared/FormField";
+import { emailSchema } from "@/lib/validation/mutationSchemas.shared";
 import type { Tables, Enums } from "@/types/db";
 type ContactoCliente = Tables<'contactos_cliente'>;
 type TipoContacto = Enums<'tipo_contacto'>;
@@ -40,10 +42,14 @@ interface Props {
 
 export default function DialogContacto({ open, onOpenChange, contacto, onSave, isSaving }: Props) {
   const [form, setForm] = useState(() => valoresContacto(contacto));
+  const [validarCorreo, setValidarCorreo] = useState(false);
+  const correoRef = useRef<HTMLInputElement>(null);
+  const correoValido = emailSchema.safeParse(texto(form.email).trim()).success;
   const isDirty = JSON.stringify(form) !== JSON.stringify(valoresContacto(contacto));
 
   useEffect(() => {
     setForm(valoresContacto(contacto));
+    setValidarCorreo(false);
   }, [contacto, open]);
 
   const handleChange = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
@@ -51,6 +57,11 @@ export default function DialogContacto({ open, onOpenChange, contacto, onSave, i
   const handleSubmit = async () => {
     const nombre = texto(form.nombre).trim();
     if (!nombre || isSaving) return;
+    if (!correoValido) {
+      setValidarCorreo(true);
+      correoRef.current?.focus();
+      return;
+    }
     // Las columnas de texto son NOT NULL en la base: nunca enviamos null/undefined.
     await onSave(
       {
@@ -105,7 +116,10 @@ export default function DialogContacto({ open, onOpenChange, contacto, onSave, i
         <div><Label htmlFor="contacto-ciudad">Ciudad</Label><Input id="contacto-ciudad" value={form.ciudad} onChange={e => handleChange('ciudad', e.target.value)} className="mt-1" /></div>
         <div className="sm:col-span-2"><Label htmlFor="contacto-direccion">Dirección</Label><Input id="contacto-direccion" value={form.direccion} onChange={e => handleChange('direccion', e.target.value)} className="mt-1" /></div>
         <div><Label htmlFor="contacto-contacto">Contacto</Label><Input id="contacto-contacto" value={form.contacto} onChange={e => handleChange('contacto', e.target.value)} className="mt-1" /></div>
-        <div><Label htmlFor="contacto-email">Email</Label><Input id="contacto-email" value={form.email} onChange={e => handleChange('email', e.target.value)} className="mt-1" /></div>
+        <FormField label="Correo" error={validarCorreo && !correoValido ? "Captura una dirección de correo válida." : undefined}>
+          <Input id="contacto-email" ref={correoRef} type="email" value={form.email}
+            onBlur={() => setValidarCorreo(true)} onChange={e => handleChange("email", e.target.value)} />
+        </FormField>
         <div><Label htmlFor="contacto-telefono">Teléfono</Label><Input id="contacto-telefono" value={form.telefono} onChange={e => handleChange('telefono', e.target.value)} className="mt-1" /></div>
       </div>
     </FormDialogShell>

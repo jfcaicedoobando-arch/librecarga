@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/shared/FormField";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { formatDate } from "@/lib/formatters";
 import { Lock, Save, Unlock } from "lucide-react";
 import { useConfigValue } from "@/features/configuracion/hooks/useConfiguracion";
 import { useOrgActiva } from "@/hooks/shared/useOrgActiva";
@@ -78,7 +79,7 @@ export default function CierrePeriodoCard() {
         {guardada ? (
           <Alert>
             <AlertDescription>
-              El periodo está cerrado hasta el <strong>{String(guardada)}</strong>. Los
+              El periodo está cerrado hasta el <strong>{formatDate(guardada, "dd/MM/yyyy")}</strong>. Los
               documentos con fecha posterior siguen editándose con normalidad.
             </AlertDescription>
           </Alert>
@@ -96,7 +97,16 @@ export default function CierrePeriodoCard() {
         {mostrarMotivo ? (
           <CierrePeriodoMotivoField motivo={motivo} onChange={setMotivo} error={motivoError} />
         ) : null}
-        {guardada && !fecha && <p className="text-body-sm text-muted-foreground">La reapertura aún no se ha aplicado. Captura el motivo y pulsa “Confirmar reapertura”.</p>}
+        {guardada && !fecha && (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-body-sm text-muted-foreground">La reapertura aún no se ha aplicado. Captura el motivo y pulsa “Confirmar reapertura”.</p>
+            <Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => {
+              setFecha(guardada);
+              setMotivo("");
+              setMotivoError(undefined);
+            }}>Conservar cierre actual</Button>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => guardar(fecha)} disabled={mutation.isPending || (!fecha && !guardada)}>

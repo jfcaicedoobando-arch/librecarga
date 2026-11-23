@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import { CargoFormDialog } from "../CargoFormDialog";
@@ -15,7 +15,8 @@ describe("monto del cargo de tarifario", () => {
     render(<QueryClientProvider client={client}>
       <CargoFormDialog tipo="fob" orgId="org" cargo={null} onClose={vi.fn()} onSaved={vi.fn()} />
     </QueryClientProvider>);
-    const selector = screen.getAllByRole("combobox")[0];
+    const selector = screen.getByRole("combobox", { name: "Agente" });
+    expect(screen.getByRole("combobox", { name: "Moneda" })).toBeInTheDocument();
     await waitFor(() => expect(selector).toBeEnabled());
     fireEvent.keyDown(selector, { key: "ArrowDown" });
     fireEvent.click(await screen.findByRole("option", { name: "Agente uno" }));
@@ -47,5 +48,32 @@ describe("monto del cargo de tarifario", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
     expect(await screen.findByText(/No hay agentes activos/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Guardar" })).toBeDisabled();
+  });
+
+  it("bloquea Cancelar mientras guarda y cierra al confirmar el cargo", async () => {
+    vi.mocked(listarEntidadesCargo).mockResolvedValue([{ id: "a1", nombre: "Agente uno" }]);
+    let completarGuardado!: () => void;
+    vi.mocked(guardarCargo).mockReturnValueOnce(new Promise<void>((resolve) => { completarGuardado = resolve; }));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const onClose = vi.fn();
+    const onSaved = vi.fn();
+    render(<QueryClientProvider client={client}>
+      <CargoFormDialog tipo="fob" orgId="org" cargo={null} onClose={onClose} onSaved={onSaved} />
+    </QueryClientProvider>);
+    const selector = screen.getByRole("combobox", { name: "Agente" });
+    await waitFor(() => expect(selector).toBeEnabled());
+    fireEvent.keyDown(selector, { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: "Agente uno" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Monto" }), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+
+    const cancelar = screen.getByRole("button", { name: "Cancelar" });
+    expect(cancelar).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Guardando cargo…" })).toBeDisabled();
+    fireEvent.click(cancelar);
+    expect(onClose).not.toHaveBeenCalled();
+    await act(async () => completarGuardado());
+    expect(onSaved).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

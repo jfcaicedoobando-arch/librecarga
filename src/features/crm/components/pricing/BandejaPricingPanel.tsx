@@ -22,6 +22,12 @@ const ESTADOS = [
   { value: "cancelada", label: "Canceladas" }, { value: "todos", label: "Todas" },
 ];
 const DESCRIPCION_PLAZOS = Object.values(ETIQUETA_COMPLEJIDAD).join(" · ");
+const MENSAJES_VACIOS: Record<string, string> = {
+  enviada: "No hay solicitudes por responder.",
+  respondida: "No hay solicitudes respondidas.",
+  cancelada: "No hay solicitudes canceladas.",
+  todos: "Aún no hay solicitudes de Pricing.",
+};
 
 function DetalleDeSolicitud({ id }: { id: string }) {
   const detalle = useSolicitudPricing(id);
@@ -73,12 +79,13 @@ function FilaSolicitud({ solicitud, activa, onClick }: {
       <Badge variant="outline">{ETIQUETA_ESTADO_PRICING[estado] ?? estado}</Badge>
       <span className="text-body-sm">{cliente ?? "Sin cliente"}</span>
       <span className="text-body-sm text-muted-foreground">{[servicio, origen ?? pol, destino ?? pod].filter(Boolean).join(" · ")}</span>
-      <span className="ml-auto"><RelojPricing enviadaAt={enviada_at} venceAt={vence_at} respondidaAt={respondida_at} /></span>
+      <span className="ml-auto"><RelojPricing enviadaAt={enviada_at} venceAt={vence_at} respondidaAt={respondida_at}
+        cancelada={estado === "cancelada"} /></span>
     </button>
   );
 }
 
-function ResultadosBandeja({ consulta, id, total, paginas, pagina, corrigiendoPagina, onDetalle, onPagina }: {
+function ResultadosBandeja({ consulta, id, total, paginas, pagina, corrigiendoPagina, onDetalle, onPagina, estado, onVerTodas }: {
   consulta: ReturnType<typeof useBandejaPricing>;
   id: string | null;
   total: number;
@@ -87,12 +94,20 @@ function ResultadosBandeja({ consulta, id, total, paginas, pagina, corrigiendoPa
   corrigiendoPagina: boolean;
   onDetalle: (id: string | null) => void;
   onPagina: (pagina: number) => void;
+  estado: string;
+  onVerTodas: () => void;
 }) {
   if (consulta.error) {
     return <ErrorStateInline message="No se pudieron cargar las solicitudes." onRetry={() => void consulta.refetch()} />;
   }
+  if (consulta.isPlaceholderData) {
+    return <div role="status"><EmptyStateInline loading message="Actualizando solicitudes…" /></div>;
+  }
   if (consulta.isLoading || corrigiendoPagina) return <EmptyStateInline loading message="Cargando solicitudes…" />;
-  if (total === 0) return <EmptyStateInline message="No hay solicitudes." />;
+  if (total === 0) return (
+    <EmptyStateInline message={MENSAJES_VACIOS[estado] ?? "No hay solicitudes con este estado."}
+      action={estado !== "todos" ? { label: "Ver todas las solicitudes", onClick: onVerTodas } : undefined} />
+  );
 
   return (
     <>
@@ -143,6 +158,7 @@ export function BandejaPricingPanel() {
       </Select>
       {id && <DetalleDeSolicitud id={id} />}
       <ResultadosBandeja consulta={consulta} id={id} total={total} paginas={paginas} pagina={paginaDisponible}
+        estado={estado} onVerTodas={() => cambiar("estado", "todos")}
         corrigiendoPagina={pagina !== paginaDisponible} onDetalle={(solicitudId) => cambiar("id", solicitudId)}
         onPagina={(p) => cambiar("p", String(p))} />
     </>

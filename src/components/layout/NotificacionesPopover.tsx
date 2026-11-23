@@ -1,4 +1,4 @@
-import { useId, useRef } from "react";
+import { useId, useRef, useState } from "react";
 import { Bell, Check } from "lucide-react";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
@@ -22,12 +22,14 @@ export function NotificacionesPopover() {
   const navigate = useNavigate();
   const headingId = useId();
   const headerRef = useRef<HTMLDivElement>(null);
+  const [avisoAbierto, setAvisoAbierto] = useState<string | null>(null);
   const { notificaciones, isSuccess, isError, isFetching, refetch, noLeidas, marcarLeida, marcarTodasLeidas } =
     useNotificacionesInternas();
 
   const handleClick = (n: NotificacionInterna) => {
     if (!n.leida) marcarLeida(n.id);
     if (n.enlace) navigate(n.enlace);
+    else setAvisoAbierto((prev) => prev === n.id ? null : n.id);
   };
 
   return (
@@ -112,6 +114,8 @@ export function NotificacionesPopover() {
                   <button
                     type="button"
                     onClick={() => handleClick(n)}
+                    aria-expanded={n.enlace ? undefined : avisoAbierto === n.id}
+                    aria-controls={n.enlace ? undefined : `${headingId}-aviso-${n.id}`}
                     className={`w-full text-left px-3 py-2 hover:bg-muted/60 transition-colors ${
                       !n.leida ? "bg-accent/10" : ""
                     }`}
@@ -125,9 +129,15 @@ export function NotificacionesPopover() {
                           {!n.leida && <span className="sr-only">No leída. </span>}
                           {n.titulo}
                         </div>
-                        <div className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">
+                        <div id={`${headingId}-aviso-${n.id}`}
+                          className={`text-xs text-muted-foreground whitespace-pre-line ${avisoAbierto === n.id ? "" : "line-clamp-2"}`}>
                           {n.mensaje}
                         </div>
+                        {!n.enlace && (
+                          <span className="text-label text-primary">
+                            {avisoAbierto === n.id ? "Contraer mensaje" : "Leer mensaje completo"}
+                          </span>
+                        )}
                         <div className="text-2xs text-muted-foreground mt-0.5">
                           {formatDate(n.created_at, "dd/MM/yyyy HH:mm")}
                         </div>

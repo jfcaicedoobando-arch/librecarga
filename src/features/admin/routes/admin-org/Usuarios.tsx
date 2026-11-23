@@ -15,13 +15,14 @@ import { UsuariosInternosTab } from "./UsuariosInternosTab";
 import { PortalUsuariosTab } from "./PortalUsuariosTab";
 import { BrokersTab } from "@/features/admin/components/brokers/BrokersTab";
 import { useDocumentTitle } from "@/hooks/shared";
+import { useTabsParam } from "@/hooks/shared/useTabsParam";
 
-type TabId = "internos" | "cliente" | "agente" | "brokers";
+const TABS_USUARIOS = ["internos", "cliente", "agente", "brokers"] as const;
 
 export default function Usuarios() {
   useDocumentTitle('Gestión de usuarios');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [tab, setTab] = useState<TabId>("internos");
+  const { activeTab: tab, setActiveTab: setTab } = useTabsParam(TABS_USUARIOS, "internos");
 
   // U-05: cada listado invoca la edge function `user-management`, que recorre el
   // directorio de auth. Sólo se consulta la pestaña activa para no pagar tres
@@ -69,7 +70,7 @@ export default function Usuarios() {
         errorTitle="No se pudo cargar el listado de usuarios"
         errorDescription="Revisa tu conexión y vuelve a intentar."
       >
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabId)} className="space-y-4">
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="internos">
             Internos

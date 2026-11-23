@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,12 @@ interface Props {
 export function EmbarquesEstadoDialog({ open, onOpenChange, operador, estado, bucket }: Props) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const buscador = useRef<HTMLInputElement>(null);
+  const alcanceId = useId();
+  const limpiarBusqueda = () => {
+    setSearch("");
+    buscador.current?.focus();
+  };
   const Icon = ESTADO_ICON[estado];
   const esFinalizado = estado === "Cerrado";
   const destinoLabel = esFinalizado ? "Ver embarques del operador" : "Ver todos en Embarques";
@@ -76,7 +82,9 @@ export function EmbarquesEstadoDialog({ open, onOpenChange, operador, estado, bu
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
+          ref={buscador}
           aria-label="Buscar por expediente o cliente"
+          aria-describedby={truncated ? alcanceId : undefined}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por expediente o cliente…"
@@ -86,10 +94,10 @@ export function EmbarquesEstadoDialog({ open, onOpenChange, operador, estado, bu
       </div>
 
       {truncated && (
-        <div className="flex items-start gap-2 text-xs text-warning bg-warning/10 border border-warning/30 rounded-md p-2">
+        <div id={alcanceId} className="flex items-start gap-2 text-xs text-warning bg-warning/10 border border-warning/30 rounded-md p-2">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
           <span>
-            Mostrando los primeros {items.length} de {total}. {esFinalizado
+            Busca en los {items.length} embarques mostrados de {total}. {esFinalizado
               ? "En Embarques podrás consultar todos los estados de este operador."
               : `Usa “${destinoLabel}” para la lista completa.`}
           </span>
@@ -101,6 +109,7 @@ export function EmbarquesEstadoDialog({ open, onOpenChange, operador, estado, bu
           icon={items.length === 0 ? Ship : Search}
           message={items.length === 0 ? "Sin embarques en este estado." : "No hay coincidencias."}
           hint={items.length === 0 ? undefined : "Prueba con otro expediente o cliente."}
+          action={items.length > 0 ? { label: "Limpiar búsqueda", onClick: limpiarBusqueda } : undefined}
         />
 
       ) : (

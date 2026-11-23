@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import AgenteTarifas from "../AgenteTarifas";
 import type { ErrorNotifyOptions } from "@/lib/ui/appFeedback";
@@ -35,6 +35,20 @@ vi.mock("@/features/portal-agente/hooks", () => ({
 describe("AgenteTarifas · duplicar", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("ignora los recargos tardíos cuando el usuario abre una tarifa nueva", async () => {
+    let terminar!: () => void;
+    fetchRecargos.mockReturnValueOnce(new Promise<[]>(resolve => { terminar = () => resolve([]); }));
+    render(<MemoryRouter><AgenteTarifas /></MemoryRouter>);
+    fireEvent.keyDown(screen.getByRole("button", { name: /Acciones de la tarifa/ }), { key: "Enter" });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Duplicar como nueva" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Cargando recargos");
+
+    fireEvent.click(screen.getByRole("button", { name: "Nueva tarifa" }));
+    await act(async () => terminar());
+    expect(editor).toHaveBeenLastCalledWith(expect.objectContaining({ open: true, modo: "crear" }));
+    expect(editor).not.toHaveBeenCalledWith(expect.objectContaining({ open: true, modo: "duplicar" }));
+  });
+
   it("espera los recargos antes de abrir la copia y reintenta la misma tarifa tras un fallo", async () => {
     fetchRecargos.mockRejectedValueOnce(new Error("Sin conexión")).mockResolvedValueOnce([
       { id: "r1", concepto: "BAF", lado: "origen", monto: "175", moneda: "USD", incluido_en_total: true },
@@ -49,7 +63,7 @@ describe("AgenteTarifas · duplicar", () => {
     const opciones = notifyError.mock.calls[0][1];
     expect(opciones.title).toBe("No se pudieron cargar los recargos de la tarifa");
     expect(opciones.action?.label).toBe("Reintentar");
-    opciones.action?.onClick();
+    act(() => opciones.action?.onClick());
 
     await waitFor(() => expect(editor).toHaveBeenCalledWith(expect.objectContaining({
       open: true,

@@ -36,6 +36,7 @@ export function DialogCancelarFactura({
     cond,
     sustitutasQ,
     sustitutasTimbradas,
+    sustitutaElegida,
     requiereSustituta,
     puedeConfirmar,
     onConfirm,
@@ -114,6 +115,15 @@ export function DialogCancelarFactura({
               onChange={setSustitutaId}
               onAbrirSustituir={onAbrirSustituir ? abrirWizard : undefined}
             />
+            {puedeConfirmar && sustitutaElegida && (
+              <p className="text-body-sm" role="status">
+                CFDI que sustituirá a esta factura al confirmar: <strong>{
+                  sustitutaElegida.numero ||
+                  [sustitutaElegida.serie, sustitutaElegida.folio_fiscal].join("") ||
+                  sustitutaElegida.uuid_fiscal
+                }</strong>
+              </p>
+            )}
           </div>
         )}
       </FormDialogShell>

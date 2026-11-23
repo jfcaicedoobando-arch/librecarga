@@ -65,7 +65,7 @@ export function ProformaDatosGeneralesCard({
         <CardTitle>Datos generales</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-2 gap-4 text-body">
-        <Field label="Vigencia" value={vigenciaPlus30(fechaEmision)} />
+        <Field label="Vigente hasta" value={vigenciaPlus30(fechaEmision)} />
         <Field
           label="Días de crédito"
           value={formatDiasCredito(credito.dias)}

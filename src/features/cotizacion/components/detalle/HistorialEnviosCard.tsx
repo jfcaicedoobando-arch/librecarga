@@ -59,8 +59,13 @@ export function HistorialEnviosCard({ envios, isLoading, isError, isFetching, on
                   <span className="text-muted-foreground">CC:</span> {ccs}
                 </p>
               )}
-              {e.asunto && <p className="text-body-sm text-muted-foreground truncate">{e.asunto}</p>}
-              {e.error && <p className="text-body-sm text-destructive truncate">{e.error}</p>}
+              {e.asunto && (
+                <details className="min-w-0 text-body-sm text-muted-foreground">
+                  <summary className="cursor-pointer rounded-sm focus-visible:ring-2 focus-visible:ring-ring">Ver asunto</summary>
+                  <p className="mt-1 wrap-anywhere">{e.asunto}</p>
+                </details>
+              )}
+              {e.error && <p className="text-body-sm text-destructive wrap-anywhere">{e.error}</p>}
               {e.pdf_link_publico && (
                 <Button variant="outline" size="sm" asChild>
                   <a href={e.pdf_link_publico} target="_blank" rel="noreferrer">

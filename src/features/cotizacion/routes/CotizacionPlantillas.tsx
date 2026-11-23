@@ -100,7 +100,7 @@ export default function CotizacionPlantillas() {
               </SelectContent>
             </Select>
             <span className="text-body-sm text-muted-foreground ml-auto">
-              {filtradas.length} de {plantillas.length}
+              {filtradas.length} de {plantillas.length} {plantillas.length === 1 ? "plantilla" : "plantillas"}
             </span>
           </div>
 
@@ -115,10 +115,17 @@ export default function CotizacionPlantillas() {
                   ? "Aún no has guardado plantillas."
                   : "Sin resultados con esos filtros."}
               </p>
-              {plantillas.length === 0 && (
+              {plantillas.length === 0 ? (
                 <p className="text-body-sm">
                   Guarda tu primera plantilla desde el diálogo "Cotización creada" al terminar el asistente.
                 </p>
+              ) : (
+                <Button variant="outline" size="sm" onClick={() => {
+                  if (busqueda.trim()) setBusqueda("");
+                  else setFiltroVis("todos");
+                }}>
+                  {busqueda.trim() ? "Limpiar búsqueda" : "Ver todas las plantillas"}
+                </Button>
               )}
             </div>
           ) : (

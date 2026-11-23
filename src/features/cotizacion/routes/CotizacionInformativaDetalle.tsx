@@ -3,6 +3,7 @@
  * Render dedicado: no muestra costos/utilidad ni botones de conversión a embarque.
  */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { DetailHeader } from "@/components/shared/DetailHeader";
@@ -43,12 +44,20 @@ export default function CotizacionInformativaDetalle({ cotizacion }: Props) {
   const volver = useVolver("/cotizaciones");
   const tarifas = parseTarifasInformativas(cotizacion.tarifas_informativas);
   const { data: tiposContenedor = [] } = useTiposContenedor();
+  const [generando, setGenerando] = useState(false);
+  const descargaEnCurso = useRef(false);
 
   const handleDescargar = async () => {
+    if (descargaEnCurso.current) return;
+    descargaEnCurso.current = true;
+    setGenerando(true);
     try { await descargarTarifario(cotizacion); }
     catch (e) {
       const msg = e instanceof Error ? e.message : "Error al generar PDF";
       notifyError(undefined, { title: msg, error: e, method: "PAGES_COTIZACIONES_COTIZACIONINFORMATIVADETALLE_1" });
+    } finally {
+      descargaEnCurso.current = false;
+      setGenerando(false);
     }
   };
 
@@ -60,8 +69,8 @@ export default function CotizacionInformativaDetalle({ cotizacion }: Props) {
         title={`Tarifario ${cotizacion.folio}`}
         subtitle={`Cliente: ${cotizacion.cliente_nombre}`}
         trailing={
-          <Button onClick={handleDescargar}>
-            <Download className="h-4 w-4 mr-2" /> Exportar PDF
+          <Button onClick={handleDescargar} disabled={generando}>
+            <Download className="h-4 w-4 mr-2" /> {generando ? "Generando PDF…" : "Exportar PDF"}
           </Button>
         }
       />

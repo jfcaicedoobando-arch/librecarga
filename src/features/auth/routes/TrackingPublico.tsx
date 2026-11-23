@@ -27,10 +27,13 @@ function transporteLabel(e: TrackingPublicoData["embarque"]): string {
 export default function TrackingPublico() {
   const { token } = useParams<{ token: string }>();
 
-  const { data, isLoading, error } = useTrackingPublicoPage(token);
+  const { data, isLoading, isFetching, error, refetch } = useTrackingPublicoPage(token);
 
   if (isLoading) return <TrackingPublicoLoading />;
-  if (error || !data) return <TrackingPublicoErrorCard message={(error as Error)?.message} />;
+  if (error || !data) {
+    return <TrackingPublicoErrorCard message={error?.message} retrying={isFetching}
+      onRetry={token ? () => void refetch() : undefined} />;
+  }
 
   const { embarque: e, eventos, organizacion } = data;
   const documentos = data.documentos ?? [];

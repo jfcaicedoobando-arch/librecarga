@@ -67,7 +67,7 @@ export function SolicitarCotizacionDialog({ open, onOpenChange, clientes }: Prop
 
   const handleSubmit = async () => {
     f.setIntentoEnvio(true);
-    if (!clienteId) return;
+    if (!clienteId || solicitar.isPending) return;
 
     await f.submit(async ({ modo, tipo, origen, destino, tipoEmbarque, mercancia, notas, puertoOrigenId, puertoDestinoId }) => {
       try {
@@ -115,12 +115,14 @@ export function SolicitarCotizacionDialog({ open, onOpenChange, clientes }: Prop
       description="Cuéntanos la ruta y tu carga; te enviaremos una propuesta."
       size="lg"
       isDirty={isDirty}
+      busy={solicitar.isPending}
       footer={
         <>
           {intentoEnvio && !puedeEnviar && (
             <FaltantesHint items={faltantes} className="mr-auto" />
           )}
-          <FormDialogCancelarBoton onCancelar={() => { resetTodo(); onOpenChange(false); }} />
+          <FormDialogCancelarBoton disabled={solicitar.isPending}
+            onCancelar={() => { resetTodo(); onOpenChange(false); }} />
           {/* Defecto 3: el botón sólo se bloquea mientras se envía. Así el
               handler puede activar `intentoEnvio` y anunciar qué falta. */}
           <Button onClick={handleSubmit} loading={solicitar.isPending} disabled={solicitar.isPending}>

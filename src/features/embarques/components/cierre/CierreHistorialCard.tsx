@@ -62,7 +62,7 @@ export function CierreHistorialCard({ log, isLoading, falloConsulta }: Props) {
                     </Badge>
                     {entry.origen === "bitacora" && (
                       <Badge variant="secondary" className="text-2xs">
-                        Registro legacy
+                        Bitácora anterior
                       </Badge>
                     )}
                   </div>
@@ -75,6 +75,9 @@ export function CierreHistorialCard({ log, isLoading, falloConsulta }: Props) {
                     {entry.usuario_email ?? "Usuario desconocido"}
                   </span>
                 </p>
+                {entry.origen === "bitacora" && (
+                  <p className="mt-1 text-body-sm text-muted-foreground">Movimiento registrado antes del historial actual.</p>
+                )}
                 {entry.motivo && (
                   <p className="mt-1 text-body text-muted-foreground">{entry.motivo}</p>
                 )}

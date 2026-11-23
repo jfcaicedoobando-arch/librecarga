@@ -47,6 +47,19 @@ describe("EmbarquesEstadoDialog", () => {
     expect(screen.getByLabelText("Filtros destino")).toHaveTextContent(JSON.stringify({ operador }));
   });
 
+  it("permite limpiar y recuperar el foco cuando la muestra no contiene la búsqueda", () => {
+    render(<MemoryRouter><EmbarquesEstadoDialog open onOpenChange={vi.fn()}
+      operador={operador} estado="Cerrado" bucket={{ ...bucket, total: 10, truncated: true }} /></MemoryRouter>);
+    const campo = screen.getByRole("textbox", { name: "Buscar por expediente o cliente" });
+    expect(campo).toHaveAccessibleDescription(/Busca en los 2 embarques mostrados de 10/);
+    fireEvent.change(campo, { target: { value: "inexistente" } });
+    expect(screen.getByText("No hay coincidencias.")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar búsqueda" }));
+    expect(campo).toHaveFocus();
+    expect(campo).toHaveValue("");
+    expect(screen.getByText("LC-01")).toBeVisible();
+  });
+
   it("conserva el filtro de estado en un estado individual", () => {
     abrir("Llegada");
     fireEvent.click(screen.getByRole("button", { name: "Ver todos en Embarques" }));

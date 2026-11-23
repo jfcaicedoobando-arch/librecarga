@@ -32,6 +32,14 @@ describe("TrackingNavieraActions", () => {
     expect(screen.getByRole("button", { name: /Abrir tracking/ })).toBeDisabled();
   });
 
+  it("orienta el tracking aéreo sin ofrecer un enlace inoperante", () => {
+    render(<TrackingNavieraActions {...props} modo="Aéreo" naviera={null}
+      aerolinea="Aerolínea de prueba" mawb="123456789" />);
+    expect(screen.getByRole("button", { name: "Copiar MAWB" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /Abrir tracking/ })).toBeNull();
+    expect(screen.getByText("Consulta el sitio de la aerolínea con este MAWB.")).toBeVisible();
+  });
+
   it("abre el enlace configurado con el BL codificado", () => {
     catalogo.useNavieras.mockReturnValue({
       data: [{ name: props.naviera, code: "QA", tracking_url_template: "https://example.test/?bl={BL}" }],

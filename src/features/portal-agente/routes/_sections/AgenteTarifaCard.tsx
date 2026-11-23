@@ -15,7 +15,7 @@ import {
 } from "./agenteTarifasColumns";
 
 export function AgenteTarifaCard({
-  t, onEditar, onDuplicar,
+  t, onEditar, onDuplicar, tarifaEnCarga,
 }: { t: AgenteTarifaRow } & AgenteTarifasColumnsDeps) {
   return (
     <div className="flex items-start justify-between gap-2 min-w-0">
@@ -40,7 +40,7 @@ export function AgenteTarifaCard({
         )}
       </div>
       <div className="shrink-0">
-        <AgenteTarifaAcciones t={t} onEditar={onEditar} onDuplicar={onDuplicar} />
+        <AgenteTarifaAcciones t={t} onEditar={onEditar} onDuplicar={onDuplicar} tarifaEnCarga={tarifaEnCarga} />
       </div>
     </div>
   );

@@ -51,6 +51,7 @@ export function CargoFormDialog({ tipo, orgId, cargo, onClose, onSaved }: Props)
   const [busy, setBusy] = useState(false);
 
   const guardar = async () => {
+    if (busy) return;
     if (!monto.trim()) {
       setMontoVacio(true);
       montoRef.current?.focus();
@@ -77,12 +78,17 @@ export function CargoFormDialog({ tipo, orgId, cargo, onClose, onSaved }: Props)
   return (
     <FormDialogShell open onOpenChange={(o) => { if (!o) onClose(); }} icon={Receipt} busy={busy}
       title={cargo ? "Editar cargo" : "Nuevo cargo"}
-      footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={() => void guardar()} disabled={busy || (sinOpciones && !entidad)}>Guardar</Button></>}>
+      footer={<>
+        <Button variant="outline" onClick={onClose} disabled={busy}>Cancelar</Button>
+        <Button onClick={() => void guardar()} disabled={busy || (sinOpciones && !entidad)}>
+          {busy ? "Guardando cargo…" : "Guardar"}
+        </Button>
+      </>}>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="space-y-1 md:col-span-2">
-          <Label>{tipo === "fob" ? "Agente" : "Naviera"}</Label>
+          <Label htmlFor="cargo-entidad">{tipo === "fob" ? "Agente" : "Naviera"}</Label>
           <Select value={entidad} onValueChange={setEntidad} disabled={sinOpciones || busy}>
-            <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+            <SelectTrigger id="cargo-entidad"><SelectValue placeholder="Selecciona" /></SelectTrigger>
             <SelectContent>{entidades.map((e) => <SelectItem key={e.id} value={e.id}>{e.nombre}</SelectItem>)}</SelectContent>
           </Select>
           <EstadoCatalogoCargo tipo={tipo} cargando={catalogo.isLoading} sinOpciones={sinOpciones}
@@ -108,9 +114,9 @@ export function CargoFormDialog({ tipo, orgId, cargo, onClose, onSaved }: Props)
           </p>}
         </div>
         <div className="space-y-1">
-          <Label>Currency</Label>
+          <Label htmlFor="cargo-moneda">Moneda</Label>
           <Select value={moneda} onValueChange={setMoneda}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="cargo-moneda"><SelectValue /></SelectTrigger>
             <SelectContent>{["USD", "MXN", "EUR"].map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
           </Select>
         </div>

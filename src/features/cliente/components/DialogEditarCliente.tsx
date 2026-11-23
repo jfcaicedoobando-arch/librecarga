@@ -8,6 +8,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
 import { REGIMENES_FISCALES_SAT } from "@/constants/regimenFiscalSAT";
 import { USOS_CFDI_SAT } from "@/constants/catalogosSAT";
@@ -35,6 +36,7 @@ export default function DialogEditarCliente({ open, onOpenChange, cliente, onSav
   const { canConfigurarAutorizacionCliente } = usePermissions();
   const fiscalId = useId();
   const [form, setForm] = useState<ClienteData>(cliente);
+  const [original, setOriginal] = useState<ClienteData>(cliente);
   const [csfFileName, setCsfFileName] = useState<string | null>(null);
   const [parsingCsf, setParsingCsf] = useState(false);
 
@@ -42,22 +44,28 @@ export default function DialogEditarCliente({ open, onOpenChange, cliente, onSav
   // modal. Antes se reiniciaba también cuando llegaba un refetch del cliente,
   // lo que hacía "parpadear" los interruptores con los valores anteriores.
   const abiertoPrev = useRef(false);
+  const lecturaActual = useRef(0);
   useEffect(() => {
     if (open && !abiertoPrev.current) {
       setForm(cliente);
+      setOriginal(cliente);
       setCsfFileName(null);
       setParsingCsf(false);
     }
+    if (!open) lecturaActual.current += 1;
     abiertoPrev.current = open;
   }, [open, cliente]);
 
+  useEffect(() => () => { lecturaActual.current += 1; }, []);
 
   const handleCsfFile = async (file: File | null) => {
-    if (!file) return;
+    if (!file || isSaving) return;
+    const id = ++lecturaActual.current;
     setParsingCsf(true);
     setCsfFileName(file.name);
     try {
       const data = await parseCsf(file);
+      if (id !== lecturaActual.current) return;
       setForm((prev) => ({
         ...prev,
         nombre: normalizarRazonSocial(data.nombre) || prev.nombre,
@@ -70,15 +78,17 @@ export default function DialogEditarCliente({ open, onOpenChange, cliente, onSav
       }));
       notifySuccess(undefined, { title: "CSF procesada. Verifica los datos actualizados antes de guardar." });
     } catch (err) {
+      if (id !== lecturaActual.current) return;
       setCsfFileName(null);
       notifyError(undefined, { title: "No se pudo procesar la CSF", description: getErrorMessage(err), error: err, method: "DIALOG_EDITAR_CLIENTE_CSF" });
     } finally {
-      setParsingCsf(false);
+      if (id === lecturaActual.current) setParsingCsf(false);
     }
   };
 
+  const puedeGuardar = !parsingCsf && !isSaving && !!form.nombre.trim() && !!form.regimen_fiscal.trim();
   const handleSubmit = async () => {
-    if (!form.nombre.trim() || !form.regimen_fiscal.trim()) return;
+    if (!puedeGuardar) return;
     await onSave(form);
   };
 
@@ -87,16 +97,21 @@ export default function DialogEditarCliente({ open, onOpenChange, cliente, onSav
   return (
     <FormDialogShell
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(next) => {
+        if (!next) lecturaActual.current += 1;
+        onOpenChange(next);
+      }}
       icon={UserCog}
       title="Editar cliente"
       description="Modifica los datos generales y fiscales del cliente."
       size="lg"
+      busy={isSaving}
+      isDirty={parsingCsf || JSON.stringify(form) !== JSON.stringify(original)}
       footer={(
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!form.nombre.trim() || !form.regimen_fiscal.trim()} loading={isSaving}>
-            {isSaving ? "Guardando…" : "Guardar cambios"}
+          <FormDialogCancelarBoton onCancelar={() => onOpenChange(false)} disabled={isSaving} />
+          <Button onClick={handleSubmit} disabled={!puedeGuardar} loading={isSaving}>
+            {parsingCsf ? "Leyendo constancia…" : isSaving ? "Guardando…" : "Guardar cambios"}
           </Button>
         </>
       )}

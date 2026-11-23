@@ -59,7 +59,7 @@ export function SelectorSustituta({
   return (
     <>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger id={id} aria-label={id ? undefined : "Factura sustituta timbrada"}><SelectValue placeholder="Elige la sustituta" /></SelectTrigger>
+        <SelectTrigger id={id} aria-label={id ? undefined : "Factura sustituta timbrada"}><SelectValue placeholder="Selecciona la factura sustituta" /></SelectTrigger>
         <SelectContent>
           {sustitutasTimbradas.map((s) => {
             const label = s.numero ?? `${s.serie ?? ""}${s.folio_fiscal ?? ""}`;

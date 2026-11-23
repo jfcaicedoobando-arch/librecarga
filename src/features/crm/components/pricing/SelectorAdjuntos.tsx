@@ -20,6 +20,7 @@ export function SelectorAdjuntos({ onArchivos, disabled }: Props) {
     const files = Array.from(e.clipboardData.files);
     if (files.length === 0) return;
     e.preventDefault();
+    if (disabled) return;
     onArchivos(files.map((f, i) => (f.name && f.name !== "image.png"
       ? f : new File([f], `captura-${Date.now()}-${i + 1}.png`, { type: f.type || "image/png" }))));
   };
@@ -30,9 +31,9 @@ export function SelectorAdjuntos({ onArchivos, disabled }: Props) {
       <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => input.current?.click()}>
         <Paperclip className="mr-2 h-4 w-4" /> Adjuntar archivo
       </Button>
-      <span>o haz clic aquí y pega una captura (Ctrl+V). Máx. 10 MB por archivo.</span>
+      <span role="status">{disabled ? "Espera a que termine la subida." : "o haz clic aquí y pega una captura (Ctrl+V). Máx. 10 MB por archivo."}</span>
       <input ref={input} type="file" multiple hidden accept={ACCEPT_ADJUNTOS}
-        onChange={(e) => { onArchivos(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
+        disabled={disabled} onChange={(e) => { if (!disabled) onArchivos(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
     </div>
   );
 }

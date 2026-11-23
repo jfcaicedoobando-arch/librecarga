@@ -23,6 +23,28 @@ import { FacturapiWebhookUrlSection } from "./FacturapiWebhookUrlSection";
 import FacturapiOnboardingWizard from "./FacturapiOnboardingWizard";
 import { AccesoAsistenteFacturapi, EstadoLecturaCredenciales, HeaderBadges } from "./FacturapiCredencialesCard.parts";
 
+const NOMBRE_AMBIENTE = { sandbox: "Sandbox", live: "Producción" } satisfies Record<FacturapiAmbiente, string>;
+
+function GuardarConfiguracionFacturapi({ ambiente, guardado, busy, onGuardar }: {
+  ambiente: FacturapiAmbiente; guardado: FacturapiAmbiente; busy: boolean; onGuardar: () => void;
+}) {
+  const cambia = ambiente !== guardado;
+  return (
+    <>
+      {cambia && (
+        <p role="status" className="text-body-sm text-muted-foreground">
+          Ambiente activo: {NOMBRE_AMBIENTE[guardado]}. Cambiará a {NOMBRE_AMBIENTE[ambiente]} al guardar.
+        </p>
+      )}
+      <div className="flex justify-end">
+        <Button type="button" onClick={onGuardar} disabled={busy} variant="outline" size="sm">
+          {busy ? "Guardando…" : cambia ? `Activar ${NOMBRE_AMBIENTE[ambiente]}` : "Guardar configuración"}
+        </Button>
+      </div>
+    </>
+  );
+}
+
 export default function FacturapiCredencialesCard() {
   const { organization } = useOrganization();
   const copy = useCopyText();
@@ -116,14 +138,8 @@ export default function FacturapiCredencialesCard() {
               csdVence={csdVence}
               setCsdVence={setCsdVence}
             />
-            {ambiente !== ambienteGuardado && (
-              <p role="status" className="text-body-sm text-muted-foreground">Cambio de ambiente pendiente de guardar.</p>
-            )}
-            <div className="flex justify-end">
-              <Button onClick={onGuardar} disabled={upsert.isPending} variant="outline" size="sm">
-                {upsert.isPending ? "Guardando…" : "Guardar configuración"}
-              </Button>
-            </div>
+            <GuardarConfiguracionFacturapi ambiente={ambiente} guardado={ambienteGuardado}
+              busy={upsert.isPending} onGuardar={onGuardar} />
           </div>
         </details>
 

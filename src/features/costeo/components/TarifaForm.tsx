@@ -143,7 +143,11 @@ export function TarifaForm({ open, onOpenChange, onSaved, initial, tarifaId, age
     >
       <form id="tarifa-form" onSubmit={guardar} className="space-y-4">
         {!esEdicion && !agenteIdFijo && (
-          <CotizarGuardarTarifa disabled={!valido || pendiente || rutaIds.length !== 1} guardar={cotizarYGuardar} />
+          <CotizarGuardarTarifa
+            disabled={!valido || pendiente || rutaIds.length !== 1}
+            variasRutas={rutaIds.length > 1}
+            guardar={cotizarYGuardar}
+          />
         )}
         <p id="tarifa-form-resumen" className="text-body-sm text-muted-foreground" aria-live="polite">
           {tooltipFaltantes ?? "Listo para guardar."}

@@ -1,6 +1,6 @@
 import { useLocation, useParams } from "react-router";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { usePermissions, useTabsParam, useDocumentTitle } from "@/hooks/shared";
 import {
@@ -55,7 +55,19 @@ export default function EmbarqueDetalle() {
 
   const { embarque, isLoading, error, refetch } = useEmbarqueResumen(id);
   const expediente = embarque?.expediente;
-  const { guardDialog, confirmarSalida, ...borradorNota } = useBorradorNotaEmbarque(id, expediente);
+  const [idBorradorTracking, setIdBorradorTracking] = useState<string | null>(null);
+  const trackingModificado = idBorradorTracking === id;
+  const onTrackingDirtyChange = useCallback((dirty: boolean) => {
+    setIdBorradorTracking((actual) => dirty ? id ?? null : actual === id ? null : actual);
+  }, [id]);
+  const { guardDialog, confirmarSalida, ...borradorNota } = useBorradorNotaEmbarque(id, expediente, trackingModificado);
+  const confirmarDescarteTracking = (accion: () => void) => {
+    if (trackingModificado) confirmarSalida(accion);
+    else accion();
+  };
+  const cambiarTab = (tab: string) => {
+    if (tab !== activeTab) confirmarDescarteTracking(() => setActiveTab(tab));
+  };
   const etiquetas = useEtiquetasMargen(id ? [id] : []);
   useRegisterBreadcrumbLabel(id, embarque?.expediente);
   // UIA-12: la pestaña se distingue por folio (antes quedaba el título del landing).
@@ -102,7 +114,7 @@ export default function EmbarqueDetalle() {
               onRevocarTracking={handleRevocarTracking}
               onAbrirEliminar={() => confirmarSalida(() => setDialogEliminarAbierto(true))}
               onAbrirDuplicar={() => confirmarSalida(() => setDialogDuplicarAbierto(true))}
-              onNavigateTab={(tab) => setActiveTab(tab)}
+              onNavigateTab={cambiarTab}
               confirmarSalida={confirmarSalida}
             />
 
@@ -116,7 +128,8 @@ export default function EmbarqueDetalle() {
               embarque={embarque}
               embarqueId={embarque.id}
               activeTab={activeTab}
-              setActiveTab={setActiveTab}
+              setActiveTab={cambiarTab}
+              trackingGuard={{ onDirtyChange: onTrackingDirtyChange, confirmarDescarte: confirmarDescarteTracking }}
               estadoVisual={estadoVisual}
               canEdit={canEdit}
               borradorNota={borradorNota}

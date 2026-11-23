@@ -73,8 +73,11 @@ export function BuzonEntrantesModales({
       />
 
       <RechazarFacturaEntranteDialog
+        key={aRechazar?.id}
         open={Boolean(aRechazar)}
         onOpenChange={(v) => { if (!v) onCerrarRechazar(); }}
+        nombreArchivo={aRechazar?.nombre_archivo}
+        expediente={aRechazar?.embarques?.expediente}
         pendiente={rechazarPendiente}
         onConfirm={onConfirmarRechazo}
       />

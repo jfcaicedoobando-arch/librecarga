@@ -22,6 +22,8 @@ export function AjustePlazoPricing({ solicitud: s }: { solicitud: SolicitudPrici
   const motivoOk = motivo.trim().length >= 10;
   const ampliable = puedeAmpliarPlazo(s, new Date());
   const nHoras = Number(horas);
+  const horasValidas = Number.isInteger(nHoras) && nHoras >= 49 && nHoras <= 720;
+  const errorHoras = horas !== "" && !horasValidas;
   const base = { id: s.id, oportunidadId: s.oportunidad_id, motivo: motivo.trim() };
   const limpiar = { onSuccess: () => { setMotivo(""); setHoras(""); } };
   return (
@@ -39,8 +41,11 @@ export function AjustePlazoPricing({ solicitud: s }: { solicitud: SolicitudPrici
         {ampliable && (
           <div className="space-y-1">
             <Label htmlFor="aj-horas">Nuevo plazo (horas)</Label>
-            <Input id="aj-horas" aria-describedby="aj-horas-ayuda" type="number" min={49} max={720} value={horas} onChange={(e) => setHoras(e.target.value)} />
-            <p id="aj-horas-ayuda" className="text-body-sm text-muted-foreground">De 49 a 720 horas.</p>
+            <Input id="aj-horas" aria-describedby="aj-horas-ayuda" aria-invalid={errorHoras || undefined}
+              type="number" min={49} max={720} step={1} value={horas} onChange={(e) => setHoras(e.target.value)} />
+            <p id="aj-horas-ayuda" className={errorHoras ? "text-body-sm text-destructive" : "text-body-sm text-muted-foreground"}>
+              {errorHoras ? "Escribe un número entero entre 49 y 720 horas." : "De 49 a 720 horas enteras."}
+            </p>
           </div>
         )}
         <div className="space-y-1 md:col-span-3">
@@ -52,8 +57,8 @@ export function AjustePlazoPricing({ solicitud: s }: { solicitud: SolicitudPrici
           <Button size="sm" variant="outline" disabled={!motivoOk || complejidad === s.complejidad || m.isPending}
             onClick={() => m.mutate({ ...base, tipo: "complejidad", complejidad }, limpiar)}>Cambiar complejidad</Button>
           {ampliable && (
-            <Button size="sm" variant="outline" disabled={!motivoOk || !(nHoras > 48 && nHoras <= 720) || m.isPending}
-              onClick={() => m.mutate({ ...base, tipo: "plazo", horas: Math.trunc(nHoras) }, limpiar)}>Ampliar plazo</Button>
+            <Button size="sm" variant="outline" disabled={!motivoOk || !horasValidas || m.isPending}
+              onClick={() => m.mutate({ ...base, tipo: "plazo", horas: nHoras }, limpiar)}>Ampliar plazo</Button>
           )}
         </div>
       </CardContent>

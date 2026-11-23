@@ -21,6 +21,8 @@ interface Props {
   fechaLlegadaRealActual?: string | null;
   destinoDefault?: string | null;
   onClose: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+  confirmarDescarte?: (accion: () => void) => void;
 }
 
 export function TrackingNuevoEventoForm({
@@ -31,11 +33,22 @@ export function TrackingNuevoEventoForm({
   fechaLlegadaRealActual,
   destinoDefault,
   onClose,
+  onDirtyChange,
+  confirmarDescarte,
 }: Props) {
   const [modo, setModo] = useState<Modo>("menu");
   const { registrar, isPending } = useRegistrarEventoTracking();
   const llegadaRegistrada = fechaLlegadaRealActual?.slice(0, 10);
   const transportista = modoTransporte === "Marítimo" ? "la naviera" : modoTransporte === "Aéreo" ? "la aerolínea" : "el transportista";
+
+  const volverAlMenu = () => {
+    const volver = () => {
+      onDirtyChange?.(false);
+      setModo("menu");
+    };
+    if (confirmarDescarte) confirmarDescarte(volver);
+    else volver();
+  };
 
   async function guardar(accion: "eta" | "llegada", fecha: string, ubicacion: string) {
     try {
@@ -107,7 +120,8 @@ export function TrackingNuevoEventoForm({
       <ActualizarEtaForm
         etaActual={etaActual ?? null}
         isPending={isPending}
-        onCancel={() => setModo("menu")}
+        onCancel={volverAlMenu}
+        onDirtyChange={onDirtyChange}
         onSubmit={({ fecha, fuente }) => guardar("eta", fecha, fuente)}
       />
     );
@@ -118,7 +132,8 @@ export function TrackingNuevoEventoForm({
       destinoDefault={destinoDefault ?? ""}
       etd={etd}
       isPending={isPending}
-      onCancel={() => setModo("menu")}
+      onCancel={volverAlMenu}
+      onDirtyChange={onDirtyChange}
       onSubmit={({ fecha, ubicacion }) => guardar("llegada", fecha, ubicacion)}
     />
   );

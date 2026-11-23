@@ -5,7 +5,6 @@
  */
 import { useMemo, useState } from "react";
 import { FilePlus2, FolderOpen } from "lucide-react";
-import { notifyError } from "@/lib/ui/appFeedback";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,7 @@ import {
   useSubirDocumentoCliente,
   useEliminarDocumentoCliente,
 } from "@/features/cliente/hooks/useClienteDocumentos";
-import { urlDocumentoCliente } from "@/features/cliente/services/clienteDocumentos";
+import { useDescargaDocumentoCliente } from "@/features/cliente/hooks/useDescargaDocumentoCliente";
 
 interface Props {
   clienteId: string;
@@ -51,6 +50,7 @@ export function ClienteDocumentosTab({
   const [subirOpen, setSubirOpen] = useState(false);
   const [tipoSugerido, setTipoSugerido] = useState<string | undefined>();
   const [porBorrar, setPorBorrar] = useState<DocumentoCliente | null>(null);
+  const { descargar, descarga } = useDescargaDocumentoCliente(clienteId);
 
   const documentos = useMemo(() => data ?? [], [data]);
   const resumen = useMemo(
@@ -61,20 +61,6 @@ export function ClienteDocumentosTab({
   const abrirSubida = (tipo?: string) => {
     setTipoSugerido(tipo);
     setSubirOpen(true);
-  };
-
-  const descargar = async (doc: DocumentoCliente) => {
-    try {
-      const url = await urlDocumentoCliente(doc.archivo);
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch (e) {
-      notifyError(undefined, {
-        title: "No se pudo generar la liga de descarga",
-        description: "Vuelve a intentarlo; si persiste, el archivo pudo haberse movido.",
-        error: e,
-        method: "DOWNLOAD_CLIENTE_DOCUMENTO",
-      });
-    }
   };
 
   const cols: ColumnDef<DocumentoCliente, unknown>[] = defineColumns<DocumentoCliente>(
@@ -119,6 +105,15 @@ export function ClienteDocumentosTab({
             </Button>
           )}
         </CardHeader>
+        {descarga && (
+          <div role="status" className="px-6 pb-3 text-body-sm">
+            {descarga.url ? (
+              <a href={descarga.url} target="_blank" rel="noopener noreferrer" className="underline">
+                Abrir documento · {descarga.tipo}
+              </a>
+            ) : "Preparando descarga…"}
+          </div>
+        )}
         <CardContent className="p-0">
           <ResponsiveDataTable
             columns={cols}

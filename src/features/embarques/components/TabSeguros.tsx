@@ -13,11 +13,12 @@ import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/Da
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import EmptyState from "@/components/empty/EmptyState";
 import { ConfirmDeleteAlert } from "@/features/costeo/components/ConfirmDeleteAlert";
-import { Shield, Plus, ExternalLink, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Shield, ExternalLink, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { useDeleteSeguro, useSegurosEmbarque } from "@/features/embarques/hooks/useSegurosEmbarque";
 import type { SeguroEmbarque } from "@/features/embarques/services/seguros";
 import { DialogSeguroForm } from "./DialogSeguroForm";
+import { NuevaPolizaAction } from "./NuevaPolizaAction";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { contarVigenciasSeguros, diasRestantesSeguro } from "@/features/embarques/domain/vigenciaSeguros";
 
@@ -101,7 +102,7 @@ export function TabSeguros({ embarqueId, canEdit, tipoCambioUsd = null, tipoCamb
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <SectionHeading
           as="h3"
           icon={<Shield className="h-5 w-5" />}
@@ -118,9 +119,8 @@ export function TabSeguros({ embarqueId, canEdit, tipoCambioUsd = null, tipoCamb
         >
           Seguros de carga
         </SectionHeading>
-        <Button onClick={() => { setEditing(null); setOpen(true); }} disabled={!canEdit || isLoading || isError}>
-          <Plus className="h-4 w-4 mr-2" /> Nueva póliza
-        </Button>
+        <NuevaPolizaAction canEdit={canEdit} isLoading={isLoading} isError={isError}
+          onClick={() => { setEditing(null); setOpen(true); }} />
       </div>
 
       {Object.keys(totales).length > 0 && (
@@ -156,7 +156,9 @@ export function TabSeguros({ embarqueId, canEdit, tipoCambioUsd = null, tipoCamb
                 <EmptyState
                   icon={Shield}
                   title="Sin pólizas registradas"
-                  description="Registra la póliza de seguro de carga del embarque para que la prima entre en el P&L."
+                  description={canEdit
+                    ? "Registra la póliza de seguro de carga del embarque para que la prima entre en el P&L."
+                    : "Este embarque aún no tiene pólizas de seguro de carga."}
                 />
               </div>
             }

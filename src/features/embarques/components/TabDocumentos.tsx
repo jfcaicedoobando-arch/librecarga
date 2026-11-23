@@ -25,7 +25,7 @@ interface Props {
   onDelete?: (doc: DocumentoEmbarqueRow) => Promise<void> | void;
   onToggleNoAplica?: (doc: DocumentoEmbarqueRow) => void;
   rechazandoDocId?: string | null;
-  onRechazar?: (doc: DocumentoEmbarqueRow, motivo: string) => Promise<void> | void;
+  onRechazar?: (doc: DocumentoEmbarqueRow, motivo: string) => Promise<boolean>;
 }
 
 export function TabDocumentos({
@@ -36,7 +36,7 @@ export function TabDocumentos({
   const [docToReject, setDocToReject] = useState<DocumentoEmbarqueRow | null>(null);
   const [replacement, setReplacement] = useState<{ documento: DocumentoEmbarqueRow; archivo: File } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const { focus, registerRef, clearFocus } = useFocusSection();
+  const { focus, registerRef, clearFocus } = useFocusSection(true);
   const filtrarFaltantes = focus === "faltantes";
 
   const documentosVisibles = useMemo(() => {
@@ -64,15 +64,15 @@ export function TabDocumentos({
   return (
     <>
       <Card ref={registerRef("faltantes")} data-focus="faltantes">
-        <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
-          <div className="flex items-center gap-2">
+        <CardHeader className="flex flex-col items-start gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <CardTitle>Documentos del embarque</CardTitle>
             {filtrarFaltantes && (
               <>
-                <Badge variant="outline" className="border-primary text-primary">
+                <Badge variant="outline" className="max-w-full whitespace-normal border-primary text-primary">
                   Filtrando: documentos faltantes
                 </Badge>
-                <Button size="sm" variant="ghost" className="h-7 px-2 text-body-sm" onClick={clearFocus}>
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-body-sm" onClick={clearFocus} aria-label="Limpiar filtro de documentos faltantes">
                   <X className="mr-1 h-3 w-3" /> Limpiar
                 </Button>
               </>
@@ -112,10 +112,7 @@ export function TabDocumentos({
         onOpenChange={(open) => { if (!open) setDocToReject(null); }}
         documentoNombre={docToReject?.nombre ?? ''}
         pendiente={!!docToReject && rechazandoDocId === docToReject.id}
-        onConfirm={async (motivo) => {
-          if (docToReject && onRechazar) await onRechazar(docToReject, motivo);
-          setDocToReject(null);
-        }}
+        onConfirm={async (motivo) => Boolean(docToReject && await onRechazar?.(docToReject, motivo))}
       />
 
       <ConfirmActionDialog

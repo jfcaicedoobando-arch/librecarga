@@ -48,6 +48,9 @@ export async function fetchContactosClienteEnvio(
       .maybeSingle(),
   ]);
 
+  if (contactosRes.error) throw contactosRes.error;
+  if (clienteRes.error) throw clienteRes.error;
+
   const contactos: ContactoEnvio[] = (
     (contactosRes.data ?? []) as Array<{
       id: string;

@@ -2,9 +2,7 @@
  * Columnas + badge de estado para `AgenteTarifas` — extraídas en v13.182.0
  * (Wave 2 · Power-of-10 splits).
  */
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -64,10 +62,11 @@ export function toInitial(t: AgenteTarifaRow, recargos: TarifaRecargoInput[] = [
 export interface AgenteTarifasColumnsDeps {
   onEditar: (t: AgenteTarifaRow) => void;
   onDuplicar: (t: AgenteTarifaRow) => void;
+  tarifaEnCarga?: string | null;
 }
 
 export function buildAgenteTarifasColumns(deps: AgenteTarifasColumnsDeps): ColumnDef<AgenteTarifaRow, unknown>[] {
-  const { onEditar, onDuplicar } = deps;
+  const { onEditar, onDuplicar, tarifaEnCarga } = deps;
   return defineColumns<AgenteTarifaRow>([
     {
       id: "ruta",
@@ -155,7 +154,7 @@ export function buildAgenteTarifasColumns(deps: AgenteTarifasColumnsDeps): Colum
       header: "",
       meta: { width: "w-12", align: "right" },
       cell: ({ row }) => (
-        <AgenteTarifaAcciones t={row.original} onEditar={onEditar} onDuplicar={onDuplicar} />
+        <AgenteTarifaAcciones t={row.original} onEditar={onEditar} onDuplicar={onDuplicar} tarifaEnCarga={tarifaEnCarga} />
       ),
     },
   ]);
@@ -163,8 +162,9 @@ export function buildAgenteTarifasColumns(deps: AgenteTarifasColumnsDeps): Colum
 
 /** Menú de acciones de una tarifa (compartido entre tabla desktop y tarjeta móvil). */
 export function AgenteTarifaAcciones({
-  t, onEditar, onDuplicar,
+  t, onEditar, onDuplicar, tarifaEnCarga,
 }: { t: AgenteTarifaRow } & AgenteTarifasColumnsDeps) {
+  if (tarifaEnCarga === t.id) return <span role="status" className="text-body-sm text-muted-foreground">Cargando recargos…</span>;
   const editable = t.estado_aprobacion === "borrador" || t.estado_aprobacion === "rechazada";
   const { vencida } = resolverEstadoVigenciaTarifa({
     estadoAprobacion: t.estado_aprobacion,

@@ -1,5 +1,5 @@
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type Ref } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ type EmbarqueTrackingProps = EmbarqueTracking;
 interface Props {
   embarqueId: string;
   embarque?: EmbarqueTrackingProps | null;
+  onDirtyChange?: (dirty: boolean) => void;
+  confirmarDescarte?: (accion: () => void) => void;
 }
 
 
@@ -40,8 +42,13 @@ function EtaVencidaBanner({ eta }: { eta: string }) {
 }
 
 function FreshnessHeader({
-  freshness, canEdit, onToggleForm,
-}: { freshness: Freshness; canEdit: boolean; onToggleForm: () => void }) {
+  freshness, canEdit, onToggleForm, disclosure,
+}: {
+  freshness: Freshness;
+  canEdit: boolean;
+  onToggleForm: () => void;
+  disclosure: { id: string; open: boolean; trigger: Ref<HTMLButtonElement> };
+}) {
   const badgeLabel = freshness.etaProxima ? "Actualiza antes del arribo" : "Requiere actualización";
   return (
     <div className="flex items-center justify-between flex-wrap gap-2">
@@ -51,8 +58,9 @@ function FreshnessHeader({
         {freshness.critical && <Badge variant="warning">{badgeLabel}</Badge>}
       </div>
       {canEdit && (
-        <Button size="sm" onClick={onToggleForm}>
-          <Plus className="h-4 w-4 mr-1" /> Registrar Evento
+        <Button size="sm" onClick={onToggleForm} ref={disclosure.trigger}
+          aria-expanded={disclosure.open} aria-controls={disclosure.id}>
+          <Plus className="h-4 w-4 mr-1" aria-hidden /> {disclosure.open ? "Ocultar opciones de registro" : "Registrar Evento"}
         </Button>
       )}
     </div>
@@ -60,10 +68,25 @@ function FreshnessHeader({
 }
 
 // eslint-disable-next-line complexity -- Render de alto nivel con múltiples secciones condicionales opcionales; extraer más subcomponentes fragmentaría el layout.
-export function TabTracking({ embarqueId, embarque }: Props) {
+export function TabTracking({ embarqueId, embarque, onDirtyChange, confirmarDescarte }: Props) {
   const { data: eventos = [], isLoading, isError, isFetching, refetch } = useEventosEmbarque(embarqueId);
   const { canEdit } = usePermissions();
   const [formAbierto, setFormAbierto] = useState(false);
+  const formId = useId();
+  const trigger = useRef<HTMLButtonElement>(null);
+  const enfocarPanel = useCallback((panel: HTMLDivElement | null) => panel?.focus({ preventScroll: true }), []);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
+
+  const cerrarFormulario = () => {
+    onDirtyChange?.(false);
+    setFormAbierto(false);
+    trigger.current?.focus({ preventScroll: true });
+  };
+  const alternarFormulario = () => {
+    if (!formAbierto) setFormAbierto(true);
+    else if (confirmarDescarte) confirmarDescarte(cerrarFormulario);
+    else cerrarFormulario();
+  };
 
   const arribado = esEmbarqueArribado(embarque);
   const freshness = useMemo(
@@ -112,13 +135,17 @@ export function TabTracking({ embarqueId, embarque }: Props) {
       {showEtaBanner && <EtaVencidaBanner eta={embarque.eta!} />}
 
       <FreshnessHeader
-        freshness={isError ? { ...freshness, label: "Actividad de tracking sin verificar", critical: false } : freshness}
+        freshness={isLoading
+          ? { ...freshness, label: "Consultando la última actualización…", critical: false }
+          : isError ? { ...freshness, label: "Actividad de tracking sin verificar", critical: false } : freshness}
         canEdit={canEdit}
-        onToggleForm={() => setFormAbierto((v) => !v)}
+        onToggleForm={alternarFormulario}
+        disclosure={{ id: formId, open: formAbierto, trigger }}
       />
 
-      {formAbierto && (
-        <TrackingNuevoEventoForm
+      <div id={formId} hidden={!formAbierto}>
+        {formAbierto && <div ref={enfocarPanel} role="region" aria-label="Opciones de registro de tracking" tabIndex={-1}>
+          <TrackingNuevoEventoForm
           embarqueId={embarqueId}
           modoTransporte={embarque?.modo}
           estadoActual={embarque?.estado}
@@ -128,9 +155,12 @@ export function TabTracking({ embarqueId, embarque }: Props) {
           destinoDefault={
             embarque?.puerto_destino ?? embarque?.aeropuerto_destino ?? embarque?.ciudad_destino ?? ""
           }
-          onClose={() => setFormAbierto(false)}
-        />
-      )}
+          onClose={cerrarFormulario}
+          onDirtyChange={onDirtyChange}
+          confirmarDescarte={confirmarDescarte}
+          />
+        </div>}
+      </div>
 
       <Card>
         <CardHeader className="pb-3">

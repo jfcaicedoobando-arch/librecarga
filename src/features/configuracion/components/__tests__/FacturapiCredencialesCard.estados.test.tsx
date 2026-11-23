@@ -27,7 +27,8 @@ it("mantiene el ambiente confirmado en el encabezado al editar el borrador", () 
   fireEvent.click(screen.getByText("Modo avanzado — editar campos manualmente"));
   fireEvent.click(screen.getByRole("switch", { name: "Cambiar ambiente" }));
   expect(screen.getByRole("heading", { name: /FacturApi.*Configurado Sandbox/ })).toBeVisible();
-  expect(screen.getByRole("status")).toHaveTextContent("Cambio de ambiente pendiente de guardar");
+  expect(screen.getByRole("status")).toHaveTextContent("Ambiente activo: Sandbox. Cambiará a Producción al guardar.");
+  expect(screen.getByRole("button", { name: "Activar Producción" })).toBeEnabled();
 });
 
 it("ofrece reintento y bloquea la edición mientras la lectura falle", () => {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { FilePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { useCreateDocumentoEmbarque } from "@/features/embarques/hooks";
 import { getDocsForMode } from "@/features/embarques/constants/embarqueConstants";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 import { getErrorMessage } from "@/lib/errors";
-import { ERROR_CODES } from "@/lib/domain/errorCatalog";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 
 const OTRO_VALUE = "__otro__";
 
@@ -29,6 +29,11 @@ export function AgregarDocumentoDialog({ open, onOpenChange, embarqueId, modo, d
   const [nombreSel, setNombreSel] = useState<string>("");
   const [nombreLibre, setNombreLibre] = useState("");
   const [notasNuevo, setNotasNuevo] = useState("");
+  const [intentoGuardar, setIntentoGuardar] = useState(false);
+  const tipoRef = useRef<HTMLButtonElement>(null);
+  const nombreRef = useRef<HTMLInputElement>(null);
+  const faltaTipo = intentoGuardar && !nombreSel;
+  const faltaNombre = intentoGuardar && nombreSel === OTRO_VALUE && !nombreLibre.trim();
   const createDoc = useCreateDocumentoEmbarque();
 
   const sugerencias = useMemo(() => {
@@ -40,12 +45,15 @@ export function AgregarDocumentoDialog({ open, onOpenChange, embarqueId, modo, d
     setNombreSel("");
     setNombreLibre("");
     setNotasNuevo("");
+    setIntentoGuardar(false);
   };
+  const cerrar = () => { resetForm(); onOpenChange(false); };
 
   const handleCrear = async () => {
     const nombreFinal = nombreSel === OTRO_VALUE ? nombreLibre.trim() : nombreSel.trim();
     if (!nombreFinal) {
-      notifyError(undefined, { title: "Nombre requerido", description: "Selecciona o escribe el nombre del documento.", method: "HANDLE_CREAR", errorCode: ERROR_CODES.VALIDATION_FAILED });
+      setIntentoGuardar(true);
+      (nombreSel === OTRO_VALUE ? nombreRef.current : tipoRef.current)?.focus();
       return;
     }
     try {
@@ -61,16 +69,15 @@ export function AgregarDocumentoDialog({ open, onOpenChange, embarqueId, modo, d
   return (
     <FormDialogShell
       open={open}
-      onOpenChange={(o) => { onOpenChange(o); if (!o) resetForm(); }}
+      onOpenChange={(o) => { if (o) onOpenChange(true); else cerrar(); }}
       icon={FilePlus}
       title="Agregar documento"
       description="Crea una nueva entrada en el checklist para luego adjuntar el archivo."
       size="lg"
+      busy={createDoc.isPending}
       footer={
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={createDoc.isPending}>
-            Cancelar
-          </Button>
+          <FormDialogCancelarBoton onCancelar={cerrar} disabled={createDoc.isPending} />
           <Button onClick={handleCrear} loading={createDoc.isPending}>
             Agregar
           </Button>
@@ -80,7 +87,9 @@ export function AgregarDocumentoDialog({ open, onOpenChange, embarqueId, modo, d
       <div className="space-y-1.5">
         <Label htmlFor="doc-nombre">Tipo de documento</Label>
         <Select value={nombreSel} onValueChange={setNombreSel}>
-          <SelectTrigger id="doc-nombre">
+          <SelectTrigger id="doc-nombre" ref={tipoRef} aria-required="true"
+            aria-invalid={faltaTipo || undefined}
+            aria-describedby={faltaTipo ? "doc-tipo-error" : undefined}>
             <SelectValue placeholder="Selecciona un documento estándar" />
           </SelectTrigger>
           <SelectContent>
@@ -90,17 +99,23 @@ export function AgregarDocumentoDialog({ open, onOpenChange, embarqueId, modo, d
             <SelectItem value={OTRO_VALUE}>Otro (nombre personalizado)…</SelectItem>
           </SelectContent>
         </Select>
+        {faltaTipo && <p id="doc-tipo-error" role="alert" className="text-body-sm text-destructive">Selecciona el tipo de documento.</p>}
       </div>
       {nombreSel === OTRO_VALUE && (
         <div className="space-y-1.5">
           <Label htmlFor="doc-nombre-libre">Nombre personalizado</Label>
           <Input
             id="doc-nombre-libre"
+            ref={nombreRef}
+            aria-required="true"
+            aria-invalid={faltaNombre || undefined}
+            aria-describedby={faltaNombre ? "doc-nombre-libre-error" : undefined}
             value={nombreLibre}
             onChange={(e) => setNombreLibre(e.target.value)}
             placeholder="Ej. Pedimento, Certificado fitosanitario…"
             maxLength={120}
           />
+          {faltaNombre && <p id="doc-nombre-libre-error" role="alert" className="text-body-sm text-destructive">Captura el nombre personalizado.</p>}
         </div>
       )}
       <div className="space-y-1.5">

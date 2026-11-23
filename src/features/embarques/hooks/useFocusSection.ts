@@ -7,8 +7,8 @@
  *   <section ref={registerRef("cxc")} data-focus="cxc"> …
  *
  * Cuando `focus === key`, el ref hace scroll suave y aplica un ring pulsante
- * por 2.5s; luego se autolimpia el query param para que un refresh no
- * vuelva a resaltar.
+ * por 2.5s. Si el parámetro también filtra el contenido, la sección puede
+ * conservarlo hasta que el usuario decida limpiar el filtro.
  */
 import { useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router";
@@ -22,7 +22,7 @@ const HIGHLIGHT_CLASSES = [
 ];
 const HIGHLIGHT_MS = 2500;
 
-export function useFocusSection() {
+export function useFocusSection(conservarFiltro = false) {
   const [params, setParams] = useSearchParams();
   const focus = params.get("focus");
   const idsParam = params.get("ids");
@@ -35,16 +35,18 @@ export function useFocusSection() {
   const handledRef = useRef<Set<string>>(new Set());
 
   const clearFocus = useCallback(() => {
+    if (focus) handledRef.current.delete(focus);
     const next = new URLSearchParams(params);
     next.delete("focus");
     next.delete("ids");
     setParams(next, { replace: true });
-  }, [params, setParams]);
+  }, [focus, params, setParams]);
 
   const registerRef = useCallback(
     (key: string) => (node: HTMLElement | null) => {
       if (!node || focus !== key || handledRef.current.has(key)) return;
       handledRef.current.add(key);
+      const ubicacion = window.location.pathname;
 
       // Defer al siguiente frame: asegura que el tab ya renderizó.
       requestAnimationFrame(() => {
@@ -56,8 +58,9 @@ export function useFocusSection() {
         node.classList.add(...HIGHLIGHT_CLASSES);
         window.setTimeout(() => {
           node.classList.remove(...HIGHLIGHT_CLASSES);
-          // Limpia el param para que el highlight no se repita en refresh.
+          if (conservarFiltro || window.location.pathname !== ubicacion) return;
           const next = new URLSearchParams(window.location.search);
+          if (next.get("focus") !== key || next.get("ids") !== idsParam) return;
           next.delete("focus");
           next.delete("ids");
           const url = `${window.location.pathname}${
@@ -67,7 +70,7 @@ export function useFocusSection() {
         }, HIGHLIGHT_MS);
       });
     },
-    [focus],
+    [conservarFiltro, focus, idsParam],
   );
 
   return { focus, ids, registerRef, clearFocus };

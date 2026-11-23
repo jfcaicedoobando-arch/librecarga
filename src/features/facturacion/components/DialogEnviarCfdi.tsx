@@ -15,6 +15,7 @@ import { enviarCfdiFactura, enviarCfdiRep, enviarCfdiNotaCredito } from "@/featu
 import { facturas as facturasKeys } from "@/features/facturacion/queryKeys";
 import { useContactosClienteParaEnvio } from "@/features/facturacion/hooks/useContactosClienteParaEnvio";
 import { ContactosClienteList } from "@/features/facturacion/components/ContactosClienteList";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { notifyError } from "@/lib/ui/appFeedback";
 import { getErrorMessage } from "@/lib/errors/index";
 
@@ -54,7 +55,8 @@ export function DialogEnviarCfdi({
   const [tocado, setTocado] = useState(Boolean(emailDefault));
   const [enviando, setEnviando] = useState(false);
 
-  const { data: datosCliente, isLoading: cargandoContactos } = useContactosClienteParaEnvio(clienteId, open);
+  const { data: datosCliente, isLoading: cargandoContactos, isError, isFetching, refetch } =
+    useContactosClienteParaEnvio(clienteId, open);
 
   useEffect(() => {
     if (!open || tocado) return;
@@ -143,13 +145,19 @@ export function DialogEnviarCfdi({
             <Label size="sm" className="uppercase tracking-wide text-muted-foreground">
               Contactos del cliente
             </Label>
-            <ContactosClienteList
-              cargando={cargandoContactos}
-              contactos={contactos}
-              emailCliente={datosCliente?.emailCliente}
-              emailSeleccionado={email}
-              onPick={pickEmail}
-            />
+            {isError ? (
+              <ErrorStateInline title="No pudimos consultar los contactos"
+                message="Reintenta la consulta para volver a ver los correos del cliente."
+                onRetry={() => void refetch()} retrying={isFetching} />
+            ) : (
+              <ContactosClienteList
+                cargando={cargandoContactos}
+                contactos={contactos}
+                emailCliente={datosCliente?.emailCliente}
+                emailSeleccionado={email}
+                onPick={pickEmail}
+              />
+            )}
           </div>
         )}
       </div>

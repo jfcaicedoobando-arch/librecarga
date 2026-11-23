@@ -6,6 +6,7 @@ import { tieneSaldoMonetario } from "@/lib/financial/toleranciaPago";
 import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Wallet } from "lucide-react";
+import { FilteredListEmptyState } from "@/components/empty/FilteredListEmptyState";
 import { defineColumns } from "@/components/shared/DataTable";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -124,10 +125,12 @@ export function BandejaPorCobrar() {
             data={paged.rows}
             isLoading={paged.isLoading}
             emptyState={
-              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-body text-muted-foreground px-4">
-                <Wallet className="h-8 w-8 opacity-40" strokeWidth={1.5} />
-                <span>Sin facturas vigentes con saldo por cobrar.</span>
-              </div>
+              <FilteredListEmptyState
+                filtered={Boolean(paged.search?.trim()) || paged.activeCount > 0}
+                onClearFilters={paged.resetAll}
+                icon={Wallet}
+                message="Sin facturas vigentes con saldo por cobrar."
+              />
             }
             rowKey={(r) => r.id}
             getRowHref={(r) => `/facturacion/${r.id}`}

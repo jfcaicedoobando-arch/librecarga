@@ -74,4 +74,19 @@ describe("CotizacionHandover", () => {
       expect(screen.getByText(value)).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
+
+  it("adapta la ficha de carga a FCL, LCL y terrestre", () => {
+    mocks.query.data = { created_at: "2026-11-06T12:00:00Z" };
+    const { rerender } = render(<CotizacionHandover cotizacion={{ ...cotizacion, tipo_embarque: "FCL" }} />);
+    expect(screen.getByText("Número de contenedores").nextElementSibling).toHaveTextContent("2");
+
+    rerender(<CotizacionHandover cotizacion={{ ...cotizacion, tipo_embarque: "LCL", piezas: 4 }} />);
+    expect(screen.getByText("Carga consolidada").nextElementSibling).toHaveTextContent("LCL");
+    expect(screen.getByText("Piezas").nextElementSibling).toHaveTextContent("4");
+    expect(screen.queryByText("Número de contenedores")).not.toBeInTheDocument();
+
+    rerender(<CotizacionHandover cotizacion={{ ...cotizacion, modo: "Terrestre", tipo_unidad: "Caja seca" }} />);
+    expect(screen.getByText("Equipo terrestre").nextElementSibling).toHaveTextContent("Caja seca");
+    expect(screen.queryByText("Contenedor")).not.toBeInTheDocument();
+  });
 });

@@ -112,6 +112,7 @@ export default function CxpAging() {
 
       <p className="text-body-sm text-muted-foreground">{CXP_AGING_ALCANCE}</p>
 
+      {reporteDisponible && <p className="text-body-sm font-medium">Totales de {monedaActiva} para todos los proveedores</p>}
       {reporteDisponible && <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         {CUBETAS_AGING.map((b) => (
           <AgingKpiBucket

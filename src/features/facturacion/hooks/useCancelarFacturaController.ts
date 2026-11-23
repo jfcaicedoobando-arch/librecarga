@@ -45,7 +45,7 @@ interface Params {
 export function useCancelarFacturaController(params: Params) {
   const { facturaId, fechaEmision, total, rfcCliente, open, onOpenChange, onAbrirSustituir } = params;
   const cancelar = useCancelarFactura();
-  const [motivo, setMotivo] = useState<MotivoCancelacionSat>("02");
+  const [motivo, setMotivoState] = useState<MotivoCancelacionSat>("02");
   const [sustitutaId, setSustitutaId] = useState<string>("");
   const [consultarOpen, setConsultarOpen] = useState(false);
 
@@ -61,18 +61,24 @@ export function useCancelarFacturaController(params: Params) {
     [sustitutasQ.data],
   );
 
-  // Autoseleccionar la primera timbrada cuando llegan resultados.
+  const sustitutaElegida = sustitutasTimbradas.find((s) => s.id === sustitutaId);
+
   useEffect(() => {
-    if (motivo !== "01") return;
-    if (sustitutasTimbradas.length === 0) { setSustitutaId(""); return; }
-    if (!sustitutasTimbradas.some((s) => s.id === sustitutaId)) {
-      setSustitutaId(sustitutasTimbradas[0].id);
-    }
-  }, [motivo, sustitutasTimbradas, sustitutaId]);
+    setSustitutaId("");
+  }, [facturaId, open]);
+
+  useEffect(() => {
+    if (sustitutaId && !sustitutasQ.isLoading && !sustitutasQ.isError && !sustitutaElegida) setSustitutaId("");
+  }, [sustitutaId, sustitutasQ.isLoading, sustitutasQ.isError, sustitutaElegida]);
+
+  const setMotivo = (nuevoMotivo: MotivoCancelacionSat) => {
+    setMotivoState(nuevoMotivo);
+    setSustitutaId("");
+  };
 
   const requiereSustituta = motivo === "01";
   const puedeConfirmar = !requiereSustituta
-    || (!sustitutasQ.isError && sustitutasTimbradas.some((s) => s.id === sustitutaId));
+    || (!sustitutasQ.isError && !!sustitutaElegida);
 
   const onConfirm = () => {
     if (!facturaId || !puedeConfirmar || cancelar.isPending) return;
@@ -106,6 +112,7 @@ export function useCancelarFacturaController(params: Params) {
     cond,
     sustitutasQ,
     sustitutasTimbradas,
+    sustitutaElegida,
     requiereSustituta,
     puedeConfirmar,
     onConfirm,
