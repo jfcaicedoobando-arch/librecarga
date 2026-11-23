@@ -27,8 +27,8 @@ export type ComplejidadPricing = "baja" | "media" | "alta";
 
 export const ETIQUETA_COMPLEJIDAD: Record<ComplejidadPricing, string> = {
   baja: "Cotización estándar (sin contador)",
-  media: "Nueva ruta/agente/Incoterm (36 h)",
-  alta: "Especial, proyecto o multimodal (48 h)",
+  media: "Nueva ruta/agente/Incoterm (36 h hábiles)",
+  alta: "Especial, proyecto o multimodal (48 h hábiles)",
 };
 export const ETIQUETA_TIPO_SOLICITUD: Record<string, string> = {
   nuevas_tarifas: "Nuevas tarifas con otros agentes", nueva_ruta: "Nueva ruta sin agentes identificados",
@@ -68,7 +68,7 @@ export function mensajeErrorPricing(err: unknown): string {
     LC_PRICING_MOTIVO_REQUERIDO: "Escribe una justificación de al menos 10 caracteres.",
     LC_PRICING_PLAZO_NO_AMPLIABLE: "Solo se amplía el plazo de solicitudes especiales enviadas.",
     LC_PRICING_PLAZO_FUERA_DE_TIEMPO: "Ya pasaron las 8 horas para ampliar el plazo.",
-    LC_PRICING_HORAS_INVALIDAS: "El nuevo plazo debe ser mayor a 48 h y hasta 720 h.",
+    LC_PRICING_HORAS_INVALIDAS: "El nuevo plazo debe ser mayor a 48 h y hasta 720 h hábiles.",
     LC_PRICING_SIN_OPCIONES: "Agrega al menos una opción antes de responder.",
     LC_PRICING_SIN_PERMISO: "Solo Pricing o el solicitante pueden hacer esto.",
     LC_PRICING_NO_EDITABLE: "La solicitud ya no acepta cambios en opciones.",
