@@ -77,13 +77,15 @@ describe("facturapi SDK-only guardrail (v13.136.4)", () => {
  * boot del worker antes (`Could not find constraint 'facturapi@5'`).
  */
 describe("facturapi SDK version pin", () => {
-  const SDK_VERSION = "6.0.0";
+  const manifest = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+  const SDK_VERSION = manifest.devDependencies.facturapi;
   const helperSrc = readFileSync(
     join(ROOT, "supabase/functions/_shared/facturapiClient.ts"),
     "utf8",
   );
 
   it(`importa exactamente npm:facturapi@${SDK_VERSION}`, () => {
+    expect(SDK_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
     expect(helperSrc).toContain(`import FacturapiDefault from "npm:facturapi@${SDK_VERSION}";`);
   });
 
