@@ -15,6 +15,7 @@ import { portalResponderCotizacion } from "@/features/cotizacion/services/conver
 beforeEach(() => {
   mock.tableCalls.length = 0;
   mock.rpcCalls.length = 0;
+  mock.invoke.mockClear();
 });
 
 describe("portalResponderCotizacion", () => {
@@ -51,5 +52,15 @@ describe("portalResponderCotizacion", () => {
     await expect(
       portalResponderCotizacion("cot-x", "Aceptada", ""),
     ).rejects.toThrow(matcher);
+  });
+
+  it("explica el vencimiento confirmado por el servidor sin enviar notificaciones", async () => {
+    mock.setRpcResult("portal_responder_cotizacion", {
+      data: null,
+      error: new Error("LC_COTIZACION_VENCIDA: la cotización venció"),
+    });
+    await expect(portalResponderCotizacion("cot-x", "Aceptada", ""))
+      .rejects.toThrow("Solicita una actualización al equipo que te la envió.");
+    expect(mock.invoke).not.toHaveBeenCalled();
   });
 });
