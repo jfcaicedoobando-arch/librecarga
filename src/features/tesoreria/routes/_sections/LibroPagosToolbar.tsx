@@ -5,12 +5,14 @@
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { badgeVariants } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
+  FILTROS_LIBRO_PAGOS_INICIALES,
   type FiltroConciliacion, type FiltroRep, type FiltrosLibroPagos,
 } from "@/features/tesoreria/domain/libroPagos";
 import {
@@ -33,9 +35,14 @@ interface Props {
   onRangoChange: (rango: RangoPagos) => void;
 }
 
+const FILTROS_SECUNDARIOS = ["cuentaId", "moneda", "metodo", "conciliacion", "rep"] as const;
+
 export function LibroPagosToolbar({
   cuentas, monedas, metodos, filtros, onFiltrosChange, rango, onRangoChange,
 }: Props) {
+  const activos = FILTROS_SECUNDARIOS.filter((filtro) =>
+    filtros[filtro] !== FILTROS_LIBRO_PAGOS_INICIALES[filtro],
+  ).length;
   const filtrosSecundarios = (
     <>
       <FiltroCuenta cuentas={cuentas} value={filtros.cuentaId} onChange={(cuentaId) => onFiltrosChange({ cuentaId })} />
@@ -78,7 +85,16 @@ export function LibroPagosToolbar({
         </div>
 
         <details className="col-span-2 md:hidden">
-          <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-2 rounded-md border px-3 text-body-sm font-medium"><SlidersHorizontal className="size-4" />Más filtros</summary>
+          <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-2 rounded-md border px-3 text-body-sm font-medium">
+            <SlidersHorizontal className="size-4" aria-hidden />
+            <span>Más filtros</span>
+            {activos > 0 && (
+              <>
+                <span className={badgeVariants({ variant: "secondary", size: "sm" })} aria-hidden>{activos}</span>
+                <span className="sr-only">, {activos} {activos === 1 ? "filtro activo" : "filtros activos"}</span>
+              </>
+            )}
+          </summary>
           <div className="mt-3 grid grid-cols-2 gap-3">{filtrosSecundarios}</div>
         </details>
         <div className="hidden md:contents">{filtrosSecundarios}</div>
