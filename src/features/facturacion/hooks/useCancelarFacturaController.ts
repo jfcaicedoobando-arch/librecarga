@@ -71,10 +71,11 @@ export function useCancelarFacturaController(params: Params) {
   }, [motivo, sustitutasTimbradas, sustitutaId]);
 
   const requiereSustituta = motivo === "01";
-  const puedeConfirmar = !requiereSustituta || !!sustitutaId;
+  const puedeConfirmar = !requiereSustituta
+    || (!sustitutasQ.isError && sustitutasTimbradas.some((s) => s.id === sustitutaId));
 
   const onConfirm = () => {
-    if (!facturaId) return;
+    if (!facturaId || !puedeConfirmar || cancelar.isPending) return;
     cancelar.mutate(
       {
         facturaId,

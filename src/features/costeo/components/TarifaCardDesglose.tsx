@@ -4,17 +4,24 @@
  */
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { useRecargosDeTarifa } from "@/features/costeo/hooks/useRecargosDeTarifa";
 import { usdTarifa } from "@/features/costeo/utils/tarifaFormatters";
 
-interface RecargoItem {
-  id: string;
-  concepto: string;
-  lado: string;
-  monto: number | string;
-}
-
-export function TarifaCardDesglose({ recargos }: { recargos: RecargoItem[] }) {
+export function TarifaCardDesglose({ tarifaId }: { tarifaId: string }) {
   const [abierto, setAbierto] = useState(false);
+  const { data: recargos = [], isLoading, isError, isFetching, refetch } = useRecargosDeTarifa(tarifaId);
+  if (isError) {
+    return <ErrorStateInline
+      title="No se pudieron consultar los recargos"
+      message="Reintenta para ver el desglose de esta tarifa."
+      onRetry={() => void refetch()}
+      retrying={isFetching}
+      className="gap-2 py-3"
+    />;
+  }
+  if (isLoading) return <EmptyStateInline loading message="Cargando recargos…" density="compact" />;
   if (recargos.length === 0) return null;
   return (
     <div>

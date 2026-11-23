@@ -3,13 +3,16 @@
  * propiedades obligatorias (País, Fuente, Tipo de transporte, Volumen de
  * importación) y, opcionalmente, el resto de las propiedades.
  */
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { Building2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
+import { LoadingState } from "@/components/shared/states/LoadingState";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useCrearEmpresaCrm } from "@/features/crm/hooks/useObjetosCrm";
 import { usePropiedadesCrm } from "@/features/crm/hooks/usePropiedadesCrm";
 import type { PropiedadCrm } from "@/features/crm/services/propiedadesCrm";
@@ -25,20 +28,58 @@ interface Props { open: boolean; onOpenChange: (open: boolean) => void }
 
 const vacio = (v: ValorEntrada | undefined) => v == null || v === "" || (Array.isArray(v) && v.length === 0);
 
+interface CamposEmpresaProps {
+  consulta: ReturnType<typeof usePropiedadesCrm>;
+  obligatorias: PropiedadCrm[];
+  adicionales: PropiedadCrm[];
+  renderCampo: (propiedad: PropiedadCrm, requerido: boolean) => ReactNode;
+}
+
+function CamposEmpresa({ consulta, obligatorias, adicionales, renderCampo }: CamposEmpresaProps) {
+  const [verMas, setVerMas] = useState(false);
+  if (consulta.isPending) return <LoadingState label="Cargando campos de empresa…" minHeight="min-h-20" />;
+  if (consulta.isError) {
+    return (
+      <ErrorStateInline
+        title="No se pudieron cargar los campos de empresa"
+        message="Reintenta la consulta para continuar con el alta."
+        onRetry={() => void consulta.refetch()}
+        retrying={consulta.isFetching}
+      />
+    );
+  }
+  return (
+    <>
+      {obligatorias.length > 0 && (
+        <FormDialogSection>{obligatorias.map((p) => renderCampo(p, true))}</FormDialogSection>
+      )}
+      {adicionales.length > 0 && (
+        <FormDialogSection cols={1} flat>
+          <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => setVerMas((v) => !v)} aria-expanded={verMas}>
+            <ChevronDown className={`size-4 transition-transform ${verMas ? "rotate-180" : ""}`} />
+            {verMas ? "Ocultar campos adicionales" : `Más campos (${adicionales.length})`}
+          </Button>
+        </FormDialogSection>
+      )}
+      {verMas && <FormDialogSection>{adicionales.map((p) => renderCampo(p, false))}</FormDialogSection>}
+    </>
+  );
+}
+
 export function NuevaEmpresaDialog({ open, onOpenChange }: Props) {
   const [nombre, setNombre] = useState("");
   const [valores, setValores] = useState<Record<string, ValorEntrada>>({});
-  const [verMas, setVerMas] = useState(false);
   const [version, setVersion] = useState(0);
   const crear = useCrearEmpresaCrm();
-  const props = (usePropiedadesCrm("empresa").data ?? []).filter((p) => !p.archivada);
+  const propiedades = usePropiedadesCrm("empresa");
+  const props = (propiedades.data ?? []).filter((p) => !p.archivada);
   const obligatorias = CLAVES_OBLIGATORIAS_EMPRESA
     .map((c) => props.find((p) => p.clave === c)).filter((p): p is PropiedadCrm => !!p);
   const resto = props.filter((p) => !CLAVES_OBLIGATORIAS_EMPRESA.includes(p.clave));
   const faltan = obligatorias.filter((p) => vacio(valores[p.id])).map((p) => p.etiqueta);
-  const listo = !!nombre.trim() && faltan.length === 0 && !crear.isPending;
+  const listo = propiedades.isSuccess && !!nombre.trim() && faltan.length === 0 && !crear.isPending;
 
-  const cerrar = () => { setNombre(""); setValores({}); setVerMas(false); setVersion((v) => v + 1); onOpenChange(false); };
+  const cerrar = () => { setNombre(""); setValores({}); setVersion((v) => v + 1); onOpenChange(false); };
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -53,7 +94,7 @@ export function NuevaEmpresaDialog({ open, onOpenChange }: Props) {
     let valor;
     try { valor = vacio(v) ? undefined : { propiedad_id: p.id, ...filaValor(p.tipo, v ?? null) }; } catch { valor = undefined; }
     return (
-      <div key={`${p.id}-${version}`} className="space-y-1.5">
+      <div key={p.id} className="space-y-1.5">
         <Label htmlFor={`prop-${p.id}`}>{p.etiqueta}{requerido && " *"}</Label>
         <CampoPropiedad prop={p} valor={valor} disabled={crear.isPending}
           onGuardar={(nv) => setValores((s) => ({ ...s, [p.id]: nv }))} />
@@ -74,10 +115,10 @@ export function NuevaEmpresaDialog({ open, onOpenChange }: Props) {
       busy={crear.isPending}
       footer={
         <>
-          {nombre.trim() && faltan.length > 0 && (
+          {propiedades.isSuccess && nombre.trim() && faltan.length > 0 && (
             <span className="mr-auto text-caption text-muted-foreground">Falta: {faltan.join(", ")}</span>
           )}
-          <Button type="button" variant="outline" onClick={cerrar} disabled={crear.isPending}>Cancelar</Button>
+          <FormDialogCancelarBoton onCancelar={cerrar} disabled={crear.isPending} />
           <Button type="submit" form={FORM_ID} disabled={!listo}>{crear.isPending ? "Guardando…" : "Guardar"}</Button>
         </>
       }
@@ -89,16 +130,7 @@ export function NuevaEmpresaDialog({ open, onOpenChange }: Props) {
         </div>
         <EmpresasSimilares nombre={nombre} onElegir={cerrar} />
       </FormDialogSection>
-      <FormDialogSection>{obligatorias.map((p) => campo(p, true))}</FormDialogSection>
-      {resto.length > 0 && (
-        <FormDialogSection cols={1} flat>
-          <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => setVerMas((v) => !v)} aria-expanded={verMas}>
-            <ChevronDown className={`size-4 transition-transform ${verMas ? "rotate-180" : ""}`} />
-            {verMas ? "Ocultar campos adicionales" : `Más campos (${resto.length})`}
-          </Button>
-        </FormDialogSection>
-      )}
-      {verMas && <FormDialogSection>{resto.map((p) => campo(p, false))}</FormDialogSection>}
+      <CamposEmpresa key={version} consulta={propiedades} obligatorias={obligatorias} adicionales={resto} renderCampo={campo} />
     </FormDialogShell>
   );
 }

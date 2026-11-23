@@ -105,6 +105,9 @@ export function DialogCancelarFactura({
             <Label>Factura sustituta timbrada</Label>
             <SelectorSustituta
               isLoading={sustitutasQ.isLoading}
+              isError={sustitutasQ.isError}
+              retrying={sustitutasQ.isFetching}
+              onRetry={() => void sustitutasQ.refetch()}
               sustitutasTimbradas={sustitutasTimbradas}
               value={sustitutaId}
               onChange={setSustitutaId}

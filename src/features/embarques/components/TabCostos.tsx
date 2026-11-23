@@ -51,8 +51,8 @@ export function TabCostos({
   tipoCambioUsd, tipoCambioEur, monedasExtranjeras = [],
 }: Props) {
   const navigate = useNavigate();
-  const { data: contenedores = [] } = useContenedoresEmbarque(embarqueId ?? '');
-  const { data: filasReconc = [], isLoading: cargandoCostos } = useReconciliacionEmbarque(embarqueId);
+  const { data: contenedores = [] } = useContenedoresEmbarque(embarqueId);
+  const costos = useReconciliacionEmbarque(embarqueId);
 
   const showContenedorCol = contenedores.length >= 2;
   const contenedorLabelById = useMemo(() => {
@@ -120,8 +120,12 @@ export function TabCostos({
       </p>
 
       <ConceptosCostoCard
-        filas={filasReconc}
-        isLoading={cargandoCostos}
+        filas={costos.data ?? []}
+        isLoading={costos.isLoading}
+        falloConsulta={costos.isError ? {
+          reintentando: costos.isFetching,
+          reintentar: () => void costos.refetch(),
+        } : undefined}
         conceptosCosto={conceptosCosto}
         showContenedorCol={showContenedorCol}
         renderContenedor={renderContenedor}

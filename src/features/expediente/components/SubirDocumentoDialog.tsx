@@ -131,7 +131,7 @@ export function SubirDocumentoDialog({
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="doc-tipo">Tipo de documento</Label>
-            <Select value={tipo} onValueChange={setTipo}>
+            <Select value={tipo} onValueChange={(nuevoTipo) => { setTipo(nuevoTipo); setError(null); }}>
               <SelectTrigger id="doc-tipo"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {tipos.map((t) => (
@@ -166,15 +166,15 @@ export function SubirDocumentoDialog({
           <div className="space-y-2">
             <Label htmlFor="doc-fecha">Fecha del documento</Label>
             <DatePickerMx id="doc-fecha" value={fechaDocumento}
-              onChange={setFechaDocumento} max={fechaVencimiento || undefined}
+              onChange={(fecha) => { setFechaDocumento(fecha); setError(null); }} max={fechaVencimiento || undefined}
               aria-label="Fecha del documento" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="doc-vence">
               Vigente hasta {tiposConVencimiento.includes(tipo) ? "(obligatoria)" : "(opcional)"}
             </Label>
-            <DatePickerMx id="doc-vence" value={fechaVencimiento}
-              onChange={setFechaVencimiento} min={fechaDocumento || undefined}
+            <DatePickerMx id="doc-vence" value={fechaVencimiento} errorText={error}
+              onChange={(fecha) => { setFechaVencimiento(fecha); setError(null); }} min={fechaDocumento || undefined}
               aria-label="Vigente hasta" />
           </div>
         </div>
@@ -186,7 +186,6 @@ export function SubirDocumentoDialog({
           <Textarea id="doc-notas" value={notas} onChange={(e) => setNotas(e.target.value)}
             placeholder="Referencia interna, quién lo envió, etc." rows={3} />
         </div>
-        {error && <p role="alert" className="mt-2 text-sm text-destructive">{error}</p>}
       </FormDialogSection>
     </FormDialogShell>
   );

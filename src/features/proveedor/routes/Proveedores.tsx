@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useFiltroUrl, useTextoUrl } from "@/hooks/shared";
-import { useNavigate, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { Truck, Plus, Upload } from "lucide-react";
 import { FloatingActionButton } from "@/components/shared/FloatingActionButton";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,6 @@ export default function Proveedores() {
     }
   };
   const [importOpen, setImportOpen] = useState(false);
-  const navigate = useNavigate();
   const { canEdit } = usePermissions();
   const handleAdd = useProveedoresCrear();
 
@@ -69,7 +68,7 @@ export default function Proveedores() {
               <Button variant="outline" onClick={() => setImportOpen(true)}>
                 <Upload className="mr-2 h-4 w-4" /> Importar CSV
               </Button>
-              <Button onClick={() => setNuevoOpen(true)}>
+              <Button className="hidden md:inline-flex" onClick={() => setNuevoOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" /> Nuevo Proveedor
               </Button>
             </div>
@@ -93,7 +92,7 @@ export default function Proveedores() {
         tipo={tipoFiltro !== "todos" ? tipoFiltro : null}
         search={search}
         origen={origen}
-        onSelect={(id) => navigate(`/proveedores/${id}`)}
+        onLimpiarFiltros={() => { setSearch(""); limpiarFiltros(); }}
         canCreate={canEdit}
         onCreateNew={() => setNuevoOpen(true)}
       />

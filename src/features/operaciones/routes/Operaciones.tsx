@@ -108,7 +108,9 @@ export default function Operaciones() {
               Tendencia de cargas
             </CardTitle>
             <Select value={operadorChart} onValueChange={setOperadorChart}>
-              <SelectTrigger className="w-[200px]"><SelectValue placeholder="Todos los operadores" /></SelectTrigger>
+              <SelectTrigger className="w-[200px]" aria-label="Operador de la tendencia">
+                <SelectValue placeholder="Todos los operadores" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los operadores</SelectItem>
                 {operadores.map((op) => <SelectItem key={op.nombre} value={op.nombre}>{op.nombre}</SelectItem>)}
@@ -127,7 +129,7 @@ export default function Operaciones() {
               <p className="text-kpi text-kpi-success">{llegadasEsteMes}</p>
             </div>
             <div className="rounded-xl bg-kpi-accent p-3 text-center">
-              <p className="text-xs text-primary-foreground/80 font-medium">Activas hoy</p>
+              <p className="text-xs text-primary-foreground/80 font-medium">Activas hoy · toda la organización</p>
               <p className="text-kpi text-primary-foreground">{global.activasHoy}</p>
             </div>
           </div>
@@ -135,14 +137,27 @@ export default function Operaciones() {
           {renderTendenciaChart()}
 
           <Separator className="my-4" />
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Balance ETD/llegadas</span>
-            <Progress value={Math.min(balancePct, 100)} className={`h-2 flex-1 ${balancePct >= 100 ? "[&>div]:bg-success" : "[&>div]:bg-warning"}`} />
-            <span className="text-xs font-medium">{balancePct}%</span>
-          </div>
+          <BalanceCargas balancePct={balancePct} />
         </CardContent>
       </Card>
       </CargaGuard>
     </PageContainer>
+  );
+}
+
+function BalanceCargas({ balancePct }: { balancePct: number | null }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <span className="text-xs text-muted-foreground whitespace-nowrap">Balance ETD/llegadas</span>
+      {balancePct === null ? (
+        <span className="text-xs text-muted-foreground">Sin ETD este mes</span>
+      ) : (
+        <>
+          <Progress aria-label="Balance ETD/llegadas" value={Math.min(balancePct, 100)}
+            className={`h-2 flex-1 ${balancePct >= 100 ? "[&>div]:bg-success" : "[&>div]:bg-warning"}`} />
+          <span className="text-xs font-medium">{balancePct}%</span>
+        </>
+      )}
+    </div>
   );
 }

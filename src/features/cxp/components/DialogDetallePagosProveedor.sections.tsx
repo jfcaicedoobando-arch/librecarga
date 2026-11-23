@@ -5,6 +5,7 @@
  */
 import { ListSkeleton } from "@/components/shared/states/ListSkeleton";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Wallet } from "lucide-react";
 import { HeaderWithTooltip } from "./DialogDetallePagosProveedor.parts";
 import { PagoFila, type PagoRow } from "./DialogDetallePagosProveedor.fila";
@@ -14,13 +15,26 @@ import { DetailTableHead } from "@/components/shared/DetailTable";
 interface PagosTableProps {
   pagos: PagoRow[];
   isLoading: boolean;
+  isError: boolean;
+  retrying: boolean;
+  onRetry: () => void;
   canEdit: boolean;
   onEliminarPago: (id: string) => void;
   onEditarPago?: (pago: PagoRow) => void;
 }
 
 /** Tabla de pagos aplicados a la factura de proveedor. */
-export function PagosTable({ pagos, isLoading, canEdit, onEliminarPago, onEditarPago }: PagosTableProps) {
+export function PagosTable({ pagos, isLoading, isError, retrying, onRetry, canEdit, onEliminarPago, onEditarPago }: PagosTableProps) {
+  if (isError) {
+    return (
+      <ErrorStateInline
+        title="No pudimos cargar los pagos de esta factura"
+        message="Reintenta para consultar los pagos registrados."
+        onRetry={onRetry}
+        retrying={retrying}
+      />
+    );
+  }
   if (isLoading) return <ListSkeleton rows={3} />;
   if (pagos.length === 0) {
     return (

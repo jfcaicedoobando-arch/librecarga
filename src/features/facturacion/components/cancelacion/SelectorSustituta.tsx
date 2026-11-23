@@ -3,10 +3,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import type { SustitutaCandidata } from "@/features/facturacion/services/sustitutasDeFactura";
 
 interface Props {
   isLoading: boolean;
+  isError: boolean;
+  retrying: boolean;
+  onRetry: () => void;
   sustitutasTimbradas: SustitutaCandidata[];
   value: string;
   onChange: (id: string) => void;
@@ -17,7 +21,19 @@ interface Props {
  * Bloque de selección de sustituta para el motivo 01 de cancelación.
  * Extraído para respetar el límite de 200 líneas del dialog padre.
  */
-export function SelectorSustituta({ isLoading, sustitutasTimbradas, value, onChange, onAbrirSustituir }: Props) {
+export function SelectorSustituta({
+  isLoading, isError, retrying, onRetry, sustitutasTimbradas, value, onChange, onAbrirSustituir,
+}: Props) {
+  if (isError) {
+    return (
+      <ErrorStateInline
+        title="No pudimos cargar las sustitutas"
+        message="Reintenta la consulta antes de elegir la factura sustituta."
+        onRetry={onRetry}
+        retrying={retrying}
+      />
+    );
+  }
   if (isLoading) {
     return <p className="text-body text-muted-foreground">Buscando sustitutas…</p>;
   }

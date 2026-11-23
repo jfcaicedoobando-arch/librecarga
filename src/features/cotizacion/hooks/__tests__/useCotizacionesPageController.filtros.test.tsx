@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { expect, it, vi } from "vitest";
 import { useCotizacionesPageController } from "../useCotizacionesPageController";
 
-const { fetchPage, fetchCsv } = vi.hoisted(() => ({ fetchPage: vi.fn(), fetchCsv: vi.fn() }));
+const { fetchPage, fetchCsv, fetchAgregados } = vi.hoisted(() => ({
+  fetchPage: vi.fn(), fetchCsv: vi.fn(), fetchAgregados: vi.fn().mockResolvedValue(null),
+}));
 vi.mock("@/hooks/shared/useOrgFilter", () => ({
   useOrgFilter: () => ({ organizationId: "org-1" }),
 }));
@@ -24,7 +26,7 @@ vi.mock("@/features/cotizacion/services/paginados", () => ({
   fetchTodasCotizacionesParaExportar: fetchCsv,
 }));
 vi.mock("@/features/cotizacion/services/agregados", () => ({
-  fetchCotizacionAgregados: async () => null,
+  fetchCotizacionAgregados: fetchAgregados,
 }));
 
 it("normaliza un enlace contradictorio y conserva los demás filtros en la lista y el CSV", async () => {
@@ -55,4 +57,30 @@ it("normaliza un enlace contradictorio y conserva los demás filtros en la lista
 
   await result.current.exportar();
   expect(fetchCsv).toHaveBeenCalledWith(expect.objectContaining(filtros), "fecha", "desc");
+});
+
+it("conserva la lista cuando fallan los agregados y reintenta sólo sus conteos", async () => {
+  fetchPage.mockClear().mockResolvedValue({ rows: [], count: 20 });
+  fetchAgregados.mockRejectedValueOnce(new Error("Falla de indicadores"));
+  const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const { result } = renderHook(useCotizacionesPageController, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={cache}><NuqsTestingAdapter>{children}</NuqsTestingAdapter></QueryClientProvider>
+    ),
+  });
+  await waitFor(() => expect(result.current.errorAgregados).toBe(true));
+  await waitFor(() => expect(result.current.total).toBe(20));
+  expect(result.current.isError).toBe(false);
+  expect(result.current.kpis).toBeUndefined();
+  expect(result.current.segmentoConteos).toBeUndefined();
+
+  fetchAgregados.mockResolvedValueOnce({
+    kpis: { total: 0, aceptadas: 0, rechazadas: 0, tasa: "0.0" },
+    segmentoConteos: { clientes: 20, prospectos: 1, todas: 21 }, totalAceptadasSinEmbarque: 0,
+  });
+  const lecturasListaAntes = fetchPage.mock.calls.length;
+  await act(async () => { await result.current.reintentarAgregados(); });
+  await waitFor(() => expect(result.current.segmentoConteos).toEqual({ clientes: 20, prospectos: 1, todas: 21 }));
+  expect(result.current.kpis?.total).toBe(0);
+  expect(fetchPage).toHaveBeenCalledTimes(lecturasListaAntes);
 });

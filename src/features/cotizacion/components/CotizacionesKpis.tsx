@@ -1,5 +1,7 @@
 import { TrendingUp, CheckCircle, XCircle, BarChart3 } from "lucide-react";
 import { KpiCard } from "@/components/shared/KpiCard";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { LoadingState } from "@/components/shared/states/LoadingState";
 import type { SegmentoCotizacion } from "@/features/cotizacion/hooks/useCotizacionesPageController";
 
 interface Props {
@@ -36,4 +38,27 @@ export function CotizacionesKpis({ total, aceptadas, rechazadas, tasa, segmento 
       </div>
     </div>
   );
+}
+
+interface IndicadoresProps {
+  kpis?: Omit<Props, "segmento">;
+  segmento: SegmentoCotizacion;
+  isError: boolean;
+  isFetching: boolean;
+  onRetry: () => void;
+}
+
+export function CotizacionesIndicadores({ kpis, segmento, isError, isFetching, onRetry }: IndicadoresProps) {
+  if (isError) {
+    return (
+      <ErrorStateInline
+        title="Indicadores no disponibles"
+        message="Puedes consultar el listado. Reintenta para actualizar los indicadores y conteos."
+        onRetry={onRetry}
+        retrying={isFetching}
+      />
+    );
+  }
+  if (!kpis) return <LoadingState label="Cargando indicadores de cotizaciones…" minHeight="min-h-24" />;
+  return <CotizacionesKpis {...kpis} segmento={segmento} />;
 }

@@ -45,7 +45,6 @@ export default function FacturaProveedorDetalle() {
   const facturaQ = useFacturaProveedor(id);
   const f = facturaQ.data ?? null;
   const pagosQ = usePagosProveedor(id);
-  const pagos = pagosQ.data ?? [];
   useRegisterBreadcrumbLabel(id, f?.folio_interno);
 
   const eliminarPago = useEliminarPagoProveedor(id ?? "");
@@ -124,8 +123,7 @@ export default function FacturaProveedorDetalle() {
         >
           <FacturaProveedorTabs
             factura={f}
-            pagos={pagos}
-            pagosLoading={pagosQ.isLoading}
+            consultaPagos={pagosQ}
             canEdit={canEdit}
             onEliminarPago={setPagoAEliminar}
           />

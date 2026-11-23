@@ -7,9 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { MoneyCell } from "@/components/shared/MoneyCell";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { etiquetaTipoPagoLibro, esEntrada, type PagoLibro } from "@/features/tesoreria/domain/libroPagos";
+import { etiquetaTipoPagoLibro, esEntrada, estadoRepCanonico, type PagoLibro } from "@/features/tesoreria/domain/libroPagos";
+import { estadoConciliacionPago } from "@/features/tesoreria/domain/conciliacionPago";
 
 export function LibroPagosMobileCard({ row }: { row: PagoLibro }) {
+  const conciliacion = estadoConciliacionPago(row);
+  const rep = row.tipo === "cobro" ? estadoRepCanonico(row.estado_rep) : null;
   return (
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0 flex-1 space-y-1">
@@ -29,6 +32,10 @@ export function LibroPagosMobileCard({ row }: { row: PagoLibro }) {
         </div>
         <div className="text-label text-muted-foreground">
           {formatDate(row.fecha)}
+        </div>
+        <div className="flex flex-wrap gap-1">
+          <StatusBadge domain="conciliacion" status={conciliacion} label={`Conciliación · ${conciliacion}`} className="whitespace-normal" />
+          {rep && <StatusBadge domain="rep" status={rep} label={`REP · ${rep}`} className="whitespace-normal" />}
         </div>
       </div>
       <MoneyCell

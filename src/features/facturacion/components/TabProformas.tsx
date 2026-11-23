@@ -2,6 +2,7 @@ import { Download } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { exportToCsv } from "@/generators/exportCsv";
 import { useTabProformasController, type FiltroEstadoProforma } from "@/features/facturacion/hooks";
@@ -30,6 +31,8 @@ export function TabProformas({ isInRange, estadoInicial, estadoControlado }: {
   const { canEmitirFactura, canEditarProforma } = usePermissions();
   const { selectedIds, toggleSelected, isConvertible } = c;
   const haySeleccionFiscal = c.selectedProformas.some((p) => p.evaluacion_fiscal != null);
+  const mostrarConsolidacion = canEditarProforma && haySeleccionFiscal;
+  const mostrarFusion = canEmitirFactura && c.selectedProformas.length > 0 && !haySeleccionFiscal;
   const columns = useMemo(
     () => buildProformasColumns(
       canEmitirFactura || canEditarProforma
@@ -108,10 +111,25 @@ export function TabProformas({ isInRange, estadoInicial, estadoControlado }: {
       </Card>
 
 
-      {canEditarProforma && haySeleccionFiscal && (
+      {c.seleccionFueraDeFiltros > 0 && (mostrarConsolidacion || mostrarFusion) && (
+        <Alert variant="warning" role="status">
+          <AlertDescription className="flex flex-wrap items-center gap-2">
+            <p className="mr-auto">
+              {c.seleccionFueraDeFiltros === 1
+                ? "Una proforma seleccionada queda fuera de los filtros."
+                : `${c.seleccionFueraDeFiltros} proformas seleccionadas quedan fuera de los filtros.`}
+              {" "}Se incluyen en la acción por lote.
+            </p>
+            <Button type="button" variant="outline" size="sm" onClick={c.quitarSeleccionFueraDeFiltros}>
+              Quitar selección oculta
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      {mostrarConsolidacion && (
         <ProformasConsolidacionToolbar proformas={c.selectedProformas} onConsolidada={c.clearSelected} />
       )}
-      {canEmitirFactura && c.selectedProformas.length > 0 && !haySeleccionFiscal && (
+      {mostrarFusion && (
         <ProformasFusionToolbar selection={{
           selectedProformas: c.selectedProformas, fusionInfo: c.fusionInfo, clearSelected: c.clearSelected,
         }} />

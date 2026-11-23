@@ -16,10 +16,12 @@ export default function CosteoTarifario() {
     <div className="space-y-4 p-4 md:p-6">
       <PageHeader title="Tarifario" description="Tarifas vigentes disponibles al instante para las solicitudes de pricing." />
       <Tabs defaultValue="tarifas">
-        <TabsList>
-          <TabsTrigger value="tarifas">Tarifas (Puertos base)</TabsTrigger>
-          <TabsTrigger value="fob">Cargos FOB de agentes</TabsTrigger>
-          <TabsTrigger value="locales">Cargos locales en México (revalidación)</TabsTrigger>
+        <TabsList variant="seccion" className="max-w-full">
+          <TabsTrigger variant="seccion" value="tarifas">Tarifas (Puertos base)</TabsTrigger>
+          <TabsTrigger variant="seccion" value="fob">Cargos FOB de agentes</TabsTrigger>
+          <TabsTrigger variant="seccion" value="locales" className="min-w-0 whitespace-normal text-left">
+            Cargos locales en México (revalidación)
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="tarifas"><TarifasBaseTab puedeEditar={puedeEditar} /></TabsContent>
         <TabsContent value="fob"><CargosTab tipo="fob" orgId={organizationId} puedeEditar={puedeEditar} /></TabsContent>

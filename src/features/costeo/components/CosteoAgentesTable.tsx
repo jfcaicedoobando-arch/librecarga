@@ -7,6 +7,7 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,12 +38,13 @@ export interface AgenteRow {
 interface Props {
   agentes: AgenteRow[];
   isLoading: boolean;
+  onLimpiarBusqueda?: () => void;
   onEditar: (a: AgenteRow) => void;
   onEliminar: (a: { id: string; nombre: string }) => void;
   onInvitarPortal: (a: AgenteRow) => void;
 }
 
-export function CosteoAgentesTable({ agentes, isLoading, onEditar, onEliminar, onInvitarPortal }: Props) {
+export function CosteoAgentesTable({ agentes, isLoading, onLimpiarBusqueda, onEditar, onEliminar, onInvitarPortal }: Props) {
   const isMobile = useIsMobile();
   const columns = useMemo<ColumnDef<AgenteRow, unknown>[]>(
     () => defineColumns<AgenteRow>([
@@ -141,6 +143,8 @@ export function CosteoAgentesTable({ agentes, isLoading, onEditar, onEliminar, o
         rowKey={(a) => a.id}
         isLoading={isLoading}
         emptyMessage="Sin agentes registrados."
+        emptyState={onLimpiarBusqueda && <EmptyStateInline message="No hay agentes que coincidan con la búsqueda."
+          action={{ label: "Limpiar búsqueda", onClick: onLimpiarBusqueda }} />}
         onRowClick={isMobile ? undefined : onEditar}
         mobileCard={(agente) => (
           <CosteoAgenteMobileCard

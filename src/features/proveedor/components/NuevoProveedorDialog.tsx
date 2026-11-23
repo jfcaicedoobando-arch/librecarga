@@ -8,6 +8,7 @@ import type { TablesInsert } from "@/types/db";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { useNuevoProveedorController } from "@/features/proveedor/hooks";
 import type { PrefillProveedor } from "@/features/proveedor/hooks/useNuevoProveedorController.prefill";
 import { NuevoProveedorStep1 } from "./NuevoProveedorStep1";
@@ -52,7 +53,7 @@ export default function NuevoProveedorDialog({ open, onOpenChange, onSave, prefi
         <div className="flex w-full flex-wrap items-center gap-2">
           {!c.isStep1Valid && <FaltantesHint items={c.faltantesStep1} className="mr-auto" />}
           <div className="ml-auto flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={c.resetAndClose}>Cancelar</Button>
+            <FormDialogCancelarBoton onCancelar={c.resetAndClose} />
             <Button onClick={c.handleNext} disabled={!c.isStep1Valid}>
               Siguiente <ArrowRight className="h-4 w-4 ml-1" />
             </Button>

@@ -33,6 +33,25 @@ describe("ReportePresupuestoDocument", () => {
     expect(container.textContent).toContain("Reporte provisional");
   });
 
+  it("advierte del límite de filas y de los gastos sin tipo de cambio junto a los totales", () => {
+    const resumen = { ...mockResumen, real_truncado: true, gastos_sin_tc_count: 2 };
+    const { container } = render(<ReportePresupuestoDocument resumen={resumen} />);
+    const text = container.textContent ?? "";
+    expect(text).toContain("alcanzó el límite de filas consultadas y puede estar incompleto");
+    expect(text).toContain("Se excluyeron del real 2 gastos en moneda extranjera por falta de tipo de cambio");
+    expect(text).toContain("cifras disponibles del periodo");
+    expect(text).not.toContain("corresponden al periodo completo");
+    expect(text.indexOf("puede estar incompleto")).toBeLessThan(text.indexOf("Total real"));
+  });
+
+  it("omite los avisos de cobertura cuando llegaron todas las filas y tipos de cambio", () => {
+    const resumen = { ...mockResumen, real_truncado: false, gastos_sin_tc_count: 0 };
+    const { container } = render(<ReportePresupuestoDocument resumen={resumen} />);
+    expect(container.textContent).not.toContain("puede estar incompleto");
+    expect(container.textContent).not.toContain("por falta de tipo de cambio");
+    expect(container.textContent).toContain("corresponden al periodo completo");
+  });
+
   it("renderiza categorías cuando hay filas", () => {
     const resumen = {
       ...mockResumen,

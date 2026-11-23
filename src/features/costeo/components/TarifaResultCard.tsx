@@ -6,7 +6,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useRecargosDeTarifa } from "@/features/costeo/hooks/useRecargosDeTarifa";
 import type { TopTarifaRow } from "@/features/costeo/types";
 import type { RankingMeta } from "@/features/costeo/utils/rankingLabels";
 import { cn } from "@/lib/utils";
@@ -31,8 +30,6 @@ interface Props {
 }
 
 export function TarifaResultCard({ row, rank, onElegir, selectLabel = "Elegir", meta }: Props) {
-  const { data: recargos = [] } = useRecargosDeTarifa(row.id);
-
   const esGanador = meta?.esGanador ?? false;
   const etiquetas = meta?.etiquetasMejorEn ?? [];
   const delta = meta?.deltaTotalVsGanador ?? 0;
@@ -54,7 +51,7 @@ export function TarifaResultCard({ row, rank, onElegir, selectLabel = "Elegir", 
         <EtiquetasList etiquetas={etiquetas} />
         <PreciosBase row={row} />
         <CostoTotalBlock row={row} esGanador={esGanador} delta={delta} />
-        <TarifaCardDesglose recargos={recargos} />
+        <TarifaCardDesglose tarifaId={row.id} />
         <TarifaCardBadges row={row} />
         <FechaVigencia vigenteHasta={row.vigente_hasta} vencePronto={vencePronto} />
         {onElegir && (

@@ -1,20 +1,28 @@
 /** Estado de las peticiones del broker (pendiente / autorizada / rechazada). */
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { formatDate } from "@/lib/formatters/dates";
 import { useMisSolicitudesBroker } from "../hooks/useBrokerPortal";
 
 const ETIQUETA: Record<string, string> = { pendiente: "Pendiente", autorizada: "Autorizada", rechazada: "Rechazada" };
 
 export default function MisSolicitudesBroker() {
-  const q = useMisSolicitudesBroker();
-  const filas = q.data ?? [];
-  if (filas.length === 0) return null;
+  const { data: filas = [], isError, isFetching, refetch } = useMisSolicitudesBroker();
+  if (filas.length === 0 && !isError) return null;
   return (
     <section className="space-y-2">
       <h2 className="text-h4">Mis solicitudes</h2>
       <Card>
         <CardContent className="p-0 divide-y">
+          {isError && (
+            <ErrorStateInline
+              title="No pudimos cargar tus solicitudes"
+              message="Reintenta para consultar su estado."
+              onRetry={() => void refetch()}
+              retrying={isFetching}
+            />
+          )}
           {filas.map((s) => (
             <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-body-sm">
               <div className="min-w-0">

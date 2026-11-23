@@ -62,6 +62,16 @@ export function useTabProformasController(opts?: {
     () => proformas.filter((p) => selectedIds.has(p.id) && isConvertible(p)),
     [proformas, selectedIds],
   );
+  const seleccionFueraDeFiltros = useMemo(() => {
+    if (selectedProformas.length === 0) return [];
+    const idsFiltrados = new Set(filtered.map((p) => p.id));
+    return selectedProformas.filter((p) => !idsFiltrados.has(p.id));
+  }, [filtered, selectedProformas]);
+
+  const quitarSeleccionFueraDeFiltros = () => {
+    const idsOcultos = new Set(seleccionFueraDeFiltros.map((p) => p.id));
+    setSelectedIds((prev) => new Set([...prev].filter((id) => !idsOcultos.has(id))));
+  };
 
   // Validación de fusión: mismo cliente (las proformas guardan totales en USD
   // y MXN; la moneda final de la factura la define la serie/conversión y se
@@ -141,6 +151,7 @@ export function useTabProformasController(opts?: {
     // selección múltiple (Fase 3 — fusión)
     selectedIds, toggleSelected, clearSelected, isConvertible,
     selectedProformas, fusionInfo,
+    seleccionFueraDeFiltros: seleccionFueraDeFiltros.length, quitarSeleccionFueraDeFiltros,
     // export CSV
     csvColumns, csvRows,
     // dialog facturación (flujo legado)

@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CargosTab } from "../CargosTab";
 import { archivarCargo, listarCargos } from "../cargosService";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
@@ -16,6 +16,8 @@ function setup(puedeEditar = true) {
 }
 
 describe("CargosTab canonical table", () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
   it("conserva lectura y edición del cargo", async () => {
     setup();
     expect(await screen.findByText("Agente uno")).toBeInTheDocument();
@@ -27,14 +29,27 @@ describe("CargosTab canonical table", () => {
     vi.mocked(archivarCargo).mockResolvedValue();
     setup();
     fireEvent.click(await screen.findByRole("button", { name: "Retirar" }));
+    const dialogo = screen.getByRole("alertdialog", { name: "¿Retirar este cargo del tarifario?" });
+    expect(dialogo).toHaveTextContent("FOB origen");
+    expect(dialogo).toHaveTextContent("Agente uno");
+    expect(archivarCargo).not.toHaveBeenCalled();
+    fireEvent.click(within(dialogo).getByRole("button", { name: "Retirar cargo" }));
     await waitFor(() => expect(archivarCargo).toHaveBeenCalledWith("fob", "c1"));
     expect(notifySuccess).toHaveBeenCalledWith(undefined, { title: "Cargo retirado" });
+  });
+  it("cancelar la confirmación conserva el cargo", async () => {
+    setup();
+    fireEvent.click(await screen.findByRole("button", { name: "Retirar" }));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancelar" }));
+    expect(archivarCargo).not.toHaveBeenCalled();
+    expect(screen.getByText("FOB origen")).toBeVisible();
   });
   it("preserva el error original en diagnóstico", async () => {
     const error = new Error("denied");
     vi.mocked(archivarCargo).mockRejectedValue(error);
     setup();
     fireEvent.click(await screen.findByRole("button", { name: "Retirar" }));
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Retirar cargo" }));
     await waitFor(() => expect(notifyError).toHaveBeenCalledWith(undefined, expect.objectContaining({ error, method: "archivarCargo" })));
   });
   it("no muestra edición ni retiro para lectores", async () => {

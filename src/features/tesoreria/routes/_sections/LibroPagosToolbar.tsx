@@ -2,6 +2,7 @@
  * Barra de filtros del libro maestro de pagos: periodo con atajos, cuenta,
  * moneda, método de pago, conciliación, complemento y búsqueda.
  */
+import { useId } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const FILTROS_SECUNDARIOS = ["cuentaId", "moneda", "metodo", "conciliacion", "re
 export function LibroPagosToolbar({
   cuentas, monedas, metodos, filtros, onFiltrosChange, rango, onRangoChange,
 }: Props) {
+  const idRango = useId();
   const activos = FILTROS_SECUNDARIOS.filter((filtro) =>
     filtros[filtro] !== FILTROS_LIBRO_PAGOS_INICIALES[filtro],
   ).length;
@@ -56,16 +58,18 @@ export function LibroPagosToolbar({
     <Card>
       <CardContent density="compact" className="grid grid-cols-2 items-end gap-3 short:gap-2 md:grid-cols-12">
         <div className="md:col-span-2">
-          <p className="text-body-sm text-muted-foreground mb-1">Desde</p>
+          <label htmlFor={`${idRango}-desde`} className="mb-1 block text-body-sm text-muted-foreground">Desde</label>
           <DatePickerMx
+            id={`${idRango}-desde`}
             value={rango.desde}
             onChange={(iso) => onRangoChange({ ...rango, desde: iso })}
             max={rango.hasta}
           />
         </div>
         <div className="md:col-span-2">
-          <p className="text-body-sm text-muted-foreground mb-1">Hasta</p>
+          <label htmlFor={`${idRango}-hasta`} className="mb-1 block text-body-sm text-muted-foreground">Hasta</label>
           <DatePickerMx
+            id={`${idRango}-hasta`}
             value={rango.hasta}
             onChange={(iso) => onRangoChange({ ...rango, hasta: iso })}
             min={rango.desde}
@@ -118,9 +122,30 @@ export function LibroPagosToolbar({
 }
 
 function FiltroSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  return <div><p className="mb-1 text-body-sm text-muted-foreground">{label}</p><Select value={value} onValueChange={onChange}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{options.map((o) => <SelectItem key={o} value={o}>{o === "todos" || o === "todas" ? "Todos" : o}</SelectItem>)}</SelectContent></Select></div>;
+  return (
+    <div>
+      <p className="mb-1 text-body-sm text-muted-foreground">{label}</p>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger aria-label={label}><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {options.map((o) => <SelectItem key={o} value={o}>{o === "todos" || o === "todas" ? "Todos" : o}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 }
 
 function FiltroCuenta({ cuentas, value, onChange }: { cuentas: CuentaOption[]; value: string; onChange: (value: string) => void }) {
-  return <div className="col-span-2 md:col-span-3"><p className="mb-1 text-body-sm text-muted-foreground">Cuenta bancaria</p><Select value={value} onValueChange={onChange}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas las cuentas</SelectItem>{cuentas.map((c) => <SelectItem key={c.id} value={c.id}>{c.alias} · {c.moneda}</SelectItem>)}</SelectContent></Select></div>;
+  return (
+    <div className="col-span-2 md:col-span-3">
+      <p className="mb-1 text-body-sm text-muted-foreground">Cuenta bancaria</p>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger aria-label="Cuenta bancaria"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todas">Todas las cuentas</SelectItem>
+          {cuentas.map((c) => <SelectItem key={c.id} value={c.id}>{c.alias} · {c.moneda}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 }
