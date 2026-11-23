@@ -1,5 +1,12 @@
 # Changelog
 
+## [13.824.104] - 2026-11-23
+
+- **Primer acceso y configuración.** La guía inicial orienta según el rol. La captura fiscal y la configuración de Empresa piden confirmación antes de descartar cambios.
+- **Clientes, proveedores y catálogos.** Los formularios anuncian el requisito de CSF, señalan los campos faltantes y protegen acciones de guardado y edición.
+- **CRM, Costeo y Cotizaciones.** Se aclara cuándo se guarda un borrador, qué reemplaza una plantilla y cómo recuperar una consulta o importación.
+- **Embarques, Proformas, Facturación y Compras.** Las bandejas indican los pasos para empezar. Los diálogos aclaran los efectos de las acciones y permiten seleccionar con teclado.
+
 ## [13.824.103] - 2026-11-23
 
 - **Embarques.** Volver desde el editor conserva la página y sus filtros. El panel aplica la selección al confirmar y conserva los filtros fuera del panel al limpiar.
