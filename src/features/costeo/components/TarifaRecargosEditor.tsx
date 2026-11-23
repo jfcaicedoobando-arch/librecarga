@@ -1,5 +1,5 @@
 /**
- * Editor de filas dinámicas para recargos de una tarifa marítima.
+ * Editor de filas dinámicas para recargos de una tarifa (marítima, aérea o terrestre).
  * Conceptos sugeridos por modo (`conceptosRecargoPorModo`) y base de cobro por recargo.
  */
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ interface Props {
   onChange: (next: TarifaRecargoInput[]) => void;
   /** P2-A8: pinta en rojo los recargos con monto <= 0 tras intentar guardar. */
   mostrarErrores?: boolean;
-  /** Modo de la tarifa; hoy el tarifario es marítimo. */
+  /** Modo de la tarifa: define los conceptos sugeridos. */
   modo?: ModoRecargo;
 }
 

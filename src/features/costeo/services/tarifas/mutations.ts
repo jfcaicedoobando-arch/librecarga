@@ -86,7 +86,7 @@ function traducirErrorTarifa(e: unknown): unknown {
 }
 
 /** Recargos válidos para las RPC (concepto no vacío y monto > 0). */
-function recargosParaRpc(recargos: TarifaRecargoInput[]) {
+export function recargosParaRpc(recargos: TarifaRecargoInput[]) {
   return recargos
     .filter((r) => r.concepto.trim() && Number(r.monto) > 0)
     .map((r) => ({
