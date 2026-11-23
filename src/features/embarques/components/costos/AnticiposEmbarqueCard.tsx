@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToneBadge } from "@/components/shared/ToneBadge";
 import { formatCurrency } from "@/lib/formatters";
 import { formatDate } from "@/lib/formatters/dates";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useAnticiposPorEmbarque } from "@/features/anticipos-proveedor/hooks/useAnticiposPorEmbarque";
 import { useAplicadoEnEmbarque } from "@/features/anticipos-proveedor/hooks/useAplicadoEnEmbarque";
 
@@ -18,10 +19,10 @@ const ETIQUETA_ESTADO: Record<string, { texto: string; tone: "success" | "warnin
 };
 
 export function AnticiposEmbarqueCard({ embarqueId }: { embarqueId?: string }) {
-  const { data: anticipos, isLoading } = useAnticiposPorEmbarque(embarqueId);
-  const { data: aplicadoAqui } = useAplicadoEnEmbarque(embarqueId);
+  const lista = useAnticiposPorEmbarque(embarqueId);
+  const aplicaciones = useAplicadoEnEmbarque(embarqueId);
 
-  if (!embarqueId || isLoading || anticipos.length === 0) return null;
+  if (!embarqueId || lista.isLoading || (!lista.isError && lista.data.length === 0)) return null;
 
   return (
     <Card>
@@ -32,7 +33,13 @@ export function AnticiposEmbarqueCard({ embarqueId }: { embarqueId?: string }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {anticipos.map((a) => {
+        {lista.isError && (
+          <ErrorStateInline title="No se pudieron consultar los anticipos" message="Reintenta para confirmar los anticipos de este embarque." onRetry={() => void lista.refetch()} retrying={lista.isFetching} />
+        )}
+        {aplicaciones.isError && lista.data.length > 0 && (
+          <ErrorStateInline title="No se pudieron consultar los importes aplicados" message="Reintenta para verificar cuánto se cruzó con las facturas del embarque." onRetry={() => void aplicaciones.refetch()} retrying={aplicaciones.isFetching} />
+        )}
+        {lista.data.map((a) => {
           const et = ETIQUETA_ESTADO[a.estado] ?? { texto: a.estado, tone: "neutral" as const };
           return (
             <div
@@ -56,7 +63,7 @@ export function AnticiposEmbarqueCard({ embarqueId }: { embarqueId?: string }) {
                   </p>
                   <p className="text-body-sm text-muted-foreground tabular-nums">
                     Cruzado con facturas de este embarque:{" "}
-                    {formatCurrency(Number(aplicadoAqui[a.id] ?? 0), a.moneda)}
+                    {aplicaciones.isError ? "Sin verificar" : aplicaciones.isLoading ? "Consultando…" : formatCurrency(Number(aplicaciones.data[a.id] ?? 0), a.moneda)}
                   </p>
                 </div>
                 <ToneBadge tone={et.tone}>{et.texto}</ToneBadge>

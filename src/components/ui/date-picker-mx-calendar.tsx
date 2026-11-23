@@ -12,6 +12,7 @@ import { Hint } from "@/components/shared/Hint";
 
 interface Props {
   value: string;
+  ariaLabel?: string;
   min?: string;
   max?: string;
   open: boolean;
@@ -29,7 +30,7 @@ interface Props {
 /** Botón + popover con Calendar embebido, extraído para respetar el
  *  límite Power-of-10 (≤200 líneas por archivo). */
 export function DatePickerMxCalendar({
-  value, min, max, open, disabled, marcarInhabiles, setOpen, onPick, onClear, onCerrar,
+  value, min, max, open, disabled, marcarInhabiles, setOpen, onPick, onClear, onCerrar, ariaLabel = "Abrir calendario",
 }: Props) {
   const selectedDate = isoToDate(value);
   const minDate = min ? isoToDate(min) : undefined;
@@ -64,7 +65,7 @@ export function DatePickerMxCalendar({
             type="button"
             tabIndex={-1}
             disabled={disabled}
-            aria-label="Abrir calendario"
+            aria-label={ariaLabel}
             className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             <CalendarIcon className={pickerIconClass} />

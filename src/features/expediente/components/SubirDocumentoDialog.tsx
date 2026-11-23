@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { FileUp } from "lucide-react";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,19 +57,18 @@ export function SubirDocumentoDialog({
 
   // Ola 12 · R3FE-06: el diálogo NO se desmonta entre aperturas — sin esto el
   // tipo sugerido sólo aplicaba en el primer montaje.
+  const tipoInicial = tipoSugerido ?? tipos[0];
   useEffect(() => {
-    if (open && tipoSugerido) setTipo(tipoSugerido);
-  }, [open, tipoSugerido]);
-
-  const cerrar = (v: boolean) => {
-    if (!v) {
-      setArchivo(null); setFechaDocumento(""); setFechaVencimiento("");
-      setNotas(""); setError(null); setErrorArchivo(null);
-      // La próxima apertura genérica no debe heredar el tipo anterior.
-      setTipo(tipoSugerido ?? tipos[0]);
+    setTipo(tipoInicial);
+    if (!open) {
+      setArchivo(null);
+      setFechaDocumento("");
+      setFechaVencimiento("");
+      setNotas("");
+      setError(null);
+      setErrorArchivo(null);
     }
-    onOpenChange(v);
-  };
+  }, [open, tipoInicial]);
 
   const seleccionarArchivo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const seleccionado = e.currentTarget.files?.[0] ?? null;
@@ -84,6 +84,7 @@ export function SubirDocumentoDialog({
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isPending) return;
     if (!archivo) {
       setErrorArchivo(errorArchivo ?? "Selecciona un archivo (PDF, XML o imagen).");
       return;
@@ -109,7 +110,9 @@ export function SubirDocumentoDialog({
   return (
     <FormDialogShell
       open={open}
-      onOpenChange={cerrar}
+      onOpenChange={onOpenChange}
+      isDirty={Boolean(archivo || fechaDocumento || fechaVencimiento || notas || tipo !== tipoInicial)}
+      busy={isPending}
       icon={FileUp}
       title="Agregar documento al expediente"
       description={descripcion}
@@ -118,9 +121,7 @@ export function SubirDocumentoDialog({
       onSubmit={onSubmit}
       footer={
         <>
-          <Button type="button" variant="outline" onClick={() => cerrar(false)}>
-            Cancelar
-          </Button>
+          <FormDialogCancelarBoton onCancelar={() => onOpenChange(false)} disabled={isPending} />
           <Button type="submit" form={FORM_ID} loading={isPending}>
             Guardar documento
           </Button>

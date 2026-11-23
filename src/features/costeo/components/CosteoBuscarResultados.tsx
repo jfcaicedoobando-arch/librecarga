@@ -17,12 +17,16 @@ interface Props {
   isError: boolean;
   diagnostico?: DiagnosticoTarifas;
   consultandoDiagnostico: boolean;
+  errorDiagnostico?: boolean;
+  onRetryDiagnostico?: () => void;
+  fecha?: string;
   onRetry: () => void;
 }
 
 /** Estados y ranking de una búsqueda, en el mismo orden de prioridad. */
 export function CosteoBuscarResultados({
   mismoPuerto, seleccionCompleta, tarifas, isFetching, isError, diagnostico, consultandoDiagnostico, onRetry,
+  errorDiagnostico, onRetryDiagnostico, fecha,
 }: Props) {
   if (mismoPuerto) {
     return (
@@ -58,7 +62,7 @@ export function CosteoBuscarResultados({
     );
   }
   if (tarifas.length === 0) {
-    return <Card><TarifasSinResultado diagnostico={diagnostico} consultando={consultandoDiagnostico} /></Card>;
+    return <Card><TarifasSinResultado diagnostico={diagnostico} consultando={consultandoDiagnostico} error={errorDiagnostico} onRetry={onRetryDiagnostico} fecha={fecha} /></Card>;
   }
   const meta = computeRankingMeta(tarifas);
   return (

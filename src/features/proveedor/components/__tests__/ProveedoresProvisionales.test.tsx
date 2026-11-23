@@ -34,13 +34,20 @@ describe("presentación de proveedores provisionales", () => {
   });
 
   it("pasa el id al hook y bloquea clics repetidos durante la aprobación", () => {
-    const view = render(<AprobarProveedorButton proveedorId="p1" />);
+    const elemento = <AprobarProveedorButton proveedorId="p1" nombre="Agente uno" />;
+    const view = render(elemento);
     fireEvent.click(screen.getByRole("button", { name: "Aprobar como proveedor" }));
+    expect(screen.getByRole("alertdialog")).toHaveTextContent("¿Aprobar a Agente uno?");
+    expect(mocks.mutate).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(mocks.mutate).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar como proveedor" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar aprobación" }));
     expect(mocks.aprobar).toHaveBeenCalledWith("p1");
     expect(mocks.mutate).toHaveBeenCalledTimes(1);
     mocks.pending = true;
-    view.rerender(<AprobarProveedorButton proveedorId="p1" />);
-    const button = screen.getByRole("button", { name: "Aprobar como proveedor" });
+    view.rerender(<AprobarProveedorButton proveedorId="p1" nombre="Agente uno" />);
+    const button = screen.getByRole("button", { name: "Procesando…" });
     expect(button).toBeDisabled();
     fireEvent.click(button);
     expect(mocks.mutate).toHaveBeenCalledTimes(1);

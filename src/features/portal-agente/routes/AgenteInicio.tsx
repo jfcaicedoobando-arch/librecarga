@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, FileSpreadsheet, ShieldCheck, Ship, ClipboardCheck, Clock, LayoutDashboard } from "lucide-react";
 import { Link } from "react-router";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { useAgenteContext, useAgenteTarifas, useAgenteEmbarques } from "@/features/portal-agente/hooks";
 import { ESTADOS_ACTIVOS } from "@/features/embarques/constants/embarqueConstants";
@@ -19,8 +20,11 @@ import { esTarifaUsableEn } from "@/features/costeo";
 export default function AgenteInicio() {
   useDocumentTitle("Portal agente");
   const { data: ctx } = useAgenteContext();
-  const { data: tarifas = [] } = useAgenteTarifas();
-  const { data: embarques = [] } = useAgenteEmbarques();
+  const consultaTarifas = useAgenteTarifas();
+  const consultaEmbarques = useAgenteEmbarques();
+  const tarifas = consultaTarifas.data ?? [];
+  const embarques = consultaEmbarques.data ?? [];
+  const valorTarifas = (cantidad: number) => consultaTarifas.isError ? "—" : cantidad;
 
   const hoy = todayLocalISO();
   const vigentes = tarifas.filter((t) => esTarifaUsableEn(t, hoy)).length;
@@ -45,20 +49,27 @@ export default function AgenteInicio() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard icon={ClipboardCheck} label="Tarifas vigentes" value={vigentes} />
-        <KpiCard icon={FileSpreadsheet} label="Borradores pendientes" value={borradores} variant={borradores > 0 ? "warning" : "default"} />
-        <KpiCard icon={Clock} label="Vencen en 30 días" value={en30} variant={en30 > 0 ? "warning" : "default"} />
-        <KpiCard icon={Ship} label="Embarques activos" value={embarquesActivos} />
+        <KpiCard icon={ClipboardCheck} label="Tarifas vigentes" value={valorTarifas(vigentes)} loading={consultaTarifas.isLoading} />
+        <KpiCard icon={FileSpreadsheet} label="Borradores pendientes" value={valorTarifas(borradores)} variant={!consultaTarifas.isError && borradores > 0 ? "warning" : "default"} loading={consultaTarifas.isLoading} />
+        <KpiCard icon={Clock} label="Vencen en 30 días" value={valorTarifas(en30)} variant={!consultaTarifas.isError && en30 > 0 ? "warning" : "default"} loading={consultaTarifas.isLoading} />
+        <KpiCard icon={Ship} label="Embarques activos" value={consultaEmbarques.isError ? "—" : embarquesActivos} loading={consultaEmbarques.isLoading} />
       </div>
 
-      {rechazadas > 0 && (
+      {consultaTarifas.isError && (
+        <ErrorStateInline title="No se pudieron consultar las tarifas" message="Reintenta para recuperar los indicadores de tarifas." onRetry={() => void consultaTarifas.refetch()} retrying={consultaTarifas.isFetching} />
+      )}
+      {consultaEmbarques.isError && (
+        <ErrorStateInline title="No se pudieron consultar los embarques" message="Reintenta para confirmar tus embarques activos." onRetry={() => void consultaEmbarques.refetch()} retrying={consultaEmbarques.isFetching} />
+      )}
+
+      {!consultaTarifas.isError && rechazadas > 0 && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" aria-hidden />
           <AlertTitle>Tarifas rechazadas</AlertTitle>
           <AlertDescription className="space-y-2">
             <p className="text-sm">
               Tienes <strong>{rechazadas}</strong> tarifa(s) rechazada(s) por operaciones.
-              <Link to={ROUTES.AGENTE_TARIFAS} className="text-accent ml-1 underline">Revisarlas</Link>
+              <Link to={`${ROUTES.AGENTE_TARIFAS}?estado=rechazadas`} className="text-accent ml-1 underline">Revisarlas</Link>
             </p>
             <ul className="text-xs space-y-1 list-disc pl-5">
               {tarifas

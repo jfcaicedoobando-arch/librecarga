@@ -2,6 +2,7 @@
  * Sub-componentes de campos del formulario de tarifa marítima.
  * Extraídos de `TarifaForm.tsx` para cumplir Power-of-10 (≤200 líneas).
  */
+import type { ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -112,17 +113,17 @@ interface RutaTipoProps {
   multiple?: boolean;
   rutaIds?: string[];
   onRutaIdsChange?: (ids: string[]) => void;
+  avisoRutas?: ReactNode;
 }
 
-export function RutaTipoFields({
-  form, setForm, rutas, tipos, errores, multiple, rutaIds, onRutaIdsChange,
-}: RutaTipoProps) {
+function RutaFields({
+  form, setForm, rutas, errores, multiple, rutaIds, onRutaIdsChange, avisoRutas,
+}: Omit<RutaTipoProps, "tipos">) {
   const elegirRutaNueva = (id: string) => {
     if (multiple) onRutaIdsChange?.([...(rutaIds ?? []), id]);
     else setForm({ ...form, ruta_id: id });
   };
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
         <div className="flex items-center justify-between gap-2">
           <Label htmlFor="tarifa-ruta">{multiple ? "Rutas *" : "Ruta *"}</Label>
@@ -132,7 +133,8 @@ export function RutaTipoFields({
             </Badge>
           )}
         </div>
-        {multiple ? (
+        {avisoRutas}
+        {!avisoRutas && (multiple ? (
           <>
             <MultiRutaSelect
               id="tarifa-ruta"
@@ -162,9 +164,17 @@ export function RutaTipoFields({
               ))}
             </SelectContent>
           </Select>
-        )}
-        <RutaQuickCreate rutas={rutas} onCreada={elegirRutaNueva} />
+        ))}
+        {!avisoRutas && <RutaQuickCreate rutas={rutas} onCreada={elegirRutaNueva} />}
       </div>
+  );
+}
+
+export function RutaTipoFields({ tipos, ...props }: RutaTipoProps) {
+  const { form, setForm, errores } = props;
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <RutaFields {...props} />
       <div>
         <Label htmlFor="tarifa-tipo">Tipo de contenedor *</Label>
         <Select value={form.tipo_contenedor_id} onValueChange={(v) => setForm({ ...form, tipo_contenedor_id: v })}>

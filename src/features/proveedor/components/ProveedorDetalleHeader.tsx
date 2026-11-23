@@ -62,7 +62,7 @@ export function ProveedorDetalleHeader({
       trailing={canEdit ? (
         <>
           {provisional && puedeAprobarProveedor(effectiveRole) && (
-            <AprobarProveedorButton proveedorId={proveedor.id} />
+            <AprobarProveedorButton proveedorId={proveedor.id} nombre={nombreFmt} />
           )}
           <Button size="sm" onClick={onEditar}>
             <Pencil className="mr-2 h-4 w-4" /> Editar

@@ -18,7 +18,7 @@ export interface DiagnosticoTarifasParams {
   puertoDestinoId: string;
   /** IDs equivalentes del tipo de contenedor (ver dedupe del catálogo). */
   tipoContenedorIds: string[];
-  /** Día de negocio México (`todayLocalISO()`). */
+  /** Fecha para la que se consultó el Top 3. */
   hoy: string;
   organizationId: string;
 }

@@ -123,6 +123,7 @@ export function NuevaTarifaDemoraDialog({
             <DatePickerMx
               id="dem-vig-desde"
               value={form.vigente_desde}
+              max={form.vigente_hasta ?? undefined}
               onChange={(v) => setForm({ ...form, vigente_desde: v })}
               errorText={vigenciaInvalida === "desde" ? "Captura el inicio de la vigencia." : null}
               className="w-full"
@@ -133,6 +134,7 @@ export function NuevaTarifaDemoraDialog({
             <DatePickerMx
               id="dem-vig-hasta"
               value={form.vigente_hasta ?? ""}
+              min={form.vigente_desde || undefined}
               onChange={(v) => setForm({ ...form, vigente_hasta: v || null })}
               errorText={vigenciaInvalida === "hasta" ? "El fin debe ser igual o posterior al inicio de la vigencia." : null}
               className="w-full"

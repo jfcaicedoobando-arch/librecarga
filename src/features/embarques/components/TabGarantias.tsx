@@ -19,6 +19,7 @@ import { useContenedoresEmbarque } from "@/features/embarques/hooks";
 import { diffDias } from "./garantias/garantiasUtils";
 import { GarantiasKpiCards } from "./garantias/GarantiasKpiCards";
 import { useGarantiasColumns, type GarantiaRow } from "@/features/embarques/hooks/useGarantiasColumns";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 
@@ -31,8 +32,8 @@ interface Props {
 }
 
 export function TabGarantias({ embarqueId, canEdit, fechaLlegadaReal, soloConsulta = false }: Props) {
-  const { data: garantias = [], isLoading } = useGarantiasContenedor(embarqueId);
-  const { data: contenedores = [] } = useContenedoresEmbarque(embarqueId);
+  const { data: garantias = [], isLoading, isError, isFetching, refetch } = useGarantiasContenedor(embarqueId);
+  const { data: contenedores = [], isError: errorContenedores, isFetching: consultandoContenedores, refetch: reintentarContenedores } = useContenedoresEmbarque(embarqueId);
 
   const rows: GarantiaRow[] = useMemo(() => {
     const cMap = new Map(contenedores.map(c => [c.id, c]));
@@ -61,6 +62,14 @@ export function TabGarantias({ embarqueId, canEdit, fechaLlegadaReal, soloConsul
   const refrescarMut = useRefrescarGarantiasDesdeTarifa(embarqueId);
 
   if (isLoading) return <EmptyStateInline loading message="Cargando garantías…" />;
+  if (isError) return (
+    <ErrorStateInline
+      title="No se pudieron consultar las garantías"
+      message="Reintenta para verificar los depósitos de este embarque."
+      onRetry={() => void refetch()}
+      retrying={isFetching}
+    />
+  );
 
   return (
     <div className="space-y-4">
@@ -70,6 +79,15 @@ export function TabGarantias({ embarqueId, canEdit, fechaLlegadaReal, soloConsul
         count={rows.length}
         diasPromRecuperacion={diasPromRecuperacion}
       />
+
+      {errorContenedores && (
+        <ErrorStateInline
+          title="No se pudieron consultar los contenedores"
+          message="Los depósitos están disponibles. Reintenta para confirmar a qué contenedor corresponde cada uno."
+          onRetry={() => void reintentarContenedores()}
+          retrying={consultandoContenedores}
+        />
+      )}
 
       <Card>
         <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2">

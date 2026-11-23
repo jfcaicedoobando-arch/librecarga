@@ -1,26 +1,31 @@
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageSkeleton } from "@/components/shared/skeletons";
 import { usePortalFacturas, usePortalClientUsers } from "@/features/portal/hooks";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { resolverEstadoFacturaCliente } from "@/lib/domain/estadosFactura";
 import { Receipt, AlertTriangle, ChevronRight } from "lucide-react";
 import EmptyState from "@/components/empty/EmptyState";
+import { PORTAL_LIST_MAX } from "@/features/portal/services/limits";
 import { PortalPageShell } from "@/features/portal/components/layout/PortalPageShell";
 import { PortalFiltersBar } from "@/features/portal/components/filtros/PortalFiltersBar";
 import { PortalFacturasMobileFilters } from "@/features/portal/components/facturas/PortalFacturasMobileFilters";
 import { useState, useMemo } from "react";
 import { Link } from "react-router";
 import { useDocumentTitle } from "@/hooks/shared";
-import { ErrorState } from "@/components/shared/states/ErrorState";
+import { estadoListadoPortal } from "@/features/portal/domain/estadoListadoPortal";
+import { LoadingState } from "@/components/shared/states/LoadingState";
 
 export default function PortalFacturas() {
   useDocumentTitle('Mis Facturas');
-  const { data: clientUsers = [] } = usePortalClientUsers();
+  const cuentas = usePortalClientUsers();
+  const clientUsers = cuentas.data ?? [];
   const clienteIds = clientUsers.map((cu) => cu.cliente_id);
-  const { data: facturas = [], isLoading, isError, refetch } = usePortalFacturas(clienteIds);
+  const consulta = usePortalFacturas(clienteIds);
+  const { data: facturas = [] } = consulta;
+  const estadoListado = estadoListadoPortal(cuentas, consulta, "No pudimos cargar tus facturas");
   const [search, setSearch] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
+  const filtrosActivos = Boolean(search) || filtroEstado !== "todos";
 
   const estados = useMemo(() => {
     const set = new Set(facturas.map((f) => f.estado));
@@ -41,15 +46,11 @@ export default function PortalFacturas() {
     });
   }, [facturas, search, filtroEstado]);
 
-  if (isLoading) {
-    return <PageSkeleton />;
-  }
-
-  if (isError) {
+  if (estadoListado) {
     return (
-      <div className="space-y-6">
-        <ErrorState onRetry={() => void refetch()} />
-      </div>
+      <PortalPageShell icon={<Receipt className="h-6 w-6 text-accent" />} title="Mis facturas">
+        <LoadingState {...estadoListado} />
+      </PortalPageShell>
     );
   }
 
@@ -82,14 +83,20 @@ export default function PortalFacturas() {
         setFiltroEstado={setFiltroEstado}
       />
 
+      {facturas.length >= PORTAL_LIST_MAX && (
+        <p className="text-body-sm text-muted-foreground">Hasta {PORTAL_LIST_MAX} registros recientes. La búsqueda aplica a esta lista.</p>
+      )}
+
       {filtered.length === 0 ? (
         <EmptyState
           icon={Receipt}
-          title={search || filtroEstado !== "todos" ? "No se encontraron facturas" : "Aún no tienes facturas"}
-          description={search || filtroEstado !== "todos"
+          title={filtrosActivos ? "No se encontraron facturas" : "Aún no tienes facturas"}
+          description={facturas.length >= PORTAL_LIST_MAX
+            ? "Ajusta los filtros para buscar en los registros recientes de esta lista."
+            : filtrosActivos
             ? "Ajusta los filtros o busca con otro término."
             : "Aquí verás tus facturas en cuanto emitamos la primera, con su saldo y fecha de vencimiento."}
-          primaryAction={search || filtroEstado !== "todos" ? {
+          primaryAction={filtrosActivos ? {
             label: "Limpiar filtros",
             variant: "outline",
             onClick: () => { setSearch(""); setFiltroEstado("todos"); },

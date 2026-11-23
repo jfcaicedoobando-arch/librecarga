@@ -10,6 +10,7 @@ import { KpiStrip } from "@/components/shared/KpiStrip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import EmptyState from "@/components/empty/EmptyState";
 import { ConfirmDeleteAlert } from "@/features/costeo/components/ConfirmDeleteAlert";
 import { Shield, Plus, ExternalLink, Pencil, Trash2, AlertTriangle } from "lucide-react";
@@ -36,7 +37,8 @@ function VigenciaBadge({ desde, hasta }: { desde: string; hasta: string }) {
 }
 
 export function TabSeguros({ embarqueId, canEdit, tipoCambioUsd = null, tipoCambioEur = null }: Props) {
-  const { data: seguros = [] } = useSegurosEmbarque(embarqueId);
+  const { data, isLoading, isError, isFetching, refetch } = useSegurosEmbarque(embarqueId);
+  const seguros = useMemo(() => (isError ? [] : data ?? []), [isError, data]);
   const del = useDeleteSeguro(embarqueId);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<SeguroEmbarque | null>(null);
@@ -116,7 +118,7 @@ export function TabSeguros({ embarqueId, canEdit, tipoCambioUsd = null, tipoCamb
         >
           Seguros de carga
         </SectionHeading>
-        <Button onClick={() => { setEditing(null); setOpen(true); }} disabled={!canEdit}>
+        <Button onClick={() => { setEditing(null); setOpen(true); }} disabled={!canEdit || isLoading || isError}>
           <Plus className="h-4 w-4 mr-2" /> Nueva póliza
         </Button>
       </div>
@@ -136,8 +138,16 @@ export function TabSeguros({ embarqueId, canEdit, tipoCambioUsd = null, tipoCamb
 
       <Card>
         <CardContent className="p-0">
-          <DataTable
+          {isError ? (
+            <ErrorStateInline
+              title="No se pudieron consultar las pólizas"
+              message="Reintenta para verificar los seguros registrados para este embarque."
+              onRetry={() => void refetch()}
+              retrying={isFetching}
+            />
+          ) : <DataTable
             data={seguros}
+            isLoading={isLoading}
             columns={columns}
             rowKey={(r) => r.id}
             density={TABLE_DENSITY.listado}
@@ -150,7 +160,7 @@ export function TabSeguros({ embarqueId, canEdit, tipoCambioUsd = null, tipoCamb
                 />
               </div>
             }
-          />
+          />}
         </CardContent>
       </Card>
 

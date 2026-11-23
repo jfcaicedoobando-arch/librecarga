@@ -26,11 +26,15 @@ export interface ResultadosBodyProps {
   selectLabel?: string;
   diagnostico?: DiagnosticoTarifas;
   consultandoDiagnostico: boolean;
+  errorDiagnostico?: boolean;
+  onRetryDiagnostico?: () => void;
+  fecha?: string;
 }
 
 export function ResultadosBody({
   origen, destino, tipo, isFetching, tarifas, error, onRetry, isRefetching,
   onElegir, onOpenChange, selectLabel, diagnostico, consultandoDiagnostico,
+  errorDiagnostico, onRetryDiagnostico, fecha,
 }: ResultadosBodyProps) {
   if (!origen || !destino || !tipo) {
     return (
@@ -53,7 +57,7 @@ export function ResultadosBody({
     );
   }
   if (tarifas.length === 0) {
-    return <TarifasSinResultado diagnostico={diagnostico} consultando={consultandoDiagnostico} />;
+    return <TarifasSinResultado diagnostico={diagnostico} consultando={consultandoDiagnostico} error={errorDiagnostico} onRetry={onRetryDiagnostico} fecha={fecha} />;
   }
   const meta = computeRankingMeta(tarifas);
   return (

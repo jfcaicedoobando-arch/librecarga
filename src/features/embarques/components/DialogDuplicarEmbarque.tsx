@@ -30,6 +30,7 @@ export default function DialogDuplicarEmbarque({ embarque, open, onOpenChange }:
     <FormDialogShell
       open={open}
       onOpenChange={onOpenChange}
+      busy={isPending}
       icon={Copy}
       title={`Duplicar embarque ${embarque.expediente}`}
       description="Se crearán nuevos embarques con los mismos datos (cliente, ruta, contenedores hijos, conceptos de venta/costo, documentos). Los conceptos asignados a un contenedor específico mantienen su asignación al contenedor copiado."
@@ -40,12 +41,12 @@ export default function DialogDuplicarEmbarque({ embarque, open, onOpenChange }:
             Cancelar
           </Button>
           <Button onClick={handleConfirmar} loading={isPending}>
-            Duplicar
+            {isPending ? `Duplicando ${copias.length} ${copias.length === 1 ? "copia" : "copias"}…` : "Duplicar"}
           </Button>
         </>
       }
     >
-      <div className="space-y-3">
+      <fieldset disabled={isPending} className="min-w-0 space-y-3">
         {copias.map((copia, idx) => (
           <CopiaContenedorRow
             key={idx}
@@ -53,16 +54,17 @@ export default function DialogDuplicarEmbarque({ embarque, open, onOpenChange }:
             copia={copia}
             tiposContenedor={tiposContenedor}
             canRemove={copias.length > 1}
+            disabled={isPending}
             onChange={(campo, value) => updateCampo(idx, campo, value)}
             onRemove={() => handleQuitar(idx)}
           />
         ))}
-      </div>
+      </fieldset>
 
       <Button
         type="button" variant="outline" size="sm"
         onClick={handleAgregar}
-        disabled={copias.length >= MAX_COPIAS}
+        disabled={isPending || copias.length >= MAX_COPIAS}
         className="w-full"
       >
         <Plus className="h-4 w-4 mr-1" />

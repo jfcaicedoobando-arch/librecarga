@@ -22,12 +22,13 @@ interface Props {
   copia: CopiaContenedor;
   tiposContenedor: TipoOption[];
   canRemove: boolean;
+  disabled?: boolean;
   onChange: <K extends keyof CopiaContenedor>(campo: K, value: CopiaContenedor[K]) => void;
   onRemove: () => void;
 }
 
 export function CopiaContenedorRow({
-  idx, copia, tiposContenedor, canRemove, onChange, onRemove,
+  idx, copia, tiposContenedor, canRemove, disabled, onChange, onRemove,
 }: Props) {
   return (
     <div className="rounded-md border p-3 space-y-2">
@@ -54,6 +55,7 @@ export function CopiaContenedorRow({
         <div className="space-y-1">
           <Label size="sm">Tipo</Label>
           <Select
+            disabled={disabled}
             value={copia.tipo_contenedor || undefined}
             onValueChange={(v) => onChange("tipo_contenedor", v)}
           >

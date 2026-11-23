@@ -6,6 +6,7 @@
  * bloqueo: el documento siempre se puede enviar al buzón.
  */
 import { AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/shared/MoneyInput";
@@ -38,6 +39,9 @@ interface Props {
   /** Suma de costos vivos del proveedor por moneda. */
   costeadoPorMoneda: Readonly<Record<string, number>> | null | undefined;
   cargandoCostos: boolean;
+  errorCostos?: boolean;
+  reintentandoCostos?: boolean;
+  reintentarCostos?: () => void;
   proveedorElegido: boolean;
   /** v13.618.0 — Suma de los conceptos marcados en la moneda actual. */
   sumaSugerida?: number | null;
@@ -75,9 +79,19 @@ function Aviso({
   );
 }
 
-function MensajeCotejo({ monto, moneda, costeadoPorMoneda, cargandoCostos, proveedorElegido }: Props) {
+function MensajeCotejo({ monto, moneda, costeadoPorMoneda, cargandoCostos, proveedorElegido, errorCostos, reintentandoCostos, reintentarCostos }: Props) {
   if (!proveedorElegido) {
     return <Aviso tono="neutro" icono={Info}>Elige el proveedor para comparar contra lo costeado.</Aviso>;
+  }
+  if (errorCostos) {
+    return (
+      <ErrorStateInline
+        title="No pudimos verificar los costos del proveedor"
+        message="Reintenta la consulta. Puedes enviar la factura al buzón para que Contabilidad la revise."
+        onRetry={reintentarCostos}
+        retrying={reintentandoCostos}
+      />
+    );
   }
   if (cargandoCostos) {
     return <Aviso tono="neutro" icono={Info}>Consultando los costos del proveedor…</Aviso>;

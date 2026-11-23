@@ -5,6 +5,7 @@ import { calcularEstadoEmbarque } from "@/features/embarques/domain/embarque";
 import { getOrigen, getDestino } from "@/lib/formatters";
 import EmbarqueCard from "@/features/portal/components/EmbarqueCard";
 import EmptyState from "@/components/empty/EmptyState";
+import { PORTAL_LIST_MAX } from "@/features/portal/services/limits";
 import { PortalPageShell } from "@/features/portal/components/layout/PortalPageShell";
 import { PortalFiltersBar } from "@/features/portal/components/filtros/PortalFiltersBar";
 import { PortalEmbarquesMobileFilters } from "@/features/portal/components/PortalEmbarquesMobileFilters";
@@ -19,6 +20,7 @@ export default function PortalEmbarques() {
   const {
     isLoading,
     isError,
+    errorCuentas,
     refetch,
     embarques,
     filtered,
@@ -42,7 +44,7 @@ export default function PortalEmbarques() {
           label="Cargando tus embarques…"
           error={isError}
           onRetry={() => { void refetch(); }}
-          errorLabel="No pudimos cargar tus embarques."
+          errorLabel={errorCuentas ? "No pudimos cargar tus cuentas vinculadas" : "No pudimos cargar tus embarques."}
         />
       </PortalPageShell>
     );
@@ -91,11 +93,17 @@ export default function PortalEmbarques() {
       />
 
 
+      {embarques.length >= PORTAL_LIST_MAX && (
+        <p className="text-body-sm text-muted-foreground">Hasta {PORTAL_LIST_MAX} registros recientes. La búsqueda aplica a esta lista.</p>
+      )}
+
       {filtered.length === 0 ? (
         <EmptyState
           icon={Ship}
           title={search || filtroEstado !== "todos" || filtroModo !== "todos" ? "No se encontraron embarques" : "Aún no tienes embarques"}
-          description={search || filtroEstado !== "todos" || filtroModo !== "todos"
+          description={embarques.length >= PORTAL_LIST_MAX
+            ? "Ajusta los filtros para buscar en los registros recientes de esta lista."
+            : search || filtroEstado !== "todos" || filtroModo !== "todos"
             ? "Ajusta los filtros o busca con otro término."
             : "Aquí darás seguimiento a tus embarques: ruta, fechas estimadas y documentos."}
           primaryAction={search || filtroEstado !== "todos" || filtroModo !== "todos" ? {

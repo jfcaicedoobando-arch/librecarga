@@ -105,13 +105,14 @@ export default function AgenteLayout() {
             </span>
           </Link>
 
-          <nav className="hidden xl:flex items-center gap-1 shrink-0">
+          <nav aria-label="Portal del agente" className="hidden xl:flex items-center gap-1 shrink-0">
             {NAV.map((item) => {
               const active = isActive(item.href, location.pathname);
               return (
                 <Link
                   key={item.href}
                   to={item.href}
+                  aria-current={active ? "page" : undefined}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     active
                       ? "bg-accent/10 text-accent"
@@ -155,13 +156,14 @@ export default function AgenteLayout() {
           </div>
         )}
 
-        <nav className="xl:hidden border-t bg-card/80 px-2 py-1 flex items-center gap-1 overflow-x-auto [mask-image:linear-gradient(to_right,black_0,black_calc(100%-20px),transparent_100%)]">
+        <nav aria-label="Portal del agente" className="xl:hidden border-t bg-card/80 px-2 py-1 flex items-center gap-1 overflow-x-auto [mask-image:linear-gradient(to_right,black_0,black_calc(100%-20px),transparent_100%)]">
           {NAV.map((item) => {
             const active = isActive(item.href, location.pathname);
             return (
               <Link
                 key={item.href}
                 to={item.href}
+                aria-current={active ? "page" : undefined}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium whitespace-nowrap ${
                   active ? "bg-accent/10 text-accent" : "text-muted-foreground"
                 }`}

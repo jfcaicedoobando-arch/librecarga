@@ -24,6 +24,8 @@ interface DatePickerMxProps {
   placeholder?: string;
   className?: string;
   title?: string;
+  /** Nombre accesible del botón de calendario en formularios con varias fechas. */
+  calendarLabel?: string;
   disabled?: boolean;
   readOnly?: boolean;
   min?: string;
@@ -52,7 +54,7 @@ interface DatePickerMxProps {
  * seleccionarla del calendario (`Alt+Flecha abajo` / `F4`).
  */
 export function DatePickerMx({
-  value, onChange, placeholder = PLACEHOLDER_FECHA, className, title,
+  value, onChange, placeholder = PLACEHOLDER_FECHA, className, title, calendarLabel,
   disabled = false, readOnly = false, min, max, errorText, id, name,
   autoFocus = false, avisarInhabil = false, "aria-label": ariaLabel, "aria-describedby": ariaDescribedBy,
 }: DatePickerMxProps) {
@@ -143,6 +145,7 @@ export function DatePickerMx({
         )}
 
         <DatePickerMxCalendar
+          ariaLabel={calendarLabel}
           value={value}
           marcarInhabiles={avisarInhabil}
           min={min}

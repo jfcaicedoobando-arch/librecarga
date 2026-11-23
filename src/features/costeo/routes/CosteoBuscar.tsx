@@ -46,7 +46,8 @@ export default function CosteoBuscar() {
     fecha,
   });
 
-  const { diagnostico, isFetching: consultandoDiagnostico } = useDiagnosticoTarifas({
+  const { diagnostico, isFetching: consultandoDiagnostico, isError: errorDiagnostico, refetch: reintentarDiagnostico } = useDiagnosticoTarifas({
+    fecha,
     puertoOrigenId: origenVigente,
     puertoDestinoId: destinoConsulta,
     tipoContenedorIds,
@@ -109,6 +110,9 @@ export default function CosteoBuscar() {
         isError={isError}
         diagnostico={diagnostico}
         consultandoDiagnostico={consultandoDiagnostico}
+        errorDiagnostico={errorDiagnostico}
+        onRetryDiagnostico={() => void reintentarDiagnostico()}
+        fecha={fecha}
         onRetry={() => void refetch()}
       />
     </PageContainer>

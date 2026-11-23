@@ -71,6 +71,7 @@ export function VigenciaFields({ form, setForm, errores }: NumerosProps) {
         <Label htmlFor="tarifa-vig-desde">{rangoLabel("Vigencia", "desde")} *</Label>
         <DatePickerMx
           value={form.vigente_desde}
+          max={form.vigente_hasta || undefined}
           onChange={(v) => setForm({ ...form, vigente_desde: v })}
           className={`w-full ${invalidCls(errores?.vigente_desde) ?? ""}`}
         />
@@ -79,6 +80,7 @@ export function VigenciaFields({ form, setForm, errores }: NumerosProps) {
         <Label htmlFor="tarifa-vig-hasta">{rangoLabel("Vigencia", "hasta")} *</Label>
         <DatePickerMx
           value={form.vigente_hasta}
+          min={form.vigente_desde || undefined}
           onChange={(v) => setForm({ ...form, vigente_hasta: v })}
           className={`w-full ${invalidCls(errores?.vigente_hasta) ?? ""}`}
         />

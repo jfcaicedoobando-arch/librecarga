@@ -5,6 +5,7 @@
  * v13.182.0: columnas + `EstadoBadge` extraídos a `_sections/agenteTarifasColumns.tsx`.
  */
 import { useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,7 +51,17 @@ function recargosIniciales(
 
 export default function AgenteTarifas() {
   const { data: tarifas = [], isLoading, isError, refetch } = useAgenteTarifas();
-  const [filtro, setFiltro] = useState<FiltroTarifasAgente>("todas");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const estado = searchParams.get("estado");
+  const filtro = estado === "rechazadas" ? "rechazada" : FILTROS_TARIFAS_AGENTE.find(({ value }) => value === estado)?.value ?? "todas";
+  const setFiltro = (value: FiltroTarifasAgente) => {
+    setSearchParams((prev) => {
+      const siguiente = new URLSearchParams(prev);
+      if (value === "todas") siguiente.delete("estado");
+      else siguiente.set("estado", value === "rechazada" ? "rechazadas" : value);
+      return siguiente;
+    }, { replace: true });
+  };
   const [editor, setEditor] = useState<EditorState>({ open: false, modo: "crear" });
 
   const hoy = todayLocalISO();
