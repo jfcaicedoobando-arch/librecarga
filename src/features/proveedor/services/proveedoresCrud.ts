@@ -83,6 +83,10 @@ export async function fetchProveedoresPaginados(
     total_count: number | string;
   }>;
 
+  if (rows.length === 0 && page > 0) {
+    const { count } = await fetchProveedoresPaginados({ ...params, page: 0, pageSize: 1 });
+    return { data: [], count };
+  }
   const count = rows.length > 0 ? Number(rows[0].total_count) : 0;
   const mapped: ProveedorListItem[] = rows.map((r) => ({
     id: r.id,

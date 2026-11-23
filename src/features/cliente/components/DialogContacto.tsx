@@ -7,6 +7,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import type { Tables, Enums } from "@/types/db";
 type ContactoCliente = Tables<'contactos_cliente'>;
 type TipoContacto = Enums<'tipo_contacto'>;
@@ -20,6 +21,14 @@ const emptyForm = {
   nombre: '', rfc: '', tipo: 'Exportador' as TipoContacto, pais: '', ciudad: '', direccion: '', contacto: '', email: '', telefono: '',
 };
 
+function valoresContacto(contacto: ContactoCliente | null): typeof emptyForm {
+  if (!contacto) return emptyForm;
+  return {
+    nombre: texto(contacto.nombre), rfc: texto(contacto.rfc), tipo: contacto.tipo ?? 'Exportador',
+    pais: texto(contacto.pais), ciudad: texto(contacto.ciudad), direccion: texto(contacto.direccion),
+    contacto: texto(contacto.contacto), email: texto(contacto.email), telefono: texto(contacto.telefono),
+  };
+}
 
 interface Props {
   open: boolean;
@@ -30,25 +39,18 @@ interface Props {
 }
 
 export default function DialogContacto({ open, onOpenChange, contacto, onSave, isSaving }: Props) {
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(() => valoresContacto(contacto));
+  const isDirty = JSON.stringify(form) !== JSON.stringify(valoresContacto(contacto));
 
   useEffect(() => {
-    if (contacto) {
-      setForm({
-        nombre: texto(contacto.nombre), rfc: texto(contacto.rfc), tipo: contacto.tipo ?? 'Exportador',
-        pais: texto(contacto.pais), ciudad: texto(contacto.ciudad), direccion: texto(contacto.direccion),
-        contacto: texto(contacto.contacto), email: texto(contacto.email), telefono: texto(contacto.telefono),
-      });
-    } else {
-      setForm(emptyForm);
-    }
+    setForm(valoresContacto(contacto));
   }, [contacto, open]);
 
   const handleChange = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
 
   const handleSubmit = async () => {
     const nombre = texto(form.nombre).trim();
-    if (!nombre) return;
+    if (!nombre || isSaving) return;
     // Las columnas de texto son NOT NULL en la base: nunca enviamos null/undefined.
     await onSave(
       {
@@ -74,9 +76,11 @@ export default function DialogContacto({ open, onOpenChange, contacto, onSave, i
       title={contacto ? 'Editar Contacto' : 'Nuevo Contacto'}
       description="Exportador o importador asociado a este cliente."
       size="lg"
+      isDirty={isDirty}
+      busy={isSaving}
       footer={
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <FormDialogCancelarBoton onCancelar={() => onOpenChange(false)} disabled={isSaving} />
           <Button onClick={handleSubmit} disabled={!form.nombre.trim()} loading={isSaving}>
             {contacto ? 'Guardar Cambios' : 'Agregar'}
           </Button>

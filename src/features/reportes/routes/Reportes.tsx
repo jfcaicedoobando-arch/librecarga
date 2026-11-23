@@ -47,6 +47,7 @@ export default function Reportes() {
     handleExportPdf,
     isExportingPdf,
     canExport,
+    hayEmbarquesSinTc,
   } = useReportesPageController();
 
   return (
@@ -67,7 +68,7 @@ export default function Reportes() {
           </div>
         }
         actions={
-          <>
+          <div className="space-y-2">
             {/* Mobile: un solo dropdown "Exportar ▾" */}
             <div className="sm:hidden">
               <DropdownMenu>
@@ -97,7 +98,13 @@ export default function Reportes() {
                 <Download className="h-4 w-4 mr-2" /> Exportar CSV
               </Button>
             </div>
-          </>
+            {hayEmbarquesSinTc && (
+              <p className="max-w-sm text-body-sm text-muted-foreground">
+                Exportación no disponible hasta resolver el tipo de cambio de {kpis.embarquesSinTc}{" "}
+                {kpis.embarquesSinTc === 1 ? "embarque" : "embarques"}.
+              </p>
+            )}
+          </div>
         }
       />
 

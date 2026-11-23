@@ -88,6 +88,7 @@ export default function ClienteDetalle() {
     refetchCliente,
     contactos,
     loadingContactos,
+    errorContactos, refetchContactos, fetchingContactos,
     embarquesCliente,
     loadingEmbarques,
     errorEmbarques, refetchEmbarques, fetchingEmbarques,
@@ -148,7 +149,7 @@ export default function ClienteDetalle() {
       <ClienteSummaryCards
         embarques={embarquesCliente.length}
         cotizaciones={cotizacionesCliente.length}
-        contactos={contarContactos(contactos.length, cliente.contacto)}
+        contactos={loadingContactos || errorContactos ? null : contarContactos(contactos.length, cliente.contacto)}
         {...mapFinancialSummary(financials)}
       />
 
@@ -158,6 +159,9 @@ export default function ClienteDetalle() {
         cliente={cliente}
         contactos={contactos}
         loadingContactos={loadingContactos}
+        errorContactos={errorContactos}
+        refetchContactos={refetchContactos}
+        fetchingContactos={fetchingContactos}
         canEdit={canEdit}
         embarquesCliente={embarquesCliente}
         loadingEmbarques={loadingEmbarques}

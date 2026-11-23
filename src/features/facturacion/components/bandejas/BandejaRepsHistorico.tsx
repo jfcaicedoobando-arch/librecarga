@@ -5,7 +5,8 @@
  */
 import { useCallback, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileCheck2, FileDown, FileCode } from "lucide-react";
+import { FileCheck2, FileDown, FileCode, SearchX } from "lucide-react";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { Button } from "@/components/ui/button";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { useOrgFilter } from "@/hooks/shared";
@@ -15,7 +16,7 @@ import { useConsultarRep } from "@/features/facturacion/hooks/useConsultarRep";
 
 import { notifyError } from "@/lib/ui/appFeedback";
 import { BandejaShell } from "./BandejaShell";
-import { buildRepsHistoricoColumns, estadoRepHistorico } from "./bandejaRepsHistoricoColumns";
+import { ActualizarRepSatButton, buildRepsHistoricoColumns, estadoRepHistorico, varianteRepHistorico } from "./bandejaRepsHistoricoColumns";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate, toTitleCase } from "@/lib/formatters";
 import { AuthOperationChangedError, captureAuthOperationScope } from "@/lib/auth/authOperationScope";
@@ -29,6 +30,8 @@ export function BandejaRepsHistorico() {
 function BandejaRepsHistoricoContenido({ organizationId }: { organizationId: string | null }) {
   const paged = useRepsHistorico(organizationId);
   const consultar = useConsultarRep();
+  const actualizando = consultar.isPending ? consultar.variables ?? null : null;
+  const conFiltros = paged.activeCount > 0;
   const [descargando, setDescargando] = useState<string | null>(null);
 
 
@@ -56,9 +59,9 @@ function BandejaRepsHistoricoContenido({ organizationId }: { organizationId: str
       onDescargar: (id, tipo) => void descargar(id, tipo),
       descargando,
       onActualizarSat: (id) => consultar.mutate(id),
-      actualizando: consultar.isPending ? consultar.variables ?? null : null,
+      actualizando,
     }),
-    [descargar, descargando, consultar],
+    [descargar, descargando, consultar, actualizando],
   );
 
 
@@ -81,10 +84,11 @@ function BandejaRepsHistoricoContenido({ organizationId }: { organizationId: str
             data={paged.isStaleView ? [] : paged.rows}
             isLoading={paged.isLoading || paged.isStaleView}
             emptyState={
-              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-body text-muted-foreground px-4">
-                <FileCheck2 className="h-8 w-8 opacity-40" strokeWidth={1.5} />
-                <span>Aún no hay complementos de pago (REP) timbrados.</span>
-              </div>
+              <EmptyStateInline
+                icon={conFiltros ? SearchX : FileCheck2}
+                message={conFiltros ? "Ningún REP coincide con los filtros." : "Aún no hay complementos de pago (REP) timbrados."}
+                action={conFiltros ? { label: "Limpiar filtros", onClick: paged.resetAll } : undefined}
+              />
             }
             rowKey={(r) => r.id}
             getRowHref={(r) => `/facturacion/${r.factura_id}`}
@@ -104,13 +108,15 @@ function BandejaRepsHistoricoContenido({ organizationId }: { organizationId: str
                     {formatDate(r.fecha_pago)} · {formatCurrency(r.monto, r.moneda)}
                   </div>
                   <Badge
-                    variant={estadoRepHistorico(r) === "Cancelado" ? "destructive" : "outline"}
+                    variant={varianteRepHistorico(estadoRepHistorico(r))}
                     className="mt-1"
                   >
                     {estadoRepHistorico(r)}
                   </Badge>
                 </div>
                 <div data-no-row-nav onClick={(e) => e.stopPropagation()} className="flex flex-col gap-1">
+                  <ActualizarRepSatButton rep={r} onActualizarSat={consultar.mutate}
+                    actualizando={actualizando} className="min-h-11 min-w-11" />
                   <Button
                     size="icon" variant="outline" className="min-h-11 min-w-11"
                     loading={descargando === `${r.id}:pdf`}

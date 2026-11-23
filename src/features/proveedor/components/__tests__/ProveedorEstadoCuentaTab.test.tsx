@@ -54,10 +54,14 @@ const renderTab = () =>
   );
 
 describe("ProveedorEstadoCuentaTab", () => {
-  it("muestra el esqueleto mientras carga", () => {
+  it("mantiene las fechas visibles y desactiva descargas mientras carga", () => {
     h.useProveedorMovimientos.mockReturnValue({ data: undefined, isLoading: true });
     renderTab();
     expect(screen.queryByText("Saldos por moneda")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Fecha inicial del estado de cuenta")).toBeEnabled();
+    expect(screen.getByLabelText("Fecha final del estado de cuenta")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "PDF" })).toBeDisabled();
   });
 
   it("pinta antigüedad, resumen y movimientos con saldo corrido", () => {

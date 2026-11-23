@@ -3,7 +3,8 @@
  * por embarque. Separado del componente principal para respetar los límites
  * de tamaño/complejidad.
  */
-import { ChevronDown, ChevronRight, Link2 } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { Link } from "react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
@@ -16,7 +17,7 @@ interface Props {
   fila: FilaReconciliacion;
   expandido: boolean;
   onToggle: () => void;
-  onVincular: () => void;
+  costosHref: string;
 }
 
 /** Motivo por el que la variación no aplica; null si la fila es comparable. */
@@ -33,7 +34,16 @@ function valorRealFacturado(fila: FilaReconciliacion): string {
   return fila.ajuste_presupuestario ? "No aplica" : formatCurrency(fila.real_facturado, fila.moneda);
 }
 
-export function FilaRenglon({ fila, expandido, onToggle, onVincular }: Props) {
+function AccesoCostos({ fila, href }: { fila: FilaReconciliacion; href: string }) {
+  if (fila.facturas.length > 0 || fila.ajuste_presupuestario) return null;
+  return (
+    <Button asChild size="sm" variant="ghost" className="h-auto px-2 py-1 text-label">
+      <Link to={href}>Abrir costos del embarque</Link>
+    </Button>
+  );
+}
+
+export function FilaRenglon({ fila, expandido, onToggle, costosHref }: Props) {
   const meta = ESTATUS_META[fila.estatus_renglon];
   const tienePartidas = fila.facturas.length > 0;
   const pendienteTc = fila.estatus_renglon === "no_comparable" || (fila.vinculos_excluidos ?? 0) > 0;
@@ -52,7 +62,8 @@ export function FilaRenglon({ fila, expandido, onToggle, onVincular }: Props) {
               variant="ghost"
               size="icon"
               onClick={onToggle}
-              aria-label={expandido ? "Ocultar partidas" : "Ver partidas"}
+              aria-label={`${expandido ? "Ocultar" : "Ver"} partidas de ${fila.concepto}`}
+              aria-expanded={expandido}
               className="min-h-11 min-w-11 md:h-6 md:w-6 md:min-h-0 md:min-w-0 text-muted-foreground hover:text-foreground"
             >
               {expandido
@@ -87,16 +98,7 @@ export function FilaRenglon({ fila, expandido, onToggle, onVincular }: Props) {
           </Badge>
         </TableCell>
         <TableCell className="align-top text-right">
-          {!tienePartidas && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 px-2 text-label"
-              onClick={onVincular}
-            >
-              <Link2 className="mr-1 h-3 w-3" /> Vincular
-            </Button>
-          )}
+          <AccesoCostos fila={fila} href={costosHref} />
         </TableCell>
       </TableRow>
       {expandido && tienePartidas && (
@@ -127,7 +129,7 @@ function SubTablaPartidas({ fila }: { fila: FilaReconciliacion }) {
               const pct = fila.cotizado > 0 ? (p.monto / fila.cotizado) * 100 : 0;
               return (
                 <TableRow key={p.proveedor_factura_id + p.folio_proveedor} className="border-t border-border/50">
-                  <TableCell className="font-mono">{p.folio_proveedor}</TableCell>
+                  <FolioFacturaPartida partida={p} />
                   <TableCell>{p.fecha_emision ?? "—"}</TableCell>
                   <TableCell>{p.descripcion ?? "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">
@@ -151,7 +153,7 @@ function SubTablaPartidas({ fila }: { fila: FilaReconciliacion }) {
 function PartidaExcluida({ p }: { p: FacturaVinculada }) {
   return (
     <TableRow className="border-t border-border/50" data-testid="partida-excluida">
-      <TableCell className="font-mono">{p.folio_proveedor}</TableCell>
+      <FolioFacturaPartida partida={p} />
       <TableCell>{p.fecha_emision ?? "—"}</TableCell>
       <TableCell>
         <div>{p.descripcion ?? "—"}</div>
@@ -162,5 +164,18 @@ function PartidaExcluida({ p }: { p: FacturaVinculada }) {
       </TableCell>
       <TableCell className="text-right tabular-nums text-muted-foreground">N/D</TableCell>
     </TableRow>
+  );
+}
+
+function FolioFacturaPartida({ partida }: { partida: FacturaVinculada }) {
+  const folio = partida.folio_proveedor || "sin folio de proveedor";
+  return (
+    <TableCell className="font-mono">
+      <Link to={`/compras/facturas/${encodeURIComponent(partida.proveedor_factura_id)}`} target="_blank" rel="noopener noreferrer"
+        aria-label={`Ver factura de proveedor ${folio} en otra pestaña`}
+        className="text-accent underline underline-offset-2">
+        {folio}
+      </Link>
+    </TableCell>
   );
 }

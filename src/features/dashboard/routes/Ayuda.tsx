@@ -38,12 +38,15 @@ export default function Ayuda() {
     const termino = normalizarBusqueda(search);
     if (!termino) return MODULOS;
     return MODULOS
-      .map((m) => ({
-        ...m,
-        faqs: m.faqs.filter(
-          (f) => normalizarBusqueda(f.pregunta).includes(termino) || normalizarBusqueda(f.respuesta).includes(termino),
-        ),
-      }))
+      .map((m) => {
+        if (normalizarBusqueda(`${m.titulo} ${m.resumen}`).includes(termino)) return m;
+        return {
+          ...m,
+          faqs: m.faqs.filter(
+            (f) => normalizarBusqueda(f.pregunta).includes(termino) || normalizarBusqueda(f.respuesta).includes(termino),
+          ),
+        };
+      })
       .filter((m) => m.faqs.length > 0);
   }, [search]);
 

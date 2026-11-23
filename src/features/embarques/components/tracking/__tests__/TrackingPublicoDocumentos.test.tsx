@@ -16,8 +16,17 @@ describe("TrackingPublicoDocumentos", () => {
   it("separa recibidos y faltantes con el conteo correcto", () => {
     render(<TrackingPublicoDocumentos documentos={docs} />);
     expect(screen.getByText("Recibidos (1)")).toBeInTheDocument();
-    expect(screen.getByText("Faltantes (1)")).toBeInTheDocument();
+    expect(screen.getByText("Requeridos por entregar (1)")).toBeInTheDocument();
     expect(screen.getByText("Falta")).toBeInTheDocument();
+  });
+
+  it("separa opcionales sin pedirlos como requisito del despacho", () => {
+    render(<TrackingPublicoDocumentos documentos={[
+      { nombre: "Archivo adicional", estado: "Pendiente", requerido: false, recibido: false },
+    ]} />);
+    expect(screen.getByText("Requeridos por entregar (0)")).toBeVisible();
+    expect(screen.getByText("Opcionales pendientes (1)")).toBeVisible();
+    expect(screen.queryByText(/para no retrasar/)).not.toBeInTheDocument();
   });
 
   it("indica qué hacer cuando no hay documentos requeridos", () => {

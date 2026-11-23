@@ -15,7 +15,7 @@ describe("confirmación refacturación", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(mocks.mutate).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: /Refacturar desde/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Continuar a la proforma nueva" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar anterior y abrir nueva proforma" }));
     expect(mocks.mutate).toHaveBeenCalledOnce();
   });
   it("mantiene bloqueado confirmar y cancelar mientras procesa", () => {

@@ -62,6 +62,15 @@ describe("useCosteoTarifasPageState", () => {
     expect(result.current.s.soloPorVencer).toBe(false);
   });
 
+  it("sincroniza el filtro de aprobación conservando la ruta y pestaña", () => {
+    const { result } = setup(`/costeo/tarifas?ruta=${RUTA}&tab=tarifas&aprobacion=borrador`);
+    act(() => result.current.s.setAprobacion("rechazada"));
+    const parametros = new URLSearchParams(result.current.loc.search);
+    expect(parametros.get("aprobacion")).toBe("rechazada");
+    expect(parametros.get("ruta")).toBe(RUTA);
+    expect(parametros.get("tab")).toBe("tarifas");
+  });
+
   it("Pendientes → Por vencer quita 'Pendientes'", () => {
     const { result } = setup("/costeo/tarifas");
     act(() => result.current.s.onFilterPendientes());

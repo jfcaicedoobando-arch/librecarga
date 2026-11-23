@@ -2,8 +2,8 @@
  * Sin oportunidades abiertas los porcentajes se leen como guion y leyenda,
  * no como 0% (que significaría mal desempeño).
  */
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
 import HigieneKpis from "../HigieneKpis";
 import type { HigieneResumen } from "@/features/crm/services/higiene";
 
@@ -20,6 +20,22 @@ const base: HigieneResumen = {
 } as unknown as HigieneResumen;
 
 describe("HigieneKpis", () => {
+  it("la consulta de presupuesto sólo cambia el KPI de cobertura", () => {
+    const consulta = { isLoading: true, isError: false, isFetching: false, refetch: vi.fn() };
+    const resumen = { ...base, abiertas: 2, higiene_pct: 0.5 };
+    const vista = (consultaPresupuesto: typeof consulta) => (
+      <HigieneKpis resumen={resumen} cobertura={null} presupuestoMes={{ monto: 0, moneda: "MXN" }}
+        consultaPresupuesto={consultaPresupuesto} />
+    );
+    const { rerender } = render(vista(consulta));
+    expect(screen.getByText("Consultando presupuesto…")).toBeVisible();
+    expect(screen.queryByText("Sin presupuesto")).not.toBeInTheDocument();
+    rerender(vista({ ...consulta, isLoading: false, isError: true }));
+    expect(screen.getByText("50%")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar presupuesto" }));
+    expect(consulta.refetch).toHaveBeenCalledOnce();
+  });
+
   it("muestra guion y leyenda cuando no hay oportunidades abiertas", () => {
     render(<HigieneKpis resumen={base} cobertura={null} presupuestoMes={{ monto: 0, moneda: "MXN" }} />);
     expect(screen.getAllByText("—").length).toBe(2);

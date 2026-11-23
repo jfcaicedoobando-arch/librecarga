@@ -1,8 +1,8 @@
-import { Building2, Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { Building2, Copy } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toTitleCase, formatPhoneMx, correctSpanishPlace } from "@/lib/formatters";
+import { useCopyText } from "@/hooks/shared/useCopyText";
 
 interface Props {
   direccion: string;
@@ -17,7 +17,7 @@ interface Props {
 const DASH = "—";
 
 function CopyValueButton({ value, label }: { value: string; label: string }) {
-  const [copied, setCopied] = useState(false);
+  const copy = useCopyText();
   return (
     <Button
       type="button"
@@ -25,13 +25,9 @@ function CopyValueButton({ value, label }: { value: string; label: string }) {
       size="icon"
       className="min-h-11 min-w-11 md:h-6 md:w-6 md:min-h-0 md:min-w-0 shrink-0 text-muted-foreground opacity-60 hover:opacity-100"
       aria-label={`Copiar ${label}`}
-      onClick={() => {
-        void navigator.clipboard?.writeText(value);
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1500);
-      }}
+      onClick={() => { void copy(value, { method: "COPIAR_CONTACTO_CLIENTE" }); }}
     >
-      {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+      <Copy className="h-3.5 w-3.5" aria-hidden />
     </Button>
   );
 }

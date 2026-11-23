@@ -1,7 +1,6 @@
 import { Building } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { FormField } from "@/components/shared/FormField";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -40,10 +39,9 @@ export default function TabEmpresa({ nombre, setNombre, subtitulo, setSubtitulo,
         <FormField label="Teléfono">
           <Input value={telefono} onChange={(e) => setTelefono(e.target.value)} />
         </FormField>
-        <div className="space-y-2 md:col-span-2">
-          <Label>Dirección fiscal</Label>
+        <FormField label="Dirección fiscal" className="md:col-span-2">
           <Textarea value={direccion} onChange={(e) => setDireccion(e.target.value)} rows={2} />
-        </div>
+        </FormField>
       </CardContent>
     </Card>
   );

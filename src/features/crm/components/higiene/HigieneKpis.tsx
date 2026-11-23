@@ -2,6 +2,8 @@
  * Tarjetas KPI del tablero de Higiene del pipeline.
  */
 import { formatPercent } from "@/lib/formatters";
+import type { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/lib/formatters/numbers";
@@ -13,15 +15,22 @@ interface Props {
   resumen: HigieneResumen;
   cobertura: number | null;
   presupuestoMes: PresupuestoDelMes;
+  consultaPresupuesto?: {
+    isError: boolean;
+    isLoading: boolean;
+    isFetching: boolean;
+    refetch: () => unknown;
+  };
 }
 
-function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Kpi({ label, value, hint, accion }: { label: string; value: string; hint?: string; accion?: ReactNode }) {
   return (
     <Card>
       <CardContent className="pt-6">
         <p className="text-body-sm text-muted-foreground">{label}</p>
         <p className="text-kpi mt-1">{value}</p>
         {hint && <p className="text-body-sm text-muted-foreground mt-1">{hint}</p>}
+        {accion}
       </CardContent>
     </Card>
   );
@@ -44,10 +53,25 @@ function KpiPorcentaje({ label, pct, hint }: { label: string; pct: number | null
   );
 }
 
-export default function HigieneKpis({ resumen, cobertura, presupuestoMes }: Props) {
-  const sinMuestra = resumen.abiertas === 0;
-  const higienePct = sinMuestra ? null : Math.round(resumen.higiene_pct * 100);
-  const seguimientoPct = sinMuestra ? null : Math.round(resumen.seguimiento_oportuno_pct * 100);
+function CoberturaKpi({
+  cobertura, presupuestoMes, consultaPresupuesto,
+}: Pick<Props, "cobertura" | "presupuestoMes" | "consultaPresupuesto">) {
+  const label = "Cobertura vs presupuesto";
+  if (consultaPresupuesto?.isLoading) {
+    return <Kpi label={label} value="—" hint="Consultando presupuesto…" />;
+  }
+  if (consultaPresupuesto?.isError) {
+    return (
+      <Kpi label={label} value="—" hint="No pudimos consultar el presupuesto."
+        accion={
+          <Button type="button" variant="outline" size="sm" className="mt-2"
+            disabled={consultaPresupuesto.isFetching} onClick={() => void consultaPresupuesto.refetch()}>
+            {consultaPresupuesto.isFetching ? "Reintentando…" : "Reintentar presupuesto"}
+          </Button>
+        }
+      />
+    );
+  }
   // El pipeline ponderado viene en MXN; con presupuesto en USD/EUR no hay
   // conversión histórica válida, así que no se inventa un porcentaje.
   const sinConversion = presupuestoMes.monto > 0 && presupuestoMes.moneda !== "MXN";
@@ -56,6 +80,16 @@ export default function HigieneKpis({ resumen, cobertura, presupuestoMes }: Prop
     : cobertura === null
       ? "Sin presupuesto"
       : formatPercent(cobertura * 100, 0);
+  const hint = presupuestoMes.monto > 0
+    ? `Meta del mes ${formatCurrency(presupuestoMes.monto, presupuestoMes.moneda)}`
+    : "Captura el presupuesto en Configuración del CRM";
+  return <Kpi label={label} value={valorCobertura} hint={hint} />;
+}
+
+export default function HigieneKpis({ resumen, cobertura, presupuestoMes, consultaPresupuesto }: Props) {
+  const sinMuestra = resumen.abiertas === 0;
+  const higienePct = sinMuestra ? null : Math.round(resumen.higiene_pct * 100);
+  const seguimientoPct = sinMuestra ? null : Math.round(resumen.seguimiento_oportuno_pct * 100);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -78,15 +112,7 @@ export default function HigieneKpis({ resumen, cobertura, presupuestoMes }: Prop
           resumen.tc_estimado ? " · (T/C estimado)" : ""
         }`}
       />
-      <Kpi
-        label="Cobertura vs presupuesto"
-        value={valorCobertura}
-        hint={
-          presupuestoMes.monto > 0
-            ? `Meta del mes ${formatCurrency(presupuestoMes.monto, presupuestoMes.moneda)}`
-            : "Captura el presupuesto en Configuración del CRM"
-        }
-      />
+      <CoberturaKpi cobertura={cobertura} presupuestoMes={presupuestoMes} consultaPresupuesto={consultaPresupuesto} />
     </div>
   );
 }

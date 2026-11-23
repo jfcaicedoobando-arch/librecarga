@@ -28,16 +28,17 @@ export default function TabCompras() {
   );
   const updateConfig = useUpdateConfiguracion();
 
-  const [umbral, setUmbral] = useState<number>(umbralActual);
+  const [captura, setCaptura] = useState(String(umbralActual));
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     if (initialized) return;
-    setUmbral(Number(umbralActual));
+    setCaptura(String(umbralActual));
     setInitialized(true);
   }, [umbralActual, initialized]);
 
-  const valido = esUmbralValido(umbral);
+  const umbral = Number(captura);
+  const valido = captura.trim() !== "" && esUmbralValido(umbral);
 
   const handleGuardar = () => {
     if (!valido) return;
@@ -67,15 +68,15 @@ export default function TabCompras() {
               type="number"
               min={0}
               step={1000}
-              value={umbral}
-              onChange={(e) => setUmbral(Number(e.target.value))}
+              value={captura}
+              onChange={(e) => setCaptura(e.target.value)}
               className="w-40"
             />
           </FormField>
         </div>
 
         {!valido && (
-          <p className="text-xs text-destructive">El monto debe ser un número mayor o igual a cero.</p>
+          <p className="text-xs text-destructive">Captura un monto mayor o igual a cero.</p>
         )}
 
         <div className="flex justify-end pt-2">

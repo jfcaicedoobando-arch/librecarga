@@ -38,6 +38,7 @@ function Reporte() {
     <button onClick={() => c.setFiltroOperador("Operador Ficticio")}>Operador</button>
     <button onClick={() => c.setFiltroEstado("Pendiente")}>Estado</button>
     <button onClick={() => c.setFiltroCliente("todos")}>Limpiar cliente</button>
+    <button onClick={c.limpiarFiltros}>Limpiar filtros</button>
     <button onClick={() => c.setMesKey("2026-09")}>Mes</button>
     <button onClick={() => navigate("/embarques/fixture-0")}>Abrir embarque</button>
   </>;
@@ -86,6 +87,12 @@ describe("Cierre mensual: estado de filtros e historial", () => {
     expect(params().has("cliente")).toBe(false);
     expect(params().get("estado")).toBe("Pendiente");
     expect(selection()[1]).toBe("todos");
+  });
+  it("limpia cliente, operador y estado de un enlace preservando el mes", () => {
+    mount(initial + "&cliente=Sin+coincidencias&operador=Operador+Ficticio&estado=Pendiente");
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
+    expect(selection()).toEqual(["2026-10", "todos", "todos", "todos"]);
+    expect(params().get("conservar")).toBe("si");
   });
   it("deriva la selección del historial incluso sin desmontar el reporte", async () => {
     mount(initial + "&cliente=Textiles+Ficticios");

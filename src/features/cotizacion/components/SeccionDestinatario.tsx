@@ -9,23 +9,19 @@
  */
 import { useState } from "react";
 import { useFormContext } from "react-hook-form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { WizardSection } from "@/components/shared/WizardSection";
-import { FormField } from "@/components/shared/FormField";
 import { ProspectoSection } from "./seccionDestinatario/ProspectoSection";
+import { SelectorCliente, type ClienteOption } from "./seccionDestinatario/SelectorCliente";
+import type { EstadoCatalogoClientes } from "./seccionDestinatario/EstadoConsultaClientes";
 import type { ProspectoMatch } from "@/features/crm/hooks";
 import type { CotizacionFormValues } from "@/features/cotizacion/hooks";
 import { useMonedaVinculoCrm } from "@/features/cotizacion/hooks/useMonedaVinculoCrm";
 
-interface ClienteOption {
-  id: string;
-  nombre: string;
-}
-
 interface Props {
   clientes: ClienteOption[];
+  catalogoClientes?: EstadoCatalogoClientes;
   complete?: boolean;
   /**
    * Vínculo CRM ya confirmado (edición o primer vínculo exitoso): el
@@ -36,7 +32,9 @@ interface Props {
   onLimpiarVinculoError?: () => void;
 }
 
-export default function SeccionDestinatario({ clientes, complete, vinculoConfirmado = false, onLimpiarVinculoError }: Props) {
+export default function SeccionDestinatario({
+  clientes, catalogoClientes, complete, vinculoConfirmado = false, onLimpiarVinculoError,
+}: Props) {
   const { watch, setValue, formState: { errors }, clearErrors } = useFormContext<CotizacionFormValues>();
   const esProspecto = watch("esProspecto");
   const clienteId = watch("clienteId");
@@ -121,28 +119,17 @@ export default function SeccionDestinatario({ clientes, complete, vinculoConfirm
       </RadioGroup>
 
       {!esProspecto ? (
-        <FormField label="Cliente" required error={errors.clienteId?.message}>
-          <Select
-            value={clienteId}
-            disabled={vinculoConfirmado}
-            onValueChange={(v) => {
-              setValue("clienteId", v, { shouldValidate: true, shouldDirty: true });
-              clearErrors("clienteId");
-            }}
-          >
-            <SelectTrigger aria-label="Cliente" aria-invalid={!!errors.clienteId}>
-
-              <SelectValue placeholder="Seleccionar cliente" />
-            </SelectTrigger>
-            <SelectContent>
-              {clientes.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </FormField>
+        <SelectorCliente
+          clientes={clientes}
+          consulta={catalogoClientes}
+          clienteId={clienteId}
+          disabled={vinculoConfirmado}
+          error={errors.clienteId?.message}
+          onChange={(v) => {
+            setValue("clienteId", v, { shouldValidate: true, shouldDirty: true });
+            clearErrors("clienteId");
+          }}
+        />
       ) : (
         <ProspectoSection
           tieneVinculo={tieneVinculo}

@@ -82,11 +82,12 @@ function TilesMoneda({ t }: { t: TotalesMoneda[number] }) {
 }
 
 export function ResumenGrid({
-  totalesPorMoneda, resumenEstatus, huerfanas,
+  totalesPorMoneda, resumenEstatus, huerfanas, huerfanasCargando = false,
 }: {
   totalesPorMoneda: TotalesMoneda;
   resumenEstatus: ResumenEstatus;
-  huerfanas: number;
+  huerfanas?: number;
+  huerfanasCargando?: boolean;
 }) {
   return (
     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -110,8 +111,8 @@ export function ResumenGrid({
         </div>
         <div className="mt-2 pt-2 border-t text-label text-muted-foreground flex justify-between">
           <span>Partidas sin vínculo válido</span>
-          <span className={huerfanas > 0 ? "text-destructive font-semibold" : "font-semibold"}>
-            {huerfanas}
+          <span className={(huerfanas ?? 0) > 0 ? "text-destructive font-semibold" : "font-semibold"}>
+            {huerfanasCargando ? "Cargando…" : huerfanas ?? "No disponible"}
           </span>
         </div>
         <p className="mt-1 text-2xs text-muted-foreground">Este conteo revisa asociaciones; no certifica que todo el importe de la factura esté asignado.</p>
@@ -121,7 +122,7 @@ export function ResumenGrid({
 }
 
 export function CuerpoTabla({
-  isLoading, error, onRetry, filas, expandidos, onToggle, onVincular, totalesPorMoneda,
+  isLoading, error, onRetry, filas, expandidos, onToggle, costosHref, totalesPorMoneda,
 }: {
   isLoading: boolean;
   error?: unknown;
@@ -129,7 +130,7 @@ export function CuerpoTabla({
   filas: FilasType;
   expandidos: Set<string>;
   onToggle: (id: string) => void;
-  onVincular: (conceptoId: string) => void;
+  costosHref: string;
   totalesPorMoneda: TotalesMoneda;
 }) {
   if (error) {
@@ -149,7 +150,7 @@ export function CuerpoTabla({
   }
   return (
     <>
-      <TablaBody filas={filas} expandidos={expandidos} onToggle={onToggle} onVincular={onVincular} />
+      <TablaBody filas={filas} expandidos={expandidos} onToggle={onToggle} costosHref={costosHref} />
       <TotalesMonedaFooter totalesPorMoneda={totalesPorMoneda} />
     </>
   );

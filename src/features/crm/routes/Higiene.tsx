@@ -30,13 +30,13 @@ export default function CrmHigiene() {
     return <LoadingState label="Calculando higiene del pipeline…" />;
   }
 
-  if (resumenQ.isError || filasQ.isError || presupuestoQ.isError) {
+  if (resumenQ.isError || filasQ.isError) {
     return (
       <PageContainer>
         <ErrorState
           title="No se pudo calcular la higiene"
           description="Vuelve a intentarlo en unos momentos."
-          onRetry={() => { void resumenQ.refetch(); void filasQ.refetch(); void presupuestoQ.refetch(); }}
+          onRetry={() => { void resumenQ.refetch(); void filasQ.refetch(); }}
         />
       </PageContainer>
     );
@@ -57,6 +57,7 @@ export default function CrmHigiene() {
           resumen={resumen}
           cobertura={coberturaPonderada(resumen.pipeline_ponderado, presupuesto)}
           presupuestoMes={presupuesto}
+          consultaPresupuesto={presupuestoQ}
         />
         <HigieneTabla filas={filasQ.data ?? []} />
       </div>

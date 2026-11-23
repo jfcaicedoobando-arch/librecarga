@@ -10,14 +10,22 @@ import {
 } from "@/components/ui/select";
 import { formatDate } from "@/lib/formatters";
 import { useOrganization } from "@/lib/contexts/OrganizationContext";
-import { notifyError } from "@/lib/ui/appFeedback";
 import {
   useVendedorasConfig, useUpsertVendedoraConfig, useUpdateVendedoraConfig,
   useEmbarquesSinVendedora, useAsignarVendedoraEmbarque,
 } from "@/features/comisiones/hooks";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 
 interface VendedoraOpt { id: string; nombre: string }
+
+const ERROR_PORCENTAJE = "Ingresa un porcentaje entre 0 y 100.";
+
+function leerPorcentaje(captura: string | undefined): number | null {
+  if (!captura?.trim()) return null;
+  const porcentaje = Number(captura);
+  return Number.isFinite(porcentaje) && porcentaje >= 0 && porcentaje <= 100 ? porcentaje : null;
+}
 
 export function TabVendedorasConfig({ vendedoras }: { vendedoras: VendedoraOpt[] }) {
   return (
@@ -29,7 +37,7 @@ export function TabVendedorasConfig({ vendedoras }: { vendedoras: VendedoraOpt[]
 }
 
 function SeccionConfig({ vendedoras }: { vendedoras: VendedoraOpt[] }) {
-  const { data: configs = [] } = useVendedorasConfig();
+  const { data: configs = [], isLoading, isError, isFetching, refetch } = useVendedorasConfig();
   const { organizationId } = useOrganization();
   const upsert = useUpsertVendedoraConfig();
   const update = useUpdateVendedoraConfig();
@@ -38,20 +46,13 @@ function SeccionConfig({ vendedoras }: { vendedoras: VendedoraOpt[] }) {
   const [nuevoPct, setNuevoPct] = useState("5");
   const [pcts, setPcts] = useState<Record<string, string>>({});
 
-  // 13.85.10 — Toasts viven en los hooks (`useUpsertVendedoraConfig`, `useUpdateVendedoraConfig`).
-  // Aquí sólo se conserva el reset de inputs en onSuccess.
+  const nuevoPorcentaje = leerPorcentaje(nuevoPct);
   const agregar = () => {
-    if (!nuevaVendedora || !organizationId) return;
-    // FE-08: mismo rango que la edición (guardarPct). Antes se podía dar de
-    // alta una vendedora con 150% o -5%.
-    const pct = Number(nuevoPct);
-    if (Number.isNaN(pct) || pct < 0 || pct > 100) {
-      return notifyError(undefined, { title: "% inválido", method: "FEATURES_COMISIONES_COMPONENTS_TABVENDEDORASCONFIG_1" });
-    }
+    if (!nuevaVendedora || !organizationId || nuevoPorcentaje === null || isLoading || isError) return;
     upsert.mutate({
       organization_id: organizationId,
       user_id: nuevaVendedora,
-      porcentaje_default: pct,
+      porcentaje_default: nuevoPorcentaje,
       activa: true,
     }, {
       onSuccess: () => {
@@ -61,8 +62,8 @@ function SeccionConfig({ vendedoras }: { vendedoras: VendedoraOpt[] }) {
   };
 
   const guardarPct = (id: string) => {
-    const v = Number(pcts[id]);
-    if (Number.isNaN(v) || v < 0 || v > 100) return notifyError(undefined, { title: "% inválido", method: "FEATURES_COMISIONES_COMPONENTS_TABVENDEDORASCONFIG_2" });
+    const v = leerPorcentaje(pcts[id]);
+    if (v === null) return;
     update.mutate({ id, changes: { porcentaje_default: v } });
   };
 
@@ -80,7 +81,7 @@ function SeccionConfig({ vendedoras }: { vendedoras: VendedoraOpt[] }) {
         <div className="flex flex-wrap gap-2 items-end">
           <div className="space-y-1 flex-1 min-w-[200px]">
             <Label>Agregar vendedora</Label>
-            <Select value={nuevaVendedora} onValueChange={setNuevaVendedora}>
+            <Select value={nuevaVendedora} onValueChange={setNuevaVendedora} disabled={isLoading || isError}>
               <SelectTrigger><SelectValue placeholder="Selecciona usuario" /></SelectTrigger>
               <SelectContent>
                 {disponibles.map((v) => <SelectItem key={v.id} value={v.id}>{v.nombre}</SelectItem>)}
@@ -89,22 +90,30 @@ function SeccionConfig({ vendedoras }: { vendedoras: VendedoraOpt[] }) {
           </div>
           <div className="space-y-1 w-24">
             <Label htmlFor="vendedora-nuevo-pct">%</Label>
-            <Input id="vendedora-nuevo-pct" type="number" step="0.1" min="0" max="100" value={nuevoPct} onChange={(e) => setNuevoPct(e.target.value)} />
+            <Input id="vendedora-nuevo-pct" type="number" step="0.1" min="0" max="100" value={nuevoPct} onChange={(e) => setNuevoPct(e.target.value)}
+              aria-invalid={nuevoPorcentaje === null} aria-describedby={nuevoPorcentaje === null ? "vendedora-nuevo-pct-error" : undefined} />
           </div>
-          <Button onClick={agregar} disabled={!nuevaVendedora || upsert.isPending}>
+          <Button onClick={agregar} disabled={!nuevaVendedora || nuevoPorcentaje === null || isLoading || isError || upsert.isPending}>
             <Plus className="h-4 w-4 mr-1" /> Agregar
           </Button>
         </div>
 
-        {configs.length === 0 ? (
+        {nuevoPorcentaje === null && <p id="vendedora-nuevo-pct-error" className="text-body-sm text-destructive">{ERROR_PORCENTAJE}</p>}
+        {isError ? (
+          <ErrorStateInline title="No se pudieron consultar los porcentajes" message="Reintenta para ver la configuración de comisiones." onRetry={() => void refetch()} retrying={isFetching} />
+        ) : isLoading ? (
+          <EmptyStateInline loading message="Cargando porcentajes…" />
+        ) : configs.length === 0 ? (
           <EmptyStateInline icon={Users} message="Sin vendedoras configuradas." />
         ) : (
           <div className="space-y-2">
             {configs.map((c) => {
               const v = vendedoras.find((x) => x.id === c.user_id);
               const pct = pcts[c.id] ?? String(c.porcentaje_default);
+              const invalido = leerPorcentaje(pct) === null;
+              const errorId = `vendedora-pct-error-${c.id}`;
               return (
-                <div key={c.id} className="flex items-center gap-3 border rounded p-2">
+                <div key={c.id} className="flex flex-wrap items-center gap-3 border rounded p-2">
                   <div className="flex-1">
                     <p className={`text-sm font-medium ${v?.nombre ? "" : "text-muted-foreground italic"}`}>
                       {v?.nombre ?? "No disponible"}
@@ -117,14 +126,16 @@ function SeccionConfig({ vendedoras }: { vendedoras: VendedoraOpt[] }) {
                     onChange={(e) => setPcts((p) => ({ ...p, [c.id]: e.target.value }))}
                     className="w-24"
                     aria-label={`Porcentaje de comisión de ${v?.nombre ?? "vendedora"}`}
+                    aria-invalid={invalido} aria-describedby={invalido ? errorId : undefined}
                   />
-                  <Button size="sm" variant="outline" onClick={() => guardarPct(c.id)} aria-label="Guardar porcentaje de comisión">
+                  <Button size="sm" variant="outline" onClick={() => guardarPct(c.id)} disabled={invalido || pcts[c.id] === undefined || update.isPending} aria-label="Guardar porcentaje de comisión">
                     <Save className="h-4 w-4" />
                   </Button>
                   <div className="flex items-center gap-2">
                     <Switch checked={c.activa} onCheckedChange={(v) => toggleActiva(c.id, v)} aria-label={c.activa ? "Desactivar comisión de la vendedora" : "Activar comisión de la vendedora"} />
                     <span className="text-xs text-muted-foreground">Activa</span>
                   </div>
+                  {invalido && <p id={errorId} className="w-full text-body-sm text-destructive">{ERROR_PORCENTAJE}</p>}
                 </div>
               );
             })}
@@ -136,18 +147,20 @@ function SeccionConfig({ vendedoras }: { vendedoras: VendedoraOpt[] }) {
 }
 
 function SeccionEmbarquesSinAsignar({ vendedoras }: { vendedoras: VendedoraOpt[] }) {
-  const { data: embarques = [], isError } = useEmbarquesSinVendedora();
+  const { data: embarques = [], isLoading, isError, isFetching, refetch } = useEmbarquesSinVendedora();
   const asignar = useAsignarVendedoraEmbarque();
   const [sel, setSel] = useState<Record<string, string>>({});
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Embarques sin vendedora asignada ({embarques.length})</CardTitle>
+        <CardTitle>Embarques sin vendedora asignada{!isLoading && !isError && ` (${embarques.length})`}</CardTitle>
       </CardHeader>
       <CardContent>
         {isError ? (
-          <p role="alert" className="text-sm text-destructive">No se pudieron cargar los embarques. Recarga la página.</p>
+          <ErrorStateInline title="No se pudieron cargar los embarques" message="Reintenta para consultar cuáles necesitan asignación." onRetry={() => void refetch()} retrying={isFetching} />
+        ) : isLoading ? (
+          <EmptyStateInline loading message="Cargando embarques…" />
         ) : embarques.length === 0 ? (
           <EmptyStateInline icon={CheckCircle2} message="Todos los embarques tienen vendedora asignada." />
         ) : (

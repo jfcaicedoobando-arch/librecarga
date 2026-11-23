@@ -3,7 +3,7 @@ import { FormProvider } from "react-hook-form";
 import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { notifySuccess } from "@/lib/ui/appFeedback";
+import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 import { WizardShell } from "@/components/shared/WizardShell";
 import { CotizacionWizardFooter } from "@/features/cotizacion/components/wizard/CotizacionWizardFooter";
 import { CotizacionWizardSteps } from "@/features/cotizacion/components/wizard/CotizacionWizardSteps";
@@ -13,8 +13,8 @@ import { useCotizacionKeyboardShortcuts } from "@/features/cotizacion/hooks/wiza
 import { usePermissions } from "@/hooks/shared";
 import { useDirtyGuard } from "@/hooks/shared/useDirtyGuard";
 import { ejecutarSalidaWizard } from "@/features/cotizacion/components/wizard/salidaWizard";
+import type { EstadoCatalogoClientes } from "./seccionDestinatario/EstadoConsultaClientes";
 
-import { notifyError } from "@/lib/ui/appFeedback";
 const WIZARD_STEPS = [
   { num: 1, title: "Datos Generales", shortTitle: "Generales" },
   { num: 2, title: "Costos y utilidad", shortTitle: "Costos" },
@@ -27,6 +27,7 @@ type WizardForm = ReturnType<typeof import("@/features/cotizacion/hooks").useCot
 interface CotizacionWizardLayoutProps {
   w: WizardForm;
   clientes: { id: string; nombre: string }[];
+  catalogoClientes: EstadoCatalogoClientes;
   title: string;
   subtitle?: string;
   onBack: () => void;
@@ -38,6 +39,7 @@ interface CotizacionWizardLayoutProps {
 export default function CotizacionWizardLayout({
   w,
   clientes,
+  catalogoClientes,
   title,
   subtitle,
   onBack,
@@ -168,6 +170,7 @@ export default function CotizacionWizardLayout({
         <CotizacionWizardSteps
           w={w}
           clientes={clientes}
+          catalogoClientes={catalogoClientes}
           esMaritimo={esMaritimo}
           sinDesgloseFlag={sinDesgloseFlag}
           irACargarCostos={irACargarCostos}

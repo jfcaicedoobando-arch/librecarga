@@ -6,7 +6,6 @@
  */
 import { useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { useCosteoAgentes } from "@/features/costeo/hooks/useCosteoAgentes";
@@ -15,11 +14,8 @@ import { useTiposContenedor } from "@/features/catalogos/hooks";
 import { TarifaForm } from "@/features/costeo/components/TarifaForm";
 import { ConfirmDeleteAlert } from "@/features/costeo/components/ConfirmDeleteAlert";
 import { CosteoTarifasFiltros } from "@/features/costeo/components/CosteoTarifasFiltros";
-import { CosteoTarifasTable } from "@/features/costeo/components/CosteoTarifasTable";
 import { TarifasKpis } from "@/features/costeo/components/TarifasKpis";
 import { TarifasFilterChips } from "@/features/costeo/components/TarifasFilterChips";
-import { TarifasEmptyState } from "@/features/costeo/components/TarifasEmptyState";
-import { TarifasGroupedView } from "@/features/costeo/components/TarifasGroupedView";
 import { useDocumentTitle } from "@/hooks/shared";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -28,16 +24,15 @@ import {
   useCosteoTarifasPageState,
   DEFAULT_ESTADO,
 } from "./useCosteoTarifasPageState";
-import { ErrorState } from "@/components/shared/states/ErrorState";
+import { CosteoTarifasResultados } from "./_sections/CosteoTarifasResultados";
 import {
   destinoDe, etiquetaRutaCompleta, origenDe,
 } from "@/features/costeo/utils/puertoLabel";
 
 export default function CosteoTarifas() {
-  // MR-UI-01: la pestaña del navegador debe reflejar la página activa.
-  useDocumentTitle("Solicitudes de pricing");
   const [params, setParams] = useSearchParams();
   const tab = params.get("tab") === "bandeja" ? "bandeja" : "tarifas";
+  useDocumentTitle(tab === "bandeja" ? "Bandeja de pricing" : "Tarifas de costeo");
   const cambiarTab = (v: string) => {
     const n = new URLSearchParams(params);
     n.set("tab", v);
@@ -53,7 +48,6 @@ export default function CosteoTarifas() {
   const rutaLabel = s.tarifas[0]
     ? etiquetaRutaCompleta(origenDe(s.tarifas[0]), destinoDe(s.tarifas[0]))
     : rutaUrl ? `${rutaUrl.puerto_origen_nombre ?? "—"} → ${rutaUrl.puerto_destino_nombre ?? "—"}` : "ruta seleccionada";
-  const showEmpty = !s.isLoading && !s.isError && s.tarifasFiltradas.length === 0;
 
   return (
     <PageContainer className="short:space-y-3">
@@ -65,7 +59,7 @@ export default function CosteoTarifas() {
         <TabsContent value="tarifas">
           <div className="space-y-4 pt-4">
             <PageHeader
-              title="Solicitudes de pricing"
+              title="Tarifas de costeo"
               description="Respuestas de pricing: tarifas por agente, naviera, ruta y contenedor. Moneda base: USD."
               actions={
                 <Button
@@ -138,33 +132,7 @@ export default function CosteoTarifas() {
               onClearAll={s.clearAll}
             />
 
-            {s.isError ? (
-              <ErrorState onRetry={() => void s.refetch()} />
-            ) : showEmpty ? (
-              <Card>
-                <TarifasEmptyState
-                  hasActiveFilters={s.hasActiveFilters}
-                  rutaLabel={s.rutaIdFromUrl ? rutaLabel : undefined}
-                  onClearFilters={s.clearAll}
-                  onNueva={s.nuevo}
-                />
-              </Card>
-            ) : s.viewMode === "agrupada" ? (
-              <TarifasGroupedView
-                tarifas={s.tarifasFiltradas}
-                onEditar={s.editar}
-                onDuplicar={s.duplicar}
-                onEliminar={(id) => s.setAEliminar(id)}
-              />
-            ) : (
-              <CosteoTarifasTable
-                tarifas={s.tarifasFiltradas}
-                isLoading={s.isLoading}
-                onEditar={s.editar}
-                onDuplicar={s.duplicar}
-                onEliminar={(id) => s.setAEliminar(id)}
-              />
-            )}
+            <CosteoTarifasResultados estado={s} rutaLabel={rutaLabel} />
 
             <TarifaForm
               open={s.open}

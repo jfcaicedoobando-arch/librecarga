@@ -129,17 +129,20 @@ export function GlobalSearch() {
       {/* R7-FIX1: los resultados ya vienen filtrados por la BD; cmdk no debe
           volver a filtrarlos (ocultaba folios, RFC y BL con formato distinto).
           `loop`: las flechas ↑/↓ dan la vuelta para operar sin mouse. */}
-      <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false} loop>
+      <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false} loop inputLabel="Buscar en LibreCarga">
 
         <CommandInput
           placeholder="Buscar embarques, clientes, proveedores y facturas…"
           value={query}
           onValueChange={setQuery}
         />
-        <CommandList>
-          {!cargando && (
+        {!cargando && busquedaFallo && query.trim() && (
+          <GlobalSearchVacio busquedaFallo onRetry={() => void buscar(query)} />
+        )}
+        <CommandList label="Resultados de búsqueda">
+          {!cargando && !busquedaFallo && (
             <CommandEmpty>
-              <GlobalSearchVacio busquedaFallo={busquedaFallo} enCrm={enCrm} atajoCrm={atajoCrmPalette()} />
+              <GlobalSearchVacio busquedaFallo={false} enCrm={enCrm} atajoCrm={atajoCrmPalette()} />
             </CommandEmpty>
           )}
 

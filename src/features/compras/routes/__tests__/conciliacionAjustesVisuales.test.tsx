@@ -33,12 +33,12 @@ describe("62: presentación de ajuste separado y cobertura neta", () => {
   it("el detalle llama al delta Ajuste de presupuesto y aclara que no suma facturación", async () => {
     const filas = await fetchReconciliacionEmbarque("e1");
     const ajuste = filas.find((fila) => fila.ajuste_presupuestario)!;
-    render(<table><tbody><FilaRenglon fila={ajuste} expandido={false} onToggle={() => {}} onVincular={() => {}} /></tbody></table>);
+    render(<table><tbody><FilaRenglon fila={ajuste} expandido={false} onToggle={() => {}} costosHref="/embarques/e1?tab=costos" /></tbody></table>);
     expect(screen.getByText("Ajuste de presupuesto")).toBeVisible();
     expect(screen.getByText(/Ajusta sólo el presupuesto/)).toBeVisible();
     expect(screen.getByText("No aplica")).toBeVisible();
     expect(screen.queryByText("Sin match")).toBeNull();
-    expect(screen.queryByRole("button", { name: /Vincular/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Abrir costos del embarque" })).toBeNull();
   });
 
   it("KPI conserva parcial y 40 pendientes con cobertura nominal 100% sin ajustes", async () => {

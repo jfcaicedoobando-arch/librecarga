@@ -30,6 +30,9 @@ export default function Auditoria() {
   );
   const [drillFilters, setDrillFilters] = useState<UseHallazgosTablaStateOptions>({});
   const [tablaKey, setTablaKey] = useState(0);
+  const errorReporte = c.isError ? (
+    <ErrorState title="No se pudo cargar la auditoría" onRetry={() => void c.refetch()} />
+  ) : null;
 
   const handleDrillDown = (filtro: {
     severidad?: "critico" | "alto" | "medio";
@@ -70,7 +73,7 @@ export default function Auditoria() {
                 variant="outline"
                 size="sm"
                 onClick={() => exportHallazgosCsv(c.hallazgosFiltrados)}
-                disabled={c.isLoading || c.hallazgosFiltrados.length === 0}
+                disabled={c.isLoading || c.isError || c.hallazgosFiltrados.length === 0}
                 title="Exportar la lista filtrada a CSV"
               >
                 <Download className="mr-2 h-4 w-4" />
@@ -100,19 +103,15 @@ export default function Auditoria() {
         />
 
         <TabsContent value="ejecutivo" className="mt-0">
-          <AuditoriaEjecutivoTab data={ejecutivo} onDrillDown={handleDrillDown} />
+          {errorReporte ?? <AuditoriaEjecutivoTab data={ejecutivo} onDrillDown={handleDrillDown} />}
         </TabsContent>
 
         <TabsContent value="tabla" className="mt-0 space-y-4">
-          {c.isError ? (
-            <ErrorState onRetry={() => void c.refetch()} />
-          ) : (
-            <AuditoriaHallazgosTab c={c} drillFilters={drillFilters} tablaKey={tablaKey} />
-          )}
+          {errorReporte ?? <AuditoriaHallazgosTab c={c} drillFilters={drillFilters} tablaKey={tablaKey} />}
         </TabsContent>
 
         <TabsContent value="por_regla" className="mt-0">
-          <AuditoriaPorReglaTab c={c} />
+          {errorReporte ?? <AuditoriaPorReglaTab c={c} />}
         </TabsContent>
       </Tabs>
     </PageContainer>

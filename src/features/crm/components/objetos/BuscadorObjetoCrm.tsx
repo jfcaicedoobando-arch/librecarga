@@ -23,7 +23,7 @@ export function BuscadorObjetoCrm({ objeto, excluir, onElegir, disabled }: Props
   const empresas = useEmpresasCrm(term, 0);
   const contactos = useContactosCrm(term, 0);
   const q = objeto === "empresa" ? empresas : contactos;
-  const opciones = (q.data?.filas ?? []).filter((f) => !excluir.includes(f.id));
+  const opciones = (q.isError ? [] : q.data?.filas ?? []).filter((f) => !excluir.includes(f.id));
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -36,7 +36,7 @@ export function BuscadorObjetoCrm({ objeto, excluir, onElegir, disabled }: Props
         <Command shouldFilter={false}>
           <CommandInput placeholder={`Buscar ${objeto}…`} value={texto} onValueChange={setTexto} />
           <CommandList>
-            <CommandEmpty>{q.isFetching ? "Buscando…" : "Sin resultados"}</CommandEmpty>
+            {!q.isError && <CommandEmpty>{q.isFetching ? "Buscando…" : "Sin resultados"}</CommandEmpty>}
             <CommandGroup>
               {opciones.map((o) => (
                 <CommandItem
@@ -50,6 +50,14 @@ export function BuscadorObjetoCrm({ objeto, excluir, onElegir, disabled }: Props
             </CommandGroup>
           </CommandList>
         </Command>
+        {q.isError && (
+          <div role="alert" className="space-y-2 p-3 text-body-sm">
+            <p>No pudimos consultar los registros para vincular.</p>
+            <Button type="button" size="sm" variant="outline" disabled={q.isFetching} onClick={() => void q.refetch()}>
+              {q.isFetching ? "Reintentando…" : "Reintentar"}
+            </Button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );

@@ -22,18 +22,20 @@ import { TipoCambioCotizacionCard } from "@/features/cotizacion/components/wizar
 import { monedaObjetivoCotizacion, requiereTipoCambioCotizacion } from "@/features/cotizacion/domain/mezclaMonedas";
 import { useCostosAutoSync } from "@/features/cotizacion/hooks/wizard/useCostosAutoSync";
 import { VistaFiscalCotizacion } from "./VistaFiscalCotizacion";
+import type { EstadoCatalogoClientes } from "../seccionDestinatario/EstadoConsultaClientes";
 
 type WizardForm = ReturnType<typeof import("@/features/cotizacion/hooks").useCotizacionWizardForm>;
 
 interface Props {
   w: WizardForm;
   clientes: { id: string; nombre: string }[];
+  catalogoClientes?: EstadoCatalogoClientes;
   esMaritimo: boolean;
   sinDesgloseFlag: boolean;
   irACargarCostos: () => void;
 }
 
-export function CotizacionWizardSteps({ w, clientes, esMaritimo, sinDesgloseFlag, irACargarCostos }: Props) {
+export function CotizacionWizardSteps({ w, clientes, catalogoClientes, esMaritimo, sinDesgloseFlag, irACargarCostos }: Props) {
   const { form } = w;
   const costosAuto = useCostosAutoSync({
     filas: w.costosInternos,
@@ -70,7 +72,7 @@ export function CotizacionWizardSteps({ w, clientes, esMaritimo, sinDesgloseFlag
       <div className="grid grid-cols-1 lg:grid-cols-[14rem_1fr] gap-6">
         <Paso1ProgressSidebar esMaritimo={esMaritimo} />
         <div className="space-y-6 min-w-0">
-          <PasoDatosGenerales w={w} clientes={clientes} onTarifaAplicada={costosAuto.cargarTarifaElegida} />
+          <PasoDatosGenerales w={w} clientes={clientes} catalogoClientes={catalogoClientes} onTarifaAplicada={costosAuto.cargarTarifaElegida} />
         </div>
       </div>
     );

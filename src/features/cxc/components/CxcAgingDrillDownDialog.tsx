@@ -108,7 +108,12 @@ function CxcAgingDrillDownBody({
             </DialogDescription>
           </DialogHeader>
 
-          {cliente && <CxcAgingKpiRow cliente={cliente} />}
+          {cliente && (
+            <>
+              <p className="px-6 pt-2 text-body-sm text-muted-foreground">Totales del cliente, todas las cubetas.</p>
+              <CxcAgingKpiRow cliente={cliente} />
+            </>
+          )}
 
           <CxcAgingActionBar
             cubeta={cubeta}

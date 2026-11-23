@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { describe, expect, it, vi } from "vitest";
 import { createWrapper } from "@/test/utils/queryWrapper";
 import { ProveedorTable } from "../ProveedorTable";
@@ -32,7 +33,7 @@ describe("ProveedorTable", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.getByText("Sin proveedores con estos filtros")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Crear proveedor" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar búsqueda y filtros" }));
     expect(limpiar).toHaveBeenCalledOnce();
     expect(onTotalChange).toHaveBeenCalledWith(0);
   });
@@ -47,9 +48,20 @@ describe("ProveedorTable", () => {
       { wrapper: createWrapper() },
     );
     expect(screen.getByText("Aún no hay proveedores")).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Limpiar filtros" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Limpiar búsqueda y filtros" })).toBeNull();
     fireEvent.click(screen.getByText("Crear proveedor", { selector: "button" }));
     expect(crear).toHaveBeenCalledOnce();
+  });
+
+  it("mantiene un enlace válido y corrige una página fuera de rango", () => {
+    consulta.useProveedoresPaginados.mockReturnValue({ isSuccess: true, data: { data: [], count: 130 } });
+    render(
+      <NuqsTestingAdapter hasMemory searchParams="?page=9" onUrlUpdate={vi.fn()}>
+        <MemoryRouter><ProveedorTable search="" onLimpiarFiltros={vi.fn()} /></MemoryRouter>
+      </NuqsTestingAdapter>,
+    );
+    expect(consulta.useProveedoresPaginados).toHaveBeenCalledWith(expect.objectContaining({ page: 9 }));
+    expect(consulta.useProveedoresPaginados).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 }));
   });
 
   it("anuncia cada fila como enlace, admite clic central y navega con Enter", async () => {

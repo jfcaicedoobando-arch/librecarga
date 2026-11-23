@@ -11,6 +11,7 @@ const mockReset = vi.fn(() => {
   mockFileName = "";
   mockValidRows = [];
 });
+const mockImport = vi.fn();
 
 vi.mock("@/features/crm/hooks", () => ({
   useImportarLeadsCsv: () => ({
@@ -26,7 +27,7 @@ vi.mock("@/features/crm/hooks", () => ({
     reintentarDuplicados: vi.fn(),
     reset: mockReset,
     handleFile: vi.fn(),
-    handleImport: vi.fn(),
+    handleImport: mockImport,
   }),
 }));
 
@@ -73,5 +74,19 @@ describe("ImportarLeadsCsvDialog — cancelar limpia el estado", () => {
     expect(screen.queryByText("leads.csv")).toBeNull();
     expect(screen.queryByText(/1 filas leídas/i)).toBeNull();
     expect(screen.getByText(/Selecciona un archivo .csv/i)).toBeTruthy();
+  });
+
+  it("abre el selector desde un botón nativo enfocable, sin importar", () => {
+    render(<ImportarLeadsCsvDialog open onOpenChange={vi.fn()} />);
+    const selector = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    const abrir = vi.spyOn(selector, "click");
+    const boton = screen.getByRole("button", { name: "Selecciona un archivo .csv" });
+    expect(boton).toBeInstanceOf(HTMLButtonElement);
+    expect(boton.tabIndex).toBe(0);
+    boton.focus();
+    expect(boton).toHaveFocus();
+    fireEvent.click(boton);
+    expect(abrir).toHaveBeenCalledOnce();
+    expect(mockImport).not.toHaveBeenCalled();
   });
 });

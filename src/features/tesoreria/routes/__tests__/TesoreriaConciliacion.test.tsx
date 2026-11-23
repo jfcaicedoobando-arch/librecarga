@@ -30,6 +30,7 @@ vi.mock("@tanstack/react-virtual", async (importOriginal) => {
 });
 
 const mockUseCuentasBancarias = vi.fn();
+const mockUseConciliacionResumen = vi.fn();
 const mockUseMovimientos = vi.fn();
 const mockUseImportarMovimientos = vi.fn();
 const mockUseConciliarPago = vi.fn();
@@ -41,13 +42,7 @@ vi.mock("@/features/tesoreria/hooks", () => ({
   useImportarMovimientos: () => mockUseImportarMovimientos(),
   useConciliarPago: () => mockUseConciliarPago(),
   useRegistrarMovimientoManual: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
-  useConciliacionResumen: () => ({
-    data: {
-      total_movimientos: 2, pendientes: 1, conciliados: 1, ignorados: 0,
-      cargos_pendientes: 0, abonos_pendientes: 0,
-    },
-    isLoading: false,
-  }),
+  useConciliacionResumen: (...args: unknown[]) => mockUseConciliacionResumen(...args),
 }));
 
 vi.mock("@/features/tesoreria/components/PanelConciliacionMovimiento", () => ({
@@ -116,12 +111,43 @@ describe("TesoreriaConciliacion — VirtualDataTable (P3)", () => {
     mockUseMovimientos.mockReturnValue({ data: movimientos, isLoading: false });
     mockUseImportarMovimientos.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
     mockUseConciliarPago.mockReturnValue({ mutateAsync: vi.fn() });
+    mockUseConciliacionResumen.mockReturnValue({
+      data: {
+        total_movimientos: 2, pendientes: 1, conciliados: 1, ignorados: 0,
+        cargos_pendientes: 0, abonos_pendientes: 0,
+      },
+      isLoading: false,
+    });
   });
 
   it("sin cuenta seleccionada no monta la tabla virtualizada", () => {
     renderPage();
     expect(screen.getByText(/Selecciona una cuenta para empezar a conciliar/)).toBeInTheDocument();
     expect(screen.queryByText("Concepto")).not.toBeInTheDocument();
+  });
+
+  it("protege captura e importación al abrir una cuenta inactiva desde un enlace guardado", () => {
+    render(<NuqsTestingAdapter searchParams="?cuenta=cuenta-inactiva"><MemoryRouter>
+      <TooltipProvider><TesoreriaConciliacion /></TooltipProvider>
+    </MemoryRouter></NuqsTestingAdapter>);
+
+    expect(screen.getByText("Esta cuenta ya no está disponible. Selecciona otra.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Movimiento manual" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Importar XLSX/CSV" })).toBeDisabled();
+    expect(mockUseConciliacionResumen).toHaveBeenLastCalledWith(null);
+    expect(mockUseMovimientos).toHaveBeenLastCalledWith(null);
+  });
+
+  it("permite reintentar solo el resumen fallido y conserva la tabla de movimientos", () => {
+    const refetch = vi.fn();
+    mockUseConciliacionResumen.mockReturnValue({ isLoading: false, isError: true, refetch });
+    renderPage();
+    seleccionarCuenta();
+
+    expect(screen.getByText("No se pudo consultar el resumen")).toBeInTheDocument();
+    expect(screen.getByText("Pago cliente A")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(refetch).toHaveBeenCalledOnce();
   });
 
   it("con cuenta seleccionada renderiza los headers de VirtualDataTable y el contador", () => {

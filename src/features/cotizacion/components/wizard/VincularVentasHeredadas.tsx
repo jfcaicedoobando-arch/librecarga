@@ -46,14 +46,14 @@ export function VincularVentasHeredadas({ costos, ventas, tasaIva, onVincular }:
   return <Alert variant="warning">
     <AlertTitle>Revisa las ventas sin vínculo a costos</AlertTitle>
     <AlertDescription className="space-y-3">
-      <p>Conservamos tus conceptos e impuestos actuales. Estas partidas antiguas no tienen un vínculo verificable: elige qué venta actualizar o agrega una nueva. Ninguna venta se elimina.</p>
+      <p>Estas partidas antiguas no tienen un vínculo verificable. Elige una venta para actualizarla o agrega una nueva. Si dejas una fila sin seleccionar, se conservan sus conceptos e impuestos actuales.</p>
       {pendientes.map(c => <div key={c.origen_venta_id} className="grid gap-2 sm:grid-cols-[1fr_2fr_auto] items-center">
         <span>{c.concepto}: {c.cantidad} × {formatCurrency(c.precio_venta, c.moneda)}</span>
         <Select value={valorSeleccion(c)} onValueChange={v => {
           const seleccion = v === "nueva" ? v : ventas[Number(v)];
           if (seleccion) setSelecciones(prev => ({ ...prev, [c.origen_venta_id!]: seleccion }));
         }}>
-          <SelectTrigger aria-label={`Venta para ${c.concepto}`}><SelectValue placeholder="Conservar ventas actuales" /></SelectTrigger>
+          <SelectTrigger aria-label={`Venta para ${c.concepto}`}><SelectValue placeholder="Elige una venta o agrega otra" /></SelectTrigger>
           <SelectContent>
             {ventas.map((v, i) => !tieneOrigen(v) && v.moneda === c.moneda && v.descripcion.trim() ? <SelectItem key={i} value={String(i)}>{v.descripcion} · {v.cantidad} × {formatCurrency(v.precio_unitario, v.moneda)} → {c.cantidad} × {formatCurrency(c.precio_venta, c.moneda)} (conserva impuestos)</SelectItem> : null)}
             <SelectItem value="nueva">Agregar otra venta desde este costo</SelectItem>

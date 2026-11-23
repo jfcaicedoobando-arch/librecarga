@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DetailTabSection } from "@/components/shared/DetailTabSection";
 import { DetailTabLabel } from "@/components/shared/DetailTabLabel";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { ProveedorOperacionesTable } from "../../components/ProveedorOperacionesTable";
 import { ProveedorSaludTab } from "../../components/ProveedorSaludTab";
 import { ProveedorEstadoCuentaTab } from "../../components/ProveedorEstadoCuentaTab";
@@ -18,6 +19,7 @@ interface Props {
   esNacional: boolean;
   partidas: PartidaEstadoCuenta[];
   partidasPendientes: number;
+  isLoadingEstadoCuenta?: boolean;
   /** R3FE-05: un fallo de `proveedor_estado_cuenta` no debe verse como "0". */
   isErrorEstadoCuenta?: boolean;
   errorEstadoCuenta?: unknown;
@@ -33,9 +35,15 @@ interface Props {
 export function ProveedorDetalleTabs({
   proveedorId, organizationId, nombreFmt, rfc, esNacional,
   partidas, partidasPendientes,
-  isErrorEstadoCuenta, errorEstadoCuenta, refetchEstadoCuenta, isFetchingEstadoCuenta,
+  isLoadingEstadoCuenta, isErrorEstadoCuenta, errorEstadoCuenta, refetchEstadoCuenta, isFetchingEstadoCuenta,
 }: Props) {
   const { canEditExpediente } = usePermissions();
+  const tieneConteo = !isLoadingEstadoCuenta && !isErrorEstadoCuenta;
+  const operacionesCount = tieneConteo ? partidas.length : undefined;
+  const pendientesCount = tieneConteo ? partidasPendientes : undefined;
+  const cargandoOperaciones = (
+    <div role="status"><EmptyStateInline loading message="Cargando operaciones del proveedor…" /></div>
+  );
   const errorOperaciones = (
     <ErrorStateInline
       title="No pudimos cargar las operaciones del proveedor"
@@ -51,10 +59,10 @@ export function ProveedorDetalleTabs({
     <Tabs defaultValue="operaciones">
       <TabsList>
         <TabsTrigger value="operaciones">
-          <DetailTabLabel count={partidas.length}>Operaciones</DetailTabLabel>
+          <DetailTabLabel count={operacionesCount}>Operaciones</DetailTabLabel>
         </TabsTrigger>
         <TabsTrigger value="por_facturar">
-          <DetailTabLabel count={partidasPendientes} tone="warning">Por facturar</DetailTabLabel>
+          <DetailTabLabel count={pendientesCount} tone="warning">Por facturar</DetailTabLabel>
         </TabsTrigger>
         <TabsTrigger value="estado_cuenta">Estado de cuenta</TabsTrigger>
         <TabsTrigger value="contactos">Contactos</TabsTrigger>
@@ -63,8 +71,8 @@ export function ProveedorDetalleTabs({
       </TabsList>
 
       <TabsContent value="operaciones" className="mt-4">
-        <DetailTabSection title="Historial de operaciones" count={partidas.length}>
-          {isErrorEstadoCuenta ? errorOperaciones : (
+        <DetailTabSection title="Historial de operaciones" count={operacionesCount}>
+          {isLoadingEstadoCuenta ? cargandoOperaciones : isErrorEstadoCuenta ? errorOperaciones : (
             <ProveedorOperacionesTable partidas={partidas} />
           )}
         </DetailTabSection>
@@ -73,9 +81,9 @@ export function ProveedorDetalleTabs({
       <TabsContent value="por_facturar" className="mt-4">
         <DetailTabSection
           title="Costeado sin factura del proveedor"
-          count={partidasPendientes}
+          count={pendientesCount}
         >
-          {isErrorEstadoCuenta ? errorOperaciones : (
+          {isLoadingEstadoCuenta ? cargandoOperaciones : isErrorEstadoCuenta ? errorOperaciones : (
             <ProveedorOperacionesTable partidas={partidas} filtro="por_facturar" />
           )}
         </DetailTabSection>

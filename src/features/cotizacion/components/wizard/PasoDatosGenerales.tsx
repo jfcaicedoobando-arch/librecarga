@@ -3,6 +3,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { WizardSection } from "@/components/shared/WizardSection";
 import SeccionCierreCotizacion from "@/features/cotizacion/components/wizard/SeccionCierreCotizacion";
 import SeccionDestinatario from "@/features/cotizacion/components/SeccionDestinatario";
+import type { EstadoCatalogoClientes } from "@/features/cotizacion/components/seccionDestinatario/EstadoConsultaClientes";
 import SeccionDatosGeneralesCotizacion from "@/features/cotizacion/components/SeccionDatosGeneralesCotizacion";
 import SeccionRutaCotizacion from "@/features/cotizacion/components/SeccionRutaCotizacion";
 import SeccionMercanciaMaritimaFCL from "@/features/cotizacion/components/SeccionMercanciaMaritimaFCL";
@@ -22,6 +23,7 @@ import type { useCotizacionWizardForm } from "@/features/cotizacion/hooks";
 interface Props {
   w: ReturnType<typeof useCotizacionWizardForm>;
   clientes: { id: string; nombre: string }[];
+  catalogoClientes?: EstadoCatalogoClientes;
   onTarifaAplicada: CostosAutoSync["cargarTarifaElegida"];
 }
 
@@ -38,7 +40,7 @@ interface Props {
  * Cada sección muestra un check verde cuando sus campos requeridos están
  * completos (`usePaso1SectionStatus`).
  */
-export default function PasoDatosGenerales({ w, clientes, onTarifaAplicada }: Props) {
+export default function PasoDatosGenerales({ w, clientes, catalogoClientes, onTarifaAplicada }: Props) {
   const { form } = w;
   const tipoEmbarque = form.watch("tipoEmbarque");
   const incoterm = form.watch("incoterm");
@@ -128,6 +130,7 @@ export default function PasoDatosGenerales({ w, clientes, onTarifaAplicada }: Pr
       <div id="seccion-cliente" className="scroll-mt-4">
         <SeccionDestinatario
           clientes={clientes}
+          catalogoClientes={catalogoClientes}
           complete={status.cliente}
           vinculoConfirmado={w.vinculoCrmConfirmado}
           onLimpiarVinculoError={w.limpiarVinculoCrmError}

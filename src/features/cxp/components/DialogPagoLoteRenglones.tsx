@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate, toTitleCase } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { LoteRenglonesTable } from "@/components/shared/LoteRenglonesTable";
+import { Link } from "react-router";
 import type { FacturaLoteCandidata, RenglonLote } from "@/features/cxp/services/pagoProveedorLote";
 
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -31,10 +32,18 @@ export function DialogPagoLoteRenglones({ facturas, renglones, moneda, onMontoCh
             const queda = Math.max(0, roundMoney(f.saldo - monto));
             const liquidada = monto > 0 && queda <= 0.005;
             const parcial = monto > 0 && !liquidada;
+            const folio = toTitleCase(f.folio_proveedor ?? "");
+            const identificador = folio || `Factura ${i + 1} · sin folio proveedor`;
             return (
               <TableRow key={f.factura_id} className={cn("border-t", i % 2 === 1 && "bg-muted/20")}>
                 <TableCell className="font-mono text-body-sm">
-                  {toTitleCase(f.folio_proveedor ?? "") || "-"}
+                  {folio || (
+                    <Link to={`/compras/facturas/${encodeURIComponent(f.factura_id)}`} target="_blank" rel="noopener noreferrer"
+                      aria-label={`Ver ${identificador} en otra pestaña`}
+                      className="text-accent underline underline-offset-2">
+                      {identificador}
+                    </Link>
+                  )}
                   {!aprobada && <Badge variant="warning" size="sm">Requiere aprobación</Badge>}
                 </TableCell>
                 <TableCell className="text-body-sm text-muted-foreground">
@@ -49,7 +58,7 @@ export function DialogPagoLoteRenglones({ facturas, renglones, moneda, onMontoCh
                     value={monto === 0 ? null : monto}
                     currency={moneda}
                     disabled={!aprobada}
-                    aria-label={`Importe aplicado a la factura ${f.folio_proveedor ?? ""}`}
+                    aria-label={`Importe aplicado a ${identificador}`}
                     onChange={(n: number) => onMontoChange(f.factura_id, n)}
                   />
                 </TableCell>

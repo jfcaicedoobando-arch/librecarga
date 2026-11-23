@@ -125,3 +125,12 @@ describe("ClienteDetalle: título de navegación", () => {
     expect(document.title).toBe("Cliente · Libre Carga");
   });
 });
+
+it("no muestra un total de contactos si no pudo confirmar la consulta", () => {
+  mocks.controller.mockReturnValue({ ...controller(), contactos: [], errorContactos: new Error("Lectura fallida") });
+  const { rerender } = render(<ClienteDetalle />);
+  expect(card("Contactos").getByText("—")).toBeVisible();
+  mocks.controller.mockReturnValue(controller());
+  rerender(<ClienteDetalle />);
+  expect(card("Contactos").getByText("2")).toBeVisible();
+});

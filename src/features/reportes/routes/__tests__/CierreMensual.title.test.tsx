@@ -10,6 +10,7 @@ describe("Cierre mensual: título de pestaña", () => {
     document.title = buildDocumentTitle("Iniciar sesión");
     const { unmount } = render(<CierreMensual />);
     expect(screen.getByRole("heading", { name: "Cierre mensual" })).toBeInTheDocument();
+    expect(screen.getByText(/Por mes seleccionado/i)).toBeInTheDocument();
     expect(document.title).toBe(buildDocumentTitle("Cierre mensual"));
     document.title = buildDocumentTitle("Cartera y antigüedad");
     unmount();

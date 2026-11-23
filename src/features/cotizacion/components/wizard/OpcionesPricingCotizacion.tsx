@@ -3,7 +3,7 @@
  * "En negociación" con solicitudes de Pricing respondidas, permite usar una
  * respuesta y pasar sus datos (ruta, contenedor, agente, naviera, tarifa).
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +20,8 @@ interface Props { form: UseFormReturn<CotizacionFormValues> }
 
 export function OpcionesPricingCotizacion({ form }: Props) {
   const [abierto, setAbierto] = useState(false);
+  const [verificando, setVerificando] = useState<string | null>(null);
+  const verificacionPendiente = useRef(false);
   const oportunidadId = form.watch("oportunidadId") || undefined;
   const clienteId = form.watch("clienteId") || undefined;
   const { data: opciones = [], isError, refetch } = useOpcionesPricingCotizacion({ oportunidadId, clienteId });
@@ -30,12 +32,18 @@ export function OpcionesPricingCotizacion({ form }: Props) {
   if (opciones.length === 0) return null;
 
   const usar = async (o: OpcionPricingCotizacion) => {
+    if (verificacionPendiente.current) return;
+    verificacionPendiente.current = true;
+    setVerificando(`${o.solicitudId}:${o.tarifa.id}`);
     try {
       await usarOpcionPricing(form, o);
       setAbierto(false);
       notifySuccess(undefined, { title: "Datos de Pricing aplicados a la cotización" });
     } catch (error) {
       notifyError(undefined, { title: "No se pudo aplicar la respuesta de Pricing", error, method: "COTIZACION_OPCION_PRICING" });
+    } finally {
+      verificacionPendiente.current = false;
+      setVerificando(null);
     }
   };
 
@@ -56,7 +64,12 @@ export function OpcionesPricingCotizacion({ form }: Props) {
               <div><span className="text-muted-foreground">Agente: </span>{o.tarifa.agente_nombre ?? "—"}<br /><span className="text-muted-foreground">Naviera: </span>{o.tarifa.naviera_nombre ?? "—"}</div>
               <div><span className="text-muted-foreground">Flete base: </span>{formatCurrency(Number(o.tarifa.flete_base ?? 0), o.tarifa.moneda ?? "USD")}
                 {o.tarifa.vigente_hasta ? ` · hasta ${formatDate(o.tarifa.vigente_hasta)}` : ""}</div>
-              <div><Button size="sm" onClick={() => usar(o)}>Usar en la cotización</Button></div>
+              <div>
+                <Button type="button" size="sm" onClick={() => void usar(o)} disabled={verificando !== null}
+                  loading={verificando === `${o.solicitudId}:${o.tarifa.id}`}>
+                  {verificando === `${o.solicitudId}:${o.tarifa.id}` ? "Verificando tarifa…" : "Usar en la cotización"}
+                </Button>
+              </div>
             </div>
           ))}
         </CardContent>

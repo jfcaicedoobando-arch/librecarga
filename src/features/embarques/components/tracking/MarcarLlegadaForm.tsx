@@ -7,16 +7,20 @@ import { Input } from "@/components/ui/input";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
 import { MapPin } from "lucide-react";
 import { todayLocalISO } from "@/lib/date/today";
+import { formatDate } from "@/lib/formatters";
 
-const llegadaSchema = z.object({
-  fecha: z.string().min(1, "Fecha requerida"),
+const llegadaSchema = (hoy: string, etd?: string) => z.object({
+  fecha: z.string().min(1, "Fecha requerida")
+    .refine((v) => !v || !etd || v >= etd, "La llegada real debe ser igual o posterior a la ETD.")
+    .refine((v) => v <= hoy, "La llegada real no puede ser futura."),
   ubicacion: z.string().max(120, "Máximo 120 caracteres").optional().default(""),
 });
-type LlegadaInput = z.input<typeof llegadaSchema>;
-type LlegadaForm = z.output<typeof llegadaSchema>;
+type LlegadaInput = z.input<ReturnType<typeof llegadaSchema>>;
+type LlegadaForm = z.output<ReturnType<typeof llegadaSchema>>;
 
 interface Props {
   destinoDefault: string;
+  etd?: string | null;
   isPending: boolean;
   onSubmit: (v: LlegadaForm) => void | Promise<void>;
   onCancel: () => void;
@@ -24,15 +28,18 @@ interface Props {
 
 export function MarcarLlegadaForm({
   destinoDefault,
+  etd,
   isPending,
   onSubmit,
   onCancel,
 }: Props) {
   const hoy = todayLocalISO();
+  const fechaSalida = etd?.slice(0, 10);
+  const salidaFutura = Boolean(fechaSalida && fechaSalida > hoy);
   const { control, handleSubmit, formState: { errors, isValid } } = useForm<LlegadaInput, unknown, LlegadaForm>({
-    resolver: zodResolver(llegadaSchema),
+    resolver: zodResolver(llegadaSchema(hoy, fechaSalida)),
     defaultValues: {
-      fecha: hoy,
+      fecha: salidaFutura ? "" : hoy,
       ubicacion: destinoDefault,
     },
     mode: "onChange",
@@ -57,10 +64,15 @@ export function MarcarLlegadaForm({
             </p>
             <p>
               Completa los documentos pendientes antes de registrar la llegada.
-              La fecha debe ser igual o posterior a la salida estimada (ETD).
+              La fecha debe ser igual o posterior a la salida estimada (ETD{fechaSalida ? ` ${formatDate(fechaSalida)}` : ""}).
               Una llegada real ya registrada no puede sustituirse desde este formulario.
             </p>
           </div>
+          {salidaFutura && (
+            <p role="status" className="md:col-span-2 text-body-sm text-warning">
+              La salida estimada es futura. La llegada real se puede registrar a partir de esa fecha.
+            </p>
+          )}
           <div className="space-y-2">
             <label htmlFor="marcar-llegada-fecha" className="text-body font-medium">Fecha de llegada real *</label>
             <Controller
@@ -72,8 +84,9 @@ export function MarcarLlegadaForm({
                   value={field.value ?? ""}
                   onChange={field.onChange}
                   className="w-full"
+                  min={salidaFutura ? undefined : fechaSalida}
                   max={hoy}
-                  disabled={isPending}
+                  disabled={isPending || salidaFutura}
                   errorText={errors.fecha?.message ?? null}
                 />
               )}
@@ -94,7 +107,7 @@ export function MarcarLlegadaForm({
             <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isPending}>
               Volver
             </Button>
-            <Button type="submit" size="sm" disabled={!isValid || isPending}>
+            <Button type="submit" size="sm" disabled={!isValid || isPending || salidaFutura}>
               {isPending ? "Guardando…" : "Registrar llegada real"}
             </Button>
           </div>

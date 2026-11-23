@@ -23,6 +23,32 @@ export function estadoRepHistorico(r: Pick<FilaRepHistorico, "rep_cancellation_s
   return "Timbrado";
 }
 
+export function varianteRepHistorico(estado: string) {
+  return estado === "Cancelado" ? "destructive" : estado === "En cancelación" ? "warning" : "outline";
+}
+
+export function ActualizarRepSatButton({ rep, onActualizarSat, actualizando, className }: {
+  rep: FilaRepHistorico;
+  onActualizarSat?: (pagoId: string) => void;
+  actualizando?: string | null;
+  className?: string;
+}) {
+  if (estadoRepHistorico(rep) !== "En cancelación" || !onActualizarSat) return null;
+
+  return (
+    <Hint label="Actualizar estado ante el SAT">
+      <Button
+        size="icon" variant="outline" className={className}
+        loading={actualizando === rep.id}
+        onClick={() => onActualizarSat(rep.id)}
+        aria-label={`Actualizar estado ante el SAT del REP ${rep.folio_rep}`}
+      >
+        <RefreshCw className="size-4" />
+      </Button>
+    </Hint>
+  );
+}
+
 interface Opts {
   onDescargar: (pagoId: string, tipo: "pdf" | "xml") => void;
   descargando: string | null;
@@ -94,8 +120,7 @@ export function buildRepsHistoricoColumns(o: Opts) {
       meta: { width: COL_W.folio },
       cell: ({ row }) => {
         const estado = estadoRepHistorico(row.original);
-        const variant = estado === "Cancelado" ? "destructive" : estado === "En cancelación" ? "warning" : "outline";
-        return <Badge variant={variant}>{estado}</Badge>;
+        return <Badge variant={varianteRepHistorico(estado)}>{estado}</Badge>;
       },
     },
     {
@@ -105,21 +130,10 @@ export function buildRepsHistoricoColumns(o: Opts) {
       meta: { width: "w-[150px]", align: "right" },
       cell: ({ row }) => {
         const id = row.original.id;
-        const enTramite = estadoRepHistorico(row.original) === "En cancelación";
         return (
           <div data-no-row-nav onClick={(e) => e.stopPropagation()} className="flex justify-end gap-1">
-            {enTramite && o.onActualizarSat && (
-              <Hint label="Actualizar estado ante el SAT">
-                <Button
-                  size="icon" variant="outline" className="h-8 w-8"
-                  loading={o.actualizando === id}
-                  onClick={() => o.onActualizarSat?.(id)}
-                  aria-label={`Actualizar estado ante el SAT del REP ${row.original.folio_rep}`}
-                >
-                  <RefreshCw className="size-4" />
-                </Button>
-              </Hint>
-            )}
+            <ActualizarRepSatButton rep={row.original} onActualizarSat={o.onActualizarSat}
+              actualizando={o.actualizando} className="h-8 w-8" />
             <Button
               size="icon" variant="outline" className="h-8 w-8"
               loading={o.descargando === `${id}:pdf`}

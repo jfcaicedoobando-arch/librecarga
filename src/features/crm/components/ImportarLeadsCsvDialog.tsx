@@ -5,6 +5,7 @@
  * Migrado a `FormDialogShell` (v13.121.0).
  */
 import { Upload, FileUp, AlertTriangle } from "lucide-react";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function ImportarLeadsCsvDialog({ open, onOpenChange }: Props) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const {
     rows, fileName, validRows, errorCount, isPending,
     duplicados, duplicadosCargando, duplicadosError,
@@ -60,11 +62,15 @@ export default function ImportarLeadsCsvDialog({ open, onOpenChange }: Props) {
         Calificado, Prospecto, Pendiente de alta y Convertido los administra el ERP.
       </p>
 
-      <label className="flex items-center justify-center gap-2 border-2 border-dashed rounded-md p-6 cursor-pointer hover:bg-muted/30">
-        <Upload className="h-4 w-4 text-muted-foreground" />
-        <span className="text-body">{fileName || "Selecciona un archivo .csv"}</span>
+      <div className="space-y-2 rounded-md border-2 border-dashed p-4 text-center">
+        <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} disabled={isPending}>
+          <Upload className="h-4 w-4" aria-hidden />
+          Selecciona un archivo .csv
+        </Button>
+        <p role="status" className="break-all text-body-sm text-muted-foreground">{fileName}</p>
         <input
-          type="file" accept=".csv,text/csv" className="hidden"
+          ref={inputRef}
+          type="file" accept=".csv,text/csv" hidden
           onChange={(e) => {
             const f = e.target.files?.[0];
             // Reset del input: permite volver a elegir el MISMO archivo.
@@ -72,7 +78,7 @@ export default function ImportarLeadsCsvDialog({ open, onOpenChange }: Props) {
             if (f) void handleFile(f);
           }}
         />
-      </label>
+      </div>
 
       {duplicadosError && (
         <Alert variant="destructive">

@@ -15,14 +15,16 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartSkeleton } from "@/components/shared/ChartSkeleton";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { TrendingUp } from "lucide-react";
 import { useAuditoriaSnapshots } from "@/features/auditoria/hooks";
 
 export function AuditoriaTendenciaChart() {
-  const { data, isLoading } = useAuditoriaSnapshots(30);
+  const { data, isLoading, isError, isFetching, refetch } = useAuditoriaSnapshots(30);
 
   function renderBody() {
     if (isLoading) return <ChartSkeleton height={192} />;
+    if (isError) return <ErrorStateInline title="No se pudo cargar la tendencia" message="Reintenta para consultar el historial de auditoría." onRetry={() => void refetch()} retrying={isFetching} />;
     if (!data || data.length < 2) {
       return (
         <EmptyStateInline

@@ -54,9 +54,9 @@ export function DialogGenerarLiquidacion({
     >
       <div className="space-y-3">
         <div className="space-y-1">
-          <Label>Vendedora</Label>
+          <Label htmlFor="liquidacion-vendedora">Vendedora</Label>
           <Select value={vendedoraId} onValueChange={setVendedoraId}>
-            <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+            <SelectTrigger id="liquidacion-vendedora"><SelectValue placeholder="Selecciona" /></SelectTrigger>
             <SelectContent>
               {vendedoras.map((v) => <SelectItem key={v.id} value={v.id} disabled={!v.identidadResuelta}>{etiquetaVendedora(v)}</SelectItem>)}
             </SelectContent>

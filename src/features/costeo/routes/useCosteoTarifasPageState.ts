@@ -34,19 +34,22 @@ export function useCosteoTarifasPageState() {
   const rutaIdFromUrl = searchParams.get("ruta") ?? undefined;
 
   const [estado, setEstado] = useState<EstadoFiltro>(DEFAULT_ESTADO);
-  // Alcance B: `?aprobacion=borrador` (link desde el KPI de Operaciones) preselecciona el filtro.
-  const [aprobacion, setAprobacion] = useState<AprobacionFiltro>(() =>
-    readAprobacionFromUrl(searchParams.get("aprobacion")),
-  );
+  const aprobacion = readAprobacionFromUrl(searchParams.get("aprobacion"));
   const cambiarAprobacion = useCallback((valor: AprobacionFiltro) => {
-    setAprobacion(valor);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (valor === DEFAULT_APROB) next.delete("aprobacion");
+      else next.set("aprobacion", valor);
+      return next;
+    });
     if (valor === "programada") setSoloPorVencer(false);
-  }, []);
+  }, [setSearchParams]);
   const [agenteId, setAgenteId] = useState<string>("todos");
   const [tipoId, setTipoId] = useState<string>("todos");
   const [busqueda, setBusqueda] = useState("");
   // P1-3: filtro explícito "Por vencer ≤ 7 días" (no es sinónimo de Vigentes).
-  const [soloPorVencer, setSoloPorVencer] = useState(false);
+  const [filtroPorVencer, setSoloPorVencer] = useState(false);
+  const soloPorVencer = filtroPorVencer && aprobacion !== "programada" && aprobacion !== "borrador";
   const [open, setOpen] = useState(false);
   const [initial, setInitial] = useState<Partial<TarifaInput> | undefined>();
   const [editId, setEditId] = useState<string | undefined>();
@@ -90,7 +93,6 @@ export function useCosteoTarifasPageState() {
       : null;
 
   const clearAll = useCallback(() => {
-    setAprobacion(DEFAULT_APROB);
     setEstado(DEFAULT_ESTADO);
     setAgenteId("todos");
     setTipoId("todos");
@@ -149,13 +151,13 @@ export function useCosteoTarifasPageState() {
   const onFilterPendientes = useCallback(() => {
     setSoloPorVencer(false);
     setEstado(DEFAULT_ESTADO);
-    setAprobacion("borrador");
-  }, []);
+    cambiarAprobacion("borrador");
+  }, [cambiarAprobacion]);
   const onFilterPorVencer = useCallback(() => {
-    setAprobacion(DEFAULT_APROB);
+    cambiarAprobacion(DEFAULT_APROB);
     setEstado(DEFAULT_ESTADO);
     setSoloPorVencer(true);
-  }, []);
+  }, [cambiarAprobacion]);
 
   return {
     // url

@@ -71,6 +71,13 @@ export function useTabProyeccionController() {
   const setFiltroCliente = useCallback((value: string) => setFiltro("cliente", value), [setFiltro]);
   const setFiltroOperador = useCallback((value: string) => setFiltro("operador", value), [setFiltro]);
   const setFiltroEstado = useCallback((value: FiltroEstado) => setFiltro("estado", value), [setFiltro]);
+  const limpiarFiltros = () => setSearchParams((prev) => {
+    const next = new URLSearchParams(prev);
+    next.delete("cliente");
+    next.delete("operador");
+    next.delete("estado");
+    return next;
+  }, { replace: true });
 
   const scope = `${organizationId ?? ""}|${mesActual.key}`;
   const ready = orgListo && !!organizationId;
@@ -151,10 +158,10 @@ export function useTabProyeccionController() {
     // filtros
     filtroCliente, setFiltroCliente,
     filtroOperador, setFiltroOperador,
-    filtroEstado, setFiltroEstado,
+    filtroEstado, setFiltroEstado, limpiarFiltros,
     clientesDisponibles, operadoresDisponibles,
     // datos
-    isLoading,
+    isLoading: !ready || isLoading,
     error: error as Error | null,
     refetch,
     isFetching,

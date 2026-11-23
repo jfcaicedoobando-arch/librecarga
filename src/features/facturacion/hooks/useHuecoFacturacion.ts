@@ -41,14 +41,14 @@ export function useHuecoFacturacion() {
   const totalUsd = data?.totalUsd ?? 0;
   const totalMxn = data?.totalMxn ?? 0;
 
-  const exportarCsv = useCallback(() => {
-    if (filas.length === 0) return;
+  const exportarCsv = useCallback((filasExportadas = filas) => {
+    if (isLoading || isError || filasExportadas.length === 0) return;
     exportToCsv(
       buildHuecoCsvFilename(),
       HUECO_CSV_HEADERS,
-      buildHuecoCsvRows(filas),
+      buildHuecoCsvRows(filasExportadas),
     );
-  }, [filas]);
+  }, [filas, isLoading, isError]);
 
   return {
     isLoading,

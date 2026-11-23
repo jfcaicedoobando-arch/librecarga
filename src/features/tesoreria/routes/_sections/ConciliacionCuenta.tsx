@@ -27,11 +27,13 @@ import { useCuentaConciliacion } from "@/features/tesoreria/hooks/useCuentaConci
 
 const ESTADOS_MOVIMIENTO = ["Pendiente", "Conciliado", "Ignorado", "todos"] as const;
 
-export function ConciliacionCuenta({ cuentaId, cambiarCuenta }: {
+export function ConciliacionCuenta({ cuentaId: cuentaSolicitada, cambiarCuenta }: {
   cuentaId: string;
   cambiarCuenta: (id: string) => void;
 }) {
-  const { data: cuentas = [] } = useCuentasBancarias();
+  const consultaCuentas = useCuentasBancarias();
+  const { cuentas, cuentaId, moneda, alias, mensajeSinCuenta, cuentasOcupadas } =
+    resolverCuenta(consultaCuentas, cuentaSolicitada);
   const { canCapturarMovimientoBancario } = usePermissions();
   const { movimientoSeleccionado, panelKey, seleccionarMovimiento, cerrarMovimiento, refPago, setRefPago } =
     useCuentaConciliacion(cuentaId);
@@ -51,13 +53,12 @@ export function ConciliacionCuenta({ cuentaId, cambiarCuenta }: {
   const claveManual = usePayloadRequestId();
 
   const { data: movs = [], isLoading, isError: movsError, refetch: refetchMovs } = useMovimientos(cuentaId ? { cuenta_bancaria_id: cuentaId, estado } : null);
-  const { data: resumen, isLoading: resumenLoading } = useConciliacionResumen(cuentaId || null);
+  const resumen = useConciliacionResumen(cuentaId || null);
   const { data: saldos = [] } = useSaldosCuentas();
   const conciliarPago = useConciliarPago();
   const registrarManual = useRegistrarMovimientoManual();
   const importacion = useImportarEstadoCuenta(cuentaId);
-  const monedaCuenta = cuentas.find((c) => c.id === cuentaId)?.moneda ?? "MXN";
-  const columns = useMemo(() => crearMovimientoColumns(setRefPago, monedaCuenta), [setRefPago, monedaCuenta]);
+  const columns = useMemo(() => crearMovimientoColumns(setRefPago, moneda), [setRefPago, moneda]);
   const { isAutoConciliando, handleConciliarExactos } = useAutoConciliarExactos(movs, conciliarPago.mutateAsync);
 
   const abrirModalManual = () => {
@@ -86,7 +87,6 @@ export function ConciliacionCuenta({ cuentaId, cambiarCuenta }: {
     setManualOpen(false);
   };
 
-  const cuentaActual = cuentas.find((c) => c.id === cuentaId);
   const pendientesCount = movs.filter((m) => m.estado_conciliacion === "Pendiente").length;
 
   return (
@@ -105,6 +105,10 @@ export function ConciliacionCuenta({ cuentaId, cambiarCuenta }: {
       <ConciliacionToolbar
         cuentas={cuentas}
         cuentaId={cuentaId}
+        cuentasLoading={consultaCuentas.isLoading}
+        cuentasError={consultaCuentas.isError}
+        reintentandoCuentas={consultaCuentas.isFetching}
+        onRetryCuentas={() => void consultaCuentas.refetch()}
         onCuentaChange={cambiarCuenta}
         estado={estado}
         onEstadoChange={setEstado}
@@ -118,25 +122,27 @@ export function ConciliacionCuenta({ cuentaId, cambiarCuenta }: {
         puedeCapturar={canCapturarMovimientoBancario}
       />
 
-      {!cuentaId ? (
+      {cuentasOcupadas ? null : !cuentaId ? (
         <Card>
           <CardContent density="compact">
-            <EmptyStateInline icon={FileSpreadsheet} message="Selecciona una cuenta para empezar a conciliar." />
+            <EmptyStateInline icon={FileSpreadsheet} message={mensajeSinCuenta} />
           </CardContent>
         </Card>
       ) : (
         <>
         <ResumenConciliacionCards
-          resumen={resumen}
-          moneda={cuentaActual?.moneda ?? "MXN"}
+          resumen={resumen.data}
+          moneda={moneda}
           saldo={saldos.find((s) => s.id === cuentaId)?.saldo}
-          isLoading={resumenLoading}
+          isLoading={resumen.isLoading}
+          isError={resumen.isError}
+          retrying={resumen.isFetching}
+          onRetry={() => void resumen.refetch()}
         />
         <div className="grid lg:grid-cols-3 gap-4">
-
           <div className="lg:col-span-2 space-y-1">
             <div className="text-body-sm text-muted-foreground px-1 flex justify-between">
-              <span>{movs.length} movimientos · {cuentaActual?.alias}</span>
+              <span>{movs.length} movimientos · {alias}</span>
             </div>
             <VirtualDataTable
               columns={columns}
@@ -156,7 +162,7 @@ export function ConciliacionCuenta({ cuentaId, cambiarCuenta }: {
               key={panelKey}
               movimiento={movimientoSeleccionado}
               onClose={cerrarMovimiento}
-              moneda={monedaCuenta}
+              moneda={moneda}
             />
           </div>
         </div>
@@ -183,4 +189,19 @@ export function ConciliacionCuenta({ cuentaId, cambiarCuenta }: {
       ) : null}
     </PageContainer>
   );
+}
+
+function resolverCuenta(consulta: ReturnType<typeof useCuentasBancarias>, solicitada: string) {
+  const cuentas = consulta.data ?? [];
+  const cuentasOcupadas = consulta.isLoading || consulta.isError;
+  const activa = cuentasOcupadas ? undefined : cuentas.find((cuenta) => cuenta.id === solicitada);
+  return {
+    cuentas,
+    cuentasOcupadas,
+    cuentaId: activa?.id ?? "",
+    moneda: activa?.moneda ?? "MXN",
+    alias: activa?.alias,
+    mensajeSinCuenta: solicitada ? "Esta cuenta ya no está disponible. Selecciona otra."
+      : "Selecciona una cuenta para empezar a conciliar.",
+  };
 }

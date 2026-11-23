@@ -16,14 +16,13 @@ interface Props {
   total: number;
   /** Ruta del módulo con la lista completa. */
   ruta: string;
-  /** Texto del enlace, p. ej. "embarques". */
+  /** Texto del enlace que identifica el listado de destino. */
   etiqueta: string;
 }
 
 export function DashboardListaVerMas({ total, ruta, etiqueta }: Props) {
   const navigate = useNavigate();
-  const restantes = total - MAX_ITEMS_TARJETA_DASHBOARD;
-  if (restantes <= 0) return null;
+  if (total <= MAX_ITEMS_TARJETA_DASHBOARD) return null;
 
   return (
     <Button
@@ -32,7 +31,7 @@ export function DashboardListaVerMas({ total, ruta, etiqueta }: Props) {
       className="w-full justify-center text-body-sm"
       onClick={() => navigate(ruta)}
     >
-      Ver {restantes} más en {etiqueta}
+      {etiqueta}
       <ArrowRight className="ml-1 h-4 w-4" />
     </Button>
   );

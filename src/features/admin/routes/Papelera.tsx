@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
   SelectGroup, SelectLabel,
@@ -21,7 +22,8 @@ import { ErrorState } from "@/components/shared/states/ErrorState";
 export default function Papelera() {
   useDocumentTitle('Papelera');
   const { isAdmin } = usePermissions();
-  const { tabla, setTabla, rows, isLoading, isError, refetch, counts, restore, purge } = usePapelera(isAdmin);
+  const { tabla, setTabla, rows, isLoading, isError, refetch, counts, restore, purge,
+    countsLoading, countsError, countsFetching, refetchCounts } = usePapelera(isAdmin);
   const [purgeTarget, setPurgeTarget] = useState<TrashRow | null>(null);
 
   const countByTable = useMemo(() => {
@@ -70,7 +72,7 @@ export default function Papelera() {
                       <SelectItem key={t.value} value={t.value}>
                         <span className="flex items-center justify-between gap-3 w-full">
                           <span>{t.label}</span>
-                          {n > 0 && <Badge variant="secondary" className="ml-auto">{n}</Badge>}
+                          {n > 0 && !countsError && <Badge variant="secondary" className="ml-auto">{n}</Badge>}
                         </span>
                       </SelectItem>
                     );
@@ -83,9 +85,16 @@ export default function Papelera() {
         <span className="text-body-sm text-muted-foreground">
           {rows.length} {rows.length === 1 ? "registro" : "registros"} en esta tabla
         </span>
-        <span className="text-body-sm text-muted-foreground ml-auto">
-          Total en papelera: <strong>{totalPapelera}</strong>
-        </span>
+        <div className="ml-auto flex items-center gap-2 text-body-sm text-muted-foreground">
+          {countsLoading ? <span role="status">Calculando total…</span> : countsError ? (
+            <>
+              <span role="status">Total no disponible</span>
+              <Button variant="ghost" size="sm" disabled={countsFetching} onClick={() => void refetchCounts()}>
+                Reintentar conteo
+              </Button>
+            </>
+          ) : <span>Total en papelera <strong>{totalPapelera}</strong></span>}
+        </div>
       </div>
 
       <Card>

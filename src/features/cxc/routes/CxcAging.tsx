@@ -11,7 +11,6 @@ import { PageContainer } from "@/components/shared/PageContainer";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { CargaGuard } from "@/components/shared/states/CargaGuard";
 import { FilteredListEmptyState } from "@/components/empty/FilteredListEmptyState";
-
 import { buildCxcAgingColumns } from "@/features/cxc/components/cxcAgingColumns";
 import { CxcAgingDrillDownDialog } from "@/features/cxc/components/CxcAgingDrillDownDialog";
 import { useCxcAging } from "@/features/cxc/hooks/useCxcAging";
@@ -33,12 +32,11 @@ import { cubetaDesdeFiltro } from "@/lib/aging/reportScope";
 
 interface Filters extends Record<string, string> { cubeta: string }
 const DEFAULTS: Filters = { cubeta: "todas" };
-
 export default function CxcAging() {
   const [fecha, setFecha] = useState<string>(() => todayLocalISO());
   const aging = useCxcAging(fecha);
   const {
-    rowsFiltradas, isLoading, totales, isError, refetch, monedas, monedaActiva, setMoneda,
+    rowsFiltradas, isLoading, isFetching, totales, isError, refetch, monedas, monedaActiva, setMoneda,
   } = aging;
   const columns = useMemo(() => buildCxcAgingColumns(monedaActiva), [monedaActiva]);
   const [drilldown, setDrilldown] = useState<{ cli: CxcAgingRow; cubeta: CubetaAging | "todas" } | null>(null);
@@ -72,6 +70,7 @@ export default function CxcAging() {
     },
   });
 
+  const exportacionBloqueada = paged.filteredCount === 0 || isLoading || isFetching || isError;
   return (
     <PageContainer width="wide">
       <PageHeader
@@ -89,7 +88,7 @@ export default function CxcAging() {
               variant="outline"
               size="sm"
               onClick={() => exportarCxcAgingCsv(paged.filteredRows, monedaActiva, fecha, { search: paged.search, cubeta: paged.filters.cubeta })}
-              disabled={paged.filteredCount === 0 || isLoading}
+              disabled={exportacionBloqueada}
             >
               <Download className="h-4 w-4 mr-2" /> Exportar CSV
             </Button>
@@ -110,6 +109,9 @@ export default function CxcAging() {
         <strong>{CXC_AGING_ALCANCE}.</strong> {CXC_AGING_DESCRIPCION}
       </p>
 
+      {isFetching && !isLoading && (
+        <p role="status" className="text-body-sm text-muted-foreground">Actualizando saldos… El CSV estará disponible al terminar la consulta.</p>
+      )}
       <CargaGuard
         isLoading={isLoading}
         isError={isError}
@@ -117,6 +119,7 @@ export default function CxcAging() {
         errorTitle="No se pudo cargar la antigüedad de saldos"
         errorDescription="Ocurrió un error al obtener los saldos de clientes. Intenta de nuevo."
       >
+      <p className="text-body-sm text-muted-foreground">Totales de {monedaActiva}, antes de filtros de clientes.</p>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         {CUBETAS_AGING.map((b) => (
           <AgingKpiBucket
@@ -158,7 +161,6 @@ export default function CxcAging() {
       </p>
       <Card>
         <CardContent className="p-0">
-          {/* v13.823.25: ResponsiveDataTable evita el desbordamiento horizontal en móvil/plegable. */}
           <ResponsiveDataTable<CxcAgingRow>
             columns={columns}
             data={paged.rows}

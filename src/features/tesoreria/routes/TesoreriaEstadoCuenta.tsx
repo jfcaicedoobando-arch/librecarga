@@ -22,7 +22,7 @@ import { useCuentasBancarias } from "@/features/tesoreria/hooks";
 import { useEstadoCuenta } from "@/features/tesoreria/hooks/useEstadoCuenta";
 import {
   filtrarMovimientos, rangoMes,
-  type RangoFechas, type TipoMovimientoEstadoCuenta,
+  type MovimientoEstadoCuenta, type RangoFechas, type TipoMovimientoEstadoCuenta,
 } from "@/features/tesoreria/domain/estadoCuenta";
 import { DetallePagoSheet } from "@/features/tesoreria/components/DetallePagoSheet";
 import type { RefPago } from "@/features/tesoreria/domain/pagoDetalle";
@@ -42,14 +42,15 @@ export default function TesoreriaEstadoCuenta() {
   const { canAdminCuentasBancarias } = usePermissions();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [cuentaId, setCuentaIdState] = useState<string>(searchParams.get("cuenta") ?? "");
+  const cuentaSolicitada = searchParams.get("cuenta") ?? "";
+  const cuentaActual = errorCuentas ? undefined : cuentas.find((c) => c.id === cuentaSolicitada);
+  const cuentaId = cuentaActual?.id ?? "";
   const [rango, setRango] = useState<RangoFechas>(() => rangoMes());
   const [texto, setTexto] = useState("");
   const [tipo, setTipo] = useState<TipoMovimientoEstadoCuenta>("todos");
   const [refPago, setRefPago] = useState<RefPago | null>(null);
 
   const setCuentaId = (id: string) => {
-    setCuentaIdState(id);
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       if (id) next.set("cuenta", id); else next.delete("cuenta");
@@ -57,17 +58,16 @@ export default function TesoreriaEstadoCuenta() {
     }, { replace: true });
   };
 
-  const { data: estado, isLoading, isError, refetch } = useEstadoCuenta(
-    cuentaId || null, rango.desde, rango.hasta,
-  );
-
-  const moneda = estado?.moneda ?? cuentas.find((c) => c.id === cuentaId)?.moneda ?? "MXN";
-  const columns = useMemo(() => estadoCuentaColumns(moneda, setRefPago), [moneda]);
+  const consulta = useEstadoCuenta(cuentaId || null, rango.desde, rango.hasta);
+  const estado = consulta.data;
   const visibles = useMemo(
     () => filtrarMovimientos(estado?.movimientos ?? [], { texto, tipo }),
     [estado, texto, tipo],
   );
-  const sinCobertura = estado?.cobertura_historica === "sin_cobertura";
+  const limpiarMovimientos = () => {
+    setTexto("");
+    setTipo("todos");
+  };
 
   return (
     <PageContainer>
@@ -75,7 +75,7 @@ export default function TesoreriaEstadoCuenta() {
         title="Estado de cuenta"
         description="Historial de entradas y salidas con saldo corrido, como el extracto del banco"
         actions={
-          estado ? <EstadoCuentaExportButtons estado={estado} movimientos={visibles} filtros={{ texto, tipo }} /> : undefined
+          estado && !consulta.isError ? <EstadoCuentaExportButtons estado={estado} movimientos={visibles} filtros={{ texto, tipo }} /> : undefined
         }
       />
 
@@ -105,31 +105,14 @@ export default function TesoreriaEstadoCuenta() {
       {!cuentaId ? (
         <Card>
           <CardContent density="compact">
-            <EmptyStateInline icon={Landmark} message="Selecciona una cuenta para ver su estado de cuenta." />
+            <EmptyStateInline icon={Landmark} message={cuentaSolicitada
+              ? "Esta cuenta ya no está disponible. Selecciona otra."
+              : "Selecciona una cuenta para ver su estado de cuenta."} />
           </CardContent>
         </Card>
       ) : (
-        <>
-          <EstadoCuentaResumen estado={estado} isLoading={isLoading} />
-
-          <div className="space-y-1">
-            <EstadoCuentaMovimientosResumen estado={estado} visibles={visibles} moneda={moneda} />
-            <DataTable
-              columns={columns}
-              data={visibles}
-              rowKey={(m) => m.id}
-              density={TABLE_DENSITY.listado}
-              striped
-              stickyHeader
-              tableClassName="w-full"
-              isLoading={isLoading}
-              isError={isError}
-              onRetry={() => void refetch()}
-              emptyMessage={sinCobertura ? "El periodo seleccionado es anterior al arranque de la cuenta. No hay cobertura histórica disponible." : "No hay movimientos en el periodo seleccionado."}
-            />
-
-          </div>
-        </>
+        <EstadoCuentaExtracto consulta={consulta} visibles={visibles}
+          onAbrirPago={setRefPago} onLimpiarFiltros={limpiarMovimientos} />
       )}
 
         </>
@@ -142,5 +125,52 @@ export default function TesoreriaEstadoCuenta() {
         />
       ) : null}
     </PageContainer>
+  );
+}
+
+function EstadoCuentaExtracto({ consulta, visibles, onAbrirPago, onLimpiarFiltros }: {
+  consulta: ReturnType<typeof useEstadoCuenta>;
+  visibles: MovimientoEstadoCuenta[];
+  onAbrirPago: (pago: RefPago) => void;
+  onLimpiarFiltros: () => void;
+}) {
+  const { data: estado, isLoading, isError, refetch } = consulta;
+  const moneda = estado?.moneda ?? "MXN";
+  const columns = useMemo(() => estadoCuentaColumns(moneda, onAbrirPago), [moneda, onAbrirPago]);
+  const sinCobertura = estado?.cobertura_historica === "sin_cobertura";
+  const filtradoSinResultados = !!estado?.movimientos.length && visibles.length === 0 && !sinCobertura;
+
+  return (
+    <AsyncBoundary
+      isLoading={isLoading}
+      isError={isError}
+      onRetry={() => void refetch()}
+      skeleton={<KpiGridSkeleton count={4} heightClass="h-28" desktopCols={4} />}
+      errorTitle="No se pudo cargar el estado de cuenta"
+      errorDescription="Los saldos y movimientos no están disponibles. Reintenta para consultar la misma cuenta y periodo."
+    >
+      {estado && (
+        <>
+          <EstadoCuentaResumen estado={estado} isLoading={false} />
+          <div className="space-y-1">
+            <EstadoCuentaMovimientosResumen estado={estado} visibles={visibles} moneda={moneda} />
+            <DataTable
+              columns={columns}
+              data={visibles}
+              rowKey={(m) => m.id}
+              density={TABLE_DENSITY.listado}
+              striped
+              stickyHeader
+              tableClassName="w-full"
+              emptyState={filtradoSinResultados ? (
+                <EmptyStateInline message="Ningún movimiento coincide con los filtros."
+                  action={{ label: "Limpiar búsqueda y tipo", onClick: onLimpiarFiltros }} />
+              ) : undefined}
+              emptyMessage={sinCobertura ? "El periodo seleccionado es anterior al arranque de la cuenta. No hay cobertura histórica disponible." : "No hay movimientos en el periodo seleccionado."}
+            />
+          </div>
+        </>
+      )}
+    </AsyncBoundary>
   );
 }

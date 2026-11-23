@@ -29,12 +29,13 @@ export function EstadoCuentaExportButtons({ estado, movimientos, filtros }: Prop
   const [generandoPdf, setGenerandoPdf] = useState(false);
   const sinDatos = movimientos.length === 0 || estado.cobertura_historica === "sin_cobertura";
   const filas = filasEstadoCuentaExport(movimientos, estado.moneda);
+  const filtrado = filtros.texto.trim() !== "" || filtros.tipo !== "todos";
 
   const descargarCsv = () => {
     try {
       const csv = estadoCuentaACsv(filas);
       const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8;" });
-      descargarBlob(blob, nombreArchivoEstadoCuenta(estado.alias, estado.desde, estado.hasta, "csv"));
+      descargarBlob(blob, nombreArchivoEstadoCuenta(estado.alias, estado.desde, estado.hasta, "csv", filtrado));
       notifySuccess(undefined, { title: "Estado de cuenta descargado en CSV" });
     } catch (error) {
       notifyError(undefined, {
@@ -80,7 +81,10 @@ export function EstadoCuentaExportButtons({ estado, movimientos, filtros }: Prop
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      {filtrado && (
+        <p className="w-full text-body-sm text-muted-foreground">Exportar movimientos filtrados ({movimientos.length})</p>
+      )}
       <Hint label={sinDatos ? "No hay movimientos para exportar" : "Descargar CSV"}>
         <Button
           type="button" variant="outline" size="sm"

@@ -27,6 +27,10 @@ interface CuentaOpcion {
 interface Props {
   cuentas: CuentaOpcion[];
   cuentaId: string;
+  cuentasLoading?: boolean;
+  cuentasError?: boolean;
+  reintentandoCuentas?: boolean;
+  onRetryCuentas?: () => void;
   onCuentaChange: (id: string) => void;
   estado: EstadoFiltro;
   onEstadoChange: (estado: EstadoFiltro) => void;
@@ -42,7 +46,8 @@ interface Props {
 }
 
 export function ConciliacionToolbar({
-  cuentas, cuentaId, onCuentaChange, estado, onEstadoChange,
+  cuentas, cuentaId, cuentasLoading, cuentasError, reintentandoCuentas, onRetryCuentas,
+  onCuentaChange, estado, onEstadoChange,
   pendientesCount, isAutoConciliando, onConciliarExactos, onAbrirManual,
   fileRef, onFile, importando, puedeCapturar,
 }: Props) {
@@ -53,18 +58,23 @@ export function ConciliacionToolbar({
   return (
     <Card>
       <CardContent density="compact" className="flex flex-wrap gap-3 items-center">
-        <Select value={cuentaId} onValueChange={onCuentaChange}>
-          <SelectTrigger className="w-full sm:w-[260px]"><SelectValue placeholder="Selecciona cuenta…" /></SelectTrigger>
+        <Select value={cuentaId} onValueChange={onCuentaChange} disabled={cuentasLoading || cuentasError || cuentas.length === 0}>
+          <SelectTrigger aria-label="Cuenta bancaria" className="w-full sm:w-[260px]">
+            <SelectValue placeholder={textoSelectorCuenta(cuentasLoading, cuentasError, cuentas.length)} />
+          </SelectTrigger>
           <SelectContent>
-            {cuentas.length === 0
-              ? <SelectItem value="__sin" disabled>No hay cuentas activas</SelectItem>
-              : cuentas.map((c) => <SelectItem key={c.id} value={c.id}>{c.banco} · {c.alias} ({c.moneda})</SelectItem>)
-            }
+            {cuentas.map((c) => <SelectItem key={c.id} value={c.id}>{c.banco} · {c.alias} ({c.moneda})</SelectItem>)}
           </SelectContent>
         </Select>
+        {cuentasError && (
+          <div className="flex flex-wrap items-center gap-2">
+            <p role="alert" className="text-body-sm text-destructive">No se pudieron consultar las cuentas bancarias.</p>
+            <Button size="sm" variant="outline" onClick={onRetryCuentas} loading={reintentandoCuentas}>Reintentar</Button>
+          </div>
+        )}
 
         <Select value={estado} onValueChange={(v) => onEstadoChange(v as EstadoFiltro)} disabled={!cuentaId}>
-          <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger aria-label="Estado de conciliación" className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="Pendiente">Pendientes</SelectItem>
             <SelectItem value="Conciliado">Conciliados</SelectItem>
@@ -116,4 +126,10 @@ export function ConciliacionToolbar({
       </CardContent>
     </Card>
   );
+}
+
+function textoSelectorCuenta(cargando: boolean | undefined, error: boolean | undefined, cantidad: number) {
+  if (cargando) return "Cargando cuentas…";
+  if (error) return "Cuentas no disponibles";
+  return cantidad === 0 ? "No hay cuentas activas" : "Selecciona cuenta…";
 }

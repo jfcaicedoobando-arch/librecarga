@@ -6,7 +6,7 @@ import { formatCurrency, formatCurrencyCompact } from "@/lib/formatters";
 interface Props {
   embarques: number;
   cotizaciones: number;
-  contactos: number;
+  contactos: number | null;
   facturadoMXN: number | null;
   pendienteMXN: number | null;
   profitMXN: number | null;
@@ -54,7 +54,7 @@ export default function ClienteSummaryCards({
   }> = [
     { label: "Embarques", value: String(embarques), sublabel: "Operaciones del cliente", icon: Ship, variant: "info" },
     { label: "Cotizaciones", value: String(cotizaciones), sublabel: "Histórico comercial", icon: ClipboardList, variant: "accent" },
-    { label: "Contactos", value: String(contactos), sublabel: "Exportadores / importadores", icon: Users, variant: "success" },
+    { label: "Contactos", value: contactos === null ? "—" : String(contactos), sublabel: "Exportadores / importadores", icon: Users, variant: "success" },
     {
       label: "Facturado",
       value: facturadoMXN === null ? "—" : formatCurrencyCompact(facturadoMXN, "MXN"),

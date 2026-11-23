@@ -62,8 +62,10 @@ export function DialogCobroLoteDatos(p: Props) {
       )}
       <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 md:grid-cols-3">
         <div className="space-y-1.5">
-          <Label>Fecha del cobro</Label>
-          <DatePickerMx value={p.fecha} onChange={(v) => p.onFecha(v ?? "")} className="w-full" />
+          <Label htmlFor="cobro-lote-fecha">Fecha del cobro</Label>
+          <DatePickerMx id="cobro-lote-fecha" aria-describedby="cobro-lote-fecha-ayuda"
+            value={p.fecha} onChange={(v) => p.onFecha(v ?? "")} className="w-full" />
+          <p id="cobro-lote-fecha-ayuda" className="text-body-sm text-muted-foreground">Formato DD/MM/AAAA.</p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="cobro-lote-total">Importe recibido</Label>

@@ -83,21 +83,21 @@ export default function FacturapiCredencialesForm(props: Props) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t">
         <div className="flex items-center justify-between rounded border p-3">
           <div>
-            <Label className="text-sm">Datos fiscales</Label>
+            <Label htmlFor="facturapi-datos-fiscales" className="text-sm">Datos fiscales</Label>
             <p className="text-label text-muted-foreground">RFC, régimen, domicilio</p>
           </div>
-          <Switch checked={datosFiscales} onCheckedChange={setDatosFiscales} />
+          <Switch id="facturapi-datos-fiscales" checked={datosFiscales} onCheckedChange={setDatosFiscales} />
         </div>
         <div className="flex items-center justify-between rounded border p-3">
           <div>
-            <Label className="text-sm">CSD cargado</Label>
+            <Label htmlFor="facturapi-csd-cargado" className="text-sm">CSD cargado</Label>
             <p className="text-label text-muted-foreground">En FacturApi</p>
           </div>
-          <Switch checked={csdCargado} onCheckedChange={setCsdCargado} />
+          <Switch id="facturapi-csd-cargado" checked={csdCargado} onCheckedChange={setCsdCargado} />
         </div>
         <div className="space-y-1">
           <Label htmlFor="csd_vence" className="text-sm">CSD vence</Label>
-          <DatePickerMx value={csdVence} onChange={setCsdVence} />
+          <DatePickerMx id="csd_vence" value={csdVence} onChange={setCsdVence} />
         </div>
       </div>
     </>

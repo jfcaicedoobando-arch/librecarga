@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components
 import { DetailTableHead, DetailTableRow, DetailTableEmptyRow } from "@/components/shared/DetailTable";
 import DoubleConfirmDeleteDialog from "@/components/shared/DoubleConfirmDeleteDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { EditRow } from "./CatalogoClavesSATCard.parts";
 import {
   EMPTY_DRAFT, TIPO_IVA_LABEL, TIPO_IVA_BADGE, TIPO_IVA_VARIANT,
@@ -24,7 +25,7 @@ import {
 } from "./CatalogoClavesSATCard.constants";
 
 export function CatalogoClavesSATCard() {
-  const { rows, isLoading, addMut, updateMut, deleteMut } = useCatalogoClavesSATController();
+  const { rows, isLoading, isError, isFetching, refetch, addMut, updateMut, deleteMut } = useCatalogoClavesSATController();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [showNew, setShowNew] = useState(false);
@@ -66,12 +67,13 @@ export function CatalogoClavesSATCard() {
             y al facturar se usa esta información automáticamente.
           </CardDescription>
         </div>
-        <Button size="sm" variant="outline" onClick={() => { setShowNew(true); setDraft(EMPTY_DRAFT); }} disabled={showNew || busy}>
+        <Button size="sm" variant="outline" onClick={() => { setShowNew(true); setDraft(EMPTY_DRAFT); }} disabled={showNew || busy || isLoading || isError}>
           <Plus className="h-4 w-4 mr-1" /> Nuevo producto
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        {isError && <ErrorStateInline title="No se pudo cargar el catálogo de productos" message="Reintenta antes de agregar o editar productos." onRetry={() => void refetch()} retrying={isFetching} />}
+        <div className="overflow-x-auto" hidden={isError}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -92,7 +94,7 @@ export function CatalogoClavesSATCard() {
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && rows.length === 0 && !showNew && (
+              {!isLoading && !isError && rows.length === 0 && !showNew && (
                 <DetailTableEmptyRow colSpan={6} message="Aún no hay productos. Da de alta al menos uno para poder capturar cotizaciones." />
               )}
               {rows.map((r) => editingId === r.id ? (

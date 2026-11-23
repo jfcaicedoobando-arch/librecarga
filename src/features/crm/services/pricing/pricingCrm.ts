@@ -28,6 +28,8 @@ export async function listarBandejaPricing(
   const { data, error, count } = await q
     .order("vence_at", { ascending: true, nullsFirst: false })
     .range(desde, desde + PAGINA_PRICING - 1);
+  // PostgREST puede rechazar un offset fuera del total; la portada informa el conteo vigente para corregir la URL.
+  if (error?.code === "PGRST103" && pagina > 0) return listarBandejaPricing(estado, 0);
   if (error) throw error;
   return { filas: data ?? [], total: count ?? 0 };
 }

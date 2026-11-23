@@ -9,12 +9,13 @@ import { Button } from "@/components/ui/button";
 import { ListSkeleton } from "@/components/shared/states/ListSkeleton";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import {
-  useNotasCreditoFactura, useAplicarNotaCredito, useAprobarNotaCredito, useCancelarNotaCredito,
+  type useNotasCreditoFactura, useAplicarNotaCredito, useAprobarNotaCredito, useCancelarNotaCredito,
 } from "@/features/cxp/hooks/useNotasCreditoProveedor";
 import { DialogNotaCreditoProveedor } from "./DialogNotaCreditoProveedor";
 import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 import { NotaCreditoFila } from "./NotaCreditoFila";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { getFacturaSignedUrl } from "@/services/storage/facturas";
 import { notifyError } from "@/lib/ui/appFeedback";
 import type { MonedaNotaCreditoProveedor as Moneda } from "@/features/cxp/types";
@@ -26,6 +27,7 @@ interface Props {
   monedaFactura: Moneda;
   saldoFactura: number;
   canEdit: boolean;
+  consultaNotas: Pick<ReturnType<typeof useNotasCreditoFactura>, "data" | "isLoading" | "isError" | "isFetching" | "refetch">;
 }
 
 async function openStoredFile(path: string | null | undefined) {
@@ -39,8 +41,8 @@ async function openStoredFile(path: string | null | undefined) {
   }
 }
 
-export function NotasCreditoSection({ facturaId, monedaFactura, saldoFactura, canEdit }: Props) {
-  const { data: notas = [], isLoading } = useNotasCreditoFactura(facturaId);
+export function NotasCreditoSection({ facturaId, monedaFactura, saldoFactura, canEdit, consultaNotas }: Props) {
+  const { data: notas = [], isLoading, isError, isFetching, refetch } = consultaNotas;
   const aplicar = useAplicarNotaCredito(facturaId);
   const aprobar = useAprobarNotaCredito(facturaId);
   const cancelar = useCancelarNotaCredito(facturaId);
@@ -67,6 +69,13 @@ export function NotasCreditoSection({ facturaId, monedaFactura, saldoFactura, ca
 
       {isLoading ? (
         <div className="p-3"><ListSkeleton rows={2} /></div>
+      ) : isError ? (
+        <ErrorStateInline
+          title="No se pudieron cargar las notas de crédito"
+          message="Reintenta para confirmar las notas de esta factura."
+          onRetry={() => void refetch()}
+          retrying={isFetching}
+        />
       ) : notas.length === 0 ? (
         <EmptyStateInline icon={FileMinus2} message="Sin notas de crédito registradas." />
       ) : (

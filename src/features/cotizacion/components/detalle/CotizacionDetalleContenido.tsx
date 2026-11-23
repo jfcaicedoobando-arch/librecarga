@@ -41,7 +41,7 @@ function datosAutorizacion(cotizacion: Props["cotizacion"], clienteEspecial: boo
 
 /** Renderiza el cuerpo de la vista de detalle (todo lo que va bajo el header). */
 export function CotizacionDetalleContenido({
-  cotizacion, id, canEdit, effectiveRole, embarquesVinculados, envios,
+  cotizacion, id, canEdit, effectiveRole, embarquesVinculados, historialEnvios,
   totales, dialogos, acciones,
 }: Props) {
 
@@ -153,7 +153,7 @@ export function CotizacionDetalleContenido({
         puedeCrearEmbarque={canCrearEmbarqueDesdeCotizacion}
       />
 
-      <HistorialEnviosCard envios={envios} />
+      <HistorialEnviosCard {...historialEnvios} />
 
       <VersionesCotizacionCard cotizacionId={cotizacion.id} estadoActual={cotizacion.estado} />
 
@@ -185,7 +185,7 @@ export function CotizacionDetalleContenido({
         totalMxn={totalMXN}
         totalUsd={totalUSD}
         tasaIva={tasaIva}
-        envioPrevio={envios[0]}
+        envioPrevio={historialEnvios.envios[0]}
       />
     </>
   );

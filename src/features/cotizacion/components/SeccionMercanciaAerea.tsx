@@ -1,7 +1,6 @@
 import { useFormContext } from "react-hook-form";
 import { Label } from "@/components/ui/label";
 import { resumenDimensionesAereas } from "@/features/cotizacion/domain/medidasAereas";
-import { Input } from "@/components/ui/input";
 import { NumericInput } from "@/components/shared/NumericInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,22 +85,22 @@ export default function SeccionMercanciaAerea({ msdsFile, setMsdsFile }: Props) 
                 {dimensiones.map((dim, i) => (
                   <DetailTableRow key={i}>
                     <TableCell>
-                      <NumericInput value={dim.piezas} onChange={n => actualizarDimension(i, 'piezas', n)} aria-label="Piezas" />
+                      <NumericInput value={dim.piezas} onChange={n => actualizarDimension(i, 'piezas', n)} aria-label={`Piezas, fila ${i + 1}`} />
                     </TableCell>
                     <TableCell>
-                      <NumericInput value={dim.alto_cm} onChange={n => actualizarDimension(i, 'alto_cm', n)} decimals aria-label="Alto en centímetros" />
+                      <NumericInput value={dim.alto_cm} onChange={n => actualizarDimension(i, 'alto_cm', n)} decimals aria-label={`Alto en centímetros, fila ${i + 1}`} />
                     </TableCell>
                     <TableCell>
-                      <NumericInput value={dim.largo_cm} onChange={n => actualizarDimension(i, 'largo_cm', n)} decimals aria-label="Largo en centímetros" />
+                      <NumericInput value={dim.largo_cm} onChange={n => actualizarDimension(i, 'largo_cm', n)} decimals aria-label={`Largo en centímetros, fila ${i + 1}`} />
                     </TableCell>
                     <TableCell>
-                      <NumericInput value={dim.ancho_cm} onChange={n => actualizarDimension(i, 'ancho_cm', n)} decimals aria-label="Ancho en centímetros" />
+                      <NumericInput value={dim.ancho_cm} onChange={n => actualizarDimension(i, 'ancho_cm', n)} decimals aria-label={`Ancho en centímetros, fila ${i + 1}`} />
                     </TableCell>
                     <TableCell>
-                      <Input value={dim.peso_volumetrico_kg.toFixed(2)} readOnly aria-label="Peso volumétrico en kilogramos" className="h-8 bg-muted text-right tabular-nums" />
+                      <span className="block px-2 text-right tabular-nums">{dim.peso_volumetrico_kg.toFixed(2)}</span>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => eliminarFila(i)} disabled={dimensiones.length <= 1} className="h-8 w-8" aria-label="Eliminar fila">
+                      <Button type="button" variant="ghost" size="icon" onClick={() => eliminarFila(i)} disabled={dimensiones.length <= 1} className="h-8 w-8" aria-label={`Eliminar fila ${i + 1}`}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TableCell>

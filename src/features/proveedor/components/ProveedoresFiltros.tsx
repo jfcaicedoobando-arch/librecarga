@@ -12,6 +12,7 @@ import { TIPOS_PROVEEDOR } from "@/constants/proveedorConstants";
 type TipoProveedor = Enums<"tipo_proveedor">;
 export type OrigenFiltro = "todos" | "Nacional" | "Extranjero";
 export type TipoFiltro = "todos" | TipoProveedor;
+type FiltrosSnapshot = { search: string; origen: OrigenFiltro; tipoFiltro: TipoFiltro; pagina: number | null };
 
 interface Props {
   search: string;
@@ -21,15 +22,18 @@ interface Props {
   tipoFiltro: TipoFiltro;
   onTipoChange: (v: TipoFiltro) => void;
   onLimpiar: () => void;
+  snapshot: () => FiltrosSnapshot;
+  restore: (valores: FiltrosSnapshot) => void;
 }
 
 export function ProveedoresFiltros(props: Props) {
-  const { search, onSearchChange, origen, onOrigenChange, tipoFiltro, onTipoChange, onLimpiar } = props;
+  const { search, onSearchChange, origen, onOrigenChange, tipoFiltro, onTipoChange, onLimpiar, snapshot, restore } = props;
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const filtrosActivos: { label: string; onClear: () => void }[] = [];
   if (origen !== "todos") filtrosActivos.push({ label: `Origen: ${origen}`, onClear: () => onOrigenChange("todos") });
   if (tipoFiltro !== "todos") filtrosActivos.push({ label: `Tipo: ${tipoFiltro}`, onClear: () => onTipoChange("todos") });
+  const activeCount = filtrosActivos.length + Number(Boolean(search.trim()));
 
   const selectsContent = (
     <>
@@ -63,15 +67,11 @@ export function ProveedoresFiltros(props: Props) {
             <MobileFiltersSheet
               open={sheetOpen}
               onOpenChange={setSheetOpen}
-              activeCount={filtrosActivos.length}
+              activeCount={activeCount}
               onClearAll={onLimpiar}
               title="Filtros de proveedores"
-              snapshot={() => ({ origen, tipoFiltro })}
-              restore={(foto) => {
-                const prev = foto as { origen: OrigenFiltro; tipoFiltro: TipoFiltro };
-                onOrigenChange(prev.origen);
-                onTipoChange(prev.tipoFiltro);
-              }}
+              snapshot={snapshot}
+              restore={(foto) => restore(foto as FiltrosSnapshot)}
             >
               {selectsContent}
             </MobileFiltersSheet>
@@ -80,11 +80,6 @@ export function ProveedoresFiltros(props: Props) {
 
         <div className="hidden md:flex flex-wrap items-center gap-2">
           {selectsContent}
-          {filtrosActivos.length > 0 && (
-            <Button variant="ghost" size="sm" className="h-9" onClick={onLimpiar}>
-              Limpiar filtros
-            </Button>
-          )}
         </div>
 
         {filtrosActivos.length > 0 && (
@@ -103,6 +98,11 @@ export function ProveedoresFiltros(props: Props) {
               </Badge>
             ))}
           </div>
+        )}
+        {activeCount > 0 && (
+          <Button variant="ghost" size="sm" className="h-9" onClick={onLimpiar}>
+            Limpiar búsqueda y filtros
+          </Button>
         )}
       </CardContent>
     </Card>

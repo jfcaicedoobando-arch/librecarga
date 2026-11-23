@@ -46,8 +46,8 @@ export function CotizacionSuccessDialog({
   onEnviarProforma, onDuplicar, onCrearEmbarque, onIrAlListado, onVerDetalle,
   onGuardarComoPlantilla, estado, puedeCrearEmbarqueRol = false,
 }: Props) {
-  const puedeCrearEmbarque =
-    puedeCrearEmbarqueRol && ESTADOS_CONVERTIBLES.includes(String(estado ?? ""));
+  const cotizacionAceptada = ESTADOS_CONVERTIBLES.includes(estado ?? "");
+  const puedeCrearEmbarque = puedeCrearEmbarqueRol && cotizacionAceptada;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={dialogSize.md}>
@@ -71,7 +71,7 @@ export function CotizacionSuccessDialog({
             </Button>
           ) : (
             <Button variant="outline" onClick={onVerDetalle} className="h-auto min-h-10 justify-start whitespace-normal text-left">
-              <Truck className="h-4 w-4 mr-2" /> Ver cotización y aceptar
+              <Truck className="h-4 w-4 mr-2" /> {cotizacionAceptada ? "Ver estado del embarque" : "Ver cotización y aceptar"}
             </Button>
           )}
           <Button variant="outline" onClick={onDuplicar} className="justify-start">
@@ -84,7 +84,10 @@ export function CotizacionSuccessDialog({
 
         {!puedeCrearEmbarque && (
           <p className="pt-1 text-center text-label text-muted-foreground">
-            Aceptar la cotización no genera un embarque automáticamente. Después, un usuario con permiso debe seleccionar «Crear embarque» en el detalle. Si cotizaste a un prospecto, primero conviértelo en cliente.
+            {cotizacionAceptada
+              ? "Consulta en el detalle si se generó un embarque en borrador para revisión de Operaciones."
+              : "Al aceptar la cotización, puede generarse un embarque en borrador para que Operaciones lo revise y confirme."}
+            {" Si no se genera, un usuario con permiso puede elegir «Crear embarque» en el detalle. Si cotizaste a un prospecto, primero conviértelo en cliente."}
           </p>
         )}
 

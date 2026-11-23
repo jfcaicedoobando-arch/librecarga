@@ -16,6 +16,14 @@ import Empresa from "../EmpresaDetalle";
 import Contacto from "../ContactoDetalle";
 
 beforeEach(() => vi.clearAllMocks());
+
+it("ofrece enlaces nativos para contactar sin mezclar correo y teléfono", () => {
+  query.mockReturnValue({ data: { nombre: "Ana", email: "ana@ejemplo.test", telefono: "+525555555555" } });
+  render(<MemoryRouter><Contacto /></MemoryRouter>);
+  expect(screen.getByRole("link", { name: "ana@ejemplo.test" })).toHaveAttribute("href", "mailto:ana@ejemplo.test");
+  expect(screen.getByRole("link", { name: "+525555555555" })).toHaveAttribute("href", "tel:+525555555555");
+});
+
 describe.each([
   { nombre: "Empresa", Component: Empresa, lista: "/crm/empresas", error: "No se pudo cargar la empresa" },
   { nombre: "Contacto", Component: Contacto, lista: "/crm/contactos", error: "No se pudo cargar el contacto" },

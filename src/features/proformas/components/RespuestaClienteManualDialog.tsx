@@ -5,7 +5,7 @@
  *
  * Migrado a FormDialogShell (v13.152.0 — Oleada 3).
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,12 +39,16 @@ export function RespuestaClienteManualDialog({
   const qc = useQueryClient();
   const [motivo, setMotivo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [intentoRechazar, setIntentoRechazar] = useState(false);
+  const motivoRef = useRef<HTMLTextAreaElement>(null);
 
   const esAceptar = modo === "aceptada";
+  const motivoInvalido = !esAceptar && intentoRechazar && !motivo.trim();
 
   async function handleConfirmar() {
     if (!esAceptar && !motivo.trim()) {
-      notifyError(undefined, { title: "Indica el motivo de rechazo", method: "PROFORMAS_RESPUESTA_MANUAL_VALIDACION" });
+      setIntentoRechazar(true);
+      motivoRef.current?.focus();
       return;
     }
     setLoading(true);
@@ -104,7 +108,7 @@ export function RespuestaClienteManualDialog({
       title={esAceptar ? "Marcar aceptada por el cliente" : "Marcar rechazada por el cliente"}
       description={
         <>
-          Usa esta opción cuando el cliente confirmó la proforma{" "}
+          Usa esta opción cuando el cliente {esAceptar ? "aceptó" : "rechazó"} la proforma{" "}
           <span className="font-mono">{numero}</span> por otro canal (llamada, WhatsApp, email).
           Quedará registrada en bitácora con tu usuario.
         </>
@@ -118,6 +122,10 @@ export function RespuestaClienteManualDialog({
         </Label>
         <Textarea
           id="motivo-manual"
+          ref={motivoRef}
+          required={!esAceptar}
+          aria-invalid={motivoInvalido || undefined}
+          aria-describedby={motivoInvalido ? "motivo-manual-error" : undefined}
           value={motivo}
           onChange={(e) => setMotivo(e.target.value)}
           placeholder={
@@ -127,6 +135,9 @@ export function RespuestaClienteManualDialog({
           }
           rows={3}
         />
+        {motivoInvalido && (
+          <p id="motivo-manual-error" className="text-body-sm text-destructive" role="alert">Indica el motivo de rechazo.</p>
+        )}
       </div>
     </FormDialogShell>
   );

@@ -1,5 +1,6 @@
 /** Vista 1 del tarifario: Tarifas (Puertos base) con 20"/40" en una fila. */
 import { useMemo, useState } from "react";
+import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Mail, Plus, Upload } from "lucide-react";
 import { ImportarTarifasDialog } from "./ImportarTarifasDialog";
@@ -12,18 +13,22 @@ import { DataTable, defineColumns } from "@/components/shared/DataTable";
 import { costeo } from "../queryKeys";
 import { TarifaForm } from "@/features/costeo/components/TarifaForm";
 import { exportToCsv } from "@/generators/exportCsv";
-import { formatCurrency } from "@/lib/formatters/numbers";
+import { formatCurrency, formatNumber } from "@/lib/formatters/numbers";
 import { formatDate } from "@/lib/formatters/dates";
 import { hoyMx } from "@/lib/date/mx";
 import { agruparTarifas, FILTROS_VIGENCIA, listarTarifasTarifario, type FilaTarifario, type FiltroVigencia, type TarifaTarifario } from "./tarifarioService";
 
-const usd = (t: TarifaTarifario | null) => (t ? formatCurrency(t.flete_base, t.moneda || "USD") : "—");
+function importe(t: TarifaTarifario | null) {
+  if (!t) return "—";
+  return /^[A-Z]{3}$/.test(t.moneda) ? formatCurrency(t.flete_base, t.moneda) : formatNumber(t.flete_base);
+}
 const fecha = (d: string | null) => (d ? formatDate(d) : "—");
 
 const HEADERS = [
   { key: "origen", label: "Origen" }, { key: "destino", label: "Destino" }, { key: "tipo", label: "Tipo de carga" },
   { key: "agente", label: "Agente" }, { key: "naviera", label: "Naviera" },
-  { key: "t20", label: 'Tarifa 20" (USD)' }, { key: "t40", label: 'Tarifa 40" (USD)' },
+  { key: "t20", label: 'Tarifa 20"' }, { key: "moneda20", label: 'Moneda 20"' },
+  { key: "t40", label: 'Tarifa 40"' }, { key: "moneda40", label: 'Moneda 40"' },
   { key: "desde", label: "Inicio de la vigencia" }, { key: "hasta", label: "Término de la vigencia" },
   { key: "dias", label: "Días libres de demoras" }, { key: "obs", label: "Observaciones" },
 ] as const;
@@ -31,7 +36,8 @@ const HEADERS = [
 function aCsv(f: FilaTarifario) {
   return {
     origen: f.origen, destino: f.destino, tipo: "FCL", agente: f.agente, naviera: f.naviera,
-    t20: f.tarifa20?.flete_base ?? "", t40: f.tarifa40?.flete_base ?? "",
+    t20: f.tarifa20?.flete_base ?? "", moneda20: f.tarifa20?.moneda ?? "",
+    t40: f.tarifa40?.flete_base ?? "", moneda40: f.tarifa40?.moneda ?? "",
     desde: f.base.vigente_desde ?? "", hasta: f.base.vigente_hasta ?? "",
     dias: f.base.dias_libres_demoras ?? "", obs: f.base.notas ?? "",
   };
@@ -43,13 +49,24 @@ const columns = defineColumns<FilaTarifario>([
   { id: "tipo", header: "Tipo de carga", accessorFn: () => "FCL" },
   { accessorKey: "agente", header: "Agente" },
   { accessorKey: "naviera", header: "Naviera" },
-  { id: "t20", header: 'Tarifa 20" (USD)', accessorFn: (f) => usd(f.tarifa20) },
-  { id: "t40", header: 'Tarifa 40" (USD)', accessorFn: (f) => usd(f.tarifa40) },
+  { id: "t20", header: 'Tarifa 20"', accessorFn: (f) => importe(f.tarifa20) },
+  { id: "moneda20", header: 'Moneda 20"', accessorFn: (f) => f.tarifa20?.moneda ?? "—" },
+  { id: "t40", header: 'Tarifa 40"', accessorFn: (f) => importe(f.tarifa40) },
+  { id: "moneda40", header: 'Moneda 40"', accessorFn: (f) => f.tarifa40?.moneda ?? "—" },
   { id: "desde", header: "Inicio de la vigencia", accessorFn: (f) => fecha(f.base.vigente_desde) },
   { id: "hasta", header: "Término de la vigencia", accessorFn: (f) => fecha(f.base.vigente_hasta) },
   { id: "dias", header: "Días libres de demoras", accessorFn: (f) => f.base.dias_libres_demoras ?? "—" },
   { id: "obs", header: "Observaciones", accessorFn: (f) => f.base.notas ?? "" },
+  { id: "otros", header: "Otras tarifas", cell: ({ row }) => <OtrasTarifas fila={row.original} /> },
 ]);
+
+function OtrasTarifas({ fila }: { fila: FilaTarifario }) {
+  if (fila.otras.length === 0) return "—";
+  const label = `Otras tarifas en el catálogo: ${fila.otras.length}`;
+  if (!fila.base.ruta?.id) return label;
+  return <Link to={`/costeo/tarifas?ruta=${encodeURIComponent(fila.base.ruta.id)}`}
+    className="text-accent underline underline-offset-2">{label}</Link>;
+}
 
 export function TarifasBaseTab({ puedeEditar }: { puedeEditar: boolean }) {
   const [filtro, setFiltro] = useState<FiltroVigencia>("vigentes");

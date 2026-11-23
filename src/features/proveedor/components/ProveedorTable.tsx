@@ -24,30 +24,36 @@ interface Props {
   onCreateNew?: () => void;
 }
 
+function requiereCorregirPagina(pagina: number, ultimaPagina: number, consulta: ReturnType<typeof useProveedoresPaginados>) {
+  return pagina > ultimaPagina && consulta.isSuccess && !consulta.isPlaceholderData && !consulta.isFetching;
+}
+
 export function ProveedorTable({ tipo, search, origen, onTotalChange, onLimpiarFiltros, canCreate, onCreateNew }: Props) {
-  const { page, setPage, pageSize, setPageSize, resetPage } = useListPageState({}, 100, [50, 100, 200, 500]);
+  const { page, setPage, pageSize, setPageSize } = useListPageState({}, 100, [50, 100, 200, 500]);
   const debouncedSearch = useDebounce(search, 300);
 
-  useEffect(() => {
-    resetPage();
-  }, [debouncedSearch, origen, tipo, resetPage]);
-
-  const { data: resultado, isLoading, isError, isFetching, refetch } = useProveedoresPaginados({
+  const consulta = useProveedoresPaginados({
     tipo,
     search: debouncedSearch,
     page,
     pageSize,
     origen,
   });
+  const { data: resultado, isLoading, isError, isFetching, refetch } = consulta;
 
   const proveedores = resultado?.data ?? [];
   const totalCount = resultado?.count ?? 0;
-  const totalPages = Math.ceil(totalCount / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const ultimaPagina = totalPages - 1;
+  const recuperandoPagina = requiereCorregirPagina(page, ultimaPagina, consulta);
   const hayFiltros = [search.trim(), tipo, origen === "todos" ? null : origen].some(Boolean);
 
   useEffect(() => {
     if (!isError) onTotalChange?.(totalCount);
   }, [isError, totalCount, onTotalChange]);
+  useEffect(() => {
+    if (recuperandoPagina) setPage(ultimaPagina);
+  }, [recuperandoPagina, setPage, ultimaPagina]);
 
   if (isError) {
     return (
@@ -68,7 +74,7 @@ export function ProveedorTable({ tipo, search, origen, onTotalChange, onLimpiarF
         <ResponsiveDataTable
           columns={proveedorColumns}
           data={proveedores}
-          isLoading={isLoading && proveedores.length === 0}
+          isLoading={recuperandoPagina || (isLoading && proveedores.length === 0)}
           emptyMessage={hayFiltros ? "Sin proveedores con estos filtros" : "Sin proveedores registrados"}
           emptyState={
             <EmptyState
@@ -78,7 +84,7 @@ export function ProveedorTable({ tipo, search, origen, onTotalChange, onLimpiarF
                 ? "Ajusta la búsqueda o limpia los filtros para volver al directorio."
                 : "Registra tu primer proveedor para llevar el control de compras y gastos."}
               primaryAction={!hayFiltros && canCreate && onCreateNew ? { label: "Crear proveedor", onClick: onCreateNew } : undefined}
-              secondaryAction={hayFiltros ? { label: "Limpiar filtros", onClick: onLimpiarFiltros } : undefined}
+              secondaryAction={hayFiltros ? { label: "Limpiar búsqueda y filtros", onClick: onLimpiarFiltros } : undefined}
             />
           }
           getRowHref={(p) => `/proveedores/${p.id}`}

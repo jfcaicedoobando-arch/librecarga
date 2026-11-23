@@ -81,7 +81,7 @@ export const ProximosArribosCard = memo(function ProximosArribosCard({ arribos, 
       </CardHeader>
       <CardContent className="space-y-2">
         {renderBody()}
-        {!isLoading && <DashboardListaVerMas total={arribos.length} ruta="/embarques" etiqueta="embarques" />}
+        {!isLoading && <DashboardListaVerMas total={arribos.length} ruta="/embarques" etiqueta="Abrir todos los embarques" />}
       </CardContent>
     </Card>
   );

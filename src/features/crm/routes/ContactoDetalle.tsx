@@ -10,13 +10,25 @@ import { useContactoCrm } from "@/features/crm/hooks/useObjetosCrm";
 import { PropiedadesCard } from "@/features/crm/components/objetos/PropiedadesCard";
 import { VinculosCard } from "@/features/crm/components/objetos/VinculosCard";
 
+function DatosContacto({ email, telefono }: { email: string | null; telefono: string | null }) {
+  const correo = email?.trim();
+  const numero = telefono?.trim();
+  if (!correo && !numero) return "Sin correo ni teléfono";
+  return (
+    <span className="flex flex-wrap gap-x-4 gap-y-1">
+      {correo && <span>Correo: <a className="text-primary underline break-all" href={`mailto:${correo}`}>{correo}</a></span>}
+      {numero && <span>Teléfono: <a className="text-primary underline" href={`tel:${numero}`}>{numero}</a></span>}
+    </span>
+  );
+}
+
 export default function CrmContactoDetalle() {
   const { id = "" } = useParams<{ id: string }>();
   const { data, isLoading, isError, refetch } = useContactoCrm(id);
   const { canEditCrm } = usePermissions();
   useDocumentTitle(data ? `Contacto · ${data.nombre}` : "Contacto");
 
-  const datos = data ? [data.email, data.telefono].filter(Boolean).join(" · ") || "Sin correo ni teléfono" : undefined;
+  const datos = data ? <DatosContacto email={data.email} telefono={data.telefono} /> : undefined;
   return (
     <PageContainer>
       <DetailHeader backTo="/crm/contactos" icon={<UserRound className="size-6 text-accent" />} title={data?.nombre ?? "Contacto"} subtitle={datos} />

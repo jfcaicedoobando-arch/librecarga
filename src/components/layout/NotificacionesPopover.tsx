@@ -1,3 +1,4 @@
+import { useId, useRef } from "react";
 import { Bell, Check } from "lucide-react";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
@@ -19,6 +20,8 @@ import {
 
 export function NotificacionesPopover() {
   const navigate = useNavigate();
+  const headingId = useId();
+  const headerRef = useRef<HTMLDivElement>(null);
   const { notificaciones, isSuccess, isError, isFetching, refetch, noLeidas, marcarLeida, marcarTodasLeidas } =
     useNotificacionesInternas();
 
@@ -36,12 +39,13 @@ export function NotificacionesPopover() {
               variant="ghost"
               size="icon"
               className="relative min-h-11 min-w-11 md:h-8 md:w-8 md:min-h-0 md:min-w-0"
-              aria-label="Notificaciones"
+              aria-label={noLeidas > 0 ? `Notificaciones, ${noLeidas} sin leer` : "Notificaciones"}
             >
               <Bell className="h-4 w-4" />
               {noLeidas > 0 && (
                 <Badge
                   variant="destructive"
+                  aria-hidden="true"
                   className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-2xs font-semibold leading-none flex items-center justify-center rounded-full"
                 >
                   {noLeidas > 9 ? "9+" : noLeidas}
@@ -55,10 +59,20 @@ export function NotificacionesPopover() {
         </TooltipContent>
       </Tooltip>
 
-      <PopoverContent align="end" className="w-80 p-0">
-        <div className="border-b px-3 py-2">
+      <PopoverContent
+        align="end"
+        className="w-80 p-0"
+        aria-labelledby={headingId}
+        onOpenAutoFocus={(event) => {
+          if (!headerRef.current) return;
+          event.preventDefault();
+          headerRef.current.focus();
+        }}
+      >
+        <div ref={headerRef} tabIndex={-1} className="border-b px-3 py-2">
           <SectionHeading
             as="h3"
+            id={headingId}
             variant="subsection"
             actions={
               noLeidas > 0 ? (
@@ -68,7 +82,7 @@ export function NotificacionesPopover() {
                   className="h-6 px-2 text-xs"
                   onClick={() => marcarTodasLeidas()}
                 >
-                  <Check className="mr-1 h-3 w-3" /> Marcar todas
+                  <Check className="mr-1 h-3 w-3" /> Marcar todas como leídas
                 </Button>
               ) : undefined
             }
@@ -104,10 +118,11 @@ export function NotificacionesPopover() {
                   >
                     <div className="flex items-start gap-2">
                       {!n.leida && (
-                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                        <span aria-hidden="true" className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-medium truncate">
+                          {!n.leida && <span className="sr-only">No leída. </span>}
                           {n.titulo}
                         </div>
                         <div className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">

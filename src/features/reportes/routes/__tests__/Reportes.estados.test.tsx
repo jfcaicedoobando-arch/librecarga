@@ -85,6 +85,15 @@ describe("Reportes — ramas excluyentes", () => {
     await screen.findByTestId("chart");
   });
 
+  it("explica junto al control el bloqueo de exportación por tipos de cambio faltantes", () => {
+    mockCtrl.mockReturnValue({ ...BASE, canExport: false, hayEmbarquesSinTc: true, kpis: { ...BASE.kpis, embarquesSinTc: 3 } });
+    renderPage();
+    expect(screen.getByText("Exportación no disponible hasta resolver el tipo de cambio de 3 embarques.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "PDF" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^Exportar$/ })).toBeDisabled();
+  });
+
   it("data: contenido visible", () => {
     mockCtrl.mockReturnValue(BASE);
     renderPage();

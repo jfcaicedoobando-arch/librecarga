@@ -51,8 +51,13 @@ export function BandejaPorFacturar() {
           <span className="tabular-nums">{formatCurrency(totalMxn, "MXN")}</span>
         </div>
 
-        <Button size="sm" variant="outline" onClick={exportarCsv} disabled={filas.length === 0 || isError}>
-          <Download className="h-4 w-4 mr-2" /> CSV
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => exportarCsv(paged.filteredRows)}
+          disabled={paged.filteredCount === 0 || isLoading || isError}
+        >
+          <Download className="h-4 w-4 mr-2" /> CSV de resultados filtrados
         </Button>
       </div>
 
@@ -87,21 +92,24 @@ export function BandejaPorFacturar() {
               pagination={paged.pagination}
               mobileCard={(row) => {
                 const d = row.diasDesdeEta;
-                const label = d < 0 ? `faltan ${Math.abs(d)} d` : `${d} d`;
+                const dias = `${Math.abs(d)} ${Math.abs(d) === 1 ? "día" : "días"}`;
+                const label = d < 0 ? `ETA en ${dias}` : d > 0 ? `${dias} desde ETA` : "ETA hoy";
                 const tone = getDiasVencidosTone(d);
                 return (
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="font-semibold text-body truncate font-mono">{row.expediente || "—"}</div>
                       <div className="text-body-sm text-muted-foreground truncate mt-0.5">{toTitleCase(row.cliente_nombre)}</div>
-                      <div className="text-label text-muted-foreground mt-0.5">
-                        ETA {formatDate(row.eta)} · {formatCurrency(row.ventaUsd, "USD")}
+                      <div className="text-label text-muted-foreground mt-0.5">ETA {formatDate(row.eta)}</div>
+                      <div className="flex flex-wrap gap-x-2 text-body-sm tabular-nums">
+                        {(row.ventaUsd !== 0 || row.ventaMxn === 0) && <span>{formatCurrency(row.ventaUsd, "USD")}</span>}
+                        {row.ventaMxn !== 0 && <span>{formatCurrency(row.ventaMxn, "MXN")}</span>}
                       </div>
                     </div>
                     <Badge
                       variant="outline"
                       className={cn(
-                        "tabular-nums font-semibold whitespace-nowrap",
+                        "tabular-nums font-semibold whitespace-normal text-left",
                         tone === "destructive" && "bg-destructive/10 text-destructive border-destructive/30",
                         tone === "warning" && "bg-warning/10 text-warning border-warning/30",
                         tone === "default" && "bg-muted text-foreground",

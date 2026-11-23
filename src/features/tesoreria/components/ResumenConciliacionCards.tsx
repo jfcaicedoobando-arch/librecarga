@@ -4,6 +4,7 @@
  */
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import type { ConciliacionResumen } from "@/features/tesoreria/services";
 
@@ -11,11 +12,25 @@ interface Props {
   resumen?: ConciliacionResumen;
   moneda: string;
   isLoading: boolean;
+  isError: boolean;
+  retrying: boolean;
+  onRetry: () => void;
   /** Saldo actual de la cuenta (saldo inicial + abonos - cargos). */
   saldo?: number;
 }
 
-export function ResumenConciliacionCards({ resumen, moneda, isLoading, saldo }: Props) {
+export function ResumenConciliacionCards({ resumen, moneda, isLoading, isError, retrying, onRetry, saldo }: Props) {
+  if (isError) {
+    return (
+      <ErrorStateInline
+        title="No se pudo consultar el resumen"
+        message="Puedes seguir revisando los movimientos de la cuenta mientras reintentas las cifras."
+        onRetry={onRetry}
+        retrying={retrying}
+      />
+    );
+  }
+
   const items: Array<{ label: string; valor: string; tone?: string }> = resumen
     ? [
         {
