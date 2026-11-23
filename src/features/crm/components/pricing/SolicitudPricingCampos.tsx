@@ -15,6 +15,8 @@ import {
 import { MODALIDADES_NEGOCIO, incotermsDe, submodalidadesDe } from "@/features/crm/services/pricing/modoPricing";
 import { CampoLista, CampoSiNo, CampoTexto } from "./CamposPricing";
 import { CamposCargaDetalle } from "./CamposCargaDetalle";
+import { CamposMedidasAereo } from "./CamposMedidasAereo";
+import { RutaAerea } from "./RutaAerea";
 import { TIPOS } from "@/constants/wizardConstants";
 import { SECTORES } from "@/constants/cotizacionMercancia";
 
@@ -51,6 +53,7 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
     if (!submodalidadesDe(v).includes(datos.submodalidad ?? "")) set("submodalidad", null);
     if (datos.incoterm && !incotermsDe(v).includes(datos.incoterm)) set("incoterm", null);
   };
+  const aereo = datos.servicio === "Aéreo";
   return (
     <>
       <FormDialogSection title="Datos generales">
@@ -85,10 +88,12 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
         <CampoTexto id="pr-peso" label="Weight" {...d} value={datos.peso} onChange={txt("peso")} />
         <CampoLista id="pr-unidad-medida" label="Units of measurement" {...d} value={datos.unidad_medida}
           opciones={unidadesMedidaCaptura(datos.unidad_medida)} onChange={(v) => set("unidad_medida", v)} />
-        <CampoTexto id="pr-dim" label="Dimensions" {...d} value={datos.dimensiones} onChange={txt("dimensiones")} />
+        {aereo ? <CamposMedidasAereo datos={datos} set={set} disabled={disabled} />
+          : <CampoTexto id="pr-dim" label="Dimensions" {...d} value={datos.dimensiones} onChange={txt("dimensiones")} />}
         <CamposCargaDetalle datos={datos} set={set} disabled={disabled} />
       </FormDialogSection>
       <FormDialogSection title="Ruta">
+        {aereo ? <RutaAerea datos={datos} set={set} disabled={disabled} /> : (<>
         <fieldset className="col-span-full grid min-w-0 gap-3 rounded-md border p-3 sm:grid-cols-2">
           <legend className="px-1 text-body-sm font-medium">Origen (país o puerto)</legend>
           <CampoLista id="pr-origen" label="País de origen" {...d} value={datos.origen}
@@ -103,6 +108,7 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
           <CampoPuerto id="pr-pod" label="Puerto de destino" {...d} pais={datos.destino} value={datos.pod}
             puertos={puertos} excluirEtiqueta={datos.pol} onChange={(v) => set("pod", v)} />
         </fieldset>
+        </>)}
         <CampoTexto id="pr-carga" label="Fecha tentativa de carga" type="date" {...d} value={datos.fecha_tentativa_carga}
           onChange={txt("fecha_tentativa_carga")} />
         <CampoTexto id="pr-delivery" label="Delivery" {...d} value={datos.delivery} onChange={txt("delivery")} />
