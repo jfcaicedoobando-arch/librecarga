@@ -79,6 +79,9 @@ export function useCargaCostosTarifa({ getValues, captura, markup, setFilas }: A
     try {
       // Aéreo/Terrestre: precio real de la tarifa (rangos de peso, mínimo o por viaje).
       const multimodo = modo !== "Marítimo" ? await fetchTarifaMultimodoVinculada(tarifaId) : null;
+      if (!vigente()) return;
+      // Una tarifa marítima retenida nunca genera costos en una cotización aérea o terrestre.
+      if (modo !== "Marítimo" && !multimodo) { setEstado({ ...solicitud, fase: "lista" }); return; }
       const tarifa = multimodo ? null : seleccionada ?? await fetchTarifaVinculada(tarifaId);
       if (!vigente()) return;
       if (!multimodo && !tarifa) throw new Error("La tarifa vinculada ya no está disponible.");
