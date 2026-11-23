@@ -1,5 +1,5 @@
 import { assertEquals, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import { conciliarRepIsr, type PrevalidacionRepIsr } from "./conciliarRepIsr.ts";
 import { obtenerEvidenciaRepIsr } from "./evidenciaRepIsr.ts";
 import { basicAuthHeader, FACTURAPI_BASE } from "./facturapiAuth.ts";

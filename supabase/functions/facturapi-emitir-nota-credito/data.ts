@@ -2,7 +2,7 @@
  * Helpers de carga de datos para facturapi-emitir-nota-credito.
  * Aíslan ramas/`??` para reducir la complejidad ciclomática del handler.
  */
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import type { NotaCreditoContext, ConceptoNC, ReferenciasEmbarque } from "./helpers.ts";
 import { MENSAJE_PERFIL_CFDI_ORIGEN, perfilCfdiOrigen, type PerfilCfdiOrigen } from "../_shared/perfilCfdiOrigen.ts";
 

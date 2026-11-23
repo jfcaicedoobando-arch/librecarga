@@ -8,21 +8,24 @@ import { assertExactPaths, buildCatalog, hash, writeJson } from "./test-catalog.
 
 const require = createRequire(import.meta.url);
 const relative = (root: string, file: string) => path.relative(root, file).split(path.sep).join("/");
-const key = (entry: { path: string; project: string }) => `${entry.project}:${entry.path}`;
+type Entry = { path: string; project: string };
+const key = (entry: Entry) => `${entry.project}:${entry.path}`;
 
 export default class EvidenceReporter implements Reporter {
   private started = Date.now();
   private root = process.cwd();
   private directory = process.env.CI_EVIDENCE_DIR ?? "reports/ci-evidence";
   private catalog = buildCatalog(this.root);
-  private discovered: { path: string; project: string }[] = [];
-  private selected: { path: string; project: string }[] = [];
+  private discovered: Entry[] = [];
+  private selected: Entry[] = [];
+  private assigned = new Set<string>();
+  private queued = new Set<string>();
   private shard: { index: number; total: number; maxParallel: number | null } = { index: 1, total: 1, maxParallel: null };
   private pool = "forks";
   private isolate = true;
   private maxWorkers = 0;
 
-  onInit(vitest: Vitest) {
+  async onInit(vitest: Vitest) {
     this.root = vitest.config.root;
     this.maxWorkers = vitest.config.maxWorkers;
     const configured = vitest.config.shard ?? { index: 1, count: 1 };
@@ -32,6 +35,14 @@ export default class EvidenceReporter implements Reporter {
     if (maxParallel !== null && (!Number.isSafeInteger(maxParallel) || maxParallel < 1 || maxParallel > configured.count)) throw new Error("Invalid CI_TEST_MAX_PARALLEL");
     this.shard = { index: configured.index, total: configured.count, maxParallel };
     writeJson(path.join(this.directory, "inventory.json"), this.catalog);
+
+    // Since Vitest 5.1.1, onTestRunStart gets only this shard. Discover every
+    // project independently of --shard with the public Vitest API.
+    this.discovered = (await vitest.globTestSpecifications())
+      .map(spec => this.entry(spec))
+      .sort((a, b) => key(a).localeCompare(key(b)));
+    const expected = this.catalog.entries.filter(entry => entry.lane === "vitest-normal").map(entry => entry.path);
+    assertExactPaths(expected, this.discovered.map(item => item.path), "Vitest full discovery");
   }
 
   onTestRunStart(specifications: readonly TestSpecification[]) {
@@ -40,24 +51,30 @@ export default class EvidenceReporter implements Reporter {
       this.pool = spec.project.config.pool;
       this.isolate = spec.project.config.isolate;
     }
-    // Vitest 5 calls this hook BEFORE its sequencer applies --shard.
-    this.discovered = specifications.map(spec => ({ path: relative(this.root, spec.moduleId), project: spec.project.name })).sort((a, b) => key(a).localeCompare(key(b)));
-    const expected = this.catalog.entries.filter(entry => entry.lane === "vitest-normal").map(entry => entry.path);
-    assertExactPaths(expected, this.discovered.map(item => item.path), "Vitest full discovery");
-    for (const item of this.discovered) {
-      if (!["node", "jsdom"].includes(item.project)) throw new Error(`Unexpected Vitest project: ${key(item)}`);
+    this.selected = specifications.map(spec => this.entry(spec));
+    this.assigned = new Set(this.selected.map(key));
+    const discovered = new Set(this.discovered.map(key));
+    if (this.selected.length === 0 || new Set(this.selected.map(item => item.path)).size !== this.selected.length) {
+      throw new Error("Vitest shard assignment is empty or has duplicate paths");
     }
-    this.selected = [];
+    for (const assigned of this.assigned) {
+      if (!discovered.has(assigned)) throw new Error(`Unexpected assigned module: ${assigned}`);
+    }
+    this.queued.clear();
     // A killed process leaves explicit incomplete evidence, never a synthetic pass.
     this.save([], 0, "running");
   }
 
+  private entry(spec: TestSpecification): Entry {
+    const entry = { path: relative(this.root, spec.moduleId), project: spec.project.name };
+    if (!["node", "jsdom"].includes(entry.project)) throw new Error(`Unexpected Vitest project: ${key(entry)}`);
+    return entry;
+  }
+
   onTestModuleQueued(module: TestModule) {
-    // This public hook is post-shard. It records assigned work before execution,
-    // so a queued file that never finishes cannot disappear from the evidence.
-    const selected = { path: relative(this.root, module.moduleId), project: module.project.name };
-    if (!this.discovered.some(item => key(item) === key(selected)) || this.selected.some(item => item.path === selected.path)) throw new Error(`Unexpected/duplicate queued module: ${key(selected)}`);
-    this.selected.push(selected);
+    const queued = key({ path: relative(this.root, module.moduleId), project: module.project.name });
+    if (!this.assigned.has(queued) || this.queued.has(queued)) throw new Error(`Unexpected/duplicate queued module: ${queued}`);
+    this.queued.add(queued);
   }
 
   onTestRunEnd(modules: readonly TestModule[], errors: readonly unknown[], reason: string) {
@@ -86,7 +103,8 @@ export default class EvidenceReporter implements Reporter {
     }).sort((a, b) => key(a).localeCompare(key(b)));
     this.save(files, errors.length, reason);
     // Vitest already fails assertions/imports. This additionally catches missing modules.
-    assertExactPaths(this.selected.map(key), files.map(key), "Vitest selected/executed");
+    assertExactPaths([...this.assigned], [...this.queued], "Vitest selected/queued");
+    assertExactPaths([...this.assigned], files.map(key), "Vitest selected/executed");
   }
 
   private save(files: object[], unhandledErrors: number, status: string) {

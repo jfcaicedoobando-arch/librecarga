@@ -9,7 +9,7 @@
  * `ejecutar.ts`. Los documentos que no alcanzan a iniciarse quedan intactos
  * (`resumen.diferidos`) y son los primeros de la corrida siguiente.
  */
-import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import { wrapEdgeHandler, captureEdgeException } from "../_shared/sentry.ts";
 import { getFacturapiClient } from "../_shared/facturapiClient.ts";
 import type { FacturapiAmbiente } from "../_shared/facturapiAuth.ts";
