@@ -6,13 +6,18 @@
  */
 import { FileSearch, Clock, CalendarX } from "lucide-react";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { LoadingState } from "@/components/shared/states/LoadingState";
 import type { DiagnosticoTarifas } from "@/features/costeo/services/diagnosticoTarifas";
 
 export interface TarifasSinResultadoProps {
   diagnostico?: DiagnosticoTarifas;
+  consultando: boolean;
 }
 
-export function TarifasSinResultado({ diagnostico }: TarifasSinResultadoProps) {
+export function TarifasSinResultado({ diagnostico, consultando }: TarifasSinResultadoProps) {
+  if (consultando) {
+    return <LoadingState label="Comprobando si hay tarifas pendientes o vencidas…" minHeight="min-h-24" />;
+  }
   if (diagnostico === "pendiente") {
     return (
       <EmptyStateInline
@@ -35,7 +40,7 @@ export function TarifasSinResultado({ diagnostico }: TarifasSinResultadoProps) {
     <EmptyStateInline
       icon={FileSearch}
       message="No hay tarifas vigentes para esta combinación."
-      hint="Captura una nueva en “Solicitudes de pricing”."
+      hint={diagnostico === "ninguna" ? "Captura una nueva en “Solicitudes de pricing”." : undefined}
     />
   );
 }

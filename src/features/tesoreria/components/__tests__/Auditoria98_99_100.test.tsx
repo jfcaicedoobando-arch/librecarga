@@ -47,7 +47,7 @@ describe("Tesorería AUD98/99/100 visible", () => {
   it("devolución se etiqueta como entrada del proveedor y los KPIs conservan el bruto", () => {
     render(<MemoryRouter><BloquePago pago={devolucion} /></MemoryRouter>);
     expect(screen.getByText("Devolución de anticipo")).toBeInTheDocument();
-    render(<LibroPagosKpis isLoading={false} totales={{
+    render(<LibroPagosKpis isLoading={false} isError={false} totales={{
       cobradoMxn: 0, pagadoMxn: 0.03, devueltoMxn: 0.03, netoMxn: 0, conteo: 2, sinTcCount: 0,
     }} />);
     expect(screen.getByText("Dinero recibido")).toBeInTheDocument();
@@ -55,5 +55,19 @@ describe("Tesorería AUD98/99/100 visible", () => {
     expect(screen.getByText("Pagado a proveedores")).toBeInTheDocument();
     expect(screen.getByText(/Devoluciones de anticipos: MXN 0.03/)).toBeInTheDocument();
     expect(screen.getByText("Neto del periodo")).toBeInTheDocument();
+  });
+
+  it("distingue totales no disponibles de un período de cero pagos", () => {
+    const totales = { cobradoMxn: 0, pagadoMxn: 0, devueltoMxn: 0, netoMxn: 0, conteo: 0, sinTcCount: 0 };
+    const { rerender } = render(<LibroPagosKpis isLoading={false} isError totales={totales} />);
+
+    expect(screen.getAllByText("N/D")).toHaveLength(4);
+    expect(screen.getByText("No se pudieron cargar los totales del período.")).toBeInTheDocument();
+    expect(screen.queryByText("MXN 0.00", { exact: true })).not.toBeInTheDocument();
+
+    rerender(<LibroPagosKpis isLoading={false} isError={false} totales={totales} />);
+    expect(screen.queryByText("N/D")).not.toBeInTheDocument();
+    expect(screen.getAllByText("MXN 0.00", { exact: true })).toHaveLength(3);
+    expect(screen.getByText("0", { exact: true })).toBeInTheDocument();
   });
 });

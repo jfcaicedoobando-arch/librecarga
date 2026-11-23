@@ -6,9 +6,10 @@
  *   - Cambiar de tab dispara un nuevo fetch con el estado seleccionado.
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 
 vi.mock("@/features/cxp/hooks", () => ({
   useFacturasCxP: vi.fn(() => ({ data: [], isLoading: false, kpis: {} })),
@@ -26,23 +27,21 @@ vi.mock("@/features/cxp/hooks", () => ({
 }));
 vi.mock("@/hooks/shared", async () => ({
   ...(await import("@/hooks/shared/useCargaExpirada")),
+  ...(await import("@/hooks/shared/useFiltroUrl")),
   usePermissions: () => ({ canEdit: true }),
-  useFiltroUrl: <T,>(_clave: string, _validos: readonly T[], porDefecto: T) => [
-    porDefecto,
-    vi.fn(),
-  ],
-  useTextoUrl: (_clave: string, porDefecto = "") => [porDefecto, vi.fn()],
 }));
 
 import ComprasPorAprobar from "../ComprasPorAprobar";
 import { useFacturasCxP } from "@/features/cxp/hooks";
 
-function renderPage() {
+function renderPage(searchParams = "") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={["/compras/por-aprobar"]}>
-        <ComprasPorAprobar />
+        <NuqsTestingAdapter hasMemory searchParams={searchParams}>
+          <ComprasPorAprobar />
+        </NuqsTestingAdapter>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -70,5 +69,16 @@ describe("<ComprasPorAprobar />", () => {
   it("muestra empty state cuando no hay filas", () => {
     renderPage();
     expect(screen.getByText(/No hay solicitudes pendientes/i)).toBeInTheDocument();
+  });
+
+  it("distingue una búsqueda sin coincidencias y permite volver a la bandeja del mismo estado", async () => {
+    renderPage("?q=inexistente&estado=aprobada");
+    expect(screen.getByRole("heading", { name: "No hay coincidencias" })).toBeInTheDocument();
+    expect(useFacturasCxP).toHaveBeenCalledWith({ aprobacion: "aprobada", search: "inexistente" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar búsqueda" }));
+
+    expect(await screen.findByRole("heading", { name: "No hay facturas aprobadas" })).toBeInTheDocument();
+    expect(useFacturasCxP).toHaveBeenCalledWith({ aprobacion: "aprobada", search: undefined });
   });
 });

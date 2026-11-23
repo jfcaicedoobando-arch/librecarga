@@ -11,9 +11,9 @@ export interface PortalResumenSaldo {
 }
 
 export interface PortalSaldoDerivado {
-  totalPagado: number;
-  totalNc: number;
-  saldo: number;
+  totalPagado: number | null;
+  totalNc: number | null;
+  saldo: number | null;
   liquidada: boolean;
   hayMovimientos: boolean;
   /** Las listas visibles están topadas aunque los totales sean completos. */
@@ -34,9 +34,9 @@ export function derivarSaldoPortal(
   const terminal = estadoFactura === "Pagada" || estadoFactura === "Cancelada";
   const num = (v: number | null | undefined): number => v ?? 0;
   return {
-    totalPagado: num(resumen?.pagado),
-    totalNc: num(resumen?.notasCredito),
-    saldo: terminal ? 0 : num(resumen?.saldo),
+    totalPagado: resumen?.pagado ?? null,
+    totalNc: resumen?.notasCredito ?? null,
+    saldo: terminal ? 0 : resumen?.saldo ?? null,
     liquidada: terminal || num2bool(resumen?.liquidada),
     hayMovimientos: num(resumen?.numPagos) > 0 || num(resumen?.numNotas) > 0,
     listaTruncada:

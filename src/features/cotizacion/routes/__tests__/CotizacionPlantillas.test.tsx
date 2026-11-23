@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, useLocation } from "react-router";
 import type { ReactNode } from "react";
 import CotizacionPlantillas from "@/features/cotizacion/routes/CotizacionPlantillas";
 
@@ -77,6 +77,11 @@ function wrapper({ children }: { children: ReactNode }) {
   );
 }
 
+function UbicacionActual() {
+  const { pathname, search } = useLocation();
+  return <output>{pathname}{search}</output>;
+}
+
 describe("CotizacionPlantillas página (P2 cierre)", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -112,5 +117,14 @@ describe("CotizacionPlantillas página (P2 cierre)", () => {
       expect(screen.queryByText("Shanghai → MZLO")).not.toBeInTheDocument(),
     );
     expect(screen.getByText("Nueva particular")).toBeInTheDocument();
+  });
+
+  it("abre la nueva cotización con el ID de la fila seleccionada", async () => {
+    render(<><CotizacionPlantillas /><UbicacionActual /></>, { wrapper });
+    const menu = await screen.findByRole("button", { name: "Acciones Nueva particular" });
+    fireEvent.keyDown(menu, { key: "Enter" });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Usar en cotización" }));
+
+    expect(screen.getByText("/cotizaciones/nueva?plantilla=p2")).toBeInTheDocument();
   });
 });

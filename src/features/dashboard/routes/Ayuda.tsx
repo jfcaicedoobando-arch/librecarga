@@ -14,6 +14,10 @@ import { GLOSARIO, MODULOS } from "./ayudaContent";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { GuiaPrimerosPasos } from "@/features/dashboard/components/primeros-pasos/GuiaPrimerosPasos";
 
+function normalizarBusqueda(texto: string): string {
+  return texto.normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase();
+}
+
 /**
  * Página /ayuda — onboarding y referencia rápida para el usuario final.
  * Contenido en src/features/dashboard/routes/ayudaContent.ts.
@@ -23,21 +27,21 @@ export default function Ayuda() {
   const [search, setSearch] = useState("");
 
   const glosarioFiltrado = useMemo(() => {
-    if (!search) return GLOSARIO;
-    const s = search.toLowerCase();
+    const termino = normalizarBusqueda(search);
+    if (!termino) return GLOSARIO;
     return GLOSARIO.filter(
-      (g) => g.termino.toLowerCase().includes(s) || g.definicion.toLowerCase().includes(s),
+      (g) => normalizarBusqueda(g.termino).includes(termino) || normalizarBusqueda(g.definicion).includes(termino),
     );
   }, [search]);
 
   const modulosFiltrados = useMemo(() => {
-    if (!search) return MODULOS;
-    const s = search.toLowerCase();
+    const termino = normalizarBusqueda(search);
+    if (!termino) return MODULOS;
     return MODULOS
       .map((m) => ({
         ...m,
         faqs: m.faqs.filter(
-          (f) => f.pregunta.toLowerCase().includes(s) || f.respuesta.toLowerCase().includes(s),
+          (f) => normalizarBusqueda(f.pregunta).includes(termino) || normalizarBusqueda(f.respuesta).includes(termino),
         ),
       }))
       .filter((m) => m.faqs.length > 0);
@@ -77,7 +81,7 @@ export default function Ayuda() {
         </TabsList>
 
         <TabsContent value="faq" className="space-y-4">
-          {!search && (
+          {!search.trim() && (
             <Card>
               <CardContent className="p-4">
                 <p className="text-overline font-semibold mb-2">

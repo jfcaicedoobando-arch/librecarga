@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import type { DiagnosticoTarifas } from "@/features/costeo/services/diagnosticoTarifas";
 
 vi.mock("@/features/catalogos/hooks", () => ({
   usePuertos: () => ({
@@ -21,6 +22,10 @@ const useTopTarifasMock = vi.fn();
 vi.mock("@/features/costeo/hooks/useTopTarifas", () => ({
   useTopTarifas: (...args: unknown[]) => useTopTarifasMock(...args),
 }));
+const diagnosticoMock = vi.fn<() => { diagnostico?: DiagnosticoTarifas; isFetching: boolean }>();
+vi.mock("@/features/costeo/hooks/useDiagnosticoTarifas", () => ({
+  useDiagnosticoTarifas: () => diagnosticoMock(),
+}));
 
 import { BuscarTarifaDialog } from "../BuscarTarifaDialog";
 import { createWrapper } from "@/test/utils/queryWrapper";
@@ -33,6 +38,7 @@ const initial = {
 
 beforeEach(() => {
   useTopTarifasMock.mockReset();
+  diagnosticoMock.mockReturnValue({ diagnostico: "ninguna", isFetching: false });
 });
 
 describe("BuscarTarifaDialog — estado error vs empty-state excluyente", () => {
@@ -76,5 +82,21 @@ describe("BuscarTarifaDialog — estado error vs empty-state excluyente", () => 
     render(<BuscarTarifaDialog open onOpenChange={() => {}} initial={initial} />, { wrapper: createWrapper() });
     fireEvent.click(screen.getByRole("button", { name: /reintentar/i }));
     expect(refetch).toHaveBeenCalled();
+  });
+
+  it("espera el diagnóstico antes de sugerir alta y explica si hay una tarifa pendiente", () => {
+    useTopTarifasMock.mockReturnValue({
+      data: [], isFetching: false, error: null, refetch: vi.fn(), isRefetching: false,
+    });
+    diagnosticoMock.mockReturnValue({ isFetching: true });
+    const vista = () => <BuscarTarifaDialog open onOpenChange={vi.fn()} initial={initial} />;
+    const { rerender } = render(vista(), { wrapper: createWrapper() });
+    expect(screen.getByRole("status")).toHaveTextContent("Comprobando si hay tarifas pendientes o vencidas");
+    expect(screen.queryByText(/Captura una nueva/i)).not.toBeInTheDocument();
+
+    diagnosticoMock.mockReturnValue({ diagnostico: "pendiente", isFetching: false });
+    rerender(vista());
+    expect(screen.getByText(/pendiente de aprobación/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Captura una nueva/i)).not.toBeInTheDocument();
   });
 });

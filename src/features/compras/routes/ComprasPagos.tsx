@@ -31,7 +31,7 @@ import {
 
 export default function ComprasPagos() {
   const {
-    desde, setDesde, hasta, setHasta,
+    desde, setDesde, hasta, setHasta, errorRango,
     moneda, setMoneda, metodoPago, setMetodoPago, search, setSearch,
     rows, isLoading, isError, refetch,
     metodosDisponibles, totalMxn, totalUsd, handleExport,
@@ -46,27 +46,29 @@ export default function ComprasPagos() {
         title="Pagos a proveedor"
         description="Pagos y ajustes aplicados a facturas de proveedor."
         actions={
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={rows.length === 0}>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={!!errorRango || rows.length === 0}>
             <Download className="h-4 w-4 mr-1.5" /> Exportar CSV
           </Button>
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <KpiCard label="Registros en el período" value={String(rows.length)} icon={ListFilter} />
-        <KpiCard label="Total pagado MXN" value={formatCurrency(totalMxn, "MXN")} icon={Banknote} />
-        <KpiCard label="Total pagado USD" value={formatCurrency(totalUsd, "USD")} icon={Coins} />
-      </div>
+      {!errorRango && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <KpiCard label="Registros en el período" value={String(rows.length)} icon={ListFilter} />
+          <KpiCard label="Total pagado MXN" value={formatCurrency(totalMxn, "MXN")} icon={Banknote} />
+          <KpiCard label="Total pagado USD" value={formatCurrency(totalUsd, "USD")} icon={Coins} />
+        </div>
+      )}
 
       <Card>
         <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="space-y-1">
             <Label htmlFor="p-desde">{RANGO_DESDE_LABEL}</Label>
-            <DatePickerMx value={desde} onChange={setDesde} />
+            <DatePickerMx id="p-desde" value={desde} onChange={setDesde} />
           </div>
           <div className="space-y-1">
             <Label htmlFor="p-hasta">{RANGO_HASTA_LABEL}</Label>
-            <DatePickerMx value={hasta} onChange={setHasta} />
+            <DatePickerMx id="p-hasta" value={hasta} onChange={setHasta} errorText={errorRango} />
           </div>
           <div className="space-y-1">
             <Label>Moneda</Label>
@@ -98,7 +100,7 @@ export default function ComprasPagos() {
         </CardContent>
       </Card>
 
-      <Card>
+      {!errorRango && <Card>
         <CardContent className="p-0">
           {isError ? (
             <ErrorState className="m-4" onRetry={() => void refetch()} />
@@ -115,7 +117,7 @@ export default function ComprasPagos() {
           />
           )}
         </CardContent>
-      </Card>
+      </Card>}
     </PageContainer>
   );
 }

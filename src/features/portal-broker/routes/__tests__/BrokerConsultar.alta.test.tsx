@@ -7,6 +7,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { EmpresaEncontrada } from "../../services/brokerPortal";
 
 let resultados: EmpresaEncontrada[] = [];
+let terminoConsultado: string | null = null;
+let consultando = false;
 
 vi.mock("../../hooks/useBrokerPortal", () => ({
   useBrokerOrganizaciones: () => ({
@@ -16,11 +18,12 @@ vi.mock("../../hooks/useBrokerPortal", () => ({
     data: resultados,
     isSuccess: true,
     isError: false,
+    isFetching: consultando,
   }),
 }));
 
 vi.mock("@/hooks/shared", () => ({
-  useDebounce: (value: string) => value,
+  useDebounce: (value: string) => terminoConsultado ?? value,
   useDocumentTitle: () => {},
 }));
 
@@ -29,7 +32,7 @@ vi.mock("../../components/SolicitudEmpresaDialog", () => ({
 }));
 
 vi.mock("../../components/AltaProspectoDialog", () => ({
-  default: () => <div>DIÁLOGO DE ALTA</div>,
+  default: ({ nombreInicial }: { nombreInicial: string }) => <div>DIÁLOGO DE ALTA <span>{nombreInicial}</span></div>,
 }));
 
 vi.mock("../../components/MisSolicitudesBroker", () => ({
@@ -53,6 +56,8 @@ const buscar = (texto: string) => {
 
 beforeEach(() => {
   resultados = [];
+  terminoConsultado = null;
+  consultando = false;
 });
 
 describe("BrokerConsultar · botón de alta", () => {
@@ -75,5 +80,31 @@ describe("BrokerConsultar · botón de alta", () => {
 
     fireEvent.click(boton);
     expect(screen.getByText("DIÁLOGO DE ALTA")).toBeInTheDocument();
+  });
+
+  it("retira las acciones anteriores durante el debounce y la consulta del nuevo nombre", () => {
+    terminoConsultado = "Naviera Alfa";
+    resultados = [empresa("Naviera Alfa")];
+    const vista = render(<BrokerConsultar />);
+    const input = screen.getByLabelText("Buscar empresa");
+    fireEvent.change(input, { target: { value: "Naviera Alfa" } });
+    expect(screen.getByRole("button", { name: "Solicitar" })).toBeEnabled();
+
+    fireEvent.change(input, { target: { value: "Naviera Beta" } });
+    expect(screen.getByRole("status")).toHaveTextContent("Buscando");
+    expect(screen.queryByRole("button", { name: "Solicitar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Registrar empresa nueva" })).toBeNull();
+
+    terminoConsultado = "Naviera Beta";
+    resultados = [];
+    consultando = true;
+    vista.rerender(<BrokerConsultar />);
+    expect(screen.getByRole("status")).toHaveTextContent("Buscando");
+    expect(screen.queryByRole("button", { name: "Registrar empresa nueva" })).toBeNull();
+
+    consultando = false;
+    vista.rerender(<BrokerConsultar />);
+    fireEvent.click(screen.getByRole("button", { name: "Registrar empresa nueva" }));
+    expect(screen.getByText("Naviera Beta")).toBeVisible();
   });
 });

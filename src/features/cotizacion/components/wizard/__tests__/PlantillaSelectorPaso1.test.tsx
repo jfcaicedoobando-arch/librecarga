@@ -6,6 +6,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { PlantillaSelectorPaso1 } from "@/features/cotizacion/components/wizard/PlantillaSelectorPaso1";
+import { supabase } from "@/integrations/supabase/client";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -52,6 +53,7 @@ function makeForm() {
 
 describe("PlantillaSelectorPaso1 (P2 cierre)", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     state.plantillas = [];
     state.rpcData = null;
   });
@@ -109,5 +111,22 @@ describe("PlantillaSelectorPaso1 (P2 cierre)", () => {
     expect(opts).toEqual({ keepDefaultValues: true });
     expect(form.trigger).toHaveBeenCalled();
     expect(onApplied).toHaveBeenCalled();
+  });
+
+  it("muestra la plantilla pedida y usa su ID sólo al confirmar, aunque haya nombres iguales", async () => {
+    state.plantillas = ["p1", "p2"].map((id) => ({
+      id, nombre: "Ruta marítima", descripcion: null, veces_usada: 3, visibilidad: "org",
+    }));
+    state.rpcData = { version: 1, values: { ruta: "SHA-MZLO" } };
+    const form = makeForm();
+    render(<PlantillaSelectorPaso1 organizationId="org-1" form={form} plantillaId="p2" />, { wrapper });
+
+    const confirmar = await screen.findByRole("button", { name: "Aplicar Ruta marítima" });
+    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(form.reset).not.toHaveBeenCalled();
+    fireEvent.click(confirmar);
+    await waitFor(() => expect(form.reset).toHaveBeenCalledOnce());
+    expect(supabase.rpc).toHaveBeenCalledWith("aplicar_plantilla_cotizacion", { _plantilla_id: "p2" });
+    await waitFor(() => expect(confirmar).not.toBeInTheDocument());
   });
 });

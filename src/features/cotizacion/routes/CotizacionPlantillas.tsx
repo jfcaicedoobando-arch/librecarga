@@ -126,7 +126,10 @@ export default function CotizacionPlantillas() {
               plantillas={filtradas}
               onEditar={setEditando}
               onEliminar={setAEliminar}
-              onUsar={() => navigate("/cotizaciones/nueva")}
+              onUsar={({ id }) => navigate({
+                pathname: "/cotizaciones/nueva",
+                search: new URLSearchParams({ plantilla: id }).toString(),
+              })}
             />
           )}
         </CardContent>

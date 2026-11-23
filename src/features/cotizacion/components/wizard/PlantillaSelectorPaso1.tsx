@@ -32,21 +32,25 @@ import type { CotizacionFormValues } from "@/features/cotizacion/domain/mappers/
 interface Props {
   organizationId: string | null;
   form: UseFormReturn<CotizacionFormValues>;
+  plantillaId?: string | null;
   /** Se llama después de aplicar la plantilla — típicamente para saltar al paso 2. */
   onApplied?: () => void;
 }
 
-export function PlantillaSelectorPaso1({ organizationId, form, onApplied }: Props) {
+export function PlantillaSelectorPaso1({ organizationId, form, plantillaId, onApplied }: Props) {
   const [open, setOpen] = useState(false);
+  const [idAplicado, setIdAplicado] = useState<string | null>(null);
   const { data: plantillas = [], isLoading } = useCotizacionPlantillas(organizationId);
   const aplicar = useAplicarPlantilla();
 
   if (!organizationId) return null;
   if (!isLoading && plantillas.length === 0) return null;
 
-  const handleAplicar = async (plantillaId: string, nombre: string) => {
+  const preseleccionada = plantillas.find((p) => p.id === plantillaId && p.id !== idAplicado);
+
+  const handleAplicar = async (id: string, nombre: string) => {
     try {
-      const payload = await aplicar.mutateAsync(plantillaId);
+      const payload = await aplicar.mutateAsync(id);
       if (payload?.values) {
         // Merge: mantiene los defaults del form y sobreescribe con la plantilla.
         const current = form.getValues();
@@ -54,6 +58,7 @@ export function PlantillaSelectorPaso1({ organizationId, form, onApplied }: Prop
         await form.trigger();
       }
       setOpen(false);
+      setIdAplicado(id);
       notifySuccess(undefined, { title: `Plantilla "${nombre}" aplicada` });
       onApplied?.();
     } catch (err) {
@@ -67,7 +72,7 @@ export function PlantillaSelectorPaso1({ organizationId, form, onApplied }: Prop
 
   return (
     <div className="max-w-6xl mx-auto px-4 pt-4">
-      <div className="flex items-center gap-3 rounded-lg border border-dashed bg-muted/30 px-4 py-2.5">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed bg-muted/30 px-4 py-2.5">
         <Sparkles className="h-4 w-4 text-primary shrink-0" aria-hidden />
         <div className="flex-1 text-body">
           <span className="font-medium">¿Ruta frecuente?</span>{" "}
@@ -75,6 +80,16 @@ export function PlantillaSelectorPaso1({ organizationId, form, onApplied }: Prop
             Empieza desde una plantilla guardada.
           </span>
         </div>
+        {preseleccionada && (
+          <Button
+            size="sm"
+            className="h-auto min-h-10 max-w-full whitespace-normal py-1 text-left md:min-h-9"
+            loading={aplicar.isPending}
+            onClick={() => handleAplicar(preseleccionada.id, preseleccionada.nombre)}
+          >
+            Aplicar {preseleccionada.nombre}
+          </Button>
+        )}
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" loading={aplicar.isPending}>

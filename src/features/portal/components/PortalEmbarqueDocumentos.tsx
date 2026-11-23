@@ -76,6 +76,7 @@ export function PortalEmbarqueDocumentos({ documentos }: Props) {
           <Button
             variant="ghost"
             size="sm"
+            aria-label={`Descargar ${doc.nombre}`}
             disabled={downloadingId === doc.id}
             loading={downloadingId === doc.id}
             onClick={(e) => { e.stopPropagation(); handleDownload(doc.archivo!, doc.id); }}

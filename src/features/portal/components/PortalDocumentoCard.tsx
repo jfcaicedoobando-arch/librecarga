@@ -46,6 +46,7 @@ export function PortalDocumentoCard({ doc, downloadingId, onDownload }: Props) {
             variant="outline"
             size="sm"
             className="w-full"
+            aria-label={`Descargar ${doc.nombre}`}
             disabled={downloading}
             loading={downloading}
             onClick={() => onDownload(doc.archivo!, doc.id)}

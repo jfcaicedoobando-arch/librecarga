@@ -45,7 +45,7 @@ export function BitacoraFiltros({
   return (
     <div className="flex items-center gap-3 flex-wrap">
       <Select value={moduloFiltro} onValueChange={onModuloChange}>
-        <SelectTrigger className={FILTRO_ANCHO.md}>
+        <SelectTrigger className={FILTRO_ANCHO.md} aria-label="Módulo">
           <SelectValue placeholder="Módulo" />
         </SelectTrigger>
         <SelectContent>
@@ -58,7 +58,7 @@ export function BitacoraFiltros({
       </Select>
 
       <Select value={accionFiltro} onValueChange={onAccionChange}>
-        <SelectTrigger className={FILTRO_ANCHO.md}>
+        <SelectTrigger className={FILTRO_ANCHO.md} aria-label="Acción">
           <SelectValue placeholder="Acción" />
         </SelectTrigger>
         <SelectContent>
@@ -71,7 +71,7 @@ export function BitacoraFiltros({
       </Select>
 
       <Select value={rangoFiltro} onValueChange={onRangoChange}>
-        <SelectTrigger className={FILTRO_ANCHO.md}>
+        <SelectTrigger className={FILTRO_ANCHO.md} aria-label="Período">
           <SelectValue placeholder="Rango" />
         </SelectTrigger>
         <SelectContent>

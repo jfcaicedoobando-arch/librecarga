@@ -19,6 +19,7 @@ import { todayLocalISO } from "@/lib/date/today";
 import { descargarBlob } from "@/lib/downloadBlob";
 import { toCSV } from "@/lib/io/csv";
 import { notifySuccess, notifyError } from "@/lib/ui/appFeedback";
+import { RANGO_INVERTIDO_MENSAJE } from "@/lib/ui/rangoFechasCopy";
 
 function firstOfYear(): string {
   return `${new Date().getFullYear()}-01-01`;
@@ -30,7 +31,7 @@ export function useComprasReportesController() {
   const { organizationId, orgListo } = useOrgFilter();
   const errorRango = !desde || !hasta
     ? "Selecciona las fechas Desde y Hasta."
-    : desde > hasta ? "La fecha Desde no puede ser posterior a Hasta." : null;
+    : desde > hasta ? RANGO_INVERTIDO_MENSAJE : null;
 
   const { data: rows = [], isLoading, isError, refetch } = useQuery({
     queryKey: compras.reportes({ desde, hasta }, organizationId),

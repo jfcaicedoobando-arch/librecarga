@@ -31,3 +31,13 @@ export function tramosEditablesDeTipo(tramos: TramoGuardado[], tipoId: string): 
       moneda: t.moneda,
     }));
 }
+
+export function serializarTramos(rows: TramoEditable[], tipoId: string): DemorasTramoInput[] {
+  return rows.map((r) => ({
+    tipo_contenedor_id: tipoId,
+    desde_dia: Number(r.desde_dia) || 1,
+    hasta_dia: r.hasta_dia === null ? null : Number(r.hasta_dia),
+    monto_por_dia: Number(r.monto_por_dia) || 0,
+    moneda: r.moneda || "USD",
+  }));
+}

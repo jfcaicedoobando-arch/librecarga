@@ -28,6 +28,7 @@ export default function ComprasPorAprobar() {
   const { canAprobarFacturaProveedor } = usePermissions();
   const [aprobacion, setAprobacion] = useFiltroUrl<AprobacionFiltro>("estado", APROBACION_FILTROS, "pendiente");
   const [search, setSearch] = useTextoUrl("q");
+  const consulta = search.trim();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const { aprobar, isRunning, progreso } = useAprobarFacturasLote();
   const {
@@ -37,7 +38,7 @@ export default function ComprasPorAprobar() {
   } = useVerificarSatLote();
   const { data: rows = [], isLoading, isError, refetch } = useFacturasCxP({
     aprobacion,
-    search: search || undefined,
+    search: consulta || undefined,
   });
 
   // Contadores globales por estado (sin filtro de búsqueda) para los tabs/KPIs.
@@ -53,6 +54,13 @@ export default function ComprasPorAprobar() {
   const seleccion = useSeleccionEfectiva(rows, selected, bloqueadosSod);
   const { confirmOpen, setConfirmOpen, justificacionLote, setJustificacionLote,
     confirmacion, abrir, confirmar } = useRevisionLote(seleccion, aprobar, () => setSelected(new Set()));
+
+  const actualizarBusqueda = (value: string) => {
+    setSearch(value);
+    setSelected(new Set());
+    setJustificacionLote("");
+    setConfirmOpen(false);
+  };
 
   return (
     <PageContainer width="wide">
@@ -103,12 +111,7 @@ export default function ComprasPorAprobar() {
           </Tabs>
           <SearchInput
             value={search}
-            onChange={(value) => {
-              setSearch(value);
-              setSelected(new Set());
-              setJustificacionLote("");
-              setConfirmOpen(false);
-            }}
+            onChange={actualizarBusqueda}
             placeholder="Buscar por folio, folio proveedor o proveedor…"
           />
           {seleccionEnLote && (
@@ -133,7 +136,11 @@ export default function ComprasPorAprobar() {
       <Card>
         <CardContent className="p-0">
           {!isLoading && rows.length === 0 ? (
-            <ComprasPorAprobarEmptyState aprobacion={aprobacion} />
+            <ComprasPorAprobarEmptyState
+              aprobacion={aprobacion}
+              busquedaActiva={!!consulta}
+              onLimpiarBusqueda={() => actualizarBusqueda("")}
+            />
           ) : (
             <ResponsiveDataTable
               columns={columns}

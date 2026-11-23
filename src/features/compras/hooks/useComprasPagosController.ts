@@ -14,6 +14,7 @@ import { todayLocalISO } from "@/lib/date/today";
 import { descargarBlob } from "@/lib/downloadBlob";
 import { toCSV } from "@/lib/io/csv";
 import { notifySuccess, notifyError } from "@/lib/ui/appFeedback";
+import { RANGO_INVERTIDO_MENSAJE } from "@/lib/ui/rangoFechasCopy";
 import { AJUSTE_NO_MONETARIO } from "../ajustePagoCopy";
 
 export const MONEDAS_FILTRO = ["todas", "MXN", "USD"] as const;
@@ -32,6 +33,7 @@ export function useComprasPagosController() {
   const [metodoPago, setMetodoPago] = useTextoUrl("metodo", "todos");
   const [search, setSearch] = useTextoUrl("q");
   const { organizationId, orgListo } = useOrgFilter();
+  const errorRango = desde && hasta && desde > hasta ? RANGO_INVERTIDO_MENSAJE : null;
 
   const { data: rows = [], isLoading, isError, refetch } = useQuery({
     queryKey: compras.pagosGlobal({ desde, hasta, moneda, metodoPago, search }, organizationId),
@@ -47,7 +49,7 @@ export function useComprasPagosController() {
         organizationId,
       ),
     // N-3: no consultar hasta que el contexto de organización resolvió.
-    enabled: orgListo,
+    enabled: orgListo && !errorRango,
   });
 
   const metodosDisponibles = useMemo(() => {
@@ -60,6 +62,7 @@ export function useComprasPagosController() {
   const totalUsd = rows.filter((r) => r.moneda === "USD" && !r.es_ajuste).reduce((a, r) => a + r.monto, 0);
 
   const handleExport = () => {
+    if (errorRango) return;
     try {
       const csv = toCSV(
         rows.map((r) => ({
@@ -93,7 +96,7 @@ export function useComprasPagosController() {
   };
 
   return {
-    desde, setDesde, hasta, setHasta,
+    desde, setDesde, hasta, setHasta, errorRango,
     moneda, setMoneda, metodoPago, setMetodoPago, search, setSearch,
     rows, isLoading, isError, refetch,
     metodosDisponibles, totalMxn, totalUsd,

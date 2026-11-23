@@ -1,10 +1,16 @@
+import { Badge } from "@/components/ui/badge";
 import { toTitleCase, formatPhoneMx, correctSpanishPlace } from "@/lib/formatters";
-import type { ClienteRow } from "@/features/cliente/components/clientesTableConfig";
+import { creditoClienteExcedido, type ClienteRow } from "@/features/cliente/components/clientesTableConfig";
 
 export function ClienteMobileCard({ c }: { c: ClienteRow }) {
   return (
     <div className="flex flex-col gap-0.5 min-w-0">
       <div className="font-semibold text-sm truncate">{toTitleCase(c.nombre)}</div>
+      {creditoClienteExcedido(c) && (
+        <Badge variant="destructive" className="w-fit text-2xs px-1.5 py-0">
+          Crédito excedido
+        </Badge>
+      )}
       <div className="text-label font-mono text-muted-foreground truncate">
         {(c.rfc || "—").toUpperCase()}
       </div>

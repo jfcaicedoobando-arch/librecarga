@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
+import type { DiagnosticoTarifas } from "@/features/costeo/services/diagnosticoTarifas";
 
 const LEGACY_HC = "99999999-9999-9999-9999-999999999999";
 const TIPO_HC = {
@@ -33,7 +34,7 @@ const useTopTarifasMock = vi.fn();
 vi.mock("@/features/costeo/hooks/useTopTarifas", () => ({
   useTopTarifas: (...args: unknown[]) => useTopTarifasMock(...args),
 }));
-const diagMock = vi.fn((_: { enabled: boolean }) => ({ diagnostico: undefined }));
+const diagMock = vi.fn<(a: { enabled: boolean }) => { diagnostico?: DiagnosticoTarifas; isFetching: boolean }>();
 vi.mock("@/features/costeo/hooks/useDiagnosticoTarifas", () => ({
   useDiagnosticoTarifas: (a: { enabled: boolean }) => diagMock(a),
 }));
@@ -51,6 +52,8 @@ import CosteoBuscar from "../CosteoBuscar";
 import { createWrapper } from "@/test/utils/queryWrapper";
 
 beforeEach(() => {
+  diagMock.mockReset();
+  diagMock.mockReturnValue({ isFetching: false });
   useTopTarifasMock.mockReset();
   useTopTarifasMock.mockReturnValue({
     data: [], isFetching: false, tipoContenedorIds: [],
@@ -89,11 +92,12 @@ describe("CosteoBuscar — tipo de contenedor", () => {
 });
 
 async function elegirTodo() {
-  render(<CosteoBuscar />, { wrapper: createWrapper() });
+  const vista = render(<CosteoBuscar />, { wrapper: createWrapper() });
   fireEvent.click(document.getElementById("buscar-origen")!);
   fireEvent.click(document.getElementById("buscar-destino")!);
   fireEvent.click(screen.getByLabelText("Tipo contenedor"));
   fireEvent.click(within(await screen.findByRole("listbox")).getByText("40' High Cube"));
+  return vista;
 }
 
 describe("CosteoBuscar — error vs sin resultados", () => {
@@ -117,5 +121,19 @@ describe("CosteoBuscar — error vs sin resultados", () => {
     await elegirTodo();
     expect(screen.queryByText("No pudimos consultar las tarifas")).toBeNull();
     expect(diagMock).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: true }));
+  });
+
+  it("sugiere capturar una tarifa sólo cuando termina el diagnóstico sin tarifas", async () => {
+    useTopTarifasMock.mockReturnValue({
+      data: [], isFetching: false, isError: false, isSuccess: true, refetch: vi.fn(), tipoContenedorIds: [],
+    });
+    diagMock.mockReturnValue({ isFetching: true });
+    const { rerender } = await elegirTodo();
+    expect(screen.getByRole("status")).toHaveTextContent("Comprobando si hay tarifas pendientes o vencidas");
+    expect(screen.queryByText(/Captura una nueva/i)).not.toBeInTheDocument();
+
+    diagMock.mockReturnValue({ diagnostico: "ninguna", isFetching: false });
+    rerender(<CosteoBuscar />);
+    expect(screen.getByText(/Captura una nueva/i)).toBeInTheDocument();
   });
 });
