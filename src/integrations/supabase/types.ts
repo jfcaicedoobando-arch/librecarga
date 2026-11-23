@@ -5172,6 +5172,7 @@ export type Database = {
       }
       crm_solicitudes_pricing: {
         Row: {
+          baterias_litio: boolean | null
           cantidad: number | null
           cliente: string | null
           commodity: string | null
@@ -5195,6 +5196,7 @@ export type Database = {
           imo_clase: string | null
           imo_un: string | null
           incoterm: string | null
+          known_shipper: boolean | null
           modalidad_negocio: string | null
           notas: string | null
           oportunidad_id: string
@@ -5210,6 +5212,7 @@ export type Database = {
           solicitante_id: string
           submodalidad: string | null
           tarifa_tarifario_id: string | null
+          tipo_aeronave: string | null
           tipo_carga: string | null
           tipo_operacion: string | null
           tipo_solicitud: string | null
@@ -5219,6 +5222,7 @@ export type Database = {
           volumen_cbm: number | null
         }
         Insert: {
+          baterias_litio?: boolean | null
           cantidad?: number | null
           cliente?: string | null
           commodity?: string | null
@@ -5242,6 +5246,7 @@ export type Database = {
           imo_clase?: string | null
           imo_un?: string | null
           incoterm?: string | null
+          known_shipper?: boolean | null
           modalidad_negocio?: string | null
           notas?: string | null
           oportunidad_id: string
@@ -5257,6 +5262,7 @@ export type Database = {
           solicitante_id: string
           submodalidad?: string | null
           tarifa_tarifario_id?: string | null
+          tipo_aeronave?: string | null
           tipo_carga?: string | null
           tipo_operacion?: string | null
           tipo_solicitud?: string | null
@@ -5266,6 +5272,7 @@ export type Database = {
           volumen_cbm?: number | null
         }
         Update: {
+          baterias_litio?: boolean | null
           cantidad?: number | null
           cliente?: string | null
           commodity?: string | null
@@ -5289,6 +5296,7 @@ export type Database = {
           imo_clase?: string | null
           imo_un?: string | null
           incoterm?: string | null
+          known_shipper?: boolean | null
           modalidad_negocio?: string | null
           notas?: string | null
           oportunidad_id?: string
@@ -5304,6 +5312,7 @@ export type Database = {
           solicitante_id?: string
           submodalidad?: string | null
           tarifa_tarifario_id?: string | null
+          tipo_aeronave?: string | null
           tipo_carga?: string | null
           tipo_operacion?: string | null
           tipo_solicitud?: string | null

@@ -719,8 +719,15 @@
     {
       "idx": 102,
       "version": "7",
-      "when": 1795470809537,
-      "tag": "0102_costeo_tarifa_tramos_tenant_scope",
+      "when": 1795471596948,
+      "tag": "0102_pricing_banderas_aereas",
+      "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1795471862133,
+      "tag": "0103_costeo_tarifa_tramos_tenant_scope",
       "breakpoints": true
     }
   ]

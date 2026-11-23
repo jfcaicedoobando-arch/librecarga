@@ -23,7 +23,7 @@ export function ResumenSolicitudPricing({ solicitud: s }: { solicitud: Solicitud
     ["Modo de transporte", s.servicio], ["Submodalidad", s.submodalidad], ["Tipo de negocio", s.modalidad_negocio], ["Volumen (CBM)", s.volumen_cbm], ["Clase IMO", s.imo_clase], ["Número UN", s.imo_un], ["Complejidad", etiquetaPlazo(s)],
     ["Tipo de solicitud", s.tipo_solicitud ? ETIQUETA_TIPO_SOLICITUD[s.tipo_solicitud] ?? s.tipo_solicitud : null],
     ["Tipo de operación", s.tipo_operacion], ["Sector económico", s.sector_economico],
-    ["Incoterm", s.incoterm], ["IMO", siNo(s.imo)], ["Commodity", s.commodity],
+    ["Incoterm", s.incoterm], ["IMO", siNo(s.imo)], ["Baterías de litio", siNo(s.baterias_litio)], ["Known Shipper", siNo(s.known_shipper)], ["Tipo de avión", s.tipo_aeronave], ["Commodity", s.commodity],
     ["Container Size", s.container_size], ["Tipo de contenedor", s.tipo_carga], ["Quantity", s.cantidad],
     ["Estibable", siNo(s.estibable)], ["Weight", s.peso],
     ["Units of measurement", UNIDADES_MEDIDA_PRICING.find((u) => u.value === s.unidad_medida)?.label ?? s.unidad_medida ?? null],
