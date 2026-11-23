@@ -20,7 +20,7 @@ const solicitud: SolicitudPricingRow = {
   cantidad: 1, cliente: "ACME", commodity: "Llantas", container_size: null, deleted_at: null, delivery: null,
   destino: "Manzanillo", dimensiones: "1x1x1", enviada_at: null, estibable: true, fecha_tentativa_carga: null,
   imo: false, incoterm: "FOB", notas: null, origen: "Shanghai", peso: "1000", pod: "MXZLO", pol: "CNSHA",
-  respondida_at: null, servicio: "Marítimo", submodalidad: "FCL", tipo_carga: "40' HC", unidad_medida: "kg", tipo_operacion: "Importación", sector_economico: "General", tipo_solicitud: null, complejidad_motivo: null, plazo_motivo: null, vence_at: null, tarifa_tarifario_id: null,
+  respondida_at: null, servicio: "Marítimo", submodalidad: "FCL", volumen_cbm: null, imo_clase: null, imo_un: null, modalidad_negocio: null, tipo_carga: "40' HC", unidad_medida: "kg", tipo_operacion: "Importación", sector_economico: "General", tipo_solicitud: null, complejidad_motivo: null, plazo_motivo: null, vence_at: null, tarifa_tarifario_id: null,
 };
 const auth = { userId: "u1", email: null, organizationId: "org1", organizationName: null, role: "operador", effectiveRole: "operador" };
 function diferido() {

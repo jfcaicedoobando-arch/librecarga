@@ -12,8 +12,9 @@ import {
   SERVICIOS_PRICING, type SolicitudPricingInsert,
   aNumero, unidadesMedidaCaptura,
 } from "@/features/crm/services/pricing/tiposPricing";
-import { incotermsDe, submodalidadesDe } from "@/features/crm/services/pricing/modoPricing";
+import { MODALIDADES_NEGOCIO, incotermsDe, submodalidadesDe } from "@/features/crm/services/pricing/modoPricing";
 import { CampoLista, CampoSiNo, CampoTexto } from "./CamposPricing";
+import { CamposCargaDetalle } from "./CamposCargaDetalle";
 import { TIPOS } from "@/constants/wizardConstants";
 import { SECTORES } from "@/constants/cotizacionMercancia";
 
@@ -64,6 +65,8 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
           <CampoLista id="pr-submodalidad" label="Submodalidad" required {...d} value={datos.submodalidad ?? null}
             opciones={submodalidadesDe(datos.servicio)} onChange={(v) => set("submodalidad", v)} />
         )}
+        <CampoLista id="pr-modalidad-negocio" label="Tipo de negocio" {...d} value={datos.modalidad_negocio ?? null}
+          opciones={MODALIDADES_NEGOCIO} onChange={(v) => set("modalidad_negocio", v)} />
         <CampoLista id="pr-incoterm" label="Incoterm" {...d} value={datos.incoterm}
           opciones={incotermsDe(datos.servicio)} onChange={(v) => set("incoterm", v)} />
         <CampoLista id="pr-tipo-operacion" label="Tipo de operación" {...d} value={datos.tipo_operacion ?? null}
@@ -83,6 +86,7 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
         <CampoLista id="pr-unidad-medida" label="Units of measurement" {...d} value={datos.unidad_medida}
           opciones={unidadesMedidaCaptura(datos.unidad_medida)} onChange={(v) => set("unidad_medida", v)} />
         <CampoTexto id="pr-dim" label="Dimensions" {...d} value={datos.dimensiones} onChange={txt("dimensiones")} />
+        <CamposCargaDetalle datos={datos} set={set} disabled={disabled} />
       </FormDialogSection>
       <FormDialogSection title="Ruta">
         <fieldset className="col-span-full grid min-w-0 gap-3 rounded-md border p-3 sm:grid-cols-2">

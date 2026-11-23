@@ -5067,7 +5067,10 @@ export type Database = {
           folio: string
           id: string
           imo: boolean | null
+          imo_clase: string | null
+          imo_un: string | null
           incoterm: string | null
+          modalidad_negocio: string | null
           notas: string | null
           oportunidad_id: string
           organization_id: string
@@ -5088,6 +5091,7 @@ export type Database = {
           unidad_medida: string | null
           updated_at: string
           vence_at: string | null
+          volumen_cbm: number | null
         }
         Insert: {
           cantidad?: number | null
@@ -5110,7 +5114,10 @@ export type Database = {
           folio: string
           id?: string
           imo?: boolean | null
+          imo_clase?: string | null
+          imo_un?: string | null
           incoterm?: string | null
+          modalidad_negocio?: string | null
           notas?: string | null
           oportunidad_id: string
           organization_id: string
@@ -5131,6 +5138,7 @@ export type Database = {
           unidad_medida?: string | null
           updated_at?: string
           vence_at?: string | null
+          volumen_cbm?: number | null
         }
         Update: {
           cantidad?: number | null
@@ -5153,7 +5161,10 @@ export type Database = {
           folio?: string
           id?: string
           imo?: boolean | null
+          imo_clase?: string | null
+          imo_un?: string | null
           incoterm?: string | null
+          modalidad_negocio?: string | null
           notas?: string | null
           oportunidad_id?: string
           organization_id?: string
@@ -5174,6 +5185,7 @@ export type Database = {
           unidad_medida?: string | null
           updated_at?: string
           vence_at?: string | null
+          volumen_cbm?: number | null
         }
         Relationships: [
           {

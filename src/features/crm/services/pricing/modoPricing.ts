@@ -24,3 +24,20 @@ export function horasPlazo(complejidad: string, modo?: string | null): number | 
 }
 export const DESCRIPCION_PLAZOS_MODO = "Estándar sin contador · " + Object.entries(PLAZOS)
   .map(([m, p]) => `${m}: media ${p.media} h, alta ${p.alta} h`).join(" · ") + " (horas hábiles)";
+
+export const MODALIDADES_NEGOCIO = ["Spot", "Contrato", "Licitación"] as const;
+export const CLASES_IMO = ["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((c) => ({ value: c, label: `Clase ${c}` }));
+
+/** Número UN: sólo 4 dígitos (acepta "UN 1203"); otro valor → null. */
+export function normalizarNumeroUN(v: string): string | null {
+  const d = v.replace(/^\s*UN\s*/i, "").trim();
+  return /^[0-9]{4}$/.test(d) ? d : null;
+}
+
+/** Peso/medida (W/M) en LCL: el mayor entre toneladas y CBM; null si falta dato o la unidad no es de peso. */
+export function pesoMedidaWM(peso: string | null | undefined, unidad: string | null | undefined, cbm: number | null | undefined): number | null {
+  const n = Number(String(peso ?? "").replace(/,/g, ""));
+  if (!Number.isFinite(n) || n <= 0 || cbm == null) return null;
+  const ton = unidad === "kg" ? n / 1000 : unidad === "t" ? n : unidad === "lb" ? (n * 0.45359237) / 1000 : null;
+  return ton == null ? null : Math.max(ton, cbm);
+}

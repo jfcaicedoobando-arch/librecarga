@@ -687,6 +687,13 @@
       "when": 1795462615012,
       "tag": "0097_pricing_plazos_por_modo",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1795463102244,
+      "tag": "0098_pricing_lcl_imo_modalidad_negocio",
+      "breakpoints": true
     }
   ]
 }

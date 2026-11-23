@@ -8,7 +8,7 @@ import { requiereSubmodalidad } from "./modoPricing";
 type Datos = Partial<Pick<SolicitudPricingRow,
   "solicitante_id" | "fecha" | "cliente" | "servicio" | "submodalidad" | "tipo_operacion" | "incoterm" | "sector_economico" | "imo"
   | "commodity" | "tipo_carga" | "cantidad" | "estibable" | "peso" | "unidad_medida" | "dimensiones"
-  | "origen" | "pol" | "destino" | "pod">>;
+  | "origen" | "pol" | "destino" | "pod" | "volumen_cbm" | "imo_clase" | "imo_un">>;
 
 const OBLIGATORIOS: Array<[keyof Datos, string]> = [
   ["solicitante_id", "Solicitante"], ["fecha", "Fecha"], ["cliente", "Cliente"], ["servicio", "Modo de transporte"],
@@ -24,5 +24,8 @@ export function camposFaltantesSolicitud(d: Datos): string[] {
     const v = d[k];
     return v == null || (typeof v === "string" && v.trim() === "");
   }).map(([, etiqueta]) => etiqueta)
-    .concat(requiereSubmodalidad(d.servicio) && !d.submodalidad ? ["Submodalidad"] : []);
+    .concat(requiereSubmodalidad(d.servicio) && !d.submodalidad ? ["Submodalidad"] : [])
+    .concat(d.submodalidad === "LCL" && d.volumen_cbm == null ? ["Volumen (CBM)"] : [])
+    .concat(d.imo === true && !d.imo_clase ? ["Clase IMO"] : [])
+    .concat(d.imo === true && !d.imo_un ? ["Número UN"] : []);
 }
