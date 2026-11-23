@@ -56,7 +56,7 @@ describe("filtro por URL del listado de proformas", () => {
     fireEvent.change(buscar, { target: { value: "QA-100" } });
     fireEvent.click(screen.getByRole("button", { name: "Facturadas" }));
     expect(screen.getByRole("status")).toHaveTextContent("?estado=facturada&origen=menu");
-    expect(screen.getByRole("heading", { name: "Proformas", exact: true })).toBeVisible();
+    expect(screen.getByRole("heading", { name: /^Proformas$/ })).toBeVisible();
     expect(useDocumentTitle).toHaveBeenLastCalledWith("Proformas");
     expect(buscar).toHaveValue("QA-100");
 
