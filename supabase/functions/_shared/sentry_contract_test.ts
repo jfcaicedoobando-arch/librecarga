@@ -30,12 +30,13 @@ Deno.test({ name: "Sentry: offline real SDK contracts",
   const { sdk, delivered } = harness;
   try {
     await t.step("init/version/singleton, restrictive collection, no runtime or OTEL patching", () => {
-      assertEquals(sdk.SDK_VERSION, "11.12.0");
+      assertEquals(sdk.SDK_VERSION, "11.16.0");
       assertEquals(harness.transportCount, 1);
       assertStrictEquals(sdk.getClient(), sdk.getCurrentScope().getClient());
       const options = sdk.getClient<InstanceType<typeof sdk.DenoClient>>()!.getOptions();
       assertEquals(options.enableOpenTelemetrySetup, false);
       assertEquals(options.enableRuntimeChannelInjection, false);
+      assertEquals(options.sendClientReports, false);
       assertEquals(options.attachStacktrace, false);
       assertEquals(options.integrations, []);
       assertEquals(options.traceLifecycle, "static");
