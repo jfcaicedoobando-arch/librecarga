@@ -44,7 +44,7 @@ export default function ComprasPagos() {
       <PageHeader
         icon={<Landmark className="h-6 w-6 text-accent" />}
         title="Pagos a proveedor"
-        description="Listado global de pagos aplicados a facturas de proveedor."
+        description="Pagos y ajustes aplicados a facturas de proveedor."
         actions={
           <Button variant="outline" size="sm" onClick={handleExport} disabled={rows.length === 0}>
             <Download className="h-4 w-4 mr-1.5" /> Exportar CSV
@@ -53,9 +53,9 @@ export default function ComprasPagos() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <KpiCard label="Pagos en el período" value={String(rows.length)} icon={ListFilter} />
-        <KpiCard label="Total MXN" value={formatCurrency(totalMxn, "MXN")} icon={Banknote} />
-        <KpiCard label="Total USD" value={formatCurrency(totalUsd, "USD")} icon={Coins} />
+        <KpiCard label="Registros en el período" value={String(rows.length)} icon={ListFilter} />
+        <KpiCard label="Total pagado MXN" value={formatCurrency(totalMxn, "MXN")} icon={Banknote} />
+        <KpiCard label="Total pagado USD" value={formatCurrency(totalUsd, "USD")} icon={Coins} />
       </div>
 
       <Card>

@@ -14,6 +14,7 @@ import { todayLocalISO } from "@/lib/date/today";
 import { descargarBlob } from "@/lib/downloadBlob";
 import { toCSV } from "@/lib/io/csv";
 import { notifySuccess, notifyError } from "@/lib/ui/appFeedback";
+import { AJUSTE_NO_MONETARIO } from "../ajustePagoCopy";
 
 export const MONEDAS_FILTRO = ["todas", "MXN", "USD"] as const;
 export type MonedaFiltro = (typeof MONEDAS_FILTRO)[number];
@@ -55,8 +56,8 @@ export function useComprasPagosController() {
     return Array.from(set).sort();
   }, [rows]);
 
-  const totalMxn = rows.filter((r) => r.moneda === "MXN").reduce((a, r) => a + r.monto, 0);
-  const totalUsd = rows.filter((r) => r.moneda === "USD").reduce((a, r) => a + r.monto, 0);
+  const totalMxn = rows.filter((r) => r.moneda === "MXN" && !r.es_ajuste).reduce((a, r) => a + r.monto, 0);
+  const totalUsd = rows.filter((r) => r.moneda === "USD" && !r.es_ajuste).reduce((a, r) => a + r.monto, 0);
 
   const handleExport = () => {
     try {
@@ -71,6 +72,7 @@ export function useComprasPagosController() {
           moneda: r.moneda,
           monto: r.monto,
           tipo_cambio_usd: r.tipo_cambio_usd ?? "",
+          tipo_movimiento: r.es_ajuste ? AJUSTE_NO_MONETARIO : "Pago",
         })),
       );
       descargarBlob(
@@ -79,7 +81,7 @@ export function useComprasPagosController() {
       );
       notifySuccess(undefined, {
         title: "CSV descargado",
-        description: `${rows.length} pagos exportados.`,
+        description: `${rows.length} registros exportados.`,
       });
     } catch (e) {
       notifyError(undefined, {
