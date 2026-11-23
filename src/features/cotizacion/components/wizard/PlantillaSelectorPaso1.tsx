@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { notifySuccess } from "@/lib/ui/appFeedback";
 import { notifyError } from "@/lib/ui/appFeedback";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -40,10 +41,16 @@ interface Props {
 export function PlantillaSelectorPaso1({ organizationId, form, plantillaId, onApplied }: Props) {
   const [open, setOpen] = useState(false);
   const [idAplicado, setIdAplicado] = useState<string | null>(null);
-  const { data: plantillas = [], isLoading } = useCotizacionPlantillas(organizationId);
+  const { data: plantillas = [], isLoading, isError, isFetching, refetch } = useCotizacionPlantillas(organizationId);
   const aplicar = useAplicarPlantilla();
 
   if (!organizationId) return null;
+  if (isError) return (
+    <div className="max-w-6xl mx-auto px-4 pt-4">
+      <ErrorStateInline title="No se pudieron cargar las plantillas" message="Reintenta o continúa capturando la cotización."
+        onRetry={() => void refetch()} retrying={isFetching} />
+    </div>
+  );
   if (!isLoading && plantillas.length === 0) return null;
 
   const preseleccionada = plantillas.find((p) => p.id === plantillaId && p.id !== idAplicado);
@@ -92,8 +99,8 @@ export function PlantillaSelectorPaso1({ organizationId, form, plantillaId, onAp
         )}
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" loading={aplicar.isPending}>
-              Elegir plantilla
+            <Button variant="outline" size="sm" loading={aplicar.isPending} disabled={isLoading}>
+              {isLoading ? "Cargando plantillas…" : "Elegir plantilla"}
               <ChevronsUpDown className="h-3.5 w-3.5 ml-1 opacity-60" />
             </Button>
           </PopoverTrigger>

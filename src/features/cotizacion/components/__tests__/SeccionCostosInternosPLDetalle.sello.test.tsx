@@ -39,9 +39,11 @@ const COSTOS_600 = [costo(600, "guardado 1")];
 const COSTOS_700 = [costo(700, "guardado 2")];
 const COSTOS_800 = [costo(800, "guardado 3")];
 let snapshot = { costos: COSTOS_500, updatedAt: "2026-09-06T10:00:00Z" };
+let falloLectura = false;
+const refetch = vi.hoisted(() => vi.fn());
 
 vi.mock("@/features/cotizacion/hooks", () => ({
-  useCotizacionCostosSnapshot: () => ({ data: snapshot, isLoading: false }),
+  useCotizacionCostosSnapshot: () => ({ data: falloLectura ? undefined : snapshot, isLoading: false, isError: falloLectura, refetch }),
   useUpsertCotizacionCostos: () => ({ mutateAsync, isPending: false }),
   useUpdateCotizacion: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
@@ -96,10 +98,25 @@ beforeEach(() => {
   mutateAsync.mockReset();
   notifyError.mockReset();
   notifySuccess.mockReset();
+  falloLectura = false;
+  refetch.mockReset();
   snapshot = { costos: COSTOS_500, updatedAt: S0 };
 });
 
 describe("guardado rápido de costos con sello optimista", () => {
+  it("ofrece recuperar una lectura fallida sin sugerir recapturar los costos", () => {
+    falloLectura = true;
+    const view = render(vista());
+    expect(screen.getByRole("alert")).toHaveTextContent("No se pudieron consultar los costos");
+    expect(screen.queryByRole("button", { name: "Editar costos" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(refetch).toHaveBeenCalledOnce();
+
+    falloLectura = false;
+    view.rerender(vista());
+    expect(screen.getByRole("button", { name: "Editar costos" })).toBeEnabled();
+  });
+
   it("envía el sello de la cotización abierta", async () => {
     mutateAsync.mockResolvedValue({ updatedAt: S1, snapshot: { costos: COSTOS_600, updatedAt: S1 } });
     renderSeccion();

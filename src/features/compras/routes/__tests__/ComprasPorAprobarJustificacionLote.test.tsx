@@ -38,8 +38,7 @@ describe("Aprobación en lote con justificación", () => {
         open
         onOpenChange={() => {}}
         cantidad={2}
-        totalMxn={100}
-        totalUsd={0}
+        totales={{ MXN: 100, USD: 0, EUR: 0 }}
         isRunning={false}
         requierenJustificacion={1}
         justificacion="corto"
@@ -54,8 +53,7 @@ describe("Aprobación en lote con justificación", () => {
         open
         onOpenChange={() => {}}
         cantidad={2}
-        totalMxn={100}
-        totalUsd={0}
+        totales={{ MXN: 100, USD: 0, EUR: 0 }}
         isRunning={false}
         requierenJustificacion={1}
         justificacion="Renta de oficina de agosto"
@@ -72,8 +70,7 @@ describe("Aprobación en lote con justificación", () => {
         open
         onOpenChange={() => {}}
         cantidad={1}
-        totalMxn={100}
-        totalUsd={0}
+        totales={{ MXN: 100, USD: 0, EUR: 0 }}
         isRunning={false}
         requierenJustificacion={0}
         onConfirm={() => {}}
@@ -90,8 +87,7 @@ describe("Aprobación en lote con justificación", () => {
         open
         onOpenChange={() => {}}
         cantidad={1}
-        totalMxn={0}
-        totalUsd={0}
+        totales={{ MXN: 0, USD: 0, EUR: 125 }}
         isRunning={false}
         requierenJustificacion={1}
         justificacion=""
@@ -101,6 +97,7 @@ describe("Aprobación en lote con justificación", () => {
     );
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "Renta de oficina" } });
     expect(onChange).toHaveBeenCalledWith("Renta de oficina");
+    expect(screen.getByText(/EUR.*125/)).toBeVisible();
   });
 
   it("manda la justificación sólo a las facturas sin embarque", async () => {

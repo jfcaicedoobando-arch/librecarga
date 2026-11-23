@@ -5,13 +5,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAnticiposProveedor, type AnticipoProveedorRow } from "../hooks/useAnticiposProveedor";
 import { RegistrarAnticipoDialog } from "../components/RegistrarAnticipoDialog";
 import { AplicarAnticipoDialog } from "../components/AplicarAnticipoDialog";
@@ -32,6 +26,7 @@ export default function AnticiposProveedor() {
   const [estado, setEstado] = useTextoUrl("estado", "todos");
   const [proveedorId, setProveedorId] = useTextoUrl("proveedor", "todos");
   const [soloSinEmbarque, setSoloSinEmbarque] = useState(false);
+  const hayFiltros = estado !== "todos" || proveedorId !== "todos" || soloSinEmbarque;
 
   const [openRegistrar, setOpenRegistrar] = useState(false);
   const [anticipoParaAplicar, setAnticipoParaAplicar] = useState<AnticipoProveedorRow | null>(null);
@@ -142,12 +137,15 @@ export default function AnticiposProveedor() {
           {data.length === 0 && !isError ? (
             <EmptyState
               icon={Inbox}
-              title="No hay anticipos"
-              description="No se encontraron anticipos registrados con los filtros seleccionados."
+              title={hayFiltros ? "No hay anticipos con estos filtros" : "No hay anticipos"}
+              description={hayFiltros ? "Limpia los filtros para volver a ver los registros." : "Aún no hay anticipos registrados."}
               primaryAction={
-                estado === "todos" && proveedorId === "todos" && canEditFinance
-                  ? { label: "Registrar primer anticipo", onClick: () => setOpenRegistrar(true), variant: "outline" }
-                  : undefined
+                hayFiltros ? {
+                  label: "Limpiar filtros",
+                  onClick: () => { setEstado("todos"); setProveedorId("todos"); setSoloSinEmbarque(false); },
+                } : canEditFinance ? {
+                  label: "Registrar primer anticipo", onClick: () => setOpenRegistrar(true), variant: "outline",
+                } : undefined
               }
             />
           ) : (

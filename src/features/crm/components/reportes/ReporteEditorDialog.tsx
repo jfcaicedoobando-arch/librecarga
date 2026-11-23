@@ -82,7 +82,9 @@ export function ReporteEditorDialog({ open, onOpenChange, reporte, guardando, on
     }));
   };
 
+  const rangoInvalido = !!f.desde && !!f.hasta && f.desde > f.hasta;
   const guardar = () => {
+    if (rangoInvalido) return;
     const error = validarReporte({ nombre: f.nombre, objeto: f.objeto, medida: f.medida, agrupacion: f.agrupacion });
     if (error) {
       notifyError(undefined, { title: "Revisa el reporte", description: error, method: "CRM_REPORTE_VALIDAR" });
@@ -111,7 +113,7 @@ export function ReporteEditorDialog({ open, onOpenChange, reporte, guardando, on
       title={reporte ? "Editar reporte" : "Nuevo reporte"}
       description="Elige qué medir, cómo agruparlo y en qué gráfica verlo."
       footer={
-        <Button onClick={guardar} disabled={guardando}>
+        <Button onClick={guardar} disabled={guardando || rangoInvalido}>
           {guardando ? "Guardando…" : "Guardar reporte"}
         </Button>
       }
@@ -122,36 +124,36 @@ export function ReporteEditorDialog({ open, onOpenChange, reporte, guardando, on
           <Input id="rep-nombre" value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} placeholder="Ej. Oportunidades por etapa" maxLength={80} />
         </div>
         <div className="space-y-2">
-          <Label>Objeto</Label>
+          <Label htmlFor="rep-objeto">Objeto</Label>
           <Select value={f.objeto} onValueChange={(v) => cambiarObjeto(v as ObjetoReporte)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="rep-objeto"><SelectValue /></SelectTrigger>
             <SelectContent>
               {OBJETOS_REPORTE.map((o) => <SelectItem key={o.valor} value={o.valor}>{o.etiqueta}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Medida</Label>
+          <Label htmlFor="rep-medida">Medida</Label>
           <Select value={f.medida} onValueChange={(v) => setF({ ...f, medida: v as MedidaReporte })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="rep-medida"><SelectValue /></SelectTrigger>
             <SelectContent>
               {medidas.map((m) => <SelectItem key={m.valor} value={m.valor}>{m.etiqueta}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Agrupar por</Label>
+          <Label htmlFor="rep-agrupacion">Agrupar por</Label>
           <Select value={f.agrupacion} onValueChange={(v) => setF({ ...f, agrupacion: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="rep-agrupacion"><SelectValue /></SelectTrigger>
             <SelectContent>
               {agrupaciones.map((a) => <SelectItem key={a.valor} value={a.valor}>{a.etiqueta}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Gráfica</Label>
+          <Label htmlFor="rep-grafica">Gráfica</Label>
           <Select value={f.tipoGrafica} onValueChange={(v) => setF({ ...f, tipoGrafica: v as TipoGrafica })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="rep-grafica"><SelectValue /></SelectTrigger>
             <SelectContent>
               {TIPOS_GRAFICA.map((g) => <SelectItem key={g.valor} value={g.valor}>{g.etiqueta}</SelectItem>)}
             </SelectContent>
@@ -159,18 +161,19 @@ export function ReporteEditorDialog({ open, onOpenChange, reporte, guardando, on
         </div>
         <div className="space-y-2">
           <Label htmlFor="rep-desde">Creados desde (opcional)</Label>
-          <Input id="rep-desde" type="date" value={f.desde} onChange={(e) => setF({ ...f, desde: e.target.value })} />
+          <Input id="rep-desde" type="date" aria-invalid={rangoInvalido} aria-describedby={rangoInvalido ? "rep-rango-error" : undefined} value={f.desde} onChange={(e) => setF({ ...f, desde: e.target.value })} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="rep-hasta">Creados hasta (opcional)</Label>
-          <Input id="rep-hasta" type="date" value={f.hasta} onChange={(e) => setF({ ...f, hasta: e.target.value })} />
+          <Input id="rep-hasta" type="date" aria-invalid={rangoInvalido} aria-describedby={rangoInvalido ? "rep-rango-error" : undefined} value={f.hasta} onChange={(e) => setF({ ...f, hasta: e.target.value })} />
         </div>
+        {rangoInvalido && <p id="rep-rango-error" role="alert" className="text-body-sm text-destructive sm:col-span-2">La fecha inicial debe ser anterior o igual a la final.</p>}
         {f.objeto === "oportunidad" && (
           <>
             <div className="space-y-2">
-              <Label>Solo esta etapa (opcional)</Label>
+              <Label htmlFor="rep-etapa">Solo esta etapa (opcional)</Label>
               <Select value={f.etapaId} onValueChange={(v) => setF({ ...f, etapaId: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="rep-etapa"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas</SelectItem>
                   {etapas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nombre}</SelectItem>)}

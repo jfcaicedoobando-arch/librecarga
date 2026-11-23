@@ -31,6 +31,7 @@ const ESTADOS_FACTURA: EstadoFactura[] = [
 
 export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: FacturasEmitidasProps) {
   const { canEmitirFactura } = usePermissions();
+  const consultaPendiente = t.isLoading || t.isError;
   const selection = useRowSelection();
   const dateId = useId();
   const columnsConSeleccion = useMemo(
@@ -109,6 +110,10 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Factu
               </p>
               <Button variant="link" size="sm" onClick={f.limpiarRango}>Quitar rango de emisión</Button>
             </div>
+          ) : consultaPendiente ? (
+            <p role="status" className="text-body-sm text-muted-foreground">
+              {t.isError ? "Los conteos no están disponibles." : "Consultando facturas…"}
+            </p>
           ) : (
             <div className="text-body-sm text-muted-foreground">
               <strong className="text-foreground">{t.facturasFiltradas.length}</strong> filas visibles
@@ -168,7 +173,7 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Factu
             </CardContent>
           </Card>
 
-          <FacturasEmitidasFooter facturas={t.facturasFiltradas} />
+          {!consultaPendiente && <FacturasEmitidasFooter facturas={t.facturasFiltradas} />}
         </>
       )}
 

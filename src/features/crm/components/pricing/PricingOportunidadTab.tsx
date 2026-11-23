@@ -3,6 +3,7 @@
  */
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,12 +16,15 @@ import { SolicitudPricingDialog } from "./SolicitudPricingDialog";
 interface Props { oportunidadId: string; clienteNombre?: string | null; canEdit: boolean }
 
 export function PricingOportunidadTab({ oportunidadId, clienteNombre, canEdit }: Props) {
-  const { data: solicitudes = [], isLoading, error } = useSolicitudesOportunidad(oportunidadId);
+  const { data: solicitudes = [], isLoading, isFetching, refetch, error } = useSolicitudesOportunidad(oportunidadId);
   const [abierta, setAbierta] = useState<string | null>(null);
   const [dialogo, setDialogo] = useState<{ open: boolean; solicitud: SolicitudPricingRow | null }>({ open: false, solicitud: null });
   const seleccionada = solicitudes.find((s) => s.id === abierta) ?? null;
 
-  if (error) return <p className="text-body-sm text-destructive">No se pudieron cargar las solicitudes.</p>;
+  if (error) return (
+    <ErrorStateInline title="No se pudieron cargar las solicitudes" message="Reintenta para consultar las solicitudes de esta oportunidad."
+      onRetry={() => void refetch()} retrying={isFetching} />
+  );
 
   return (
     <div className="space-y-4">

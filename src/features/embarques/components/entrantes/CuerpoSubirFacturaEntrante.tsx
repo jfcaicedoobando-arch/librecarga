@@ -11,18 +11,27 @@ import { ResumenSubidaEntrante } from "@/features/embarques/components/entrantes
 import { CfdiMetaPreview } from "@/features/embarques/components/entrantes/CfdiMetaPreview";
 import { NotaContabilidadCampo } from "@/features/embarques/components/entrantes/NotaContabilidadCampo";
 import { SeccionProveedorEntrante } from "@/features/embarques/components/entrantes/SeccionProveedorEntrante";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { VerificacionMontoEntrante } from "@/features/embarques/components/entrantes/VerificacionMontoEntrante";
 import { totalCfdiDetectado } from "@/features/embarques/components/entrantes/totalCfdiDetectado";
 import { AvisoDuplicadoBuzon } from "@/features/embarques/components/entrantes/AvisoDuplicadoBuzon";
 import { BuzonDuplicadoError } from "@/features/cxp";
 import type { ConceptoCostoEmbarque } from "@/features/embarques/services";
 
+interface Consulta<T> {
+  data: T | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  isFetching: boolean;
+  refetch: () => Promise<unknown>;
+}
+
 interface Props {
   form: ReturnType<typeof useSubirEntranteForm>;
   embarqueId: string;
   duplicado: BuzonDuplicadoError | null;
-  costos: { data: Readonly<Record<string, number>> | undefined; isLoading: boolean };
-  conceptos: { data: readonly ConceptoCostoEmbarque[] | undefined; isLoading: boolean };
+  costos: Consulta<Readonly<Record<string, number>>>;
+  conceptos: Consulta<readonly ConceptoCostoEmbarque[]>;
 }
 
 export function CuerpoSubirFacturaEntrante({ form, embarqueId, duplicado, costos, conceptos }: Props) {
@@ -66,7 +75,14 @@ export function CuerpoSubirFacturaEntrante({ form, embarqueId, duplicado, costos
         description="Marca los costos del embarque que corresponden a este documento; contabilidad los recibirá pre-marcados."
         cols={1}
       >
-        <ConceptosSugeridosEntrante
+        {form.proveedor && conceptos.isError ? (
+          <ErrorStateInline
+            title="No se pudieron consultar los conceptos del proveedor"
+            message="Reintenta para verificar qué costos cubre la factura."
+            onRetry={() => void conceptos.refetch()}
+            retrying={conceptos.isFetching}
+          />
+        ) : <ConceptosSugeridosEntrante
           conceptos={conceptos.data}
           cargando={conceptos.isLoading}
           proveedorElegido={Boolean(form.proveedor)}
@@ -75,7 +91,7 @@ export function CuerpoSubirFacturaEntrante({ form, embarqueId, duplicado, costos
           onToggle={form.toggleConcepto}
           onMonto={form.setMontoConcepto}
           onSinCosto={form.marcarSinCosto}
-        />
+        />}
       </FormDialogSection>
 
       <FormDialogSection
@@ -91,6 +107,9 @@ export function CuerpoSubirFacturaEntrante({ form, embarqueId, duplicado, costos
           totalCfdi={totalCfdiDetectado(form.meta)}
           costeadoPorMoneda={costos.data}
           cargandoCostos={costos.isLoading}
+          errorCostos={costos.isError}
+          reintentandoCostos={costos.isFetching}
+          reintentarCostos={() => void costos.refetch()}
           proveedorElegido={Boolean(form.proveedor)}
           sumaSugerida={form.sumaSugeridaPorMoneda[form.monedaDeclarada] ?? null}
           onUsarSumaSugerida={form.usarSumaSugerida}

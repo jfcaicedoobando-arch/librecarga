@@ -86,7 +86,7 @@ export function AuditoriaHallazgosTab({ c, drillFilters, tablaKey }: Props) {
             value={c.filtroSev}
             onValueChange={(v) => c.setFiltroSev(v as SeveridadAuditoria | "todas")}
           >
-            <SelectTrigger className="w-[140px] h-8 text-body-sm">
+            <SelectTrigger aria-label="Severidad rápida" className="w-[140px] h-8 text-body-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -100,7 +100,7 @@ export function AuditoriaHallazgosTab({ c, drillFilters, tablaKey }: Props) {
         <div className="flex items-center gap-2">
           <span className="text-body-sm text-muted-foreground">Modo:</span>
           <Select value={c.filtroModo} onValueChange={c.setFiltroModo}>
-            <SelectTrigger className="w-[140px] h-8 text-body-sm">
+            <SelectTrigger aria-label="Modo de transporte" className="w-[140px] h-8 text-body-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

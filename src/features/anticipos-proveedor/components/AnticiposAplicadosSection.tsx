@@ -1,3 +1,4 @@
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAplicacionesPorFactura } from "../hooks/useAplicacionesPorFactura";
 import { formatCurrency } from "@/lib/formatters";
@@ -12,10 +13,10 @@ interface Props {
 }
 
 export function AnticiposAplicadosSection({ facturaId }: Props) {
-  const { data: aplicaciones = [], isLoading } = useAplicacionesPorFactura(facturaId);
+  const { data: aplicaciones = [], isLoading, isError, refetch, isFetching } = useAplicacionesPorFactura(facturaId);
 
   if (isLoading) return <ListSkeleton rows={2} />;
-  if (aplicaciones.length === 0) return null;
+  if (!isError && aplicaciones.length === 0) return null;
 
   // No se suman monedas distintas: un subtotal por cada moneda aplicada.
   const subtotales = subtotalesPorMoneda(aplicaciones);
@@ -26,7 +27,14 @@ export function AnticiposAplicadosSection({ facturaId }: Props) {
         <CardTitle>Anticipos aplicados</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        {isError ? (
+          <ErrorStateInline
+            title="No se pudieron consultar los anticipos aplicados"
+            message="Reintenta la consulta de aplicaciones de esta factura."
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+        ) : <div className="overflow-x-auto">
           <Table className="w-full text-sm">
             <TableHeader className="bg-muted/40 text-label uppercase tracking-wider text-muted-foreground">
               <TableRow>
@@ -62,7 +70,7 @@ export function AnticiposAplicadosSection({ facturaId }: Props) {
               ))}
             </TableFooter>
           </Table>
-        </div>
+        </div>}
       </CardContent>
     </Card>
   );

@@ -19,8 +19,8 @@ const columns = defineColumns<ComisionBrokerFila>([
     <>{f.empresa}<span className="block text-body-sm text-muted-foreground">{f.organizacion}</span></>
   ) },
   { id: "factura", header: "Factura", cell: ({ row }) => row.original.factura || "—" },
-  { id: "desglose", header: "Cálculo", enableSorting: false, cell: ({ row }) => <DesgloseComisionBroker desglose={row.original.desglose} /> },
-  moneyColumn({ header: "Comisión", accessor: (f) => Number(f.comision_mxn) }),
+  { id: "desglose", header: "Cálculo por servicio (USD)", enableSorting: false, cell: ({ row }) => <DesgloseComisionBroker desglose={row.original.desglose} /> },
+  moneyColumn({ header: "Comisión (MXN)", accessor: (f) => Number(f.comision_mxn) }),
   { id: "estado", header: "Estatus", cell: ({ row }) => <Badge variant="outline">{estatusVisible(row.original)}</Badge> },
 ]);
 
@@ -46,14 +46,14 @@ export default function BrokerComisiones() {
       <PageHeader
         icon={<Wallet className="h-6 w-6 text-primary" />}
         title="Mis comisiones"
-        description="Por servicio: ganancia en USD menos $150 por operación, por el % del tabulador o el mínimo garantizado. Se ganan conforme el cliente paga."
+        description="Por servicio: ganancia en USD menos 150 USD por operación, por el % del tabulador o el mínimo garantizado. Se ganan conforme el cliente paga."
       />
       <CargaGuard isLoading={q.isLoading} isError={q.isError} onRetry={q.refetch}
         errorTitle="No se pudieron cargar tus comisiones" errorDescription="Revisa tu conexión y vuelve a intentar.">
         <div className="grid gap-3 sm:grid-cols-3">
-          <Total label="Pendiente (devengada)" monto={t.pendiente} />
-          <Total label="Liquidada por pagar" monto={t.liquidado} />
-          <Total label="Pagada" monto={t.pagado} />
+          <Total label="Pendiente (devengada, MXN)" monto={t.pendiente} />
+          <Total label="Liquidada por pagar (MXN)" monto={t.liquidado} />
+          <Total label="Pagada (MXN)" monto={t.pagado} />
         </div>
         <DataTable columns={columns} data={filas} rowKey={(f) => f.id}
           emptyMessage="Aún no tienes comisiones." />

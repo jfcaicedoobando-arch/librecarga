@@ -140,7 +140,13 @@ describe("respuesta Pricing con un único observador", () => {
     mocks.read.mockRejectedValue(new Error("sin conexión"));
     render(view());
     await flush();
-    expect(screen.getByText("No se pudieron cargar las tarifas de respuesta.")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("No se pudieron cargar las tarifas de respuesta");
     expect(screen.queryByText("Pricing aún no agrega tarifas.")).not.toBeInTheDocument();
+    const lecturasFallidas = mocks.read.mock.calls.length;
+    mocks.read.mockResolvedValue([]);
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    await flush();
+    expect(mocks.read).toHaveBeenCalledTimes(lecturasFallidas + 1);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

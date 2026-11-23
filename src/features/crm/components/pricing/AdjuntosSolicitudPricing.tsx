@@ -4,6 +4,7 @@
  */
 import { FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Hint } from "@/components/shared/Hint";
 import { useAdjuntosSolicitudPricing, useUrlAdjuntoPricing } from "@/features/crm/hooks/useAdjuntosSolicitudPricing";
 import type { AdjuntoPricing } from "@/features/crm/services/pricing/adjuntosPricing";
@@ -30,7 +31,7 @@ function Miniatura({ a }: { a: AdjuntoPricing }) {
 }
 
 export function AdjuntosSolicitudPricing({ organizationId, solicitudId, puedeAdjuntar }: Props) {
-  const { adjuntos, isLoading, error, subir } = useAdjuntosSolicitudPricing(organizationId, solicitudId);
+  const { adjuntos, isLoading, isFetching, refetch, error, subir } = useAdjuntosSolicitudPricing(organizationId, solicitudId);
 
   return (
     <Card>
@@ -38,7 +39,9 @@ export function AdjuntosSolicitudPricing({ organizationId, solicitudId, puedeAdj
       <CardContent className="space-y-3">
         {puedeAdjuntar && <SelectorAdjuntos disabled={subir.isPending} onArchivos={(f) => f.length && subir.mutate(f)} />}
         {subir.isPending && <p className="text-body text-muted-foreground">Subiendo…</p>}
-        {error && <p className="text-body text-destructive">No se pudieron cargar los archivos.</p>}
+        {isLoading && <p role="status" className="text-body text-muted-foreground">Cargando archivos adjuntos…</p>}
+        {error && <ErrorStateInline title="No se pudieron cargar los archivos" message="Reintenta para consultar los archivos adjuntos."
+          onRetry={() => void refetch()} retrying={isFetching} />}
         {!isLoading && !error && adjuntos.length === 0 && <p className="text-body text-muted-foreground">Sin archivos adjuntos.</p>}
         <div className="flex flex-wrap gap-3">{adjuntos.map((a) => <Miniatura key={a.path} a={a} />)}</div>
       </CardContent>

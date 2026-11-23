@@ -2,6 +2,7 @@
 import { Send } from "lucide-react";
 import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAccionSolicitud } from "@/features/crm/hooks/usePricingCrm";
 import { camposFaltantesSolicitud } from "@/features/crm/services/pricing/camposObligatorios";
@@ -20,8 +21,9 @@ export function EnviarSolicitudFinal({ solicitud: s, puede }: { solicitud: Solic
 
 function SesionEnvio({ solicitud: s }: { solicitud: SolicitudPricingRow }) {
   const accion = useAccionSolicitud();
-  const { opciones, isLoading } = useOpcionesTarifario(s);
+  const { opciones, isLoading, isError, isFetching, reintentar } = useOpcionesTarifario(s);
   const faltan = camposFaltantesSolicitud(s);
+  const envioBloqueado = isLoading || isError || isFetching || faltan.length > 0;
   const montada = useRef(false);
   const enCurso = useRef(false);
   useLayoutEffect(() => {
@@ -29,7 +31,7 @@ function SesionEnvio({ solicitud: s }: { solicitud: SolicitudPricingRow }) {
     return () => { montada.current = false; };
   }, []);
   const enviar = async () => {
-    if (enCurso.current || !montada.current || faltan.length > 0) return;
+    if (enCurso.current || !montada.current || envioBloqueado) return;
     enCurso.current = true;
     // Con coincidencias vigentes se piden más opciones; sin ellas es una ruta nueva.
     try {
@@ -47,12 +49,21 @@ function SesionEnvio({ solicitud: s }: { solicitud: SolicitudPricingRow }) {
   return (
     <Card>
       <CardContent className="flex flex-wrap items-center gap-3 py-4">
-        <p className="text-body-sm text-muted-foreground">
+        {isError ? (
+          <ErrorStateInline
+            title="No se pudo consultar el tarifario"
+            message="Reintenta la consulta antes de enviar a Pricing."
+            onRetry={() => void reintentar()}
+            retrying={isFetching}
+            className="w-full"
+          />
+        ) : <p className="text-body-sm text-muted-foreground">
           {faltan.length > 0 ? `Para enviar, completa: ${faltan.join(", ")}.`
-            : opciones.length > 0 ? "Las opciones del tarifario no bastan; pediré más a Pricing."
+            : isLoading || isFetching ? "Consultando el tarifario…"
+              : opciones.length > 0 ? "Las opciones del tarifario no bastan; pediré más a Pricing."
               : "No hay tarifas que coincidan; Pricing buscará una ruta nueva."}
-        </p>
-        <Button size="sm" className="ml-auto" disabled={accion.isPending || isLoading || faltan.length > 0}
+        </p>}
+        <Button size="sm" className="ml-auto" disabled={accion.isPending || envioBloqueado}
           onClick={() => { void enviar(); }}>
           <Send className="mr-1 size-4" /> Enviar a Pricing
         </Button>

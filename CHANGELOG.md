@@ -1,5 +1,11 @@
 # Changelog
 
+## [13.824.102] - 2026-11-23
+- **Compras y Tesorería:** la aprobación muestra los importes por moneda, incluidos los euros. Estado de cuenta responde a Enter y los reportes identifican saldos y equivalentes parciales.
+- **Cotizaciones, CRM y Facturación:** los borradores se protegen al salir, el tarifario permite reintentar la lectura y Vencidas distingue una búsqueda vacía de una cartera al día.
+- **Embarques y portales:** garantías, seguros, tracking y los listados de clientes explican los fallos de consulta y permiten recuperarse desde la misma pantalla.
+- **Administración y accesibilidad:** las políticas se cargan antes de editar, el asistente de Facturapi identifica cuándo se guarda cada llave y los formularios anuncian campos y acciones por su nombre.
+
 ## [13.824.101] - 2026-11-22
 - **Facturación:** Emitidas exporta todos los resultados de los filtros, conserva el orden del layout contable y permite seleccionar facturas en móvil.
 - **Embarques:** las notas conservan su borrador al cambiar de pestaña. El listado recupera páginas fuera de rango y permite ordenar y consultar ETA y alertas en móvil.

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { TarifaInput } from "@/features/costeo/services/tarifas";
 import type { RutaOption } from "./MultiRutaSelect";
 
@@ -16,6 +17,8 @@ export interface TarifaFormProps {
   tituloOverride?: string;
   /** Rutas a usar en lugar de useCosteoRutas() (útil cuando no hay OrganizationContext). */
   rutasOverride?: RutaOption[];
+  /** Cuando el catálogo de rutas no está disponible, muestra su estado y pausa Guardar. */
+  avisoRutas?: ReactNode;
   /**
    * Organización dueña de la tarifa cuando no hay OrganizationContext (portal del
    * agente). Sin ella el insert salía con `organization_id` nulo y RLS lo rechazaba.

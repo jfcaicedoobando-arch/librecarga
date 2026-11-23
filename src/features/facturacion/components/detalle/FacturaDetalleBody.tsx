@@ -41,8 +41,8 @@ export function FacturaDetalleBody(props: FacturaDetalleBodyProps) {
   const vigente = esFacturaVigenteParaOperar(factura);
   const canEdit = props.canEdit && vigente;
   const puedeEditarBorrador = props.puedeEditarBorrador && vigente;
-  const { data: pagos = [] } = usePagosFactura(factura.id);
-  const { data: notasCredito = [] } = useNotasCreditoDeFactura(factura.id);
+  const { data: pagos, isLoading: cargandoPagos, isError: errorPagos } = usePagosFactura(factura.id);
+  const { data: notasCredito, isLoading: cargandoNotas, isError: errorNotas } = useNotasCreditoDeFactura(factura.id);
 
   const tabs: DocumentoTabItem[] = [
     {
@@ -109,7 +109,7 @@ export function FacturaDetalleBody(props: FacturaDetalleBodyProps) {
     {
       id: "cobros",
       label: "Cobros",
-      count: pagos.length,
+      count: cargandoPagos || errorPagos ? undefined : pagos?.length,
       content: (
         <FacturaPagosSection
           facturaId={factura.id}
@@ -126,7 +126,7 @@ export function FacturaDetalleBody(props: FacturaDetalleBodyProps) {
     {
       id: "notas-credito",
       label: "Notas de crédito",
-      count: notasCredito.length,
+      count: cargandoNotas || errorNotas ? undefined : notasCredito?.length,
       content: (
         <FacturaNotasCreditoSeccion
           facturaId={factura.id}

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/shared";
+import { useCopyText } from "@/hooks/shared/useCopyText";
 import { notifyError } from "@/lib/ui/appFeedback";
 import { useDestinatariosSugeridos } from "@/features/proformas/hooks/useDestinatariosSugeridos";
 import { useEmailsOcultos } from "@/features/proformas/hooks/useEmailsOcultos";
@@ -39,7 +39,7 @@ function defaultMensaje(p: ProformaDetalleFull): string {
 }
 
 export function EnviarProformaDialog({ open, onOpenChange, proforma }: Props) {
-  const { toast } = useToast();
+  const copy = useCopyText();
   const [destinatarios, setDestinatarios] = useState("");
   const [cc, setCc] = useState("");
   const [asunto, setAsunto] = useState("");
@@ -104,13 +104,12 @@ export function EnviarProformaDialog({ open, onOpenChange, proforma }: Props) {
     onOpenChange(next);
   };
 
-  async function copiar(link: string) {
-    try {
-      await navigator.clipboard.writeText(link);
-      toast({ title: "Enlace copiado" });
-    } catch {
-      /* noop */
-    }
+  function copiar(link: string) {
+    void copy(link, {
+      successMessage: "Enlace copiado",
+      errorTitle: "No se pudo copiar. Selecciona el enlace visible para copiarlo manualmente.",
+      method: "PROFORMAS_COPIAR_ENLACE_ENVIO",
+    });
   }
 
   const footer = !envio ? (

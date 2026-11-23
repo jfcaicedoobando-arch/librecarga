@@ -13,7 +13,7 @@ import type { DraftPatch, EditableRow } from "@/features/embarques/components/_s
 import { getErrorMessage } from "@/lib/errors";
 
 export function useTabDemorasController(embarqueId: string) {
-  const { data: contenedores = [], isLoading } = useContenedoresEmbarque(embarqueId);
+  const { data: contenedores = [], isLoading, isError, isFetching, refetch } = useContenedoresEmbarque(embarqueId);
   const qc = useQueryClient();
   const [drafts, setDrafts] = useState<Record<string, DraftPatch>>({});
 
@@ -76,6 +76,9 @@ export function useTabDemorasController(embarqueId: string) {
   return {
     rows,
     isLoading,
+    isError,
+    isFetching,
+    refetch,
     drafts,
     isPending: updateMut.isPending,
     setDraft,

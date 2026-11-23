@@ -18,7 +18,8 @@ interface BitacoraFiltrosProps {
   rangoFiltro: string;
   mostrarLogins: boolean;
   mostrarSwitchLogins: boolean;
-  total: number;
+  total?: number;
+  isLoading: boolean;
   onModuloChange: (v: string) => void;
   onAccionChange: (v: string) => void;
   onRangoChange: (v: string) => void;
@@ -37,6 +38,7 @@ export function BitacoraFiltros({
   mostrarLogins,
   mostrarSwitchLogins,
   total,
+  isLoading,
   onModuloChange,
   onAccionChange,
   onRangoChange,
@@ -92,8 +94,8 @@ export function BitacoraFiltros({
         </div>
       )}
 
-      <span className="text-body-sm text-muted-foreground ml-auto">
-        {total} {total === 1 ? "registro" : "registros"}
+      <span role="status" className="text-body-sm text-muted-foreground ml-auto">
+        {isLoading ? "Consultando registros…" : total !== undefined && `${total} ${total === 1 ? "registro" : "registros"}`}
       </span>
     </div>
   );

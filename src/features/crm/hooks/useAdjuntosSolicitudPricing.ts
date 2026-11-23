@@ -18,7 +18,7 @@ export function useUrlAdjuntoPricing(path: string) {
 export function useAdjuntosSolicitudPricing(organizationId: string, solicitudId: string) {
   const qc = useQueryClient();
   const key = crm.adjuntos(solicitudId);
-  const { data: adjuntos = [], isLoading, error } = useQuery({
+  const { data: adjuntos = [], isLoading, isFetching, refetch, error } = useQuery({
     queryKey: key,
     queryFn: () => listarAdjuntos(organizationId, solicitudId),
   });
@@ -38,5 +38,5 @@ export function useAdjuntosSolicitudPricing(organizationId: string, solicitudId:
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 
-  return { adjuntos, isLoading, error, subir };
+  return { adjuntos, isLoading, isFetching, refetch, error, subir };
 }

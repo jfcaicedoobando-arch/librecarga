@@ -23,8 +23,8 @@ function embarqueMatchesSearch(e: EmbarqueRow, estadoVisual: string, q: string):
  * deep-link desde el dashboard.
  */
 export function usePortalEmbarquesController() {
-  const { data: clientUsers = [] } = usePortalClientUsers();
-  const clienteIds = useMemo(() => clientUsers.map((cu) => cu.cliente_id), [clientUsers]);
+  const cuentas = usePortalClientUsers();
+  const clienteIds = useMemo(() => (cuentas.data ?? []).map((cu) => cu.cliente_id), [cuentas.data]);
   const { data: embarques = [], isLoading, isError, refetch } = usePortalEmbarques(clienteIds);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -80,9 +80,10 @@ export function usePortalEmbarquesController() {
   }, [filtered]);
 
   return {
-    isLoading,
-    isError,
-    refetch,
+    isLoading: cuentas.isLoading || isLoading,
+    isError: cuentas.isError || isError,
+    errorCuentas: cuentas.isError,
+    refetch: cuentas.isError || cuentas.isLoading ? cuentas.refetch : refetch,
     embarques,
     filtered,
     grouped,

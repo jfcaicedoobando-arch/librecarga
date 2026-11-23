@@ -5,6 +5,7 @@
 import { Card } from "@/components/ui/card";
 import { Wallet } from "lucide-react";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { KpiGridSkeleton } from "@/components/shared/skeletons";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { formatDate } from "@/lib/formatters/dates";
@@ -39,9 +40,12 @@ interface Props {
   totales?: DireccionTotales;
   desdeIso: string;
   isLoading: boolean;
+  isError: boolean;
+  isFetching: boolean;
+  onRetry: () => void;
 }
 
-export function TotalesPeriodoCard({ totales, desdeIso, isLoading }: Props) {
+export function TotalesPeriodoCard({ totales, desdeIso, isLoading, isError, isFetching, onRetry }: Props) {
   return (
     <Card className="p-5 rounded-xl border border-border bg-card">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -49,12 +53,15 @@ export function TotalesPeriodoCard({ totales, desdeIso, isLoading }: Props) {
           Totales del periodo por moneda
         </p>
         <p className="text-body-sm text-muted-foreground">
-          Desde {formatDate(desdeIso)} · {totales?.embarques ?? 0} embarques
+          Desde {formatDate(desdeIso)}{totales && !isError && ` · ${totales.embarques} embarques`}
         </p>
       </div>
-      {isLoading || !totales ? (
+      {isError ? (
+        <ErrorStateInline className="mt-3" title="No se pudieron consultar los totales del periodo"
+          message="Reintenta para consultar los importes por moneda." onRetry={onRetry} retrying={isFetching} />
+      ) : isLoading ? (
         <KpiGridSkeleton count={BLOQUES.length} heightClass="h-14" className="mt-3" />
-      ) : (
+      ) : totales ? (
         <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4">
           {BLOQUES.map((b) => (
             <div key={b.key}>
@@ -63,7 +70,7 @@ export function TotalesPeriodoCard({ totales, desdeIso, isLoading }: Props) {
             </div>
           ))}
         </div>
-      )}
+      ) : <EmptyStateInline message="Sin totales disponibles para el periodo." />}
     </Card>
   );
 }

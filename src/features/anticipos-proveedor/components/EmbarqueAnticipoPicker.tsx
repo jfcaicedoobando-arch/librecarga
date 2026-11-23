@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Loader2, Search, X, Ship } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/hooks/shared";
 import { useBuscarEmbarquesPorTexto } from "@/features/cxp/hooks";
@@ -21,12 +22,19 @@ interface Props {
   onChange: (embarqueId: string | null, expediente: string | null) => void;
 }
 
+function estadoBusqueda(term: string, debounced: string, consulta: ReturnType<typeof useBuscarEmbarquesPorTexto>) {
+  if (term.trim().length < 2) return "inicial";
+  if (debounced !== term || consulta.isLoading) return "cargando";
+  if (consulta.isError) return "error";
+  return consulta.data?.length ? "resultados" : "vacio";
+}
+
 export function EmbarqueAnticipoPicker({ value, expediente, onChange }: Props) {
   const { organizationId } = useOrgActiva();
   const [term, setTerm] = useState("");
   const debounced = useDebounce(term, 300);
   const search = useBuscarEmbarquesPorTexto(debounced, organizationId, term.trim().length >= 2);
-  const lista = search.data ?? [];
+  const estado = estadoBusqueda(term, debounced, search);
 
   if (value) {
     return (
@@ -60,21 +68,29 @@ export function EmbarqueAnticipoPicker({ value, expediente, onChange }: Props) {
         />
       </div>
 
-      {search.isLoading && (
+      {estado === "cargando" && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Buscando embarques…
         </div>
       )}
 
-      {!search.isLoading && term.trim().length >= 2 && lista.length === 0 && (
+      {estado === "error" && (
+        <ErrorStateInline
+          title="No se pudieron consultar los embarques"
+          message="Reintenta la búsqueda con el texto capturado."
+          onRetry={() => void search.refetch()}
+          retrying={search.isFetching}
+        />
+      )}
+      {estado === "vacio" && (
         <p className="text-xs italic text-muted-foreground">
           No encontramos embarques con ese texto (los cerrados y cancelados no se muestran).
         </p>
       )}
 
-      {lista.length > 0 && (
+      {estado === "resultados" && (
         <div className="max-h-48 space-y-1.5 overflow-y-auto">
-          {lista.map((e) => (
+          {search.data?.map((e) => (
             <Button
               key={e.embarque_id}
               type="button"

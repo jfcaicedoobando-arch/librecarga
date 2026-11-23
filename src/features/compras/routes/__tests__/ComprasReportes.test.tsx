@@ -62,7 +62,7 @@ describe("Compras reportes — presentación", () => {
     render(<ComprasReportes />);
     expect(screen.getByText("La fecha Desde no puede ser posterior a Hasta.")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Hasta" })).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Exportar CSV Top 10 proveedores" })).toBeDisabled();
     expect(screen.queryByText("Facturas en el período")).not.toBeInTheDocument();
     expect(screen.queryByText("Resumen de proveedores")).not.toBeInTheDocument();
     expect(screen.queryByText("Sin datos para graficar.")).not.toBeInTheDocument();

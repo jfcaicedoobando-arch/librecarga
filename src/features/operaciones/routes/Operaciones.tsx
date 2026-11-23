@@ -37,6 +37,8 @@ export default function Operaciones() {
     refetch: refetchTarifasPendientes,
   } = useTarifasPendientesAprobacion();
 
+  const capacidadPorcentaje = Math.min(100, Math.max(0, contPct));
+
   function renderTendenciaChart() {
     if (isLoading) return <ChartSkeleton height={260} />;
     return (
@@ -77,7 +79,13 @@ export default function Operaciones() {
           iconVariant="chip"
           loading={isLoading}
         >
-          {!isLoading && <Progress value={contPct} className="h-1.5 mt-1.5 [&>div]:bg-kpi-accent" />}
+          {!isLoading && <Progress
+            aria-label="Capacidad de contenedores"
+            aria-valuenow={capacidadPorcentaje}
+            aria-valuetext={`${global.totalContenedores} de ${MAX_CONTENEDORES} TEU`}
+            value={capacidadPorcentaje}
+            className="h-1.5 mt-1.5 [&>div]:bg-kpi-accent"
+          />}
         </KpiCard>
         {/* VB-28: la moneda ya la muestra el valor ("USD …"); no duplicarla en el label. */}
         <KpiCard label="Utilidad" value={formatCurrencyCompact(global.totalProfit, "USD")} valueTooltip={formatCurrency(global.totalProfit, "USD")} icon={TrendingUp} variant="success" iconVariant="chip" loading={isLoading} />

@@ -32,7 +32,12 @@ import type { TarifaFormProps } from "./TarifaForm.types";
 
 
 
-export function TarifaForm({ open, onOpenChange, onSaved, initial, tarifaId, agenteIdFijo, agenteNombreFijo, tituloOverride, rutasOverride, organizationIdOverride }: TarifaFormProps) {
+function instruccionGuardado(faltantes: string[], rutasBloqueadas: boolean): string | undefined {
+  if (rutasBloqueadas) return "Espera a que estén disponibles las rutas.";
+  return faltantes.length > 0 ? `Faltan: ${faltantes.join(", ")}` : undefined;
+}
+
+export function TarifaForm({ open, onOpenChange, onSaved, initial, tarifaId, agenteIdFijo, agenteNombreFijo, tituloOverride, rutasOverride, avisoRutas, organizationIdOverride }: TarifaFormProps) {
   const { data: agentesData = [] } = useCosteoAgentes();
   const { data: rutasData = [] } = useCosteoRutas();
   const { data: navieras = [] } = useNavieras();
@@ -67,7 +72,7 @@ export function TarifaForm({ open, onOpenChange, onSaved, initial, tarifaId, age
   useTarifaFormReset({ open, initial, agenteIdFijo, onReset: aplicarInicial });
 
   const total = useMemo(() => calcularTotal(form), [form]);
-  const valido = computeValido(esFormValido(form, { skipRutaId: multiple }), multiple, rutaIds.length);
+  const valido = !avisoRutas && computeValido(esFormValido(form, { skipRutaId: multiple }), multiple, rutaIds.length);
   const pendiente = [crear, crearMultiples, actualizar].some((m) => m.isPending);
   const sucio = esTarifaSucia(form, baseline.form, rutaIds, baseline.rutaIds);
 
@@ -76,7 +81,7 @@ export function TarifaForm({ open, onOpenChange, onSaved, initial, tarifaId, age
   // Sólo se pintan los campos en rojo después del primer intento (evita "mar de rojo" al abrir).
   const errores = intentoEnvio ? erroresLive : undefined;
   const faltantes = camposFaltantes(erroresLive);
-  const tooltipFaltantes = faltantes.length > 0 ? `Faltan: ${faltantes.join(", ")}` : undefined;
+  const tooltipFaltantes = instruccionGuardado(faltantes, Boolean(avisoRutas));
 
   const ejecutarSubmit = useTarifaSubmit({
     mutations,
@@ -153,6 +158,7 @@ export function TarifaForm({ open, onOpenChange, onSaved, initial, tarifaId, age
           multiple={multiple}
           rutaIds={rutaIds}
           onRutaIdsChange={setRutaIds}
+          avisoRutas={avisoRutas}
         />
         <NumerosFields form={form} setForm={setForm} errores={errores} />
         <TarifaPricingFields form={form} setForm={setForm} />

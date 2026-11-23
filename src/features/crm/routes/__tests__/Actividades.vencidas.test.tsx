@@ -16,6 +16,26 @@ vi.mock("@/hooks/shared", async (original) => ({
 }));
 
 describe("Actividades CRM vencidas", () => {
+  it("limpia en la misma acción el filtro rápido y los filtros de la tabla", async () => {
+    listActividadesAgenda.mockResolvedValue({ data: [], count: 0 });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <NuqsTestingAdapter hasMemory searchParams="?filtro=vencidas&tipo=llamada&q=seguimiento">
+          <MemoryRouter><Actividades /></MemoryRouter>
+        </NuqsTestingAdapter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(listActividadesAgenda).toHaveBeenLastCalledWith(expect.objectContaining({
+      tipo: "llamada", search: "seguimiento", vencidas: true,
+    })));
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar todo" }));
+    await waitFor(() => expect(listActividadesAgenda).toHaveBeenLastCalledWith(expect.objectContaining({
+      tipo: "todos", search: "", vencidas: false,
+    })));
+    expect(screen.queryByRole("button", { name: "Quitar filtro Vencidas" })).not.toBeInTheDocument();
+  });
+
   it("muestra los filtros efectivos de la consulta y devuelve los filtros editables al quitar Vencidas", async () => {
     listActividadesAgenda.mockResolvedValue({ data: [], count: 0 });
     const searchParams = "?filtro=vencidas&estado=completadas&tipo=llamada&q=seguimiento";

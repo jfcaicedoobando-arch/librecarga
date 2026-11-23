@@ -26,7 +26,8 @@ import { useOrgActiva } from "@/hooks/shared/useOrgActiva";
 export function useFacturaManualForm(open: boolean, onClose?: () => void) {
   const { organizationId } = useOrgActiva();
   const tasaIva = useTasaIVA();
-  const { data: clientes = [] } = useClientesFiscalOpts(organizationId, open);
+  const consultaClientes = useClientesFiscalOpts(organizationId, open);
+  const { data: clientes = [] } = consultaClientes;
 
   const [clienteId, setClienteId] = useState<string>("");
   const [fiscal, setFiscal] = useState<DatosFiscalesValue>(INITIAL_FISCAL);
@@ -109,6 +110,7 @@ export function useFacturaManualForm(open: boolean, onClose?: () => void) {
   return {
     clienteId,
     clientes,
+    consultaClientes,
     cliente,
     onClienteChange,
     fiscal,

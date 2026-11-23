@@ -51,6 +51,15 @@ export function nuevaTarifaInformativa(): TarifaInformativa {
   };
 }
 
+export function validarFilaTarifaInformativa(tarifa: TarifaInformativa) {
+  return {
+    origen: tarifa.origen ? undefined : "origen requerido",
+    destino: tarifa.destino ? undefined : "destino requerido",
+    precio: tarifa.precio > 0 ? undefined : "precio debe ser mayor a 0",
+    moneda: tarifa.moneda ? undefined : "moneda requerida",
+  };
+}
+
 export interface ValidacionInformativa {
   ok: boolean;
   errores: string[];
@@ -67,11 +76,9 @@ export function validateCotizacionInformativa(input: CotizacionInformativaInput)
   }
   if (!input.tarifas || input.tarifas.length < 1) errores.push("Debe agregar al menos una tarifa");
   input.tarifas?.forEach((t, i) => {
-    const r = i + 1;
-    if (!t.origen) errores.push(`Tarifa ${r}: origen requerido`);
-    if (!t.destino) errores.push(`Tarifa ${r}: destino requerido`);
-    if (!(t.precio > 0)) errores.push(`Tarifa ${r}: precio debe ser mayor a 0`);
-    if (!t.moneda) errores.push(`Tarifa ${r}: moneda requerida`);
+    for (const mensaje of Object.values(validarFilaTarifaInformativa(t))) {
+      if (mensaje) errores.push(`Tarifa ${i + 1}: ${mensaje}`);
+    }
   });
   return { ok: errores.length === 0, errores };
 }

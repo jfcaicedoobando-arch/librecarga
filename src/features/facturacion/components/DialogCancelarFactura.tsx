@@ -89,9 +89,9 @@ export function DialogCancelarFactura({
         )}
 
         <div className="space-y-2">
-          <Label>Motivo SAT</Label>
+          <Label htmlFor="cancelacion-motivo-sat">Motivo SAT</Label>
           <Select value={motivo} onValueChange={(v) => setMotivo(v as MotivoCancelacionSat)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="cancelacion-motivo-sat"><SelectValue /></SelectTrigger>
             <SelectContent>
               {MOTIVOS_CANCELACION_SAT.map((m) => (
                 <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
@@ -102,8 +102,9 @@ export function DialogCancelarFactura({
 
         {requiereSustituta && (
           <div className="space-y-2">
-            <Label>Factura sustituta timbrada</Label>
+            <Label htmlFor="cancelacion-sustituta">Factura sustituta timbrada</Label>
             <SelectorSustituta
+              id="cancelacion-sustituta"
               isLoading={sustitutasQ.isLoading}
               isError={sustitutasQ.isError}
               retrying={sustitutasQ.isFetching}

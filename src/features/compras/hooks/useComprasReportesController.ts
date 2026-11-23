@@ -54,7 +54,7 @@ export function useComprasReportesController() {
   const tcEurDof = rates?.eurMxn;
 
   // Top proveedores — agrupamos por proveedor y moneda.
-  const topProveedores = useMemo(
+  const { topProveedores, facturasSinTipoCambio } = useMemo(
     () => agruparTopProveedores(rows, tcDof, tcEurDof),
     [rows, tcDof, tcEurDof],
   );
@@ -72,7 +72,12 @@ export function useComprasReportesController() {
           total_mxn: p.mxn,
           total_usd: p.usd,
           total_eur: p.eur,
-          total_equivalente_mxn: p.mxnEquiv,
+          total_equivalente_mxn: p.sinTipoCambio > 0 ? null : p.mxnEquiv,
+          ...(facturasSinTipoCambio > 0 && {
+            equivalente_parcial_mxn: p.sinTipoCambio > 0 ? p.mxnEquiv : null,
+            facturas_sin_tipo_de_cambio: p.sinTipoCambio,
+            orden_parcial: "Sí",
+          }),
         })),
       );
       descargarBlob(
@@ -98,7 +103,7 @@ export function useComprasReportesController() {
     isLoading, isError, refetch,
     numFacturas: rows.length,
     totalMxn, totalUsd, totalEur,
-    topProveedores, evolucion,
+    topProveedores, facturasSinTipoCambio, evolucion,
     handleExport,
   };
 }

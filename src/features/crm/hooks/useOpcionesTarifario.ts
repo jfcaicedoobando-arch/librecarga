@@ -42,5 +42,6 @@ export function useOpcionesTarifario(s: SolicitudPricingRow) {
   };
 
   return { opciones, elegida, esFob, cargosFob: fob.data ?? [], cargosLocales: locales.data ?? [],
-    isLoading: tarifas.isLoading, busy, elegir };
+    isLoading: tarifas.isLoading, isError: tarifas.isError,
+    isFetching: tarifas.isFetching, reintentar: tarifas.refetch, busy, elegir };
 }

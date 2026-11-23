@@ -19,14 +19,9 @@ export function useConfiguracionGlobal() {
 }
 
 
-export function useConfigGlobalCategoria(categoria: string): Record<string, unknown> {
-  const { data } = useConfiguracionGlobal();
-  if (!data) return {};
-  const result: Record<string, unknown> = {};
-  data.filter((c) => c.categoria === categoria).forEach((c) => {
-    result[c.clave] = c.valor;
-  });
-  return result;
+export function filtrarConfigGlobalCategoria(data: ConfigGlobalItem[], categoria: string): Record<string, unknown> {
+  return Object.fromEntries(data.filter((item) => item.categoria === categoria)
+    .map((item) => [item.clave, item.valor]));
 }
 
 export function useUpdateConfiguracionGlobal() {

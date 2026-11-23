@@ -5,6 +5,8 @@
 import { useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useProveedoresLite } from "@/features/proveedor/hooks";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -27,7 +29,7 @@ interface Props {
 
 export function ProveedorCombobox({ value, onChange, placeholder = "Selecciona proveedor", className, id, invalid }: Props) {
   const [open, setOpen] = useState(false);
-  const { data: items = [] } = useProveedoresLite();
+  const { data: items = [], isLoading, isError, isFetching, refetch } = useProveedoresLite();
   const selected = items.find((i) => i.id === value);
 
   return (
@@ -42,7 +44,14 @@ export function ProveedorCombobox({ value, onChange, placeholder = "Selecciona p
         </Button>
       </PopoverTrigger>
       <PopoverContent className="p-0" align="start">
-        <Command>
+        {isLoading ? <EmptyStateInline loading message="Cargando proveedores…" density="compact" /> : isError ? (
+          <ErrorStateInline
+            title="No se pudieron consultar los proveedores"
+            message="Reintenta para encontrar el proveedor."
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+        ) : <Command>
           <CommandInput placeholder="Buscar proveedor…" />
           <CommandList
             className="overscroll-contain"
@@ -65,7 +74,7 @@ export function ProveedorCombobox({ value, onChange, placeholder = "Selecciona p
               ))}
             </CommandGroup>
           </CommandList>
-        </Command>
+        </Command>}
       </PopoverContent>
     </Popover>
   );

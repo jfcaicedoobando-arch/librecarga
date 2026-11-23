@@ -56,7 +56,7 @@ const today = () => todayLocalISO();
 const FORM_ID = "form-registrar-pago";
 
 export function DialogRegistrarPago({ open, onOpenChange, factura }: Props) {
-  const { data: cuentas = [] } = useCuentasBancarias();
+  const cuentas = useCuentasBancarias();
   const { data: pagosPrevios = [] } = usePagosFactura(factura?.id);
   const { data: notasAplicadas = [] } = useNotasCreditoAplicadas(factura?.id);
   // N9: el saldo cobrable lo calcula la BD (notas de crédito ya convertidas a
@@ -175,7 +175,7 @@ export function DialogRegistrarPago({ open, onOpenChange, factura }: Props) {
       {/* v13.550.0 — `<form>` real: Enter en cualquier campo guarda el pago
           (el botón del footer envía este formulario vía `form={FORM_ID}`). */}
       <form id={FORM_ID} onSubmit={handleGuardar} className="space-y-5">
-        <PagoFormFields values={values} onChange={handleChange} cuentas={cuentas} tc={{ monedaFactura: factura.moneda, saldo, rates }} />
+        <PagoFormFields values={values} onChange={handleChange} consultaCuentas={cuentas} tc={{ monedaFactura: factura.moneda, saldo, rates }} />
         {formaPagoInvalida && <p role="alert" className="text-label text-destructive">{ERROR_FORMA_COBRO}</p>}
         <NotasPago
           esPpdTimbrada={esPpdTimbrada}

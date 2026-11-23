@@ -131,7 +131,7 @@ export function HallazgosTabla(props: Props) {
             <Hint label={`Abrir embarque ${h.expediente}`}>
               <Button size="icon" variant="ghost" className="h-9 w-9"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); abrirEmbarque(h); }}
-                aria-label="Abrir embarque"
+                aria-label={`Abrir embarque ${h.expediente}`}
               >
                 <ExternalLink className="h-3.5 w-3.5" />
               </Button>

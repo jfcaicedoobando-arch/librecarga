@@ -3,6 +3,8 @@
  * Pura presentación: la lógica vive en `useAsignarResponsableController`.
  */
 import { Hand, UserPlus } from "lucide-react";
+import { useId } from "react";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -34,6 +36,7 @@ export function AsignarResponsableDialog({
   open,
   onOpenChange,
 }: Props) {
+  const responsableId = useId();
   const ctrl = useAsignarResponsableController({
     hallazgo,
     revisionExistente,
@@ -87,7 +90,7 @@ export function AsignarResponsableDialog({
           >
             Cancelar
           </Button>
-          <Button size="sm" onClick={() => ctrl.submit(false)} disabled={ctrl.cargando} loading={ctrl.cargando}>
+          <Button size="sm" onClick={() => ctrl.submit(false)} disabled={ctrl.cargando || ctrl.loadingUsers || ctrl.errorUsers} loading={ctrl.cargando}>
             {ctrl.cargando ? (
               "Guardando…"
             ) : ctrl.yaAsignado ? (
@@ -101,13 +104,13 @@ export function AsignarResponsableDialog({
     >
       <div className="space-y-3">
         <div className="space-y-1.5">
-          <Label>Responsable</Label>
+          <Label htmlFor={responsableId}>Responsable</Label>
           <Select
             value={ctrl.responsableId}
             onValueChange={ctrl.setResponsableId}
-            disabled={ctrl.loadingUsers}
+            disabled={ctrl.loadingUsers || ctrl.errorUsers}
           >
-            <SelectTrigger className="h-9 text-body">
+            <SelectTrigger id={responsableId} className="h-9 text-body">
               <SelectValue
                 placeholder={ctrl.loadingUsers ? "Cargando…" : "Selecciona un responsable"}
               />
@@ -122,6 +125,8 @@ export function AsignarResponsableDialog({
               ))}
             </SelectContent>
           </Select>
+          {ctrl.errorUsers && <ErrorStateInline title="No se pudo consultar la lista de responsables"
+            message="Reintenta para recuperar las opciones de asignación." onRetry={() => void ctrl.refetchUsers()} retrying={ctrl.fetchingUsers} />}
         </div>
 
         <FechaLimitePicker

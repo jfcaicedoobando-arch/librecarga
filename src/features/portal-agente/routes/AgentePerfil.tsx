@@ -15,17 +15,17 @@ import { useAgenteContext } from "@/features/portal-agente/hooks";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { useDocumentTitle } from "@/hooks/shared";
 
+const MIN_PASSWORD = 8;
+
 export default function AgentePerfil() {
   useDocumentTitle("Mi perfil");
   const { data: ctx } = useAgenteContext();
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
+  const passwordCorta = password.length > 0 && password.length < MIN_PASSWORD;
 
   const cambiarPassword = async () => {
-    if (password.length < 8) {
-      notifyError(undefined, { title: "La contraseña debe tener al menos 8 caracteres" });
-      return;
-    }
+    if (pending || password.length < MIN_PASSWORD) return;
     setPending(true);
     try {
       await actualizarPasswordAgente(password);
@@ -69,10 +69,14 @@ export default function AgentePerfil() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Mínimo 8 caracteres"
+            autoComplete="new-password"
+            aria-invalid={passwordCorta || undefined}
+            aria-describedby={passwordCorta ? "agente-password-ayuda agente-password-error" : "agente-password-ayuda"}
           />
+          <p id="agente-password-ayuda" className="text-body-sm text-muted-foreground">Mínimo {MIN_PASSWORD} caracteres.</p>
+          {passwordCorta && <p id="agente-password-error" className="text-body-sm text-destructive">Faltan {MIN_PASSWORD - password.length} caracteres.</p>}
         </div>
-        <Button onClick={cambiarPassword} disabled={pending || !password}>
+        <Button onClick={cambiarPassword} disabled={pending || password.length < MIN_PASSWORD}>
           {pending ? "Guardando…" : "Actualizar contraseña"}
         </Button>
       </Card>

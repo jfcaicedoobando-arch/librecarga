@@ -52,16 +52,16 @@ export default function SolicitudEmpresaDialog({ brokerId, empresa, onClose }: P
     >
       <FormDialogSection flat>
         <div className="space-y-1.5">
-          <Label htmlFor="sol-rol">¿A quién conoces? (sólo el puesto)</Label>
-          <Input id="sol-rol" value={rol} onChange={(e) => setRol(e.target.value)} placeholder="Gerente de compras" />
+          <Label htmlFor="sol-rol">¿A quién conoces? (sólo el puesto) *</Label>
+          <Input id="sol-rol" aria-required="true" value={rol} onChange={(e) => setRol(e.target.value)} placeholder="Gerente de compras" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="sol-relacion">Relación previa y nivel de confianza</Label>
-          <Textarea id="sol-relacion" value={relacion} onChange={(e) => setRelacion(e.target.value)} rows={3} />
+          <Label htmlFor="sol-relacion">Relación previa y nivel de confianza *</Label>
+          <Textarea id="sol-relacion" aria-required="true" value={relacion} onChange={(e) => setRelacion(e.target.value)} rows={3} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="sol-tiempo">Tiempo estimado de cierre</Label>
-          <Input id="sol-tiempo" value={tiempo} onChange={(e) => setTiempo(e.target.value)} placeholder="2 meses" />
+          <Label htmlFor="sol-tiempo">Tiempo estimado de cierre *</Label>
+          <Input id="sol-tiempo" aria-required="true" value={tiempo} onChange={(e) => setTiempo(e.target.value)} placeholder="2 meses" />
         </div>
       </FormDialogSection>
     </FormDialogShell>

@@ -1,3 +1,4 @@
+import type { CheckTimbrado } from "@/features/facturacion/utils/validarDatosTimbrado";
 import { Check, X } from "lucide-react";
 import { UsoCfdiIngresoSelect } from "./UsoCfdiIngresoSelect";
 /**
@@ -32,7 +33,7 @@ export function TimbrarCompacto({ usoCfdi, formaPago, metodoPago, ...emailProps 
 }
 
 interface CompletoProps extends TimbradoEmailProps {
-  checks: { ok: boolean; label: string }[];
+  checks: CheckTimbrado[];
   receptor: { rfc: string; regimen: string };
   usoCfdi: string;
   setUsoCfdi: (v: string) => void;
@@ -52,6 +53,7 @@ export function TimbrarCompleto(props: CompletoProps) {
     enviarEmail, setEnviarEmail, emailDestino,
     puedeTimbrar,
   } = props;
+  const pendientes = new Set(checks.filter((check) => !check.ok).map((check) => check.campo));
   return (
     <>
       <ul className="text-body space-y-1">
@@ -66,18 +68,18 @@ export function TimbrarCompleto(props: CompletoProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <UsoCfdiIngresoSelect value={usoCfdi} onChange={setUsoCfdi} receptor={props.receptor} />
         <div>
-          <Label>Forma de pago</Label>
+          <Label htmlFor="timbrar-forma-pago">Forma de pago</Label>
           <Select value={formaPago} onValueChange={setFormaPago}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="timbrar-forma-pago"><SelectValue /></SelectTrigger>
             <SelectContent>
               {FORMAS_PAGO_SAT.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label>Método de pago</Label>
+          <Label htmlFor="timbrar-metodo-pago">Método de pago</Label>
           <Select value={metodoPago} onValueChange={setMetodoPago}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="timbrar-metodo-pago"><SelectValue /></SelectTrigger>
             <SelectContent>
               {METODOS_PAGO_SAT.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
             </SelectContent>
@@ -89,9 +91,10 @@ export function TimbrarCompleto(props: CompletoProps) {
 
       {!puedeTimbrar && (
         <Alert variant="destructive">
-          <AlertDescription>
-            Completa los datos fiscales del cliente antes de timbrar.
-            Puedes hacerlo en el detalle del cliente.
+          <AlertDescription className="space-y-1">
+            {pendientes.has("receptor") && <p>Corrige los datos fiscales en el detalle del cliente.</p>}
+            {pendientes.has("pago") && <p>Revisa los campos del CFDI en este formulario.</p>}
+            {pendientes.has("factura") && <p>Corrige el tipo de cambio en el detalle de la factura.</p>}
           </AlertDescription>
         </Alert>
       )}

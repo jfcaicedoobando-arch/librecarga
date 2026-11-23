@@ -11,6 +11,7 @@ import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDi
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/FormField";
 import { formatCurrency } from "@/lib/formatters";
+import type { sumarFacturasPorMoneda } from "./ComprasPorAprobar.helpers";
 import {
   JUSTIFICACION_SIN_VINCULO_MIN,
   MOTIVO_RECHAZO_MAX,
@@ -20,8 +21,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   cantidad: number;
-  totalMxn: number;
-  totalUsd: number;
+  totales: ReturnType<typeof sumarFacturasPorMoneda>;
   isRunning: boolean;
   /** Cuántas de las seleccionadas no están ligadas a un embarque. */
   requierenJustificacion?: number;
@@ -31,7 +31,7 @@ interface Props {
 }
 
 export function ConfirmarAprobacionLoteDialog({
-  open, onOpenChange, cantidad, totalMxn, totalUsd, isRunning,
+  open, onOpenChange, cantidad, totales, isRunning,
   requierenJustificacion = 0, justificacion = "", onJustificacionChange, onConfirm,
 }: Props) {
   const texto = justificacion.trim();
@@ -56,8 +56,9 @@ export function ConfirmarAprobacionLoteDialog({
             Vas a aprobar <strong>{cantidad}</strong> solicitudes en un solo paso. El total involucrado es:
           </p>
           <ul className="list-disc pl-5 text-muted-foreground text-xs space-y-0.5">
-            <li>{formatCurrency(totalMxn, "MXN")}</li>
-            <li>{formatCurrency(totalUsd, "USD")}</li>
+            <li>{formatCurrency(totales.MXN, "MXN")}</li>
+            <li>{formatCurrency(totales.USD, "USD")}</li>
+            {totales.EUR !== 0 && <li>{formatCurrency(totales.EUR, "EUR")}</li>}
           </ul>
           <p className="text-xs text-muted-foreground">
             El proceso corre factura por factura. Si alguna falla, te lo indicamos al final para revisarla manualmente.

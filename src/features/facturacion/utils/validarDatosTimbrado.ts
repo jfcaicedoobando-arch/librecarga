@@ -12,6 +12,7 @@ import { validarFormaMetodoPago } from "@/lib/financial/formaMetodoPago";
 export interface CheckTimbrado {
   ok: boolean;
   label: string;
+  campo: "receptor" | "pago" | "factura";
 }
 
 export interface ParametrosChecksTimbrado {
@@ -47,22 +48,25 @@ export function buildChecksTimbrado(p: ParametrosChecksTimbrado): ResultadoCheck
   const issueMetodo = issuesPago.find((i) => i.field === "metodo_pago");
 
   const checks: CheckTimbrado[] = [
-    { ok: !!p.rfc && p.rfc.length >= RFC_MIN_LENGTH, label: `RFC del cliente: ${p.rfc || "FALTA"}` },
-    { ok: !!p.cp && CP_REGEX.test(p.cp), label: `Código postal: ${p.cp || "FALTA"}` },
+    { campo: "receptor", ok: !!p.rfc && p.rfc.length >= RFC_MIN_LENGTH, label: `RFC del cliente: ${p.rfc || "FALTA"}` },
+    { campo: "receptor", ok: !!p.cp && CP_REGEX.test(p.cp), label: `Código postal: ${p.cp || "FALTA"}` },
     ...buildChecksUsoCfdi(p),
     {
+      campo: "pago",
       ok: !issueForma,
       label: issueForma
         ? `Forma de pago SAT: ${p.formaPago || "FALTA"} — ${issueForma.message}`
         : `Forma de pago SAT: ${p.formaPago}`,
     },
     {
+      campo: "pago",
       ok: !issueMetodo,
       label: issueMetodo
         ? `Método de pago SAT: ${p.metodoPago || "FALTA"} — ${issueMetodo.message}`
         : `Método de pago SAT: ${p.metodoPago}`,
     },
     {
+      campo: "factura",
       ok: tcOk,
       label:
         moneda === "MXN"
@@ -79,7 +83,7 @@ function buildChecksUsoCfdi(p: ParametrosChecksTimbrado): CheckTimbrado[] {
   const motivosUso = issuesUso.filter((i) => i.field === "uso_cfdi").map((i) => i.message);
 
   return [
-    { ok: !!p.regimen && !issueRegimen, label: issueRegimen?.message ?? `Régimen fiscal: ${p.regimen || "FALTA"}` },
-    { ok: motivosUso.length === 0, label: motivosUso.join(" ") || `Uso CFDI: ${p.usoCfdi}` },
+    { campo: "receptor", ok: !!p.regimen && !issueRegimen, label: issueRegimen?.message ?? `Régimen fiscal: ${p.regimen || "FALTA"}` },
+    { campo: "pago", ok: motivosUso.length === 0, label: motivosUso.join(" ") || `Uso CFDI: ${p.usoCfdi}` },
   ];
 }

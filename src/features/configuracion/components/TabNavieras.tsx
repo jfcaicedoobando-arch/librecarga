@@ -1,3 +1,4 @@
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { CatalogQueryError } from "@/components/shared/CatalogQueryError";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -120,6 +121,9 @@ export default function TabNavieras() {
             isError={isError}
             errorState={<CatalogQueryError error={error} onRetry={() => void refetch()} retrying={isFetching} />}
             emptyMessage="No se encontraron navieras"
+            emptyState={navieras.length > 0 && busqueda.trim() ? (
+              <EmptyStateInline message="Sin coincidencias" action={{ label: "Limpiar búsqueda", onClick: () => setBusqueda("") }} />
+            ) : undefined}
             rowKey={(n) => n.id}
             rowClassName={(n) => !visibleOrg(n) ? "opacity-50" : ""}
             density={TABLE_DENSITY.embebida}

@@ -15,8 +15,8 @@ import { todayLocalISO } from "@/lib/date/today";
 
 
 export function DialogRegistrarPagoLiquidacion({
-  open, onOpenChange, liq,
-}: { open: boolean; onOpenChange: (o: boolean) => void; liq: LiquidacionRow | null }) {
+  open, onOpenChange, liq, vendedoraNombre,
+}: { open: boolean; onOpenChange: (o: boolean) => void; liq: LiquidacionRow | null; vendedoraNombre?: string | null }) {
   const [fecha, setFecha] = useState(todayLocalISO());
   const [metodo, setMetodo] = useState("Transferencia");
   const [referencia, setReferencia] = useState("");
@@ -38,7 +38,7 @@ export function DialogRegistrarPagoLiquidacion({
       onOpenChange={onOpenChange}
       icon={BadgeDollarSign}
       title={`Registrar pago de liquidación · ${liq.periodo}`}
-      description="Registra el pago de la liquidación de comisiones del período seleccionado."
+      description={`Vendedora: ${vendedoraNombre || "Sin identificar"}`}
       size="lg"
       headerAside={
         <div className="text-right">
@@ -57,13 +57,13 @@ export function DialogRegistrarPagoLiquidacion({
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label>Fecha</Label>
-          <DatePickerMx value={fecha} onChange={setFecha} className="w-full" />
+          <Label htmlFor="pago-liq-fecha">Fecha</Label>
+          <DatePickerMx id="pago-liq-fecha" value={fecha} onChange={setFecha} className="w-full" />
         </div>
         <div className="space-y-1">
-          <Label>Medio de pago</Label>
+          <Label htmlFor="pago-liq-metodo">Medio de pago</Label>
           <Select value={metodo} onValueChange={setMetodo}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="pago-liq-metodo"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Transferencia">Transferencia</SelectItem>
               <SelectItem value="Cheque">Cheque</SelectItem>

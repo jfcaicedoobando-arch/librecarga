@@ -1,3 +1,4 @@
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,7 +61,7 @@ function FreshnessHeader({
 
 // eslint-disable-next-line complexity -- Render de alto nivel con múltiples secciones condicionales opcionales; extraer más subcomponentes fragmentaría el layout.
 export function TabTracking({ embarqueId, embarque }: Props) {
-  const { data: eventos = [], isLoading } = useEventosEmbarque(embarqueId);
+  const { data: eventos = [], isLoading, isError, isFetching, refetch } = useEventosEmbarque(embarqueId);
   const { canEdit } = usePermissions();
   const [formAbierto, setFormAbierto] = useState(false);
 
@@ -111,7 +112,7 @@ export function TabTracking({ embarqueId, embarque }: Props) {
       {showEtaBanner && <EtaVencidaBanner eta={embarque.eta!} />}
 
       <FreshnessHeader
-        freshness={freshness}
+        freshness={isError ? { ...freshness, label: "Actividad de tracking sin verificar", critical: false } : freshness}
         canEdit={canEdit}
         onToggleForm={() => setFormAbierto((v) => !v)}
       />
@@ -136,7 +137,14 @@ export function TabTracking({ embarqueId, embarque }: Props) {
           <CardTitle>Línea de tiempo</CardTitle>
         </CardHeader>
         <CardContent>
-          <TrackingEventTimeline eventos={eventos} isLoading={isLoading} />
+          {isError ? (
+            <ErrorStateInline
+              title="No se pudo consultar la línea de tiempo"
+              message="Reintenta para ver los eventos de este embarque."
+              onRetry={() => void refetch()}
+              retrying={isFetching}
+            />
+          ) : <TrackingEventTimeline eventos={eventos} isLoading={isLoading} />}
         </CardContent>
       </Card>
     </div>

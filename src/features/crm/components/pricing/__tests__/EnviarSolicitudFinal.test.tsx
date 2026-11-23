@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
 
 const services = vi.hoisted(() => ({ enviarSolicitud: vi.fn(), actualizarSolicitud: vi.fn() }));
-vi.mock("@/features/crm/hooks/useOpcionesTarifario", () => ({ useOpcionesTarifario: () => ({ opciones: [], isLoading: false }) }));
+const tarifario = vi.hoisted(() => ({ isError: false, reintentar: vi.fn() }));
+vi.mock("@/features/crm/hooks/useOpcionesTarifario", () => ({ useOpcionesTarifario: () => ({ opciones: [], isLoading: false, ...tarifario }) }));
 vi.mock("@/features/crm/services/pricing/pricingCrm", () => services);
 vi.mock("@/features/crm/services/pricing/tarifasParaPricing", () => ({ listarTarifasParaPricing: vi.fn() }));
 vi.mock("@/lib/ui/appFeedback", () => ({ notifySuccess: vi.fn(), notifyError: vi.fn() }));
@@ -33,6 +34,8 @@ function Vista({ fila = solicitud, puede = true }: { fila?: SolicitudPricingRow;
 }
 beforeEach(() => {
   setAuthSnapshot(auth);
+  tarifario.isError = false;
+  tarifario.reintentar.mockClear();
   services.enviarSolicitud.mockReset().mockResolvedValue(undefined);
   services.actualizarSolicitud.mockReset().mockResolvedValue(undefined);
   vi.mocked(notifySuccess).mockClear(); vi.mocked(notifyError).mockClear();
@@ -42,6 +45,21 @@ beforeEach(() => {
 afterEach(() => { cleanup(); client.clear(); });
 
 describe("envío final después de revisar tarifario", () => {
+  it("permite reintentar sin enviar ni declarar una ruta nueva si falla el tarifario", () => {
+    tarifario.isError = true;
+    const view = render(<Vista />);
+    const boton = screen.getByRole("button", { name: "Enviar a Pricing" });
+    expect(boton).toBeDisabled();
+    expect(screen.queryByText(/Pricing buscará una ruta nueva/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(tarifario.reintentar).toHaveBeenCalledOnce();
+    expect(services.actualizarSolicitud).not.toHaveBeenCalled();
+    tarifario.isError = false;
+    view.rerender(<Vista />);
+    expect(boton).toBeEnabled();
+    expect(screen.getByText(/Pricing buscará una ruta nueva/)).toBeInTheDocument();
+  });
+
   it("dos clics en el mismo turno producen un solo envío y permiten reintentar tras fallo", async () => {
     const envio = diferido();
     services.enviarSolicitud.mockReturnValueOnce(envio.promise);

@@ -1,5 +1,5 @@
 /** Bandeja /compras/por-aprobar — Ola C: facturas bajo flujo de aprobación. */
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useFiltroUrl, useTextoUrl } from "@/hooks/shared";
 import { ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import SearchInput from "@/components/shared/SearchInput";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissions } from "@/hooks/shared";
 import { useFacturasCxP, useAprobarFacturasLote, useVerificarSatLote } from "@/features/cxp/hooks";
-import { sumaMxn, sumaUsd } from "./ComprasPorAprobar.helpers";
+import { textoConteoAprobacion } from "./ComprasPorAprobar.helpers";
 import { ComprasPorAprobarKpis } from "./ComprasPorAprobar.kpis";
 import { useColumnasPorAprobar } from "./ComprasPorAprobar.useColumnas";
 import { ConfirmarAprobacionLoteDialog } from "./ComprasPorAprobar.confirmDialog";
@@ -42,14 +42,12 @@ export default function ComprasPorAprobar() {
   });
 
   // Contadores globales por estado (sin filtro de búsqueda) para los tabs/KPIs.
-  const { data: pendientes = [] } = useFacturasCxP({ aprobacion: "pendiente" });
-  const { data: aprobadas = [] } = useFacturasCxP({ aprobacion: "aprobada" });
-  const { data: rechazadas = [] } = useFacturasCxP({ aprobacion: "rechazada" });
+  const pendientes = useFacturasCxP({ aprobacion: "pendiente" });
+  const aprobadas = useFacturasCxP({ aprobacion: "aprobada" });
+  const rechazadas = useFacturasCxP({ aprobacion: "rechazada" });
 
   const seleccionEnLote = canAprobarFacturaProveedor && aprobacion === "pendiente";
   const { columns, bloqueadosSod, motivoBloqueo } = useColumnasPorAprobar({ rows, selected, setSelected, seleccionEnLote });
-  const currentTotalMxn = useMemo(() => sumaMxn(rows), [rows]);
-  const currentTotalUsd = useMemo(() => sumaUsd(rows), [rows]);
 
   const seleccion = useSeleccionEfectiva(rows, selected, bloqueadosSod);
   const { confirmOpen, setConfirmOpen, justificacionLote, setJustificacionLote,
@@ -83,8 +81,6 @@ export default function ComprasPorAprobar() {
         rechazadas={rechazadas}
         rows={rows}
         aprobacion={aprobacion}
-        currentTotalMxn={currentTotalMxn}
-        currentTotalUsd={currentTotalUsd}
       />
 
 
@@ -99,13 +95,13 @@ export default function ComprasPorAprobar() {
           >
             <TabsList>
               <TabsTrigger value="pendiente">
-                Pendientes <span className="ml-1.5 text-2xs opacity-70">({pendientes.length})</span>
+                Pendientes <span className="ml-1.5 text-2xs opacity-70">({textoConteoAprobacion(pendientes)})</span>
               </TabsTrigger>
               <TabsTrigger value="aprobada">
-                Aprobadas <span className="ml-1.5 text-2xs opacity-70">({aprobadas.length})</span>
+                Aprobadas <span className="ml-1.5 text-2xs opacity-70">({textoConteoAprobacion(aprobadas)})</span>
               </TabsTrigger>
               <TabsTrigger value="rechazada">
-                Rechazadas <span className="ml-1.5 text-2xs opacity-70">({rechazadas.length})</span>
+                Rechazadas <span className="ml-1.5 text-2xs opacity-70">({textoConteoAprobacion(rechazadas)})</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -117,8 +113,7 @@ export default function ComprasPorAprobar() {
           {seleccionEnLote && (
             <ComprasPorAprobarBulkBar
               selectedCount={seleccion.filas.length}
-              totalSelMxn={seleccion.totalMxn}
-              totalSelUsd={seleccion.totalUsd}
+              totales={seleccion.totales}
               isRunning={isRunning}
               progreso={progreso}
               onOpenConfirm={abrir}
@@ -171,8 +166,7 @@ export default function ComprasPorAprobar() {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         cantidad={confirmacion.filas.length}
-        totalMxn={confirmacion.totalMxn}
-        totalUsd={confirmacion.totalUsd}
+        totales={confirmacion.totales}
         isRunning={isRunning}
         requierenJustificacion={confirmacion.idsSinEmbarque.size}
         justificacion={justificacionLote}

@@ -32,22 +32,35 @@ import { formatFechaEs } from "@/lib/formatters";
 
 interface Props {
   proveedorId: string;
+  soloBusqueda?: boolean;
   proveedorNombre: string;
   organizationId: string | null;
   seleccionado: EmbarqueSeleccionado | null;
   onSeleccionar: (sel: EmbarqueSeleccionado | null) => void;
 }
 
+function resultadoEmbarques(
+  term: string,
+  soloBusqueda: boolean,
+  sugerencias: ReturnType<typeof useSugerirEmbarquesProveedor>,
+  busqueda: ReturnType<typeof useBuscarEmbarquesPorTexto>,
+) {
+  if (soloBusqueda && term.length < 2) return { lista: [], loading: false, mostrarVacio: false };
+  const consulta = term.length >= 2 ? busqueda : sugerencias;
+  const lista = consulta.data ?? [];
+  return { lista, loading: consulta.isLoading, mostrarVacio: !consulta.isLoading && lista.length === 0 };
+}
+
 export function SugerirEmbarqueBlock({
-  proveedorId, proveedorNombre, organizationId, seleccionado, onSeleccionar,
+  proveedorId, proveedorNombre, organizationId, seleccionado, onSeleccionar, soloBusqueda = false,
 }: Props) {
   const [term, setTerm] = useState("");
   const debounced = useDebounce(term, 300);
-  const sug = useSugerirEmbarquesProveedor(proveedorId, organizationId);
+  const sug = useSugerirEmbarquesProveedor(soloBusqueda ? null : proveedorId, organizationId);
   const search = useBuscarEmbarquesPorTexto(debounced, organizationId, term.length >= 2);
 
-  const lista = term.length >= 2 ? (search.data ?? []) : (sug.data ?? []);
-  const loading = term.length >= 2 ? search.isLoading : sug.isLoading;
+  const consulta = resultadoEmbarques(term, soloBusqueda, sug, search);
+  const { lista, loading, mostrarVacio } = consulta;
 
   const handlePick = (e: EmbarqueSugerido) => {
     onSeleccionar({
@@ -90,7 +103,7 @@ export function SugerirEmbarqueBlock({
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-accent" />
         <Label className="text-body font-semibold">
-          Este proveedor no tiene costos pre-cargados
+          {soloBusqueda ? "Vincular un embarque manualmente" : "Este proveedor no tiene costos pre-cargados"}
         </Label>
       </div>
       <p className="text-body-sm text-muted-foreground">
@@ -114,7 +127,7 @@ export function SugerirEmbarqueBlock({
         </div>
       )}
 
-      {!loading && lista.length === 0 && (
+      {mostrarVacio && (
         <p className="text-body-sm text-muted-foreground italic">
           {term.length >= 2
             ? "No encontramos expedientes con ese texto."

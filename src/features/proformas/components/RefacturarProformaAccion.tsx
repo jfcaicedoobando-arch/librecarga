@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -18,8 +19,17 @@ interface Props {
 }
 
 export function RefacturarProformaAccion({ proformaId, numero, habilitada }: Props) {
-  const { data: facturaNum } = useFacturaCanceladaDeProforma(proformaId, habilitada);
-  if (!habilitada || !facturaNum) return null;
+  const { data: facturaNum, isError, isFetching, refetch } = useFacturaCanceladaDeProforma(proformaId, habilitada);
+  if (!habilitada) return null;
+  if (isError) return (
+    <ErrorStateInline
+      title="No se pudo verificar si la proforma se puede refacturar"
+      message="Reintenta para consultar el estado de la factura vinculada."
+      onRetry={() => void refetch()}
+      retrying={isFetching}
+    />
+  );
+  if (!facturaNum) return null;
   return <AvisoRefacturar proformaId={proformaId} numero={numero} facturaNum={facturaNum} />;
 }
 

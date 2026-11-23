@@ -4,7 +4,7 @@
  * tabla pero sin botones de gestión.
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { createWrapper } from "@/test/utils/queryWrapper";
 import { TabLiquidaciones } from "../TabLiquidaciones";
 
@@ -38,6 +38,32 @@ function renderTab(effectiveRole: string | null) {
 }
 
 describe("TabLiquidaciones — gating por rol (Ola 4 · N28)", () => {
+  it("identifica a la vendedora de la liquidación antes de registrar el pago", () => {
+    mockUseAuth.mockReturnValue({ effectiveRole: "contador" });
+    mockUseLiquidaciones.mockReturnValue({
+      data: [LIQ_ROW, { ...LIQ_ROW, id: "l2", vendedora_id: "v2" }],
+      isLoading: false,
+    });
+    render(<TabLiquidaciones vendedoras={[
+      { id: "v1", nombre: "Ana", email: "ana@example.com", estadoIdentidad: "resuelta", identidadResuelta: true },
+      { id: "v2", nombre: "Irma", email: "irma@example.com", estadoIdentidad: "resuelta", identidadResuelta: true },
+    ]} />, { wrapper: createWrapper() });
+    fireEvent.click(screen.getAllByRole("button", { name: "Registrar pago" })[1]!);
+    const dialogo = screen.getByRole("dialog", { name: /2024-01/ });
+    expect(within(dialogo).getByText(/Vendedora: Irma/)).toBeInTheDocument();
+    expect(within(dialogo).queryByText(/Vendedora: Ana/)).not.toBeInTheDocument();
+  });
+
+  it("reintenta una lectura fallida sin mostrar una lista vacía", () => {
+    mockUseAuth.mockReturnValue({ effectiveRole: "contador" });
+    const refetch = vi.fn();
+    mockUseLiquidaciones.mockReturnValue({ isError: true, refetch });
+    render(<TabLiquidaciones vendedoras={[]} />, { wrapper: createWrapper() });
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(refetch).toHaveBeenCalledOnce();
+    expect(screen.queryByText(/Sin liquidaciones registradas/)).not.toBeInTheDocument();
+  });
+
   it("contador ve el botón Generar liquidación y Registrar pago", () => {
     renderTab("contador");
     expect(screen.getByText(/Generar liquidación/i)).toBeInTheDocument();

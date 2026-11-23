@@ -1,3 +1,5 @@
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { CoordinadorSelect } from "@/components/shared/CoordinadorSelect";
 import { puedeAsignarCoordinador } from "@/lib/access/coordinadorAsignacion";
@@ -14,7 +16,11 @@ export function ClienteCoordinadorCard({ clienteId, tipoCliente }: { clienteId: 
       </p>
     );
   }
-  if (query.isLoading || query.isError) return null;
+  if (query.isLoading) return <EmptyStateInline loading message="Cargando coordinador del cliente…" />;
+  if (query.isError) return (
+    <ErrorStateInline title="No se pudo consultar el coordinador" message="Reintenta para saber quién atiende los handovers."
+      onRetry={() => void query.refetch()} retrying={query.isFetching} />
+  );
   return (
     <dl className="border rounded-md p-3 max-w-sm text-body">
       <CoordinadorSelect

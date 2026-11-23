@@ -25,7 +25,7 @@ it("impide guardar vacío y admite un cero explícito", () => {
   });
   render(<TabVendedorasConfig vendedoras={vendedores} />);
   const porcentaje = screen.getByRole("spinbutton", { name: "Porcentaje de comisión de Lucía QA" });
-  const guardar = screen.getByRole("button", { name: "Guardar porcentaje de comisión" });
+  const guardar = screen.getByRole("button", { name: "Guardar porcentaje de comisión de Lucía QA" });
 
   fireEvent.change(porcentaje, { target: { value: "" } });
   expect(porcentaje).toHaveAccessibleDescription("Ingresa un porcentaje entre 0 y 100.");

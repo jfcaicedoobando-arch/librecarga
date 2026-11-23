@@ -10,11 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Hint } from "@/components/shared/Hint";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
+import type { sumarFacturasPorMoneda } from "./ComprasPorAprobar.helpers";
 
 interface Props {
   selectedCount: number;
-  totalSelMxn: number;
-  totalSelUsd: number;
+  totales: ReturnType<typeof sumarFacturasPorMoneda>;
   isRunning: boolean;
   progreso?: { hecho: number; total: number } | null;
   onOpenConfirm: () => void;
@@ -26,7 +26,7 @@ interface Props {
 }
 
 export function ComprasPorAprobarBulkBar({
-  selectedCount, totalSelMxn, totalSelUsd, isRunning, progreso, onOpenConfirm,
+  selectedCount, totales, isRunning, progreso, onOpenConfirm,
   validablesCount, satRunning, satProgreso, onValidarSat,
 }: Props) {
   const hasSelection = selectedCount > 0;
@@ -41,7 +41,7 @@ export function ComprasPorAprobarBulkBar({
     >
       <p className="text-xs text-muted-foreground">
         {hasSelection
-          ? `${pluralizar(selectedCount, "factura")} ${selectedCount === 1 ? "seleccionada" : "seleccionadas"} · ${formatCurrency(totalSelMxn, "MXN")} · ${formatCurrency(totalSelUsd, "USD")}`
+          ? `${pluralizar(selectedCount, "factura")} ${selectedCount === 1 ? "seleccionada" : "seleccionadas"} · ${formatCurrency(totales.MXN, "MXN")} · ${formatCurrency(totales.USD, "USD")}${totales.EUR !== 0 ? ` · ${formatCurrency(totales.EUR, "EUR")}` : ""}`
           : "Selecciona una o más facturas para validarlas en el SAT y aprobarlas en lote."}
         {hasSelection && validablesCount > 0 && (
           <span className="ml-2">

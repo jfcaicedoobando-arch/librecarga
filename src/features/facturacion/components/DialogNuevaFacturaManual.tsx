@@ -1,5 +1,7 @@
 /** Wizard de factura manual (sin embarque/proforma). v13.315.2: rediseño UI. */
 import { FilePlus2 } from "lucide-react";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,9 +25,52 @@ interface Props {
   onOpenChange: (o: boolean) => void;
 }
 
+type ClienteFormProps = Pick<ReturnType<typeof useFacturaManualForm>,
+  "clientes" | "consultaClientes" | "cliente" | "clienteIncompleto" | "onClienteChange">;
+
+function ClienteFacturaManualFields({ clientes, consultaClientes, cliente, clienteIncompleto, onClienteChange }: ClienteFormProps) {
+  return (
+    <FormDialogSection flat title="Información del cliente">
+      <div className="space-y-2">
+        <Label htmlFor="factura-manual-cliente">Cliente *</Label>
+        <Select value={cliente?.id ?? ""} onValueChange={onClienteChange} disabled={consultaClientes.isLoading || consultaClientes.isError}>
+          <SelectTrigger id="factura-manual-cliente">
+            <SelectValue placeholder={consultaClientes.isLoading ? "Consultando clientes…" : "Selecciona un cliente"} />
+          </SelectTrigger>
+          <SelectContent>
+            {clientes.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.nombre} {c.rfc ? `· ${c.rfc}` : "· sin RFC"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {consultaClientes.isError ? (
+          <ErrorStateInline
+            title="No se pudieron consultar los clientes"
+            message="Reintenta para continuar con los conceptos ya capturados."
+            onRetry={() => void consultaClientes.refetch()}
+            retrying={consultaClientes.isFetching}
+          />
+        ) : !consultaClientes.isLoading && clientes.length === 0 ? (
+          <EmptyStateInline message="No hay clientes disponibles." density="compact" />
+        ) : null}
+        {clienteIncompleto && (
+          <Alert variant="destructive">
+            <AlertDescription>
+              Este cliente no tiene datos fiscales completos (RFC, CP y régimen).
+              Puedes guardar borrador, pero no podrás timbrar hasta completarlos en el detalle del cliente.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
+    </FormDialogSection>
+  );
+}
+
 export function DialogNuevaFacturaManual({ open, onOpenChange }: Props) {
   const {
-    clientes, cliente, clienteIncompleto, onClienteChange,
+    clientes, consultaClientes, cliente, clienteIncompleto, onClienteChange,
     fiscal, updateFiscal, tasaIva,
     conceptos, setConceptos,
     notas, setNotas,
@@ -63,29 +108,13 @@ export function DialogNuevaFacturaManual({ open, onOpenChange }: Props) {
       busy={isPending}
     >
       <div className="space-y-5">
-        <FormDialogSection flat title="Información del cliente">
-          <div className="space-y-2">
-            <Label>Cliente *</Label>
-            <Select value={cliente?.id ?? ""} onValueChange={onClienteChange}>
-              <SelectTrigger><SelectValue placeholder="Selecciona un cliente" /></SelectTrigger>
-              <SelectContent>
-                {clientes.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nombre} {c.rfc ? `· ${c.rfc}` : "· sin RFC"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {clienteIncompleto && (
-              <Alert variant="destructive">
-                <AlertDescription>
-                  Este cliente no tiene datos fiscales completos (RFC, CP y régimen).
-                  Puedes guardar borrador, pero no podrás timbrar hasta completarlos en el detalle del cliente.
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
-        </FormDialogSection>
+        <ClienteFacturaManualFields
+          clientes={clientes}
+          consultaClientes={consultaClientes}
+          cliente={cliente}
+          clienteIncompleto={clienteIncompleto}
+          onClienteChange={onClienteChange}
+        />
 
         <FormDialogSection flat title="Datos fiscales">
           <FacturaManualDatosFiscales

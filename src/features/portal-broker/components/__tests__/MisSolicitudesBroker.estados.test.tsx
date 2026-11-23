@@ -31,9 +31,15 @@ describe("Mis solicitudes del broker", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("mantiene oculto el panel cuando la consulta correcta no encuentra solicitudes", () => {
-    consulta.mockReturnValue({ data: [], isError: false });
-    render(<MisSolicitudesBroker />);
-    expect(screen.queryByRole("heading", { name: "Mis solicitudes" })).toBeNull();
+  it("mantiene visible el panel y distingue carga de una lista vacía", () => {
+    consulta.mockReturnValue({ isLoading: true, isError: false });
+    const { rerender } = render(<MisSolicitudesBroker />);
+    expect(screen.getByRole("heading", { name: "Mis solicitudes" })).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("Cargando solicitudes…");
+    expect(screen.queryByText("Todavía no has enviado solicitudes.")).not.toBeInTheDocument();
+
+    consulta.mockReturnValue({ data: [], isLoading: false, isError: false });
+    rerender(<MisSolicitudesBroker />);
+    expect(screen.getByText("Todavía no has enviado solicitudes.")).toBeVisible();
   });
 });

@@ -1,3 +1,4 @@
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { CatalogQueryError } from "@/components/shared/CatalogQueryError";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -111,6 +112,9 @@ export default function TabPuertos() {
             isError={isError}
             errorState={<CatalogQueryError error={error} onRetry={() => void refetch()} retrying={isFetching} />}
             emptyMessage="No se encontraron puertos"
+            emptyState={puertos.length > 0 && puertoBusqueda.trim() ? (
+              <EmptyStateInline message="Sin coincidencias" action={{ label: "Limpiar búsqueda", onClick: () => setPuertoBusqueda("") }} />
+            ) : undefined}
             rowKey={(p) => p.id}
             rowClassName={(p) => !visibleOrg(p) ? "opacity-50" : ""}
             density={TABLE_DENSITY.embebida}

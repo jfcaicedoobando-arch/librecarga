@@ -1,6 +1,7 @@
 import { es } from "date-fns/locale";
 import { formatFechaDia } from "@/lib/formatters";
 import { CalendarIcon } from "lucide-react";
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -13,12 +14,14 @@ interface Props {
 }
 
 export function FechaLimitePicker({ fechaLimite, onChange }: Props) {
+  const fechaId = useId();
   return (
     <div className="space-y-1.5">
-      <Label>Fecha límite (opcional)</Label>
+      <Label htmlFor={fechaId}>Fecha límite (opcional)</Label>
       <Popover>
         <PopoverTrigger asChild>
           <Button
+            id={fechaId}
             variant="outline"
             size="sm"
             className={cn(

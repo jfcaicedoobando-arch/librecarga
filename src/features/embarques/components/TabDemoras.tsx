@@ -15,6 +15,7 @@ import { Clock } from "lucide-react";
 import { useTabDemorasController } from "@/features/embarques/hooks/useTabDemorasController";
 import { useTiposContenedor } from "@/features/catalogos/hooks";
 import { buildDemorasColumns } from "./_sections/tabDemorasColumns";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 
@@ -25,7 +26,7 @@ interface Props {
 }
 
 export function TabDemoras({ embarqueId, canEdit, soloConsulta = false }: Props) {
-  const { rows, isLoading, drafts, isPending, setDraft, valorActual, guardar } =
+  const { rows, isLoading, isError, isFetching, refetch, drafts, isPending, setDraft, valorActual, guardar } =
     useTabDemorasController(embarqueId);
 
   // VIS-CE-251-05: catálogo para mostrar el nombre del tipo aunque el valor
@@ -53,7 +54,14 @@ export function TabDemoras({ embarqueId, canEdit, soloConsulta = false }: Props)
           </p>
         </CardHeader>
         <CardContent className="p-0">
-          <DataTable
+          {isError ? (
+            <ErrorStateInline
+              title="No se pudieron consultar los contenedores"
+              message="Reintenta para recuperar las fechas y demoras."
+              onRetry={() => void refetch()}
+              retrying={isFetching}
+            />
+          ) : <DataTable
             columns={columns}
             data={rows}
             rowKey={(r) => r.id}
@@ -68,7 +76,7 @@ export function TabDemoras({ embarqueId, canEdit, soloConsulta = false }: Props)
                 />
               </div>
             }
-          />
+          />}
         </CardContent>
       </Card>
     </div>

@@ -73,7 +73,7 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
       ))}
       <TarifasRespuestaPricing solicitudId={s.id} hayOpcionesViejas={opciones.length > 0}
         tarifas={tarifas} isLoading={tarifasRespuesta.isLoading}
-        isError={tarifasRespuesta.isError} onSaved={() => { void tarifasRespuesta.refetch(); }}
+        isError={tarifasRespuesta.isError} isFetching={tarifasRespuesta.isFetching} onSaved={() => { void tarifasRespuesta.refetch(); }}
         onCotizar={puedeCotizar && s.estado === "respondida" ? cotizarRespuesta : undefined}
         editable={(s.estado === "enviada" || s.estado === "respondida") && puedeAgregarTarifaRespuesta(effectiveRole)} />
     </div>

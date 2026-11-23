@@ -3,7 +3,7 @@ import { PackageOpen, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getErrorMessage } from "@/lib/errors";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useContenedoresEmbarque } from "@/features/embarques/hooks";
 import { useTiposContenedor } from "@/features/catalogos/hooks";
 import { resolveTipoContenedorNombre } from "@/lib/domain/tipoContenedor";
@@ -62,7 +62,7 @@ function CargaCell({ contenedor, campo, vacio, decimals }: CargaCellProps) {
 
 export function SeccionContenedoresReadonly({ embarqueId }: Props) {
   const navigate = useNavigate();
-  const { data: contenedores = [], isLoading, error } =
+  const { data: contenedores = [], isLoading, isError, isFetching, refetch } =
     useContenedoresEmbarque(embarqueId);
   const { data: tiposContenedor = [] } = useTiposContenedor();
 
@@ -113,10 +113,13 @@ export function SeccionContenedoresReadonly({ embarqueId }: Props) {
           <div className="flex items-center justify-center py-6 text-body text-muted-foreground">
             <EmptyStateInline loading message="Cargando contenedores…" />
           </div>
-        ) : error ? (
-          <p className="text-body text-destructive">
-            Error al cargar: {getErrorMessage(error)}
-          </p>
+        ) : isError ? (
+          <ErrorStateInline
+            title="No se pudieron consultar los contenedores"
+            message="Reintenta para recuperar los contenedores de este embarque."
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
         ) : lista.length === 0 ? (
           <div className="rounded-md border border-dashed border-border">
             <EmptyStateInline

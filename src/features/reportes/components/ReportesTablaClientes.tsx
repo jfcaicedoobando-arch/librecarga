@@ -77,6 +77,7 @@ export default function ReportesTablaClientes({ data, isLoading, sortField, sort
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <MoneyCell label="Venta eq. USD" value={formatCurrency(c.venta_usd, "USD")} />
+                  <MoneyCell label="Costo eq. USD" value={formatCurrency(c.costo_usd, "USD")} />
                   <MoneyCell label="Utilidad eq. USD" value={formatCurrency(c.profit_usd, "USD")} highlight />
                 </div>
               </div>

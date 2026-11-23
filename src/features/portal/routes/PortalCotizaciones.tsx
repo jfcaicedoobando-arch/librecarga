@@ -1,9 +1,11 @@
+import { estadoListadoPortal } from "@/features/portal/domain/estadoListadoPortal";
 import { LoadingState } from "@/components/shared/states/LoadingState";
 import { usePortalCotizaciones, usePortalClientUsers } from "@/features/portal/hooks";
 import { ClipboardList, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SolicitarCotizacionDialog } from "@/features/portal/components/SolicitarCotizacionDialog";
 import EmptyState from "@/components/empty/EmptyState";
+import { PORTAL_LIST_MAX } from "@/features/portal/services/limits";
 import { PortalPageShell } from "@/features/portal/components/layout/PortalPageShell";
 import { PortalFiltersBar } from "@/features/portal/components/filtros/PortalFiltersBar";
 import { PortalCotizacionesMobileFilters } from "@/features/portal/components/PortalCotizacionesMobileFilters";
@@ -19,17 +21,18 @@ import { opcionesSolicitante } from "@/features/portal/domain/clientesSolicitant
 
 export default function PortalCotizaciones() {
   useDocumentTitle('Mis Cotizaciones');
-  const { data: clientUsers = [] } = usePortalClientUsers();
+  const cuentas = usePortalClientUsers();
   // Opciones autorizadas con nombre legible: la solicitud ya no se atribuye
   // en silencio al primer cliente del usuario.
-  const clientes = useMemo(() => opcionesSolicitante(clientUsers), [clientUsers]);
+  const clientes = useMemo(() => opcionesSolicitante(cuentas.data ?? []), [cuentas.data]);
   const clienteIds = useMemo(() => clientes.map((c) => c.id), [clientes]);
-  const {
-    data: cotizaciones = [], isLoading, isError, refetch,
-  } = usePortalCotizaciones(clienteIds);
+  const consulta = usePortalCotizaciones(clienteIds);
+  const { data: cotizaciones = [] } = consulta;
+  const estadoListado = estadoListadoPortal(cuentas, consulta, "No pudimos cargar tus cotizaciones.");
   const tasaIva = useTasaIVA();
   const [search, setSearch] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
+  const filtrosActivos = Boolean(search) || filtroEstado !== "todos";
   const [solicitudAbierta, setSolicitudAbierta] = useState(false);
 
   // v13.339.0 (Q-01): el filtro lista SIEMPRE los estados visibles para el
@@ -55,17 +58,13 @@ export default function PortalCotizaciones() {
     });
   }, [cotizaciones, search, filtroEstado]);
 
-  if (isLoading || isError) {
+  if (estadoListado) {
     // R-05: la carga nunca se queda colgada; a los 15s (o ante error) se
     // ofrece "Reintentar" en vez de un skeleton perpetuo.
     // UI-4: el encabezado se conserva para no perder el contexto de la página.
     return (
       <PortalPageShell icon={<ClipboardList className="h-6 w-6 text-accent" />} title="Mis cotizaciones">
-        <LoadingState
-          error={isError}
-          onRetry={() => void refetch()}
-          errorLabel="No pudimos cargar tus cotizaciones."
-        />
+        <LoadingState {...estadoListado} />
       </PortalPageShell>
     );
   }
@@ -113,14 +112,20 @@ export default function PortalCotizaciones() {
         setFiltroEstado={setFiltroEstado}
       />
 
+      {cotizaciones.length >= PORTAL_LIST_MAX && (
+        <p className="text-body-sm text-muted-foreground">Hasta {PORTAL_LIST_MAX} registros recientes. La búsqueda aplica a esta lista.</p>
+      )}
+
       {filtered.length === 0 ? (
         <EmptyState
           icon={ClipboardList}
-          title={search || filtroEstado !== "todos" ? "No se encontraron cotizaciones" : "Aún no tienes cotizaciones"}
-          description={search || filtroEstado !== "todos"
+          title={filtrosActivos ? "No se encontraron cotizaciones" : "Aún no tienes cotizaciones"}
+          description={cotizaciones.length >= PORTAL_LIST_MAX
+            ? "Ajusta los filtros para buscar en los registros recientes de esta lista."
+            : filtrosActivos
             ? "Ajusta los filtros o busca con otro término."
             : "Solicita tu primera cotización y nuestro equipo te enviará una propuesta."}
-          primaryAction={search || filtroEstado !== "todos" ? {
+          primaryAction={filtrosActivos ? {
             label: "Limpiar filtros",
             variant: "outline",
             onClick: () => { setSearch(""); setFiltroEstado("todos"); },

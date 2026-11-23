@@ -33,6 +33,7 @@ function KeyRow({ orgId, ambiente, last4, label, prefijo, activo }: KeyRowProps)
   const setKey = useSetFacturapiApiKey(orgId);
   const clearKey = useClearFacturapiApiKey(orgId);
   const cargada = !!last4;
+  const saveLabel = ambiente === "sandbox" ? "Guardar llave de Sandbox" : "Guardar llave de Producción";
 
   const onGuardar = async () => {
     const v = valor.trim();
@@ -81,7 +82,7 @@ function KeyRow({ orgId, ambiente, last4, label, prefijo, activo }: KeyRowProps)
           </Button>
         )}
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Input
           type="password"
           autoComplete="off"
@@ -89,12 +90,12 @@ function KeyRow({ orgId, ambiente, last4, label, prefijo, activo }: KeyRowProps)
           placeholder={cargada ? "Pega una nueva key para reemplazar" : `${prefijo}…`}
           value={valor}
           onChange={(e) => setValor(e.target.value)}
-          className="font-mono text-xs"
+          className="min-w-40 flex-1 font-mono text-xs"
         />
-        <Button type="button" onClick={onGuardar} disabled={!valor.trim() || setKey.isPending} loading={setKey.isPending}>
+        <Button type="button" onClick={onGuardar} aria-label={saveLabel} disabled={!valor.trim() || setKey.isPending} loading={setKey.isPending}>
           {!setKey.isPending && (
             <>
-              <Save className="h-4 w-4 mr-1" /> Guardar
+              <Save className="h-4 w-4 mr-1" /> {saveLabel}
             </>
           )}
         </Button>
@@ -132,7 +133,8 @@ export function PasoApiKeys({ orgId, ambiente, sandboxLast4, liveLast4 }: Props)
           Copia tu <em>Secret key</em> desde el panel de FacturApi
           (<a href="https://docs.facturapi.io/" target="_blank" rel="noreferrer" className="underline">docs.facturapi.io</a>)
           y pégala aquí. La key se cifra en el servidor; sólo verás los últimos 4 dígitos.
-          Sólo necesitas cargar la del <strong>ambiente activo</strong> para avanzar.
+          Cada botón aplica la llave a este ambiente al pulsarlo. «Finalizar» guarda el ambiente elegido.
+          Sólo necesitas cargar la llave del <strong>ambiente elegido</strong> para avanzar.
         </AlertDescription>
       </Alert>
 

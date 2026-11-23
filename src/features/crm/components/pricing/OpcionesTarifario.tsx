@@ -6,6 +6,7 @@ import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { formatDate } from "@/lib/formatters/dates";
@@ -22,7 +23,7 @@ interface Props {
 }
 
 export function OpcionesTarifario({ solicitud: s, puedeElegir, puedeCotizar, tarifasRespondidas }: Props) {
-  const { opciones, elegida, esFob, cargosFob, cargosLocales, isLoading, busy, elegir } = useOpcionesTarifario(s);
+  const { opciones, elegida, esFob, cargosFob, cargosLocales, isLoading, isError, isFetching, reintentar, busy, elegir } = useOpcionesTarifario(s);
   const navigate = useNavigate();
   const irACotizar = (tarifaId: string) => {
     const q = new URLSearchParams({ tarifa: tarifaId, solicitud: s.id });
@@ -39,10 +40,18 @@ export function OpcionesTarifario({ solicitud: s, puedeElegir, puedeCotizar, tar
   return (
     <div className="space-y-2">
       <SectionHeading as="h3">{elegida ? "Opción elegida del tarifario" : "Opciones del tarifario"}</SectionHeading>
-      {opciones.length === 0 && !isLoading && (
+      {isLoading && <p role="status" className="text-body-sm text-muted-foreground">Consultando el tarifario…</p>}
+      {isError && (
+        s.estado === "borrador" && puedeElegir
+          ? <p className="text-body-sm text-muted-foreground">Opciones del tarifario no disponibles.</p>
+          : <ErrorStateInline title="No se pudo consultar el tarifario"
+              message="Reintenta para recuperar las opciones."
+              onRetry={() => void reintentar()} retrying={isFetching} />
+      )}
+      {opciones.length === 0 && !isLoading && !isError && (
         <EmptyStateInline message="No hay tarifas vigentes que coincidan; Pricing atenderá la solicitud." />
       )}
-      {opciones.map((t) => (
+      {!isError && opciones.map((t) => (
         <OpcionTarifarioCard key={t.id} tarifa={t}
           cargosFob={esFob ? cargosFob : []} cargosLocales={cargosLocales}
           puedeElegir={!elegida && !respondida && puedeElegir} busy={busy !== null} elegir={elegir}

@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function ProformaBitacoraCard({ proformaId, bare }: Props) {
-  const { data, isLoading, isError } = useProformaBitacora(proformaId);
+  const { data, isLoading, isError, isFetching, refetch } = useProformaBitacora(proformaId);
 
   const entradas = data ?? [];
 
@@ -29,7 +29,9 @@ export function ProformaBitacoraCard({ proformaId, bare }: Props) {
         ) : isError ? (
           <ErrorStateInline
             title="No se pudo cargar la actividad"
-            message="No se pudo cargar la actividad de esta proforma."
+            message="Reintenta para recuperar el historial de esta proforma."
+            onRetry={() => void refetch()}
+            retrying={isFetching}
           />
         ) : entradas.length === 0 ? (
           <EmptyStateInline icon={History} message="Sin movimientos registrados." />

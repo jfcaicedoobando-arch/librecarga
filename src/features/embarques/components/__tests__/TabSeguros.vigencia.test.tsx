@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import type { SeguroEmbarque } from "@/features/embarques/services/seguros";
 import { formatDate } from "@/lib/formatters";
@@ -37,4 +37,16 @@ it("identifica la cobertura futura y cuenta sólo la póliza que ya inició en e
   const actual = within(screen.getByRole("row", { name: /Póliza actual/ }));
   expect(actual.getByText("Vence en 4d")).toBeInTheDocument();
   expect(screen.getByText("1 por vencer en 7 días")).toBeInTheDocument();
+});
+
+it("permite reintentar una consulta fallida antes de ofrecer el alta de una póliza", () => {
+  const refetch = vi.fn();
+  useSegurosEmbarque.mockReturnValue({ isError: true, refetch });
+  render(<TabSeguros embarqueId="emb" canEdit />);
+
+  expect(screen.getByRole("alert")).toHaveTextContent("No se pudieron consultar las pólizas");
+  expect(screen.queryByText("Sin pólizas registradas")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Nueva póliza" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+  expect(refetch).toHaveBeenCalledOnce();
 });

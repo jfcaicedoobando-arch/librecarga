@@ -16,6 +16,7 @@ export interface UseDiagnosticoTarifasParams {
   puertoOrigenId?: string;
   puertoDestinoId?: string;
   tipoContenedorIds: string[];
+  fecha?: string;
   /** Sólo se consulta cuando el Top 3 ya resolvió sin resultados. */
   enabled: boolean;
 }
@@ -26,7 +27,7 @@ export interface UseDiagnosticoTarifasParams {
  */
 export function useDiagnosticoTarifas(p: UseDiagnosticoTarifasParams) {
   const { organizationId } = useOrganization();
-  const hoy = todayLocalISO();
+  const fechaConsulta = p.fecha || todayLocalISO();
   const idsOk =
     esUuid(p.puertoOrigenId) &&
     esUuid(p.puertoDestinoId) &&
@@ -38,19 +39,19 @@ export function useDiagnosticoTarifas(p: UseDiagnosticoTarifasParams) {
       puertoOrigenId: p.puertoOrigenId,
       puertoDestinoId: p.puertoDestinoId,
       tipoContenedorIds: p.tipoContenedorIds,
-      hoy,
+      hoy: fechaConsulta,
     }),
     queryFn: () =>
       fetchDiagnosticoTarifas({
         puertoOrigenId: p.puertoOrigenId!,
         puertoDestinoId: p.puertoDestinoId!,
         tipoContenedorIds: p.tipoContenedorIds,
-        hoy,
+        hoy: fechaConsulta,
         organizationId: organizationId!,
       }),
     enabled: p.enabled && !!organizationId && idsOk,
     staleTime: 30 * 1000,
   });
 
-  return { diagnostico: query.data, isFetching: query.isFetching };
+  return { diagnostico: query.data, isFetching: query.isFetching, isError: query.isError, refetch: query.refetch };
 }
