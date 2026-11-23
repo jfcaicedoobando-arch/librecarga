@@ -30,6 +30,7 @@ import { usePrefillProspectoOportunidad } from "@/features/cotizacion/hooks/wiza
 import { usePrefillContextoPricing } from "@/features/cotizacion/hooks/wizard/usePrefillContextoPricing";
 import { useDraftRestore } from "./useDraftRestore";
 import { usePrefillClienteTarifa } from "@/features/cotizacion/hooks/wizard/usePrefillClienteTarifa";
+import { usePrefillTarifaAerea } from "@/features/cotizacion/hooks/wizard/usePrefillTarifaAerea";
 
 function permitePrefill(id: string | null, permitePrefillProspecto: boolean, cotizacionId: string | null) {
   return Boolean(id) && permitePrefillProspecto && !cotizacionId;
@@ -111,6 +112,10 @@ export function useNuevaCotizacionPageController() {
     organizationId,
     enabled: permitePrefill(tarifaPrefill, permitePrefillProspecto, w.cotizacionId),
   });
+  // Pricing aéreo: tarifa sugerida + peso real y volumen de la solicitud.
+  const tarifaAerea = searchParams.get("tarifaAerea");
+  usePrefillTarifaAerea(w.form, organizationId, tarifaAerea, searchParams.get("solicitud"),
+    Boolean(tarifaAerea) && !w.cotizacionId && !restaurando && !pendienteBorrador);
   // Clientes especiales: el tarifario manda el cliente junto con la tarifa nueva.
   usePrefillClienteTarifa(w.form, searchParams.get("cliente"), prefillPricing.estado === "aplicado");
 
