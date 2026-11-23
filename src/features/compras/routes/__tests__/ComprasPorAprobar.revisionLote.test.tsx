@@ -5,6 +5,26 @@ import { useSeleccionEfectiva } from "../ComprasPorAprobar.seleccion";
 import { useRevisionLote } from "../ComprasPorAprobar.useRevisionLote";
 
 describe("confirmación de lote revisado", () => {
+  it("pide una justificación nueva al abrir otro lote después de cerrar el anterior", () => {
+    const aprobar = vi.fn();
+    const factura = (id: string) => ({ id, total: 100, moneda: "MXN", embarque_id: null, estado_aprobacion: "pendiente" }) as FacturaCxP;
+    const { result, rerender } = renderHook(({ fila }) => {
+      const seleccion = useSeleccionEfectiva([fila], new Set([fila.id]), new Set());
+      return useRevisionLote(seleccion, aprobar, vi.fn());
+    }, { initialProps: { fila: factura("primera") } });
+    act(() => result.current.abrir());
+    act(() => result.current.setJustificacionLote("Gasto administrativo del primer lote"));
+    act(() => result.current.setConfirmOpen(false));
+
+    rerender({ fila: factura("segunda") });
+    act(() => result.current.abrir());
+
+    expect(result.current.confirmOpen).toBe(true);
+    expect(result.current.confirmacion.ids).toEqual(["segunda"]);
+    expect(result.current.justificacionLote).toBe("");
+    expect(aprobar).not.toHaveBeenCalled();
+  });
+
   it("preserva IDs, totales y versiones antes de un refetch", async () => {
     const aprobar = vi.fn().mockResolvedValue({ exitos: [], fallos: [] });
     const limpiar = vi.fn();

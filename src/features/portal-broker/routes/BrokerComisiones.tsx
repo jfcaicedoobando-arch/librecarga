@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/formatters/numbers";
 import type { ComisionBrokerFila } from "../services/brokerPortal";
 import { estatusVisible, totalesComisiones } from "../domain/totalesComisiones";
 import { useMisComisionesBroker } from "../hooks/useBrokerPortal";
+import { DesgloseComisionBroker } from "../components/DesgloseComisionBroker";
 
 const columns = defineColumns<ComisionBrokerFila>([
   dateColumn({ accessor: (f) => f.fecha }),
@@ -18,7 +19,7 @@ const columns = defineColumns<ComisionBrokerFila>([
     <>{f.empresa}<span className="block text-body-sm text-muted-foreground">{f.organizacion}</span></>
   ) },
   { id: "factura", header: "Factura", cell: ({ row }) => row.original.factura || "—" },
-  { id: "porcentaje", header: "%", meta: { align: "right" }, cell: ({ row }) => `${Number(row.original.porcentaje)}%` },
+  { id: "desglose", header: "Cálculo", enableSorting: false, cell: ({ row }) => <DesgloseComisionBroker desglose={row.original.desglose} /> },
   moneyColumn({ header: "Comisión", accessor: (f) => Number(f.comision_mxn) }),
   { id: "estado", header: "Estatus", cell: ({ row }) => <Badge variant="outline">{estatusVisible(row.original)}</Badge> },
 ]);
@@ -45,7 +46,7 @@ export default function BrokerComisiones() {
       <PageHeader
         icon={<Wallet className="h-6 w-6 text-primary" />}
         title="Mis comisiones"
-        description="Se ganan cuando el cliente paga, sobre la utilidad real del embarque."
+        description="Por servicio: ganancia en USD menos $150 por operación, por el % del tabulador o el mínimo garantizado. Se ganan conforme el cliente paga."
       />
       <CargaGuard isLoading={q.isLoading} isError={q.isError} onRetry={q.refetch}
         errorTitle="No se pudieron cargar tus comisiones" errorDescription="Revisa tu conexión y vuelve a intentar.">

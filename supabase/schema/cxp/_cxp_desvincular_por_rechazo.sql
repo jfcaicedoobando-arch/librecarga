@@ -81,3 +81,6 @@ $$;
 
 REVOKE ALL ON FUNCTION public._cxp_desvincular_por_rechazo(uuid, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._cxp_desvincular_por_rechazo(uuid, text) FROM anon;
+-- 0092: sólo el propietario de las puertas autorizadas y el servicio.
+REVOKE EXECUTE ON FUNCTION public._cxp_desvincular_por_rechazo(uuid, text) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public._cxp_desvincular_por_rechazo(uuid, text) TO service_role;

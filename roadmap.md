@@ -1,5 +1,26 @@
 # Roadmap: flujo de cotización + Handover
 
+- [x] Selección de seguridad del 20/11: cinco correcciones aplicadas (0092–0093), 51 avisos descartados por controles/intención verificados, 15 verificaciones SQL aisladas y 13 pruebas JS focalizadas.
+- [ ] Completar los 29 avisos seleccionados todavía activos: confirmar impacto de límites de destinatarios, permisos financieros, historial y rutas fiscales; validar casos inciertos antes de cambiar funciones. Cierre completo de baseline/postcheck/CI/RLS queda en GitHub Actions.
+
+- [x] Corregir exclusivamente acceso a `calcular_demoras_embarque` y `pago_detalle`: migración 0091 aplicada y ambos avisos registrados como corregidos; 12 verificaciones SQL, 18 pruebas JS y 10 detalles de pagos reales idénticos antes/después.
+- [ ] Cierre de 0091: baseline/postcheck/CI/RLS completos pendientes de GitHub Actions según política del usuario; no ejecutar suites completas localmente.
+
+- [x] Aplicar comisión exclusiva del broker en sus empresas, conservar KAM operativo y comisiones normales sin broker; 10 casos SQL, 16 pruebas JS, ESLint y pantalla autenticada verificados.
+- [x] Revisar comisiones KAM anteriores sólo Devengadas y sin liquidación: la base activa contiene 0 renglones elegibles, por lo que no hay históricos que modificar; liquidadas, pagadas y recuperaciones intactas.
+- [x] Activar lectores de membresías y libro con permisos vigentes; 3 casos SQL, 25 movimientos reales idénticos y guardia de Pricing verificados; dos hallazgos registrados como corregidos.
+- [x] Ajustar lector de demoras: replica permisos de lectura antes de acceder al embarque, con cálculo positivo, idempotencia, disparador de fechas y aislamiento probados en datos temporales; no se recalcularon costos/ventas reales.
+- [ ] Baseline/postcheck/CI/RLS completos de 0089–0090 pendientes de GitHub Actions; no ejecutar suites completas localmente según política del usuario.
+
+- [x] Mostrar vendedor externo automático en datos comerciales de oportunidad, usando el broker de la empresa vinculada; 17 pruebas JS y 7 casos SQL aislados. Verificación visual autenticada sin broker; no existe oportunidad activa del broker para verificar ese caso en pantalla.
+- [x] Preparar sin aplicar los ajustes de los tres avisos automáticos de seguridad, según autorización; ver docs/releases/security-readers/review.md y candidate.sql. Hallazgos activos hasta revisión y autorización de activación.
+- [ ] Cierre completo de base para vendedor externo: baseline/postcheck/CI/RLS pendientes de GitHub Actions según política de validación; no ejecutar suites completas localmente.
+
+- [x] Preparar etiqueta de margen bajo en listado/detalle y registro transaccional del autorizador para cambios operativos; candidata 0084 sin aplicar, 25 pruebas JS/React y 53 casos SQL locales; verificación visual autenticada con respuestas simuladas.
+
+- [x] Preparar guardado de borradores bajo margen, notificación a Administración y aprobación vigente antes de confirmar; SQL candidato sin registrar/aplicar, 45 pruebas JS y 38 casos SQL locales, pantalla verificada con respuestas simuladas.
+- [ ] Activar este flujo: registrar candidata en historial y espejos, regenerar baseline y pasar CI/RLS/postchecks completos en GitHub Actions antes de aplicar/publicar. — requiere autorización adicional; base activa y publicación intactas.
+
 - [x] Usar la moneda de la tarifa elegida: USD sin TC por moneda previa de CRM; MXN pide DOF de hoy, conservando validación de conversiones.
 
 - [x] Conservar el borrador automático y «Aceptada» hasta confirmar el embarque; corregir Kuartz y validar la transición.

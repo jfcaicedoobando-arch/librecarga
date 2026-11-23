@@ -166,8 +166,12 @@ export function useNuevoClienteController(onClose: () => void) {
     }
   };
 
+  const hayCambios = clienteCreado !== null || csfFile !== null ||
+    (Object.keys(EMPTY_CLIENTE) as Array<keyof ClienteForm>).some((campo) => form[campo] !== EMPTY_CLIENTE[campo]);
+
   return {
     form,
+    hayCambios,
     step,
     documentos,
     modoAlta,

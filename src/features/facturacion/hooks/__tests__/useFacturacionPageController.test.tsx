@@ -91,6 +91,23 @@ describe("useFacturacionPageController", () => {
 
 
 describe("filtros globales", () => {
+  it("pausa el listado y ambas exportaciones de página hasta corregir un rango invertido", async () => {
+    const { result, rerender } = renderHook(
+      ({ fechaHasta }) => useFacturacionPageController({ fechaDesde: "2026-11-20", fechaHasta }),
+      { wrapper: createWrapper(), initialProps: { fechaHasta: "2026-11-10" } },
+    );
+    expect(result.current.rangoInvertido).toBe(true);
+    expect(useFacturasListadoMock).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }));
+    act(() => result.current.exportarFacturasCsv());
+    await act(async () => { await result.current.exportarLayoutContable(); });
+    expect(exportToCsvMock).not.toHaveBeenCalled();
+    expect(exportarLayoutContableMock).not.toHaveBeenCalled();
+
+    rerender({ fechaHasta: "2026-11-20" });
+    expect(result.current.rangoInvertido).toBe(false);
+    expect(useFacturasListadoMock).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: true }));
+  });
+
   it("envía ambas fechas al servidor y conserva su conteo aunque la página no esté completa", () => {
     useFacturasListadoMock.mockReturnValue({ data: { data: [f()], count: 201 }, isLoading: false });
     const { result } = renderHook(() => useFacturacionPageController({ fechaDesde: "2026-01-01", fechaHasta: "2026-01-31" }), { wrapper: createWrapper() });

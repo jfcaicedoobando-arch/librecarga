@@ -5,7 +5,7 @@
  * `useComprasNotasCreditoController`.
  */
 import { useMemo } from "react";
-import { ReceiptText, Download, Banknote, Coins, ListFilter } from "lucide-react";
+import { ReceiptText, Download, Banknote, Coins, Euro, ListFilter } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -24,16 +24,17 @@ import { ErrorState } from "@/components/shared/states/ErrorState";
 import {
   useComprasNotasCreditoController,
   ESTADOS_FILTRO,
+  MONEDAS_FILTRO,
   type EstadoFiltro,
   type MonedaFiltro,
 } from "../hooks/useComprasNotasCreditoController";
 
 export default function ComprasNotasCredito() {
   const {
-    desde, setDesde, hasta, setHasta,
+    desde, setDesde, hasta, setHasta, errorRango,
     moneda, setMoneda, estado, setEstado, search, setSearch,
     rows, isLoading, isError, refetch,
-    totalMxn, totalUsd, handleExport,
+    totalMxn, totalUsd, totalEur, handleExport,
   } = useComprasNotasCreditoController();
 
   const columns = useMemo(() => buildNotasCreditoColumns(), []);
@@ -45,36 +46,39 @@ export default function ComprasNotasCredito() {
         title="Notas de crédito de proveedor"
         description="Listado global de notas de crédito. Sólo las Aplicadas reducen el saldo a pagar."
         actions={
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={rows.length === 0 || isError || isLoading}>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={!!errorRango || rows.length === 0 || isError || isLoading}>
             <Download className="h-4 w-4 mr-1.5" /> Exportar CSV
           </Button>
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <KpiCard label="NC en el período" value={isError ? "No disponible" : String(rows.length)} loading={isLoading} icon={ListFilter} />
-        <KpiCard label="Aplicadas MXN" value={isError ? "No disponible" : formatCurrency(totalMxn, "MXN")} loading={isLoading} icon={Banknote} variant="success" />
-        <KpiCard label="Aplicadas USD" value={isError ? "No disponible" : formatCurrency(totalUsd, "USD")} loading={isLoading} icon={Coins} variant="success" />
-      </div>
+      {!errorRango && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <KpiCard label="NC en el período" value={isError ? "No disponible" : String(rows.length)} loading={isLoading} icon={ListFilter} />
+          <KpiCard label="Aplicadas MXN" value={isError ? "No disponible" : formatCurrency(totalMxn, "MXN")} loading={isLoading} icon={Banknote} variant="success" />
+          <KpiCard label="Aplicadas USD" value={isError ? "No disponible" : formatCurrency(totalUsd, "USD")} loading={isLoading} icon={Coins} variant="success" />
+          <KpiCard label="Aplicadas EUR" value={isError ? "No disponible" : formatCurrency(totalEur, "EUR")} loading={isLoading} icon={Euro} variant="success" />
+        </div>
+      )}
 
       <Card>
         <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="space-y-1">
             <Label htmlFor="nc-desde">{RANGO_DESDE_LABEL}</Label>
-            <DatePickerMx value={desde} onChange={setDesde} />
+            <DatePickerMx id="nc-desde" value={desde} onChange={setDesde} />
           </div>
           <div className="space-y-1">
             <Label htmlFor="nc-hasta">{RANGO_HASTA_LABEL}</Label>
-            <DatePickerMx value={hasta} onChange={setHasta} />
+            <DatePickerMx id="nc-hasta" value={hasta} onChange={setHasta} errorText={errorRango} />
           </div>
           <div className="space-y-1">
-            <Label>Moneda</Label>
+            <Label htmlFor="nc-moneda">Moneda</Label>
             <Select value={moneda} onValueChange={(v) => setMoneda(v as MonedaFiltro)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="nc-moneda"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="todas">Todas</SelectItem>
-                <SelectItem value="MXN">MXN</SelectItem>
-                <SelectItem value="USD">USD</SelectItem>
+                {MONEDAS_FILTRO.map((opcion) => (
+                  <SelectItem key={opcion} value={opcion}>{opcion === "todas" ? "Todas" : opcion}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -96,7 +100,7 @@ export default function ComprasNotasCredito() {
         </CardContent>
       </Card>
 
-      <Card>
+      {!errorRango && <Card>
         <CardContent className="p-0">
           {isError ? (
             <ErrorState className="m-4" onRetry={() => void refetch()} />
@@ -113,7 +117,7 @@ export default function ComprasNotasCredito() {
           />
           )}
         </CardContent>
-      </Card>
+      </Card>}
     </PageContainer>
   );
 }

@@ -7,7 +7,7 @@ import { handlePrepare } from "./handlers.ts";
 /** Cotización mínima vigente y no prospecto. */
 // SAFE-CAST: doble de prueba con los campos que leen los candados de envío.
 const cotBase = (extra: Record<string, unknown> = {}) =>
-  ({ id: "c1", folio: "COT-1", organization_id: "org1", estado: "Borrador", ...extra }) as unknown as Parameters<typeof handlePrepare>[4];
+  ({ cot: { id: "c1", folio: "COT-1", organization_id: "org1", estado: "Borrador", ...extra } }) as unknown as Parameters<typeof handlePrepare>[4];
 
 /** Cadena mínima con las operaciones que usa `authorizeOrgRole`. */
 interface FakeChain {
@@ -16,6 +16,7 @@ interface FakeChain {
 }
 
 interface FakeAdmin {
+  rpc: () => Promise<{ data: null; error: null }>;
   from: (tabla: string) => { select: (cols: string) => FakeChain };
   storage: {
     from: (bucket: string) => {
@@ -36,6 +37,7 @@ function chain(result: unknown): FakeChain {
 
 function fakeAdmin(rolOrg: string | null): FakeAdmin {
   return {
+    rpc: () => Promise.resolve({ data: null, error: null }),
     from(tabla: string) {
       if (tabla === "organization_members") {
         return { select: () => chain(rolOrg ? { role: rolOrg } : null) };

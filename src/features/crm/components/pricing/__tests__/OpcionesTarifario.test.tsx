@@ -33,7 +33,7 @@ const tarifa: TarifaTarifario = {
 let client: QueryClient;
 function montar(overrides: Partial<SolicitudPricingRow> = {}, puedeElegir = true) {
   return render(<QueryClientProvider client={client}>
-    <OpcionesTarifario solicitud={{ ...solicitud, ...overrides }} puedeElegir={puedeElegir} />
+    <OpcionesTarifario solicitud={{ ...solicitud, ...overrides }} puedeElegir={puedeElegir} puedeCotizar={puedeElegir} />
   </QueryClientProvider>);
 }
 beforeEach(() => {

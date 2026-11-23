@@ -9,13 +9,19 @@ import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { formatDate } from "@/lib/formatters/dates";
+import { NotasTarifa } from "./NotasTarifa";
 import type { CargoTarifario, TarifaTarifario } from "@/features/costeo";
 import { useOpcionesTarifario } from "@/features/crm/hooks/useOpcionesTarifario";
 import type { SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
 
-interface Props { solicitud: SolicitudPricingRow; puedeElegir: boolean }
+interface Props {
+  solicitud: SolicitudPricingRow;
+  puedeElegir: boolean;
+  puedeCotizar: boolean;
+  tarifasRespondidas?: ReadonlySet<string>;
+}
 
-export function OpcionesTarifario({ solicitud: s, puedeElegir }: Props) {
+export function OpcionesTarifario({ solicitud: s, puedeElegir, puedeCotizar, tarifasRespondidas }: Props) {
   const { opciones, elegida, esFob, cargosFob, cargosLocales, isLoading, busy, elegir } = useOpcionesTarifario(s);
   const navigate = useNavigate();
   const irACotizar = (tarifaId: string) => {
@@ -24,9 +30,11 @@ export function OpcionesTarifario({ solicitud: s, puedeElegir }: Props) {
     navigate(`/cotizaciones/nueva?${q.toString()}`);
   };
   const cotizar = async (id: string) => {
-    if (elegida === id || await elegir(id)) irACotizar(id);
+    if (elegida === id || respondida || await elegir(id)) irACotizar(id);
   };
-  if (!elegida && s.estado !== "borrador" && s.estado !== "enviada") return null;
+  // Respondida: las opciones del tarifario siguen visibles junto a las tarifas nuevas de Pricing.
+  const respondida = s.estado === "respondida";
+  if (!elegida && !respondida && s.estado !== "borrador" && s.estado !== "enviada") return null;
 
   return (
     <div className="space-y-2">
@@ -37,8 +45,9 @@ export function OpcionesTarifario({ solicitud: s, puedeElegir }: Props) {
       {opciones.map((t) => (
         <OpcionTarifarioCard key={t.id} tarifa={t}
           cargosFob={esFob ? cargosFob : []} cargosLocales={cargosLocales}
-          puedeElegir={!elegida && puedeElegir} busy={busy !== null} elegir={elegir}
-          puedeCotizar={puedeElegir && (!elegida || elegida === t.id)} cotizar={cotizar} />
+          puedeElegir={!elegida && !respondida && puedeElegir} busy={busy !== null} elegir={elegir}
+          puedeCotizar={puedeCotizar && (!elegida || elegida === t.id) && !tarifasRespondidas?.has(t.id)}
+          cotizar={cotizar} />
       ))}
     </div>
   );
@@ -91,6 +100,7 @@ function ResumenTarifa({ tarifa: t }: Pick<CardProps, "tarifa">) {
       <div><span className="text-muted-foreground">Agente: </span>{t.agente?.nombre ?? "—"}<br /><span className="text-muted-foreground">Naviera: </span>{t.naviera?.name ?? "—"}</div>
       <div><span className="text-muted-foreground">Tipo de contenedor: </span>{t.tipo?.code ?? "—"}<br /><span className="text-muted-foreground">Flete base: </span>{formatCurrency(t.flete_base, t.moneda || "USD")}</div>
       <div><span className="text-muted-foreground">Vigencia hasta: </span>{t.vigente_hasta ? formatDate(t.vigente_hasta) : "—"}</div>
+      <NotasTarifa notas={t.notas} />
     </>
   );
 }

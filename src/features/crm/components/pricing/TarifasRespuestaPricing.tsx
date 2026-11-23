@@ -10,6 +10,7 @@ import { TarifaForm } from "@/features/costeo";
 import type { TarifaRespuestaRow } from "@/features/crm/services/pricing/tarifasRespuesta";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { formatDate } from "@/lib/formatters/dates";
+import { NotasTarifa } from "./NotasTarifa";
 
 interface Props {
   solicitudId: string;
@@ -48,6 +49,7 @@ function FilaTarifa({ t, n, onCotizar }: { t: TarifaRespuestaRow; n: number; onC
         <div><span className="text-muted-foreground">Tránsito: </span>{t.transit_time_dias != null ? `${t.transit_time_dias} días` : "—"}</div>
         <div><span className="text-muted-foreground">Carta garantía: </span>{carta(t.carta_garantia)}</div>
         <div><span className="text-muted-foreground">Vigente hasta: </span>{t.vigente_hasta ? formatDate(t.vigente_hasta) : "—"}</div>
+        <NotasTarifa notas={t.notas} />
         <AccionCotizarRespuesta tarifaId={t.id} onCotizar={onCotizar} />
       </CardContent>
     </Card>

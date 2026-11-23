@@ -2,9 +2,11 @@ import { Download } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { exportToCsv } from "@/generators/exportCsv";
 import { useTabProformasController, type FiltroEstadoProforma } from "@/features/facturacion/hooks";
+import type { EstadoProformaControlado } from "@/features/facturacion/hooks/useTabProformasState";
 import { buildProformasColumns } from "./proformasColumns";
 import ProformasFiltros from "./ProformasFiltros";
 import { usePermissions } from "@/hooks/shared";
@@ -18,31 +20,33 @@ import { ProformaMobileCard } from "./ProformaMobileCard";
 import { LABEL_ESTADO_UNIFICADO } from "@/lib/domain/estadoUnificado";
 import { useProformasListadoTable } from "@/features/facturacion/hooks/useProformasListadoTable";
 import { ProformasFusionToolbar } from "./ProformasFusionToolbar";
+import { ProformasConsolidacionToolbar } from "./ProformasConsolidacionToolbar";
 
-export function TabProformas({ isInRange, estadoInicial }: {
+export function TabProformas({ isInRange, estadoInicial, estadoControlado }: {
   isInRange?: (fecha: string | null | undefined) => boolean;
   estadoInicial?: FiltroEstadoProforma;
+  estadoControlado?: EstadoProformaControlado;
 }) {
-  const c = useTabProformasController({ isInRange, estadoInicial });
-  const { canEmitirFactura } = usePermissions();
-
-  // v13.823.278 — quien no puede emitir facturas (vendedor, gerente comercial)
-  // ya no ve la casilla de selección: antes podía seleccionar y quedaba con el
-  // botón "Fusionar/Convertir" deshabilitado sin explicación. El guard del
-  // backend no cambia.
+  const c = useTabProformasController({ isInRange, estadoInicial, estadoControlado });
+  const { canEmitirFactura, canEditarProforma } = usePermissions();
+  const { selectedIds, toggleSelected, isConvertible } = c;
+  const haySeleccionFiscal = c.selectedProformas.some((p) => p.evaluacion_fiscal != null);
+  const mostrarConsolidacion = canEditarProforma && haySeleccionFiscal;
+  const mostrarFusion = canEmitirFactura && c.selectedProformas.length > 0 && !haySeleccionFiscal;
   const columns = useMemo(
     () => buildProformasColumns(
-      canEmitirFactura
+      canEmitirFactura || canEditarProforma
         ? {
             selection: {
-              selectedIds: c.selectedIds,
-              toggle: c.toggleSelected,
-              isSelectable: c.isConvertible,
+              selectedIds,
+              toggle: toggleSelected,
+              isSelectable: (p) => isConvertible(p) && !!(p.evaluacion_fiscal != null
+                ? canEditarProforma : canEmitirFactura),
             },
           }
         : {},
     ),
-    [canEmitirFactura, c.selectedIds, c.toggleSelected, c.isConvertible],
+    [canEditarProforma, canEmitirFactura, selectedIds, toggleSelected, isConvertible],
   );
   const listado = useProformasListadoTable({
     data: c.filtered, columns, page: c.page, pageSize: c.pageSize, onPageChange: c.setPage,
@@ -107,7 +111,25 @@ export function TabProformas({ isInRange, estadoInicial }: {
       </Card>
 
 
-      {canEmitirFactura && c.selectedProformas.length > 0 && (
+      {c.seleccionFueraDeFiltros > 0 && (mostrarConsolidacion || mostrarFusion) && (
+        <Alert variant="warning" role="status">
+          <AlertDescription className="flex flex-wrap items-center gap-2">
+            <p className="mr-auto">
+              {c.seleccionFueraDeFiltros === 1
+                ? "Una proforma seleccionada queda fuera de los filtros."
+                : `${c.seleccionFueraDeFiltros} proformas seleccionadas quedan fuera de los filtros.`}
+              {" "}Se incluyen en la acción por lote.
+            </p>
+            <Button type="button" variant="outline" size="sm" onClick={c.quitarSeleccionFueraDeFiltros}>
+              Quitar selección oculta
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      {mostrarConsolidacion && (
+        <ProformasConsolidacionToolbar proformas={c.selectedProformas} onConsolidada={c.clearSelected} />
+      )}
+      {mostrarFusion && (
         <ProformasFusionToolbar selection={{
           selectedProformas: c.selectedProformas, fusionInfo: c.fusionInfo, clearSelected: c.clearSelected,
         }} />
@@ -125,7 +147,7 @@ export function TabProformas({ isInRange, estadoInicial }: {
             isLoading={c.isLoading}
             emptyMessage={mensajeVacioProformas(c.search, c.filtroEstado)}
             emptyState={
-              c.counts.todas > 0 && c.filtered.length === 0 ? (
+              c.proformas.length > 0 && c.filtered.length === 0 ? (
                 <ProformasEmptyState
                   search={c.search}
                   filtroEstado={c.filtroEstado}

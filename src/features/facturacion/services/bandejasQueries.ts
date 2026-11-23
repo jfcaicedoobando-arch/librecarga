@@ -47,7 +47,7 @@ export async function fetchFacturasPorTimbrar(orgId: string): Promise<FilaPorTim
     .limit(LIMITE_POR_TIMBRAR);
   if (error) throw error;
   warnIfTruncated(data, LIMITE_POR_TIMBRAR, "facturacion.fetchFacturasPorTimbrar");
-  return (data ?? []) as FilaPorTimbrar[];
+  return data ?? [];
 }
 
 

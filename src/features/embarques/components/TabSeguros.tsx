@@ -27,7 +27,8 @@ interface Props {
   tipoCambioEur?: number | null;
 }
 
-function VigenciaBadge({ hasta }: { hasta: string }) {
+function VigenciaBadge({ desde, hasta }: { desde: string; hasta: string }) {
+  if (diasRestantesSeguro(desde) > 0) return <Badge variant="secondary">Inicia el {formatDate(desde)}</Badge>;
   const dias = diasRestantesSeguro(hasta);
   if (dias < 0) return <Badge variant="destructive">Vencida</Badge>;
   if (dias <= 7) return <Badge className="bg-warning/10 text-warning">Vence en {dias}d</Badge>;
@@ -57,7 +58,7 @@ export function TabSeguros({ embarqueId, canEdit, tipoCambioUsd = null, tipoCamb
       cell: ({ row }) => (
         <div className="flex flex-col gap-1">
           <span className="text-body-sm">{formatDate(row.original.vigencia_desde)} → {formatDate(row.original.vigencia_hasta)}</span>
-          <VigenciaBadge hasta={row.original.vigencia_hasta} />
+          <VigenciaBadge desde={row.original.vigencia_desde} hasta={row.original.vigencia_hasta} />
         </div>
       ),
     },

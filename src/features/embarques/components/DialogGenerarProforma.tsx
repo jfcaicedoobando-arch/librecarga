@@ -74,7 +74,7 @@ export function DialogGenerarProforma({ open, onOpenChange, embarque, conceptosP
           tasaIva={c.tasaIva}
           notas={c.creada?.notas ?? c.notas}
           pendientesIva={c.pendientesIva}
-          numeroCreado={c.creada?.proforma.numero}
+          proformaCreada={c.creada?.proforma}
         />
       )}
 

@@ -9,8 +9,11 @@ import { createClient } from "npm:@supabase/supabase-js@2.119.0";
 import { buildCors, handlePreflightStrict } from "../_shared/cors.ts";
 import { wrapEdgeHandler } from "../_shared/sentry.ts";
 import { getFacturapiClient } from "../_shared/facturapiClient.ts";
-import { authorizeOrgRole, ROLES_EMISOR_FISCAL } from "../_shared/auth.ts";
+import { authorizeOrgRole, ROLES_COBRANZA_FISCAL, ROLES_EMISOR_FISCAL } from "../_shared/auth.ts";
 import { jsonResponse, makeJson } from "../_shared/response.ts";
+import { recuperarFacturaIsr } from "./recuperarIsr.ts";
+import { recuperarNotaIsr } from "./recuperarNotaIsr.ts";
+import { recuperarPagoIsr } from "./recuperarPagoIsr.ts";
 import {
   loadFactura, loadNotaCredito, loadPago, validarClaim, buscarCfdiPorExternalId,
   promoverFactura, promoverNc, promoverPago, liberarClaim, liberarClaimNc, liberarClaimPago,
@@ -58,6 +61,10 @@ async function recuperarNotaCredito(supabase: SB, user: Usuario, ncId: string): 
   const { claimTag, edadMin, response: ncValidation } = validarClaim(nc, "nota de crédito");
   if (ncValidation) return ncValidation;
 
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  const recuperada = await recuperarNotaIsr(admin, nc, claimTag);
+  if (recuperada) return recuperada;
+
   const resolved = await getFacturapiClient(supabase, nc.organization_id);
   if (!resolved.ok) {
     return jsonResponse(
@@ -93,6 +100,10 @@ async function recuperarFactura(supabase: SB, user: Usuario, facturaId: string):
 
   const { claimTag, edadMin, response: validationResponse } = validarClaim(factura);
   if (validationResponse) return validationResponse;
+  if (factura.evaluacion_fiscal != null) {
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+    return recuperarFacturaIsr(admin, factura, claimTag);
+  }
 
   const resolved = await getFacturapiClient(supabase, factura.organization_id);
   if (!resolved.ok) {
@@ -130,7 +141,7 @@ async function recuperarPago(supabase: SB, user: Usuario, pagoId: string): Promi
   const pago = await loadPago(supabase, pagoId);
   if (pago instanceof Response) return pago;
 
-  if (!(await authorizeOrgRole(supabase, user.id, pago.organization_id, ROLES_EMISOR_FISCAL))) {
+  if (!(await authorizeOrgRole(supabase, user.id, pago.organization_id, ROLES_COBRANZA_FISCAL))) {
     return jsonResponse({ error: "forbidden" }, 403);
   }
 
@@ -139,6 +150,10 @@ async function recuperarPago(supabase: SB, user: Usuario, pagoId: string): Promi
     "REP",
   );
   if (validationResponse) return validationResponse;
+
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  const recuperado = await recuperarPagoIsr(admin, pago, claimTag);
+  if (recuperado) return recuperado;
 
   const resolved = await getFacturapiClient(supabase, pago.organization_id);
   if (!resolved.ok) {

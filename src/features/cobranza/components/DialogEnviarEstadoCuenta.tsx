@@ -32,16 +32,17 @@ export function DialogEnviarEstadoCuenta({
   const [mensaje, setMensaje] = useState("");
 
   const totales = useMemo(() => {
-    const validas = rows.filter((r) => r.saldo !== null && r.total !== null);
-    const total = validas.reduce((acc, r) => acc + (r.total ?? 0), 0);
-    const saldo = validas.reduce((acc, r) => acc + (r.saldo ?? 0), 0);
-    const vencido = validas
-      .filter((r) => r.dias_vencido && r.dias_vencido > 0)
-      .reduce((acc, r) => acc + (r.saldo ?? 0), 0);
-    return { total, saldo, vencido };
+    const porMoneda = new Map<FacturaEstadoCuenta["moneda"], { total: number; saldo: number; vencido: number }>();
+    for (const fila of rows) {
+      if (fila.saldo === null || fila.total === null) continue;
+      const importes = porMoneda.get(fila.moneda) ?? { total: 0, saldo: 0, vencido: 0 };
+      importes.total += fila.total;
+      importes.saldo += fila.saldo;
+      if ((fila.dias_vencido ?? 0) > 0) importes.vencido += fila.saldo;
+      porMoneda.set(fila.moneda, importes);
+    }
+    return [...porMoneda];
   }, [rows]);
-
-  const moneda = rows[0]?.moneda ?? "MXN";
 
   const { mutate, isPending } = useEstadoCuentaEmail({
     onSuccess: () => {
@@ -89,19 +90,26 @@ export function DialogEnviarEstadoCuenta({
       footer={footer}
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-3 text-sm">
-          <div className="rounded-md border p-3">
-            <p className="text-muted-foreground">Total</p>
-            <p className="font-semibold">{formatCurrency(totales.total, moneda)}</p>
-          </div>
-          <div className="rounded-md border p-3">
-            <p className="text-muted-foreground">Saldo</p>
-            <p className="font-semibold">{formatCurrency(totales.saldo, moneda)}</p>
-          </div>
-          <div className="rounded-md border p-3">
-            <p className="text-muted-foreground">Vencido</p>
-            <p className="font-semibold text-destructive">{formatCurrency(totales.vencido, moneda)}</p>
-          </div>
+        <div className="space-y-2 text-sm">
+          <p className="font-medium">Resumen de filas visibles</p>
+          <p className="text-muted-foreground">El correo incluye el estado del cliente para el período seleccionado.</p>
+          {totales.length === 0 && <p className="text-muted-foreground">Sin importes disponibles en las filas visibles.</p>}
+          {totales.map(([moneda, importes]) => (
+            <dl key={moneda} aria-label={`Importes en ${moneda}`} className="grid grid-cols-1 gap-2 rounded-md border p-3 sm:grid-cols-3">
+              <div>
+                <dt className="text-muted-foreground">Total</dt>
+                <dd className="font-semibold tabular-nums">{formatCurrency(importes.total, moneda)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Saldo</dt>
+                <dd className="font-semibold tabular-nums">{formatCurrency(importes.saldo, moneda)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Vencido</dt>
+                <dd className="font-semibold tabular-nums text-destructive">{formatCurrency(importes.vencido, moneda)}</dd>
+              </div>
+            </dl>
+          ))}
         </div>
 
         <div className="space-y-2">

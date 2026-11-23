@@ -7,9 +7,9 @@ import { formatCurrency } from "@/lib/formatters";
  */
 interface Props {
   totalFactura: number;
-  totalPagado: number;
-  totalNc: number;
-  saldo: number;
+  totalPagado: number | null;
+  totalNc: number | null;
+  saldo: number | null;
   liquidada: boolean;
   moneda: string;
 }
@@ -30,9 +30,9 @@ export function PortalFacturaTotales({
       </div>
       <div className="flex items-center justify-between">
         <dt className="text-muted-foreground">Pagos</dt>
-        <dd className="tabular-nums">−{formatCurrency(totalPagado, moneda)}</dd>
+        <dd className="tabular-nums">{totalPagado === null ? "No disponible" : `−${formatCurrency(totalPagado, moneda)}`}</dd>
       </div>
-      {totalNc > 0 && (
+      {totalNc !== null && totalNc > 0 && (
         <div className="flex items-center justify-between">
           <dt className="text-muted-foreground">Notas de crédito</dt>
           <dd className="tabular-nums">−{formatCurrency(totalNc, moneda)}</dd>
@@ -43,7 +43,7 @@ export function PortalFacturaTotales({
         <dd
           className={`font-bold tabular-nums ${liquidada ? "text-success" : "text-accent"}`}
         >
-          {formatCurrency(saldo, moneda)}
+          {saldo === null ? "No disponible" : formatCurrency(saldo, moneda)}
         </dd>
       </div>
     </dl>

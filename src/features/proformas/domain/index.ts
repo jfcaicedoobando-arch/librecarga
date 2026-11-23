@@ -4,4 +4,5 @@ export * from "./proformaAgrupacion";
 export * from "./proformaClienteEstado";
 export * from "./proformaDetalleHelpers";
 export * from "./proformaListado";
+export { leerFiscalProforma, leerConceptosFiscalesProforma, leerAjusteConsolidacion, type ConceptoProformaDocumento } from "./proformaFiscal";
 export * from "./refacturacion";

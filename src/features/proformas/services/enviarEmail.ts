@@ -89,8 +89,18 @@ export async function enviarProformaPorEmail(
     },
   );
   scope.assertCurrent();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(await mensajeError(error));
   if (!data?.estado) throw new Error(data?.error ?? "No se pudo confirmar el envío.");
   if (data.estado !== "pendiente") confirmarIntento(clave, intento);
   return { enlace_portal: data.enlace_portal, estado: data.estado, resultados: data.resultados ?? [] };
+}
+
+/** Usa el motivo que devuelve la función (p. ej. destinatario fuera del cliente). */
+async function mensajeError(error: { message: string; context?: unknown }): Promise<string> {
+  const ctx = error.context as { json?: () => Promise<unknown> } | undefined;
+  try {
+    const body = (await ctx?.json?.()) as { error?: unknown } | undefined;
+    if (typeof body?.error === "string" && body.error) return body.error;
+  } catch { /* cuerpo no JSON */ }
+  return error.message;
 }

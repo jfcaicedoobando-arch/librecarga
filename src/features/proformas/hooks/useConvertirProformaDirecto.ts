@@ -2,9 +2,7 @@
  * useConvertirProformaDirecto — conversión Proforma(s) → Factura borrador
  * en un solo clic, sin diálogo intermedio.
  *
- * Toma la primera serie de facturación activa de la organización y aplica
- * defaults SAT (PUE / Forma 03 / Uso G03). El contador puede editar Serie,
- * Método, Forma y Uso en el borrador antes de timbrar.
+ * Toma la primera serie activa de la organización y aplica PPD, forma 99 y uso G03.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/shared/useToast";
@@ -14,10 +12,12 @@ import {
   fetchPrimeraSerieActiva,
 } from "@/features/proformas/services/convertirAFactura";
 import { queryKeys } from "@/lib/query";
+import { scopeDePayload, usePayloadRequestId } from "@/lib/idempotency";
 
 export interface ConvertirDirectoInput {
   proformaIds: string[];
   organizationId: string;
+  fiscal?: boolean;
   /**
    * Plazo de crédito explícito. `null`/`undefined` deja que la RPC aplique la
    * cascada proforma → ficha del cliente → 0 (v13.331.9).
@@ -27,6 +27,7 @@ export interface ConvertirDirectoInput {
 
 export function useConvertirProformaDirecto() {
   const qc = useQueryClient();
+  const solicitud = usePayloadRequestId();
 
   const mutation = useMutation({
     mutationKey: queryKeys.proformas.convertirDirecto,
@@ -48,12 +49,20 @@ export function useConvertirProformaDirecto() {
         usoCfdi: "G03",
         diasCredito: input.diasCredito ?? null,
         notas: null,
-        requestId: crypto.randomUUID(),
+        requestId: solicitud.get(scopeDePayload([
+          input.organizationId, serie.id, input.diasCredito, ...[...input.proformaIds].sort(),
+        ])),
       });
     },
-    onSuccess: async (res) => {
+    onSuccess: async (res, input) => {
+      solicitud.reset();
       const monedas = res.map((r) => r.moneda).join(" y ");
-      if (res.length > 1) {
+      if (input.fiscal) {
+        toast({
+          title: res.length === 1 ? "Borrador fiscal generado" : `Se generaron ${res.length} borradores fiscales`,
+          description: `Consulta los borradores en Facturación (${monedas}).`,
+        });
+      } else if (res.length > 1) {
         toast({
           title: `Se generaron ${res.length} borradores`,
           description: `Uno por cada moneda (${monedas}). El SAT no permite CFDI multi-moneda; revisa y timbra cada borrador en Facturación.`,

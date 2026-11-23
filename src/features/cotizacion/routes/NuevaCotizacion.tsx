@@ -20,7 +20,7 @@ export default function NuevaCotizacion() {
 
 function NuevaCotizacionScope() {
   const {
-    w, clientes, organizationId, userId, canCrearEmbarqueDesdeCotizacion,
+    w, clientes, organizationId, userId, canCrearEmbarqueDesdeCotizacion, plantillaId,
     draftDetectado, banderaBorrador, handleRestore, handleDiscard,
     conflictoExterno, descartarConflicto,
     conflictoSello, resincronizando, handleResincronizar, recargarPorConflictoSello,
@@ -58,6 +58,7 @@ function NuevaCotizacionScope() {
         <PlantillaSelectorPaso1
           organizationId={organizationId}
           form={w.form}
+          plantillaId={banderaBorrador && draftDetectado ? null : plantillaId}
         />
       )}
 

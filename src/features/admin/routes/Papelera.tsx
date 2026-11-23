@@ -37,6 +37,7 @@ export default function Papelera() {
 
   if (!isAdmin) return <Navigate to="/" replace />;
 
+  const categoria = TABLAS.find((opcion) => opcion.value === tabla)?.label;
   const columns = buildPapeleraColumns({
     onRestore: (id) => restore.mutate(id),
     onPurgeTarget: setPurgeTarget,
@@ -53,7 +54,7 @@ export default function Papelera() {
 
       <div className="flex items-center gap-3 flex-wrap">
         <Select value={tabla} onValueChange={(v) => setTabla(v as SoftTable)}>
-          <SelectTrigger className="w-[320px]">
+          <SelectTrigger className="w-[320px]" aria-label="Categoría de la papelera">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -97,7 +98,7 @@ export default function Papelera() {
             data={rows}
             isLoading={isLoading}
             rowKey={(r) => r.id}
-            emptyMessage="La papelera está vacía"
+            emptyMessage={categoria ? `Sin registros eliminados en «${categoria}».` : "Sin registros eliminados en esta categoría."}
             density={TABLE_DENSITY.listado}
           />
           )}

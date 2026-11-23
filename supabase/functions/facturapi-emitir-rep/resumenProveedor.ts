@@ -53,7 +53,7 @@ export const MSG_REP_RESUMEN_NO_DISPONIBLE =
  */
 export const TIMEOUT_RESUMEN_MS = 30_000;
 
-async function conTimeout<T>(promesa: Promise<T>, ms = TIMEOUT_RESUMEN_MS): Promise<T> {
+export async function conTimeout<T>(promesa: Promise<T>, ms = TIMEOUT_RESUMEN_MS): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([

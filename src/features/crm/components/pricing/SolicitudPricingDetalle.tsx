@@ -41,7 +41,11 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
   const puedeCancelar = solicitudAbierta(s) && (esPricing || s.created_by === userId);
   const puedeEditar = puedeEditarSolicitud(s, userId, esPricing);
   const puedeElegir = puedeUsarRespuesta(s, userId, esPricing);
-  const puedeCotizar = s.estado === "respondida" && puedeElegir && canWriteCotizaciones;
+  const puedeCotizar = puedeElegir && canWriteCotizaciones;
+  const tarifas = tarifasRespuesta.data ?? [];
+  const tarifasRespondidas = s.estado === "respondida"
+    ? new Set(tarifas.map((tarifa) => tarifa.id))
+    : undefined;
   const cotizarRespuesta = (tarifaId: string) => {
     // La tarifa ya responde a esta solicitud; cotizar no vuelve a seleccionarla ni cambia su estado.
     const q = new URLSearchParams({ tarifa: tarifaId, solicitud: s.id });
@@ -53,23 +57,24 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
     <div className="space-y-4">
       <AccionesSolicitudPricing solicitud={s} puedeCancelar={puedeCancelar} puedeResponder={editable}
         puedeEditar={puedeEditar} puedeCopiar={puedeElegir} onEditar={() => setEditando(true)}
-        numOpciones={opciones.length + (tarifasRespuesta.data?.length ?? 0)} />
+        numOpciones={opciones.length + tarifas.length} />
       <SolicitudPricingDialog open={editando} onOpenChange={setEditando}
         oportunidadId={s.oportunidad_id ?? ""} solicitud={s} />
       <ResumenSolicitudPricing solicitud={s} />
       {esGerenteOps(effectiveRole) && <AjustePlazoPricing solicitud={s} />}
       <AdjuntosSolicitudPricing organizationId={s.organization_id} solicitudId={s.id}
         puedeAdjuntar={s.estado !== "cancelada"} />
-      <OpcionesTarifario solicitud={s} puedeElegir={puedeElegir} />
+      <OpcionesTarifario solicitud={s} puedeElegir={puedeElegir} puedeCotizar={puedeCotizar}
+        tarifasRespondidas={tarifasRespondidas} />
       <EnviarSolicitudFinal solicitud={s} puede={puedeElegir} />
       {opciones.map((o) => (
         <OpcionPricingEditor key={o.id} solicitudId={s.id} organizationId={s.organization_id}
           orden={o.orden} opcion={o} editable={false} />
       ))}
       <TarifasRespuestaPricing solicitudId={s.id} hayOpcionesViejas={opciones.length > 0}
-        tarifas={tarifasRespuesta.data ?? []} isLoading={tarifasRespuesta.isLoading}
+        tarifas={tarifas} isLoading={tarifasRespuesta.isLoading}
         isError={tarifasRespuesta.isError} onSaved={() => { void tarifasRespuesta.refetch(); }}
-        onCotizar={puedeCotizar ? cotizarRespuesta : undefined}
+        onCotizar={puedeCotizar && s.estado === "respondida" ? cotizarRespuesta : undefined}
         editable={(s.estado === "enviada" || s.estado === "respondida") && puedeAgregarTarifaRespuesta(effectiveRole)} />
     </div>
   );

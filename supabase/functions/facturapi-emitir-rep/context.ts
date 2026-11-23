@@ -14,7 +14,7 @@ export interface ParcialidadInfo {
 }
 
 export function calcularParcialidad(
-  pagosPrev: Array<{ id: string; monto_aplicado_factura: number | null }> | null,
+  pagosPrev: Array<{ id: string; monto_aplicado_factura: number | null; estado_rep?: string | null }> | null,
   pagoId: string,
   totalFactura: number,
   montoAplicado: number,
@@ -25,6 +25,7 @@ export function calcularParcialidad(
   let numParcialidad = 1;
   for (const pp of pagosPrev ?? []) {
     if (pp.id === pagoId) break;
+    if (pp.estado_rep?.trim().toLowerCase() === "cancelado") continue;
     aplicadosAntes.push(Number(pp.monto_aplicado_factura ?? 0));
     numParcialidad += 1;
   }

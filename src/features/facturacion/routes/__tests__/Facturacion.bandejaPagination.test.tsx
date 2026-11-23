@@ -7,12 +7,8 @@ vi.mock("@/hooks/shared", () => ({
   usePermissions: () => ({ canEmitirFactura: false }),
   useDocumentTitle: vi.fn(),
 }));
-vi.mock("@/features/facturacion/hooks", () => ({
-  useFacturacionDateRange: () => ({
-    setRango: vi.fn(),
-    limpiar: vi.fn(),
-    isInRange: () => true,
-  }),
+vi.mock("@/features/facturacion/hooks", async () => ({
+  useFacturacionDateRange: (await import("../../hooks/useFacturacionDateRange")).useFacturacionDateRange,
   useFacturacionPageController: () => ({
     search: "",
     setSearch: vi.fn(),
@@ -28,9 +24,6 @@ vi.mock(
   "@/features/facturacion/components/DashboardEjecutivoFacturacion",
   () => ({ DashboardEjecutivoFacturacion: () => null }),
 );
-vi.mock("@/features/facturacion/components/PeriodoFiscalSelector", () => ({
-  PeriodoFiscalSelector: () => null,
-}));
 vi.mock("@/features/facturacion/components/FacturacionDialogs", () => ({
   FacturacionDialogs: () => null,
 }));
@@ -46,6 +39,7 @@ vi.mock(
     }) => (
       <>
         <button onClick={() => setActiveBandeja("vencidas")}>Abrir vencidas</button>
+        <button onClick={() => setActiveBandeja("emitidas")}>Abrir emitidas</button>
         <button onClick={emitidas.filtros.onClear}>Limpiar filtros</button>
       </>
     ),
@@ -57,6 +51,24 @@ function CurrentUrl() {
 }
 
 describe("Facturacion bucket URL pagination", () => {
+  it("muestra el periodo sólo en Emitidas y conserva el rango al volver", () => {
+    render(
+      <MemoryRouter initialEntries={["/facturacion?desde=2026-10-04&hasta=2026-10-07"]}>
+        <Facturacion />
+        <CurrentUrl />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole("combobox", { name: "Periodo de emisión" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Abrir emitidas" }));
+    expect(screen.getByRole("combobox", { name: "Periodo de emisión" })).toHaveTextContent("Personalizado");
+    fireEvent.click(screen.getByRole("button", { name: "Abrir vencidas" }));
+    expect(screen.queryByRole("combobox", { name: "Periodo de emisión" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Abrir emitidas" }));
+    expect(screen.getByRole("combobox", { name: "Periodo de emisión" })).toHaveTextContent("Personalizado");
+    expect(screen.getByTestId("url")).toHaveTextContent("desde=2026-10-04&hasta=2026-10-07&bandeja=emitidas");
+  });
+
   it("resets page on bucket selection and preserves search, currency and page size", async () => {
     render(
       <MemoryRouter

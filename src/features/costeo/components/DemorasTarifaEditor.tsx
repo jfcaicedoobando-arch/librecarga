@@ -23,8 +23,8 @@ import {
 } from "@/features/costeo/hooks/useNavieraCondiciones";
 import { encontrarSolapeTramos, tramosSucios, mezclaMonedasTramos, MENSAJE_MONEDAS_DEMORAS } from "@/features/costeo/utils/demorasTramos";
 import { notifyError } from "@/lib/ui/appFeedback";
-import type { DemorasTramoInput } from "@/features/costeo/types/navieraCondicion";
-import { nuevoTramo, tramosEditablesDeTipo, type TramoEditable } from "./demorasTarifaEditor.helpers";
+import { DemorasTarifaEstadoConsulta } from "./DemorasTarifaEstadoConsulta";
+import { nuevoTramo, serializarTramos, tramosEditablesDeTipo, type TramoEditable } from "./demorasTarifaEditor.helpers";
 
 interface Props {
   navieraCondicionId: string;
@@ -33,17 +33,22 @@ interface Props {
 export function DemorasTarifaEditor({ navieraCondicionId }: Props) {
   const { data: tipos = [] } = useTiposContenedorDemoras();
   const [tipoSel, setTipoSel] = useState<string>("");
-  const { data: tramos = [] } = useDemorasTramos(navieraCondicionId);
+  const consultaTramos = useDemorasTramos(navieraCondicionId);
+  const { data: tramos, isError } = consultaTramos;
   const reemplazar = useReemplazarTramos();
-  const [rows, setRows] = useState<TramoEditable[]>([]);
-  const monedasMixtas = mezclaMonedasTramos(rows);
+  const listo = tramos !== undefined && !isError;
+  const editable = listo && !!tipoSel;
 
   useEffect(() => {
     if (!tipoSel && tipos.length > 0) setTipoSel(tipos[0].id);
   }, [tipoSel, tipos]);
 
-  const guardados = useMemo(() => tramosEditablesDeTipo(tramos, tipoSel), [tramos, tipoSel]);
-  useEffect(() => { setRows(guardados); }, [guardados]);
+  const guardados = useMemo(() => tramosEditablesDeTipo(tramos ?? [], tipoSel), [tramos, tipoSel]);
+  const [borrador, setBorrador] = useState<{ base: TramoEditable[]; rows: TramoEditable[] }>();
+  const rows = borrador?.base === guardados ? borrador.rows : guardados;
+  const monedasMixtas = mezclaMonedasTramos(rows);
+  const setRows = (editar: (prev: TramoEditable[]) => TramoEditable[]) =>
+    setBorrador((prev) => ({ base: guardados, rows: editar(prev?.base === guardados ? prev.rows : guardados) }));
 
   // P2-4: cambiar de tipo con tramos sin guardar pide confirmación.
   const [tipoPendiente, setTipoPendiente] = useState<string | null>(null);
@@ -59,7 +64,7 @@ export function DemorasTarifaEditor({ navieraCondicionId }: Props) {
   const add = () => setRows((prev) => [...prev, { ...nuevoTramo(prev.length), tipo_contenedor_id: tipoSel }]);
 
   const guardar = async () => {
-    if (!tipoSel) return;
+    if (!editable) return;
     // B-096: el motor resuelve solapes en silencio (desde_dia DESC) — la
     // captura debe impedirlos; también rangos invertidos (hasta < desde).
     const solape = encontrarSolapeTramos(rows);
@@ -72,17 +77,10 @@ export function DemorasTarifaEditor({ navieraCondicionId }: Props) {
       });
       return;
     }
-    const payload: DemorasTramoInput[] = rows.map((r) => ({
-      tipo_contenedor_id: tipoSel,
-      desde_dia: Number(r.desde_dia) || 1,
-      hasta_dia: r.hasta_dia === null ? null : Number(r.hasta_dia),
-      monto_por_dia: Number(r.monto_por_dia) || 0,
-      moneda: r.moneda || "USD",
-    }));
     await reemplazar.mutateAsync({
       navieraCondicionId,
       tipoContenedorId: tipoSel,
-      tramos: payload,
+      tramos: serializarTramos(rows, tipoSel),
     });
   };
 
@@ -100,7 +98,7 @@ export function DemorasTarifaEditor({ navieraCondicionId }: Props) {
       <div className="flex items-center gap-3">
         <div className="w-64">
           <Label htmlFor="demoras-tipo" className="sr-only">Tipo de contenedor</Label>
-          <Select value={tipoSel} onValueChange={cambiarTipo}>
+          <Select value={tipoSel} onValueChange={cambiarTipo} disabled={!listo}>
             <SelectTrigger id="demoras-tipo" aria-label="Tipo de contenedor del tabulador">
               <SelectValue placeholder="Tipo de contenedor" />
             </SelectTrigger>
@@ -111,15 +109,15 @@ export function DemorasTarifaEditor({ navieraCondicionId }: Props) {
             </SelectContent>
           </Select>
         </div>
-        <Button variant="outline" size="sm" onClick={add}>
+        <Button variant="outline" size="sm" onClick={add} disabled={!editable}>
           <Plus className="size-4 mr-1" /> Tramo
         </Button>
-        <Button size="sm" onClick={guardar} disabled={reemplazar.isPending || monedasMixtas}>
+        <Button size="sm" onClick={guardar} disabled={!editable || reemplazar.isPending || monedasMixtas}>
           <Save className="size-4 mr-1" /> Guardar tabulador
         </Button>
       </div>
 
-      {monedasMixtas && <p role="alert" className="text-body-sm text-destructive">{MENSAJE_MONEDAS_DEMORAS}</p>}
+      {listo && monedasMixtas && <p role="alert" className="text-body-sm text-destructive">{MENSAJE_MONEDAS_DEMORAS}</p>}
       <Table>
         <TableHeader>
           <TableRow>
@@ -131,10 +129,15 @@ export function DemorasTarifaEditor({ navieraCondicionId }: Props) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.length === 0 && (
+          {!listo && (
+            <TableRow>
+              <TableCell colSpan={5}><DemorasTarifaEstadoConsulta consulta={consultaTramos} /></TableCell>
+            </TableRow>
+          )}
+          {listo && rows.length === 0 && (
             <DetailTableEmptyRow colSpan={5} message="Sin tramos. Agrega uno para iniciar el tabulador." />
           )}
-          {rows.map((r, idx) => (
+          {listo && rows.map((r, idx) => (
             <DetailTableRow key={r._key}>
               <TableCell>
                 <Input

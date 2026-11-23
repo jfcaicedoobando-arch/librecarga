@@ -19,6 +19,14 @@ export interface ConsolidarProformasParams {
   requestId?: string;
 }
 
+export async function aprobarAjusteConsolidacion(proformaId: string, huella: string): Promise<void> {
+  const { error } = await supabase.rpc("aprobar_ajuste_consolidacion_proforma", {
+    p_proforma_id: proformaId,
+    p_huella: huella,
+  });
+  if (error) throw error;
+}
+
 /**
  * Consolida varias proformas en una nueva. Toda la lógica corre en una RPC
  * atómica del lado del servidor (`consolidar_proformas`), por lo que no se

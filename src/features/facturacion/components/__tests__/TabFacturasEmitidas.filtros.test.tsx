@@ -10,7 +10,7 @@ vi.mock("../DialogDescargarZipMes", () => ({ DialogDescargarZipMes: () => null }
 vi.mock("@/components/shared/filters/UnifiedFiltersBar", () => ({ UnifiedFiltersBar: () => null }));
 vi.mock("@/components/empty/EmptyState", () => ({ default: ({ title, primaryAction }: { title: string; primaryAction?: { label: string; onClick: () => void } }) => <div><h2>{title}</h2>{primaryAction && <button onClick={primaryAction.onClick}>{primaryAction.label}</button>}</div> }));
 const makeProps = () => ({
-  filtros: { search: "", setSearch: vi.fn(), filterEstado: "todos", filterCliente: "todos", setFilter: vi.fn(), fechaDesde: "", setFechaDesde: vi.fn(), fechaHasta: "", setFechaHasta: vi.fn(), clientes: [], onClear: vi.fn() },
+  filtros: { search: "", setSearch: vi.fn(), filterEstado: "todos", filterCliente: "todos", setFilter: vi.fn(), fechaDesde: "", setFechaDesde: vi.fn(), fechaHasta: "", setFechaHasta: vi.fn(), rangoInvertido: false, limpiarRango: vi.fn(), clientes: [], onClear: vi.fn() },
   tabla: { columns: [], data: [], facturasFiltradas: [], totalFacturas: 0, isLoading: false, page: 0, totalPages: 1, setPage: vi.fn(), pageSize: 100, setPageSize: vi.fn() },
   acciones: { exportarFacturasCsv: vi.fn(), exportarLayoutContable: vi.fn(), onCreateNew: vi.fn() },
 });
@@ -27,5 +27,16 @@ describe("Emitidas: vacío filtrado", () => {
     render(<TabFacturasEmitidas {...makeProps()} />);
     expect(screen.getByRole("heading", { name: "Aún no hay facturas" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Nueva factura" })).toBeInTheDocument();
+  });
+
+  it("explica un rango invertido y permite quitar solo ese rango", () => {
+    const props = makeProps();
+    Object.assign(props.filtros, { fechaDesde: "2026-11-20", fechaHasta: "2026-11-10", rangoInvertido: true });
+    render(<TabFacturasEmitidas {...props} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("La fecha final de emisión es anterior a la inicial.");
+    expect(screen.queryByRole("heading", { name: "No se encontraron facturas" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Quitar rango de emisión" }));
+    expect(props.filtros.limpiarRango).toHaveBeenCalledOnce();
+    expect(props.filtros.onClear).not.toHaveBeenCalled();
   });
 });

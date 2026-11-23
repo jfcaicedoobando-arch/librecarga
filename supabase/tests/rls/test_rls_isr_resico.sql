@@ -85,8 +85,11 @@ BEGIN
     VALUES(concepto,org_a,embarque,'QA',1,100.3996,'gravado_16',100.40,'{"ambiente":"sandbox","estado":"no_aplica"}',0.1,1000);
   SELECT evaluacion_fiscal INTO r FROM public.conceptos_venta WHERE id=concepto;
   PERFORM pg_temp.assert(r->>'estado'='aplica' AND (r->>'monto_ret_isr')::numeric=1.25,'browser forgery replaced with server result');
-  UPDATE public.conceptos_venta SET precio_unitario=200,total=200 WHERE id=concepto;
-  PERFORM pg_temp.assert((SELECT monto_ret_isr=2.50 AND tasa_ret_isr=0.0125 FROM public.conceptos_venta WHERE id=concepto),'edit persists recalculation');
+  bloqueado:=false;
+  BEGIN UPDATE public.conceptos_venta SET precio_unitario=200,total=200 WHERE id=concepto;
+  EXCEPTION WHEN check_violation THEN bloqueado:=SQLERRM='LC_ISR_REVISION_REQUERIDA'; END;
+  PERFORM pg_temp.assert(bloqueado AND (SELECT monto_ret_isr=1.25 AND tasa_ret_isr=0.0125
+    FROM public.conceptos_venta WHERE id=concepto),'direct update cannot replace an approved calculation');
   bloqueado:=false;
   BEGIN UPDATE public.conceptos_venta SET evaluacion_fiscal=NULL,tasa_ret_isr=NULL,monto_ret_isr=NULL WHERE id=concepto;
   EXCEPTION WHEN check_violation THEN bloqueado:=true; END;
@@ -103,10 +106,11 @@ BEGIN
   bloqueado:=false;
   BEGIN UPDATE public.conceptos_venta SET embarque_id=embarque WHERE id=legado_otro; EXCEPTION WHEN check_violation THEN bloqueado:=true; END;
   PERFORM pg_temp.assert(bloqueado,'cannot move legacy replacement into evaluated parent');
-  bloqueado:=false;
-  BEGIN INSERT INTO public.conceptos_venta(organization_id,embarque_id,descripcion,cantidad,precio_unitario,total)
-    VALUES(org_a,embarque,'replacement legacy',1,200,200); EXCEPTION WHEN check_violation THEN bloqueado:=true; END;
-  PERFORM pg_temp.assert(bloqueado,'cannot append unevaluated replacement to evaluated parent');
+  INSERT INTO public.conceptos_venta(organization_id,embarque_id,descripcion,cantidad,precio_unitario,total,tipo_iva)
+    VALUES(org_a,embarque,'replacement legacy',1,200,200,'gravado_16');
+  PERFORM pg_temp.assert((SELECT evaluacion_fiscal->>'estado'='aplica' AND monto_ret_isr=2.50
+    FROM public.conceptos_venta WHERE embarque_id=embarque AND descripcion='replacement legacy'),
+    'new sibling of an evaluated concept is automatically evaluated');
   bloqueado:=false;
   BEGIN UPDATE public.embarques SET cliente_id=pf WHERE id=embarque; EXCEPTION WHEN check_violation THEN bloqueado:=true; END;
   PERFORM pg_temp.assert(bloqueado,'cannot change receiver behind snapshot');

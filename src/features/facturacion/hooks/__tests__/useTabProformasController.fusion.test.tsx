@@ -105,4 +105,22 @@ describe("C25 · fusión de proformas", () => {
     expect(result.current.fusionInfo.sameDiasCredito).toBe(true);
     expect(result.current.fusionInfo.diasCredito).toBe(30);
   });
+
+  it("retira sólo la selección fuera de los filtros y conserva la de otras páginas", () => {
+    const result = seleccionar(["p1", "p2"], [proforma(), proforma({ id: "p2", numero: "P-002" })]);
+
+    act(() => { result.current.setPageSize(1); });
+    act(() => { result.current.setPage(1); });
+    expect(result.current.paginated.map((p) => p.id)).toEqual(["p2"]);
+    expect(result.current.selectedProformas).toHaveLength(2);
+    expect(result.current.seleccionFueraDeFiltros).toBe(0);
+
+    act(() => { result.current.setSearch("P-002"); });
+    expect(result.current.seleccionFueraDeFiltros).toBe(1);
+    expect(result.current.selectedProformas).toHaveLength(2);
+
+    act(() => { result.current.quitarSeleccionFueraDeFiltros(); });
+    expect(result.current.seleccionFueraDeFiltros).toBe(0);
+    expect(result.current.selectedProformas.map((p) => p.id)).toEqual(["p2"]);
+  });
 });

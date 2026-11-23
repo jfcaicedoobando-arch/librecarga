@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useUpdateEmbarque } from "@/features/embarques/hooks/useEmbarques";
 import { useContactosCliente } from "@/features/cliente/hooks/useClientes";
@@ -18,11 +18,9 @@ import { notifyError } from "@/lib/ui/appFeedback";
 import { ERROR_CODES } from "@/lib/domain/errorCatalog";
 import { useMargenMinimo } from "@/features/configuracion/hooks/useMargenMinimo";
 import { puedeAutorizarMargenBajo } from "@/lib/domain/margenMinimo";
+import type { PropuestaRevisionFiscalEmbarque } from "../services/evaluacionFiscalEmbarque";
 
-/**
- * Controller hook para la página EditarEmbarque.
- * Encapsula carga del embarque, hidratación de formularios, y submit.
- */
+/** Carga e hidrata el embarque y coordina el guardado del formulario. */
 export function useEditarEmbarqueWizard(id: string | undefined) {
   const navigate = useNavigate();
   const { user, effectiveRole } = useAuth();
@@ -30,9 +28,7 @@ export function useEditarEmbarqueWizard(id: string | undefined) {
 
   const carga = useDatosEditarEmbarque(id);
   const { embarque, conceptosVentaDb, conceptosCostoDb, contenedoresDb, clientes, proveedoresDb } = carga;
-  // v13.303.23 — Hidratamos la cotización vinculada al embarque para que el
-  // wizard de edición muestre el badge verde en lugar del banner "Cotización
-  // requerida" y no obligue a re-seleccionar. Incluye estado `En operación`.
+  // Mantiene visible la cotización vinculada, incluso en estado «En operación».
   const { data: cotizacionVinculada = null } = useCotizacion(embarque?.cotizacion_id ?? undefined);
   const { data: cotizacionesAceptadas = [] } = useCotizacionesAceptadas();
   const updateEmbarque = useUpdateEmbarque();
@@ -44,6 +40,20 @@ export function useEditarEmbarqueWizard(id: string | undefined) {
   const [hidratoVenta, setHidratoVenta] = useState(false);
   const [hidratoCosto, setHidratoCosto] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [guardando, setGuardando] = useState(false);
+  const guardadoEnCurso = useRef<AbortController | null>(null);
+  const [revisionFiscal, setRevisionFiscal] = useState<PropuestaRevisionFiscalEmbarque | null>(null);
+  const resolverRevision = useRef<((motivo: string | null) => void) | null>(null);
+  const responderRevisionFiscal = (motivo: string | null) => {
+    resolverRevision.current?.(motivo);
+    resolverRevision.current = null;
+    setRevisionFiscal(null);
+  };
+  useEffect(() => () => {
+    guardadoEnCurso.current?.abort();
+    resolverRevision.current?.(null);
+    resolverRevision.current = null;
+  }, [id]);
 
   const {
     methods,
@@ -93,9 +103,7 @@ export function useEditarEmbarqueWizard(id: string | undefined) {
 
   const selectedCliente = clientes.find((c) => c.id === clienteId);
 
-  // P1 — el paso 2 (Ruta) valida ETD, ETA, ruta y contenedores obligatorios
-  // antes de avanzar. Guardar sigue permitido: un borrador incompleto se
-  // conserva, pero no se puede seguir al paso de costos sin esos datos.
+  // El paso de costos exige una ruta completa. Los borradores pueden guardarse antes.
   const [validationErrors, setValidationErrors] = useState<Record<number, StepValidationErrors>>({});
   const validateStep = useCallback((step: number): boolean => {
     if (step !== 2) return true;
@@ -115,6 +123,7 @@ export function useEditarEmbarqueWizard(id: string | undefined) {
 
   const hidratado = initialized && hidratoVenta && hidratoCosto && hidratoContenedores;
   const handleSave = async () => {
+    if (guardadoEnCurso.current) return;
     if (!carga.listo || !hidratado) {
       notifyError(undefined, {
         title: "No se puede guardar todavía",
@@ -123,28 +132,42 @@ export function useEditarEmbarqueWizard(id: string | undefined) {
       });
       return;
     }
-    await ejecutarGuardarEmbarque({
-      id,
-      embarque,
-      methods,
-      buildEmbarquePayload,
-      buildConceptosVentaPayload,
-      buildConceptosCostoPayload,
-      contactos,
-      selectedClienteNombre: selectedCliente?.nombre,
-      userEmail: user?.email,
-      conceptosVenta,
-      conceptosCosto,
-      conceptosVentaDb,
-      conceptosCostoDb,
-      proveedoresDb,
-      updateEmbarque,
-      registrarActividad,
-      setCurrentStep,
-      navigate,
-      margenMinimoPct,
-      puedeAutorizarMargen: puedeAutorizarMargenBajo(effectiveRole),
-    });
+    const operacion = new AbortController();
+    guardadoEnCurso.current = operacion;
+    setGuardando(true);
+    try {
+      await ejecutarGuardarEmbarque({
+        id,
+        embarque,
+        methods,
+        buildEmbarquePayload,
+        buildConceptosVentaPayload,
+        buildConceptosCostoPayload,
+        contactos,
+        selectedClienteNombre: selectedCliente?.nombre,
+        userEmail: user?.email,
+        conceptosVenta,
+        conceptosCosto,
+        conceptosVentaDb,
+        conceptosCostoDb,
+        proveedoresDb,
+        updateEmbarque,
+        registrarActividad,
+        setCurrentStep,
+        navigate,
+        margenMinimoPct,
+        puedeAutorizarMargen: puedeAutorizarMargenBajo(effectiveRole),
+        signal: operacion.signal,
+        solicitarRevisionFiscal: (propuesta) => new Promise((resolve) => {
+          resolverRevision.current = resolve;
+          setRevisionFiscal(propuesta);
+        }),
+      });
+    } finally {
+      guardadoEnCurso.current = null;
+      setGuardando(false);
+      setRevisionFiscal(null);
+    }
   };
 
   return {
@@ -162,7 +185,9 @@ export function useEditarEmbarqueWizard(id: string | undefined) {
     selectedCliente,
     handleMsdsUpload,
     handleSave,
-    isPending: updateEmbarque.isPending,
+    isPending: guardando || updateEmbarque.isPending,
+    revisionFiscal,
+    responderRevisionFiscal,
     navigate,
     conceptosForm,
     validateStep,

@@ -19,6 +19,7 @@ import { resultadoUsoCfdi } from "./resultadoUsoCfdi.ts";
 import { createInvoiceInFacturapi } from './crear.ts';
 import { parseInvoiceResult, persistirFacturaTimbrada } from './persistencia.ts';
 import { validarProformasVigentes } from './proformasVigentes.ts';
+import { respuestaIsrPendiente } from "./isrPreflight.ts";
 
 export { hoyMx, realinearFechaEmision } from "./fechaEmision.ts";
 export type { Claim, FacturaRow } from "./types.ts";
@@ -49,7 +50,8 @@ export async function loadFactura(supabase: SupabaseClient, facturaId: string): 
  * Ola 3 · B — boundary server-side: aunque la UI se equivoque, una llamada
  * directa no puede timbrar una factura en un estado no timbrable.
  */
-export function validarEstadoTimbrable(factura: FacturaRow): Response | null {
+export function validarEstadoTimbrable(factura: FacturaRow, fiscalValidada = false): Response | null {
+  if (factura.evaluacion_fiscal != null && !fiscalValidada) return respuestaIsrPendiente();
   const estado = factura.estado ?? "";
   if (ESTADOS_FACTURA_TIMBRABLES.includes(estado)) return null;
   return jsonResponse({
@@ -85,8 +87,9 @@ export async function validarFacturaTimbrable(
   supabase: SupabaseClient,
   factura: FacturaRow,
   userId: string,
+  fiscalValidada = false,
 ): Promise<Response | null> {
-  return validarEstadoTimbrable(factura)
+  return validarEstadoTimbrable(factura, fiscalValidada)
     ?? (await validarProformasVigentes(supabase, factura))
     ?? validarTipoCambio(factura)
     ?? validarTotalPositivo(factura)

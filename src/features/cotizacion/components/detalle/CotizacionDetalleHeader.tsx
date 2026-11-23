@@ -1,5 +1,5 @@
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FileDown, Mail, FileSpreadsheet } from "lucide-react";
 import { DetailHeader } from "@/components/shared/DetailHeader";
 import { useVolver } from "@/hooks/shared/useVolver";
@@ -21,12 +21,14 @@ interface Props {
 
 export function CotizacionDetalleHeader({ cotizacion, nombreDestinatario, onExportarPdf, exportandoPdf = false, onEnviarEmail, yaEnviada }: Props) {
   const volver = useVolver("/cotizaciones");
+  const motivoEnvioId = useId();
   // R-08: una cotización sin importe no puede enviarse al cliente.
   // W-01 (QA r2): se evalúa contra los conceptos de venta (USD y MXN) — antes
   // sólo `subtotal`, que era 0 en cotizaciones MXN-only y bloqueaba el envío
   // aunque la cotización sí tuviera importes.
   // v13.823.346 — regla única de importe efectivo (filas USD legacy sin `total`).
   const sinImporte = !tieneImportesEfectivos(cotizacion.conceptos_venta);
+  const mostrarEnvio = !!onEnviarEmail && !cotizacion.es_prospecto;
   const metaFecha = cotizacion.fecha_aceptacion
     ? `Aceptada el ${formatDate(cotizacion.fecha_aceptacion, "dd/MM/yyyy HH:mm")}`
     : cotizacion.fecha_rechazo
@@ -43,29 +45,29 @@ export function CotizacionDetalleHeader({ cotizacion, nombreDestinatario, onExpo
       badge={<StatusBadge domain="cotizacion" status={cotizacion.estado} />}
       meta={metaFecha ? <span className="text-body-sm text-muted-foreground">{metaFecha}</span> : undefined}
       trailing={
-        <>
-          <Button variant="outline" size="sm" onClick={onExportarPdf} disabled={exportandoPdf}>
-            <FileDown className="h-4 w-4 mr-1" /> {exportandoPdf ? "Generando…" : "Exportar PDF"}
-          </Button>
-          {onEnviarEmail && !cotizacion.es_prospecto && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span tabIndex={sinImporte ? 0 : -1}>
-                    <Button variant="default" size="sm" onClick={onEnviarEmail} disabled={sinImporte}>
-                      <Mail className="h-4 w-4 mr-1" /> {yaEnviada ? "Reenviar" : "Enviar por correo"}
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                {sinImporte && (
-                  <TooltipContent>
-                    Agrega conceptos de venta con importe antes de enviar la cotización.
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={onExportarPdf} disabled={exportandoPdf}>
+              <FileDown className="h-4 w-4 mr-1" /> {exportandoPdf ? "Generando…" : "Exportar PDF"}
+            </Button>
+            {mostrarEnvio && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={onEnviarEmail}
+                disabled={sinImporte}
+                aria-describedby={sinImporte ? motivoEnvioId : undefined}
+              >
+                <Mail className="h-4 w-4 mr-1" /> {yaEnviada ? "Reenviar" : "Enviar por correo"}
+              </Button>
+            )}
+          </div>
+          {mostrarEnvio && sinImporte && (
+            <p id={motivoEnvioId} className="text-body-sm text-muted-foreground">
+              Agrega conceptos de venta con importe antes de enviar la cotización.
+            </p>
           )}
-        </>
+        </div>
       }
     />
   );

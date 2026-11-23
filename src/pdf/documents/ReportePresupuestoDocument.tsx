@@ -3,6 +3,7 @@
  */
 import { avisoNcProveedorSinBase } from "@/lib/financial/baseNcProveedor";
 import { Document, Page, Text } from "@react-pdf/renderer";
+import { pluralizar } from "@/lib/format/pluralizar";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { styles } from "@/pdf/theme/styles";
 import { ReportHeader } from "@/pdf/components/ReportHeader";
@@ -29,7 +30,26 @@ const cols: PdfColumn<FilaVsReal>[] = [
   { key: "pct", title: "% cumpl.", cellStyle: styles.cellQty, render: (r) => r.presupuesto_mxn > 0 ? `${r.cumplimiento_pct.toFixed(1)}%` : "—" },
 ];
 
+function AvisosDelResumen({ resumen, realParcial }: { resumen: ResumenVsReal; realParcial: boolean }) {
+  const { gastos_sin_tc_count: sinTipoCambio, notas_proveedor_sin_base_count: notasSinBase } = resumen;
+  if (!realParcial && !notasSinBase) return null;
+  return (
+    <ReportContext>
+      {!!notasSinBase && <Text style={styles.contextText}>{avisoNcProveedorSinBase(notasSinBase)}</Text>}
+      {resumen.real_truncado && (
+        <Text style={styles.contextText}>El real alcanzó el límite de filas consultadas y puede estar incompleto.</Text>
+      )}
+      {sinTipoCambio > 0 && (
+        <Text style={styles.contextText}>
+          {sinTipoCambio === 1 ? "Se excluyó" : "Se excluyeron"} del real {pluralizar(sinTipoCambio, "gasto")} en moneda extranjera por falta de tipo de cambio.
+        </Text>
+      )}
+    </ReportContext>
+  );
+}
+
 export function ReportePresupuestoDocument({ resumen, filas = resumen.filas, soloExcesos = false, emisor }: Props) {
+  const realParcial = resumen.real_truncado || resumen.gastos_sin_tc_count > 0;
   return (
     <Document title={`Presupuesto ${resumen.periodo}`} author={emisor?.organizacionNombre || emisor?.razonSocial || "Libre Carga"}>
       <Page size="LETTER" style={styles.page}>
@@ -37,11 +57,7 @@ export function ReportePresupuestoDocument({ resumen, filas = resumen.filas, sol
           <Text style={styles.contextText}>Periodo: {resumen.periodo}</Text>
         </ReportHeader>
 
-        {!!resumen.notas_proveedor_sin_base_count && (
-          <ReportContext>
-            <Text style={styles.contextText}>{avisoNcProveedorSinBase(resumen.notas_proveedor_sin_base_count)}</Text>
-          </ReportContext>
-        )}
+        <AvisosDelResumen resumen={resumen} realParcial={realParcial} />
         <ReportSummary columns={3} items={[
           { label: "Total presupuesto", value: formatCurrency(resumen.total_presupuesto_mxn, "MXN") },
           { label: "Total real", value: formatCurrency(resumen.total_real_mxn, "MXN") },
@@ -51,7 +67,10 @@ export function ReportePresupuestoDocument({ resumen, filas = resumen.filas, sol
         <Text minPresenceAhead={70} style={[styles.h3, { marginTop: 12 }]}>Detalle por categoría</Text>
         <ReportContext>
           <Text style={styles.contextText}>
-            {soloExcesos ? "Filtro: Solo excepciones (más del 110% o gasto positivo sin presupuesto)." : "Filtro: Todas las categorías."} Los indicadores superiores corresponden al periodo completo.
+            {soloExcesos ? "Filtro: Solo excepciones (más del 110% o gasto positivo sin presupuesto)." : "Filtro: Todas las categorías."}{" "}
+            {realParcial
+              ? "Los indicadores superiores resumen las cifras disponibles del periodo."
+              : "Los indicadores superiores corresponden al periodo completo."}
           </Text>
         </ReportContext>
         {filas.length === 0 ? (

@@ -17,6 +17,8 @@ import type { CotizacionRow } from "@/features/cotizacion/types";
 import { TASA_IVA } from "@/lib/financial/financialUtils";
 import { fetchConReintento, OFFLINE_MSG } from "./_networkRetry";
 import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
+import { exigirFiscalCotizacionParaEnvio } from "../../domain/snapshotFiscalCotizacion";
+import { formatCurrency } from "@/lib/formatters";
 
 export { fetchConReintento, OFFLINE_MSG };
 
@@ -143,11 +145,17 @@ export async function enviarCotizacionPorEmail(input: EnviarEmailInput): Promise
   if (!cotizacion.organization_id || cotizacion.organization_id !== scope.organizationId) {
     throw new Error("La organización del documento no coincide con la organización activa.");
   }
+  const fiscal = exigirFiscalCotizacionParaEnvio(cotizacion);
+  const fingerprint = fiscal.estado === "confirmado" ? fiscal.conceptos_fingerprint : undefined;
+  const totales = fiscal.estado === "confirmado"
+    ? Object.fromEntries(fiscal.bloques.map((b) => [b.moneda.toLowerCase(), formatCurrency(b.total, b.moneda)]))
+    : input.totales;
 
   // 1. prepare → signed upload URL
   const prep = await invokeEnviarCotizacion<PrepareResponse>({
     action: "prepare",
     cotizacion_id: cotizacion.id,
+    fiscal_fingerprint: fingerprint,
   }, scope);
   scope.assertCurrent();
   if (!prep?.upload_token || !prep?.path) {
@@ -176,7 +184,8 @@ export async function enviarCotizacionPorEmail(input: EnviarEmailInput): Promise
     mensaje: input.mensaje,
     asunto: input.asunto,
     marcar_enviada: input.marcarEnviada,
-    totales: input.totales,
+    totales,
+    fiscal_fingerprint: fingerprint,
   }, scope);
   scope.assertCurrent();
 

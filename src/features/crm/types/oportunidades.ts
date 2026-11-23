@@ -6,7 +6,10 @@
 import type { Database } from "@/integrations/supabase/types";
 import type { Moneda } from "@/types/db";
 
-export type CrmOportunidadRow = Database["public"]["Tables"]["crm_oportunidades"]["Row"];
+export type CrmOportunidadRow = Database["public"]["Tables"]["crm_oportunidades"]["Row"] & {
+  /** Sólo lectura: nombre del broker de la empresa, no una asignación editable. */
+  vendedor_externo?: string | null;
+};
 // Ola 19 · paso 5: alias central, no se redeclara la unión.
 export type { Moneda };
 

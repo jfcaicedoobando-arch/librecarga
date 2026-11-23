@@ -30,7 +30,7 @@ export function FacturaDetalleBanners({ factura, saldoError, onRetrySaldo, saldo
 
   return (
     <>
-      <AvisoFacturaHistorica factura={factura} />
+      <AvisoVigenciaFactura factura={factura} />
       {saldoError && (
         <ErrorStateInline
           title="No pudimos verificar el saldo de esta factura"
@@ -58,7 +58,7 @@ export function FacturaDetalleBanners({ factura, saldoError, onRetrySaldo, saldo
   );
 }
 
-function AvisoFacturaHistorica({ factura }: { factura: FacturaDetalle }) {
+function AvisoVigenciaFactura({ factura }: { factura: FacturaDetalle }) {
   if (esFacturaVigenteParaOperar(factura)) return null;
   return (
     <p role="status" className="text-body text-muted-foreground">

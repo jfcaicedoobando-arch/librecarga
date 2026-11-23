@@ -106,7 +106,7 @@ Deno.serve(wrapEdgeHandler("enviar-cotizacion-email", async (req) => {
   const timestamp = Date.now();
   const pdfPath = `${cot.organization_id}/${cot.id}/${cot.folio}-${timestamp}.pdf`;
 
-  if (action === 'prepare') return handlePrepare(admin, pdfPath, cors, auth.userId, cot);
+  if (action === 'prepare') return handlePrepare(admin, pdfPath, cors, auth.userId, { cot, expectedFingerprint: body.fiscal_fingerprint });
   if (action !== 'send') return json({ error: 'action inválida (prepare|send)' }, 400);
 
   return handleSend({

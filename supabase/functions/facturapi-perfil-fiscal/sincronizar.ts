@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
 import { resolveFacturapiKey, type FacturapiAmbiente } from "../_shared/facturapiAuth.ts";
-import { consultarPerfilProveedor, PerfilFiscalError } from "./proveedor.ts";
+import { consultarPerfilProveedor, PerfilFiscalError } from "../_shared/facturapiPerfilProveedor.ts";
 
 interface Credencial {
   updated_at: string;

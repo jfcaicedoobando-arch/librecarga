@@ -4,7 +4,7 @@
  * deno run --cached-only --quiet --allow-env=FACTURAPI_SANDBOX_QA_KEY,FACTURAPI_SANDBOX_EXPECTED_ORG_ID
  *   --allow-net=www.facturapi.io scripts/qa/perfil-fiscal-sandbox-readonly.ts
  */
-import { consultarPerfilProveedor } from "../../supabase/functions/facturapi-perfil-fiscal/proveedor.ts";
+import { consultarPerfilProveedor } from "../../supabase/functions/_shared/facturapiPerfilProveedor.ts";
 
 function esLlaveSandbox(key: string | undefined): key is string {
   return !!key && key.trim() === key && /^sk_test_\S+$/.test(key);

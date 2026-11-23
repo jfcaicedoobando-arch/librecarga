@@ -10,7 +10,7 @@ vi.mock("@/features/compras/hooks/useComprasNotasCreditoController", async (impo
     desde: "2026-01-01", hasta: "2026-10-04", moneda: "todas", estado: "todos", search: "",
     setDesde: vi.fn(), setHasta: vi.fn(), setMoneda: vi.fn(), setEstado: vi.fn(), setSearch: vi.fn(),
     rows: [], isLoading: false, isError: mocks.isError, refetch: vi.fn(),
-    totalMxn: 0, totalUsd: 0, handleExport: vi.fn(),
+    totalMxn: 0, totalUsd: 0, totalEur: 0, handleExport: vi.fn(),
   }) };
 });
 vi.mock("@/components/ui/select", () => ({
@@ -33,10 +33,10 @@ describe("60: estados y KPI de notas de crédito", () => {
     expect(screen.getByRole("option", { name: "Cancelada" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Emitida" })).not.toBeInTheDocument();
   });
-  it("un error muestra tres KPI no disponibles y no simula resultado cero", () => {
+  it("un error muestra los cuatro KPI como no disponibles", () => {
     mocks.isError = true;
     render(<ComprasNotasCredito />);
-    expect(screen.getAllByText("No disponible")).toHaveLength(3);
+    expect(screen.getAllByText("No disponible")).toHaveLength(4);
     expect(screen.queryByText("Tabla vacía")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeDisabled();
   });

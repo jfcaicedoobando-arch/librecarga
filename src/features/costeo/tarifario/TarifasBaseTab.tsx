@@ -1,9 +1,10 @@
 /** Vista 1 del tarifario: Tarifas (Puertos base) con 20"/40" en una fila. */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Mail, Plus, Upload } from "lucide-react";
+import { Mail, Plus, Upload } from "lucide-react";
 import { ImportarTarifasDialog } from "./ImportarTarifasDialog";
 import { ExtraerCorreoDialog } from "./ExtraerCorreoDialog";
+import { DescargarTarifarioButton } from "./DescargarTarifarioButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -77,10 +78,9 @@ export function TarifasBaseTab({ puedeEditar }: { puedeEditar: boolean }) {
             {FILTROS_VIGENCIA.map((f) => <SelectItem key={f.valor} value={f.valor}>{f.etiqueta}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="ml-auto flex gap-2">
-          <Button variant="outline" onClick={() => exportToCsv(`tarifario-${hoyMx()}.csv`, HEADERS, filas.map(aCsv))}>
-            <Download className="mr-1 size-4" /> Descargar Excel
-          </Button>
+        <div className="ml-auto flex flex-wrap items-start gap-2">
+          <DescargarTarifarioButton cargando={q.isFetching} error={q.isError} hayFilas={filas.length > 0}
+            onDownload={() => exportToCsv(`tarifario-${hoyMx()}.csv`, HEADERS, filas.map(aCsv))} />
           {puedeEditar && <Button variant="outline" onClick={() => setExtraer(true)}><Mail className="mr-1 size-4" /> Extraer de correo</Button>}
           {puedeEditar && <Button variant="outline" onClick={() => setImportar(true)}><Upload className="mr-1 size-4" /> Importar CSV/Excel</Button>}
           {puedeEditar && <Button onClick={() => setNueva(true)}><Plus className="mr-1 size-4" /> Nueva tarifa</Button>}

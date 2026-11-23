@@ -9,6 +9,7 @@ import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { KpiGridSkeleton } from "@/components/shared/skeletons";
 import { ChartSkeleton } from "@/components/shared/ChartSkeleton";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useContenedoresEmbarque } from "@/features/embarques/hooks/useContenedoresEmbarque";
 import type { ConceptoCostoRow, ConceptoVentaRow } from "@/features/embarques/types/embarque";
 import { calcularPnlPorContenedor } from "@/features/embarques/services/pnlPorContenedor";
@@ -23,23 +24,37 @@ interface Props {
 }
 
 export function TabPnlContenedor({ embarqueId, expediente, conceptosVenta, conceptosCosto }: Props) {
-  const { data: contenedores = [], isLoading: loadingContenedores } =
+  const { data: contenedores, isError, isFetching, refetch } =
     useContenedoresEmbarque(embarqueId);
 
   const porMoneda = useMemo(
-    () =>
-      calcularPnlPorContenedor({
+    () => contenedores && !isError
+      ? calcularPnlPorContenedor({
         expediente,
         contenedores,
         conceptosVenta,
         conceptosCosto,
-      }),
-    [expediente, contenedores, conceptosVenta, conceptosCosto],
+      })
+      : {},
+    [expediente, contenedores, conceptosVenta, conceptosCosto, isError],
   );
 
   const monedas = Object.keys(porMoneda).sort();
 
-  if (loadingContenedores) {
+  if (isError) {
+    return (
+      <Card>
+        <ErrorStateInline
+          title="No se pudieron cargar los contenedores"
+          message="Reintenta para consultar el desglose de ventas y costos por contenedor."
+          onRetry={() => void refetch()}
+          retrying={isFetching}
+        />
+      </Card>
+    );
+  }
+
+  if (!contenedores) {
     return (
       <div className="space-y-4">
         <KpiGridSkeleton count={4} heightClass="h-24" />

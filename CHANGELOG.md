@@ -1,5 +1,60 @@
 # Changelog
 
+## [13.824.100] - 2026-11-22
+- **Captura y cobranza:** cada recordatorio y re-cotización abre con sus campos limpios. El margen comercial exige un valor explícito, las demoras validan la vigencia y las notas conservan el siguiente borrador mientras se envía el anterior.
+- **Operaciones y portales:** Embarques identifica pólizas futuras y llegadas registradas, ofrece el filtro «En Proceso» y permite reintentar el historial de cierre. El portal separa embarques sin expediente y explica cuándo vence una cotización.
+- **Finanzas y reportes:** Facturación explica rangos invertidos y Proformas comparte el estado visible con su CSV. Compras incorpora EUR, Tesorería conserva el filtro de pagos programados y el PDF del Libro de pagos identifica las filas incluidas.
+- **Accesibilidad y navegación:** Cobranza admite selección móvil, Costeo identifica la fecha de vigencia y Presupuesto anuncia la dirección de orden. Los reportes de CRM y el historial de cotizaciones ofrecen reintentos cuando falla la consulta.
+
+## [13.824.99] - 2026-11-22
+- **Confirmaciones y captura:** Proformas identifica las selecciones fuera de los filtros, Compras empieza cada lote con la justificación vacía y Tarifario exige un monto explícito y confirma el retiro de cargos.
+- **Operación y finanzas:** Embarques, Facturación y Compras explican los fallos de consulta y permiten reintentar. El PDF de Presupuesto vs. Real incluye los avisos de datos parciales y gastos sin tipo de cambio.
+- **Navegación y accesibilidad:** incorpora nombres de filtros en el Libro de pagos, estados de REP y conciliación en sus tarjetas móviles, pestañas de Tarifario visibles en pantallas estrechas y filas navegables en Proveedores.
+
+## [13.824.98] - 2026-11-22
+- **Captura y cobranza:** Demoras bloquea la edición hasta cargar el tabulador, Presupuesto guarda el cero explícito y el correo de estado de cuenta desglosa los saldos por moneda.
+- **Operación diaria:** Embarques, Proveedores y Notificaciones distinguen entre una consulta fallida y una lista vacía. Expediente permite renovar documentos y avisa al elegir un archivo de más de 15 MB.
+- **Compras, Tesorería y portales:** los rangos invertidos detienen la consulta y el CSV, el Libro de pagos muestra sus filtros activos en móvil y el portal distingue el saldo confirmado de un fallo de consulta.
+
+## [13.824.97] - 2026-11-22
+- **Operación diaria:** Conciliación limpia el movimiento al cambiar de cuenta, Cotizaciones permite reintentar la carga de costos y Proformas sincroniza su estado con la URL.
+- **Pagos y portal:** los ajustes no monetarios se distinguen en Pagos a proveedores y su CSV. El portal distingue saldos pendientes de consulta y conserva el último saldo disponible.
+- **Pricing y validación:** elimina acciones duplicadas al cotizar y respeta el permiso de escritura. Completa el replay aislado de Drizzle 0083–0094.
+
+## [13.824.96] - 2026-11-20
+- **Permisos efectivos en la empresa:** cinco ajustes seleccionados protegen costos de cotizaciones, vinculación comercial, duplicación de embarques, creación de proformas y eliminación de pagos. Conservan cálculos, históricos y reintentos autorizados; sin cambios en envíos de correo.
+
+## [13.824.95] - 2026-11-20
+- **Seguridad de consultas auxiliares e historial:** cuentas bancarias, demoras y claves fiscales respetan sus permisos de lectura; rechazo de facturas conserva sus puertas autorizadas. La actividad de embarques no mezcla bitácoras de empresas con expedientes iguales. Sin cambios en importes ni envíos de correo.
+
+## [13.824.94] - 2026-11-20
+- **Seguridad de demoras y detalle de pagos:** se respetan los permisos existentes del embarque antes del recálculo y de cada registro consultado en pagos. Se conservan importes, tabuladores, disparadores y bloqueos fiscales; sólo se corrigieron los dos avisos seleccionados.
+
+## [13.824.93] - 2026-11-20
+- **Comisión exclusiva del broker:** las cuentas de brokers no generan comisión KAM; conservan su responsable y el tabulador del broker. Se ponen en cero sólo las pendientes sin liquidación, sin alterar liquidadas, pagadas ni recuperaciones.
+- **Seguridad de lectura:** membresías y libro de pagos respetan los permisos vigentes por registro; Pricing conserva su verificación de permisos. El ajuste de demoras permanece pendiente de validación operativa.
+
+## [13.824.92] - 2026-11-20
+- **Vendedor externo en oportunidades:** muestra automáticamente el nombre del broker de la empresa, sin cambiar el vendedor interno ni las comisiones. Consulta limitada a lectores de la oportunidad y organización activa; ajustes de seguridad adicionales preparados sin aplicar.
+
+## Pendiente de publicación
+
+- Integra la evaluación fiscal por organización con los borradores de cotización y embarque. La migración 0071 conserva el cálculo agrupado y el origen de los renglones al convertir una cotización aprobada.
+- El detalle, el PDF y el correo de la cotización leen el desglose fiscal aprobado. La revisión de una cotización enviada conserva la versión anterior y vuelve a solicitar autorización.
+- La migración 0072 permite que Administración o Contabilidad revise el cliente o los importes fiscales de un embarque. El guardado compara los montos mostrados por moneda, conserva la procedencia de los renglones y registra la revisión en la misma transacción.
+- La migración 0073 guarda el desglose fiscal y los conceptos seleccionados al crear una proforma normal. Detalle, PDF y portal leen el total neto por moneda. El rechazo y la cancelación liberan las ventas y conservan los importes y renglones del documento histórico.
+- La migración 0074 permite consolidar proformas fiscales compatibles y conserva el origen de cada concepto. Las diferencias de redondeo por moneda requieren aprobación de Administración o Contabilidad antes de enviar la nueva proforma al cliente.
+- La migración 0075 convierte una proforma fiscal aceptada en un borrador de factura por moneda. Conserva totales, retenciones y origen de los conceptos, y bloquea el timbrado hasta habilitar la validación fiscal de emisión.
+- La migración 0076 calcula el ISR de las facturas manuales en el servidor para organizaciones con la automatización activa. La validación previa a la emisión revisa el perfil, el receptor y los totales del documento y comprueba la identidad asociada a la llave de Facturapi.
+- La migración 0077 registra una sola reserva de timbrado por factura fiscal. Una respuesta incierta conserva el identificador del intento y la confirmación exige que el XML y el resultado de Facturapi coincidan con el perfil y los importes guardados.
+- La migración 0078 conecta el timbrado, la recuperación y los avisos de Facturapi con la reserva de la factura. La recuperación consulta el ambiente original con la llave de la organización y registra la emisión al comprobar y respaldar el XML.
+- La migración 0079 calcula cobros de facturas evaluadas sobre el neto y las retenciones disponibles después de las notas de crédito. Respeta la moneda aplicada, separa el efectivo recibido y excluye los REP cancelados. Las notas usan el cuadre agrupado y conservan los impuestos y el origen de sus renglones.
+- La emisión de REP y notas de crédito de facturas evaluadas toma el receptor guardado en el CFDI original. Usa la credencial del ambiente de esa factura y comprueba el emisor antes de enviar el comprobante.
+- La migración 0080 protege la reserva de las notas de crédito evaluadas. Una nota afecta cartera después de confirmar y respaldar su XML, y la recuperación consulta el mismo intento en el ambiente original.
+- La migración 0081 registra las retenciones del REP después de verificar su XML y recalcula los importes estimados de los cobros sin complemento. El mismo intento se conserva durante la emisión, la recuperación y el webhook.
+- La migración 0082 conserva el origen de los conceptos en los borradores de sustitución y refacturación. La relación con el CFDI original se verifica al timbrar una sustituta y el ISR se evalúa con el receptor de la factura nueva.
+- La reconciliación programada de cancelaciones distingue las credenciales por organización y ambiente del CFDI y comprueba la identidad del comprobante antes de actualizar el estado local.
+
 ## [13.824.91] - Unreleased
 
 ### ISR RESICO y cuadre con Facturapi

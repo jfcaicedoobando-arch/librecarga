@@ -5,10 +5,10 @@
  * sin contarse como errores), fairness del plan intercalado (organizaciones y
  * familias) y que la corrida siempre termina para que el handler suelte el lock.
  */
-import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assert, assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { crearPresupuesto } from "./presupuesto.ts";
 import { planificarTareas, type Tarea } from "./plan.ts";
-import { ejecutarPlan, type EjecutarDeps, type ReconcileCtx } from "./ejecutar.ts";
+import { consultarCancelacion, ejecutarPlan, type EjecutarDeps, type ReconcileCtx } from "./ejecutar.ts";
 import type { Pendientes } from "./entrada.ts";
 import type { FacturaPendiente, NotaCreditoPendiente, RepPendiente } from "./reconcile.ts";
 
@@ -57,7 +57,7 @@ function armarDeps(presupuestoMs: number, reloj: () => number, fallarOrg?: strin
       Promise.resolve(
         orgId === fallarOrg
           ? { ok: false as const }
-          : { ok: true as const, client: { invoices: { retrieve: () => Promise.resolve({}) } }, apiKey: "k" },
+          : { ok: true as const, client: { invoices: { retrieve: () => Promise.resolve({}) } }, apiKey: "k", ambiente: "sandbox" },
       ),
     procesar: {
       factura: (ctx, d) => marcar(ctx, d.id),
@@ -161,4 +161,48 @@ Deno.test("ejecutor: un handler que lanza no rompe la corrida (el lock se libera
     liberado = true;
   }
   assert(liberado);
+});
+
+Deno.test("ejecutor: usa y reutiliza credenciales por organización y ambiente de cada CFDI", async () => {
+  const plan = planificarTareas(pendientes({
+    facturas: [{ ...factura("sandbox-factura"), ambiente: "sandbox" }, {
+      ...factura("historica-otro-emisor", "otra-org"), ambiente: "sandbox",
+    }],
+    notasCredito: [{ ...nc("live-nota"), ambiente: "live" }],
+    reps: [{ ...rep("sandbox-rep"), ambiente: "sandbox" }, rep("rep-legado")],
+  }));
+  const resueltas: string[] = [];
+  const usadas: Array<[string, string, string]> = [];
+  const { deps } = armarDeps(10_000, relojIncremental(0));
+  deps.resolverCliente = (org, ambiente) => {
+    resueltas.push(`${org}:${ambiente ?? "activo"}`);
+    return Promise.resolve({
+      ok: true, client: { invoices: { retrieve: () => Promise.resolve({}) } },
+      apiKey: `${org}/${ambiente ?? "live"}`, ambiente: ambiente ?? "live",
+    });
+  };
+  const capturar = (ctx: ReconcileCtx, doc: { id: string }) => {
+    usadas.push([doc.id, ctx.ambiente, ctx.apiKey]);
+    return Promise.resolve();
+  };
+  deps.procesar = { factura: capturar, nc: capturar, rep: capturar };
+  assertEquals((await ejecutarPlan(plan, deps)).errores, 0);
+  assertEquals(resueltas, ["org-1:sandbox", "org-1:live", "otra-org:sandbox", "org-1:activo"]);
+  assertEquals(usadas, [
+    ["sandbox-factura", "sandbox", "org-1/sandbox"],
+    ["live-nota", "live", "org-1/live"],
+    ["sandbox-rep", "sandbox", "org-1/sandbox"],
+    ["historica-otro-emisor", "sandbox", "otra-org/sandbox"],
+    ["rep-legado", "live", "org-1/live"],
+  ]);
+});
+
+Deno.test("consulta de cancelación rechaza respuestas de otro ID remoto o ambiente", async () => {
+  const remoto = { id: "facturapi-qa", livemode: false, status: "canceled" };
+  const consulta = (objeto: Record<string, unknown>) => consultarCancelacion({
+    ambiente: "sandbox", facturapi: { invoices: { retrieve: () => Promise.resolve(objeto) } },
+  }, remoto.id);
+  assertEquals(await consulta(remoto), remoto);
+  await assertRejects(() => consulta({ ...remoto, id: "otro-doc" }), Error, "otro CFDI o ambiente");
+  await assertRejects(() => consulta({ ...remoto, livemode: true }), Error, "otro CFDI o ambiente");
 });

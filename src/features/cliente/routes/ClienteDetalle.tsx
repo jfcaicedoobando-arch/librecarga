@@ -90,8 +90,10 @@ export default function ClienteDetalle() {
     loadingContactos,
     embarquesCliente,
     loadingEmbarques,
+    errorEmbarques, refetchEmbarques, fetchingEmbarques,
     cotizacionesCliente,
     loadingCotizaciones,
+    errorCotizaciones, refetchCotizaciones, fetchingCotizaciones,
     financials,
     errorFinancials, refetchFinancials, fetchingFinancials,
     canEdit,
@@ -159,8 +161,14 @@ export default function ClienteDetalle() {
         canEdit={canEdit}
         embarquesCliente={embarquesCliente}
         loadingEmbarques={loadingEmbarques}
+        errorEmbarques={errorEmbarques}
+        refetchEmbarques={refetchEmbarques}
+        fetchingEmbarques={fetchingEmbarques}
         cotizacionesCliente={cotizacionesCliente}
         loadingCotizaciones={loadingCotizaciones}
+        errorCotizaciones={errorCotizaciones}
+        refetchCotizaciones={refetchCotizaciones}
+        fetchingCotizaciones={fetchingCotizaciones}
         openNewContact={openNewContact}
         openEditContact={openEditContact}
         startDelete={startDelete}

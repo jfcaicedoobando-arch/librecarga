@@ -14,6 +14,19 @@ export interface TotalesMoneda {
   total: number;
   moneda: "USD" | "MXN";
   tasaIvaPct?: number;
+  retIsr?: number;
+  retIva?: number;
+  provisional?: boolean;
+}
+
+function Retencion({ label, amount, moneda }: { label: string; amount?: number; moneda: string }) {
+  if (amount == null) return null;
+  return (
+    <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 3, paddingHorizontal: 10 }}>
+      <Text style={styles.totalLabel}>{label}</Text>
+      <Text style={styles.totalAmount}>−{formatCurrency(amount, moneda)}</Text>
+    </View>
+  );
 }
 
 interface Props {
@@ -24,7 +37,7 @@ interface Props {
 }
 
 function Bloque({ b }: { b: TotalesMoneda }) {
-  const showIva = b.iva > 0;
+  const showIva = b.iva > 0 || b.retIsr != null || b.retIva != null;
   return (
     <View>
       <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 3, paddingHorizontal: 10 }}>
@@ -43,9 +56,11 @@ function Bloque({ b }: { b: TotalesMoneda }) {
           </Text>
         </View>
       ) : null}
+      <Retencion label="ISR retenido" amount={b.retIsr} moneda={b.moneda} />
+      <Retencion label="IVA retenido" amount={b.retIva} moneda={b.moneda} />
       <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, paddingHorizontal: 10, backgroundColor: COLORS.primary }}>
         <Text style={{ fontSize: 10, fontFamily: FONTS.bold, color: COLORS.primaryFg, letterSpacing: 0.5 }}>
-          Total
+          {b.provisional ? "Total provisional" : b.retIsr != null || b.retIva != null ? "Total neto" : "Total"}
         </Text>
         <Text style={{ fontSize: 12, fontFamily: FONTS.bold, color: COLORS.primaryFg }}>
           {formatCurrency(b.total, b.moneda)}
@@ -56,7 +71,7 @@ function Bloque({ b }: { b: TotalesMoneda }) {
 }
 
 export function TotalesBox({ bloques, nota, fullWidth = false }: Props) {
-  const validos = bloques.filter((b) => b.subtotal !== 0 || b.iva !== 0 || b.total !== 0);
+  const validos = bloques.filter((b) => b.provisional || b.subtotal !== 0 || b.iva !== 0 || b.total !== 0);
   if (validos.length === 0) return null;
   return (
     <View style={{ marginTop: 10, flexDirection: "row", justifyContent: "flex-end" }} wrap={false}>

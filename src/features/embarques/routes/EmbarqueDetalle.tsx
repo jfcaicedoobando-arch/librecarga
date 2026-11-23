@@ -19,6 +19,9 @@ import { EmbarqueDetalleTabs } from "@/features/embarques/components/EmbarqueDet
 import { EnlaceTrackingCopiadoDialog } from "@/features/embarques/components/tracking/EnlaceTrackingCopiadoDialog";
 import { LoadingState, NotFoundState } from "./EmbarqueDetalleStates";
 import { useRegisterBreadcrumbLabel } from "@/lib/contexts/BreadcrumbContext";
+import { AprobacionMargenBorrador } from '../components/AprobacionMargenBorrador';
+import { useEtiquetasMargen } from '../hooks/useEtiquetasMargen';
+import { EtiquetaMargenBajo } from '../components/EtiquetaMargenBajo';
 
 // v13.66.15: reordenadas por flujo (operación → finanzas → cierre → bitácora)
 // y fusionadas (P&L+P&L Contenedor, Garantías+Demoras).
@@ -49,6 +52,7 @@ export default function EmbarqueDetalle() {
   const { activeTab, setActiveTab } = useTabsParam(TABS_VALIDOS, "resumen", "tab", TABS_LEGACY);
 
   const { embarque, isLoading, error, refetch } = useEmbarqueResumen(id);
+  const etiquetas = useEtiquetasMargen(id ? [id] : []);
   useRegisterBreadcrumbLabel(id, embarque?.expediente);
   // UIA-12: la pestaña se distingue por folio (antes quedaba el título del landing).
   useDocumentTitle(embarque?.expediente ? `Embarque ${embarque.expediente}` : "Embarque");
@@ -96,6 +100,9 @@ export default function EmbarqueDetalle() {
               onNavigateTab={(tab) => setActiveTab(tab)}
             />
 
+            <AprobacionMargenBorrador id={embarque.id} estado={embarque.estado} canEdit={canEdit} />
+            <EtiquetaMargenBajo data={etiquetas.data?.[embarque.id]} detalle />
+            {etiquetas.isError && <p className="text-body-sm text-warning">No se pudo consultar la etiqueta ni el autorizador del margen.</p>}
             <DialogEliminarEmbarque embarque={embarque} open={dialogEliminarAbierto} onOpenChange={setDialogEliminarAbierto} />
             <DialogDuplicarEmbarque embarque={embarque} open={dialogDuplicarAbierto} onOpenChange={setDialogDuplicarAbierto} />
 

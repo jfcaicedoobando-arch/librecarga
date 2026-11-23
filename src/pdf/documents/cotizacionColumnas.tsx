@@ -23,19 +23,19 @@ function montoTabla(valor: number, moneda: string): string {
 }
 
 /** Columnas de IVA + total cuando el bloque tiene IVA efectivo. */
-function columnasIva(moneda: string, tasaIva: number): PdfColumn<ConceptoVentaCotizacion>[] {
+function columnasIva(moneda: string, tasaIva: number, fiscal = false): PdfColumn<ConceptoVentaCotizacion>[] {
   return [
     { key: "iva", title: "IVA", cellStyle: styles.cellNum,
       render: (r) => {
         const tasa = resolverTasaConcepto(r, tasaIva);
         return tasa > 0 ? montoTabla(calcularIVA(r.cantidad * r.precio_unitario, tasa), moneda) : "—";
       } },
-    { key: "total", title: "Total", cellStyle: styles.cellNum,
+    { key: "total", title: fiscal ? "Base + IVA" : "Total", cellStyle: styles.cellNum,
       render: (r) => montoTabla(r.cantidad * r.precio_unitario * (1 + resolverTasaConcepto(r, tasaIva)), moneda) },
   ];
 }
 
-export function columnasUSD(tasaIva: number, hayIva: boolean): PdfColumn<ConceptoVentaCotizacion>[] {
+export function columnasUSD(tasaIva: number, hayIva: boolean, fiscal = false): PdfColumn<ConceptoVentaCotizacion>[] {
   const base: PdfColumn<ConceptoVentaCotizacion>[] = [
     { key: "descripcion", title: "Descripción", hyphenate: false, cellStyle: styles.cellDesc,
       render: (r) => r.descripcion },
@@ -47,7 +47,7 @@ export function columnasUSD(tasaIva: number, hayIva: boolean): PdfColumn<Concept
     { key: "precio", title: "P. Unit.", cellStyle: styles.cellNum, render: (r) => montoTabla(r.precio_unitario, "USD") },
     { key: "subtotal", title: "Subtotal", cellStyle: styles.cellNum, render: (r) => montoTabla(r.cantidad * r.precio_unitario, "USD") },
   ];
-  return hayIva ? [...base, ...columnasIva("USD", tasaIva)] : base;
+  return hayIva ? [...base, ...columnasIva("USD", tasaIva, fiscal)] : base;
 }
 
 /**
@@ -55,7 +55,7 @@ export function columnasUSD(tasaIva: number, hayIva: boolean): PdfColumn<Concept
  * renglones (igual que `TablaConceptosGenerico`). Antes se imprimía siempre la
  * columna IVA y el título "MXN + IVA" aunque todo estuviera a tasa 0%/exento.
  */
-export function columnasMXN(tasaIva: number, hayIva: boolean): PdfColumn<ConceptoVentaCotizacion>[] {
+export function columnasMXN(tasaIva: number, hayIva: boolean, fiscal = false): PdfColumn<ConceptoVentaCotizacion>[] {
   const base: PdfColumn<ConceptoVentaCotizacion>[] = [
     { key: "descripcion", title: "Descripción", hyphenate: false, cellStyle: styles.cellDesc, render: (r) => r.descripcion },
     { key: "tratamiento", title: "Trat. IVA", cellStyle: styles.cellTreatment,
@@ -66,7 +66,7 @@ export function columnasMXN(tasaIva: number, hayIva: boolean): PdfColumn<Concept
     { key: "precio", title: "P. Unit.", cellStyle: styles.cellNum, render: (r) => montoTabla(r.precio_unitario, "MXN") },
     { key: "subtotal", title: "Subtotal", cellStyle: styles.cellNum, render: (r) => montoTabla(r.cantidad * r.precio_unitario, "MXN") },
   ];
-  return hayIva ? [...base, ...columnasIva("MXN", tasaIva)] : base;
+  return hayIva ? [...base, ...columnasIva("MXN", tasaIva, fiscal)] : base;
 }
 
 /** Porcentaje único de IVA a mostrar en totales; `undefined` si hay tasas mixtas. */

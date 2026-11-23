@@ -552,5 +552,197 @@
       "0070_factura_resico_totales_agrupados.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0071_isr_resico_cotizacion_embarque.sql",
+    "sha256": "685e1ec8bc30f56771d8284089f37fa0a363df8d71a2b0d0da389f0411f14104",
+    "replays": [
+      "0071_isr_resico_cotizacion_embarque.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0072_isr_resico_revision_embarque.sql",
+    "sha256": "5204233d11421deda09b914b71e746b2607e89ac5a849f00e0633e26b58a3871",
+    "replays": [
+      "0072_isr_resico_revision_embarque.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0073_isr_resico_proforma_normal.sql",
+    "sha256": "dd198ea737366b1a53d121c426b90603df582fc2c9f7334fff9a62682ad6ae8f",
+    "replays": [
+      "0073_isr_resico_proforma_normal.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0074_isr_resico_consolidacion_proformas.sql",
+    "sha256": "331b1e84456ee357c4c67dc8c490762316d8ebb3ba2bb9f62031ac4c63e86fbd",
+    "replays": [
+      "0074_isr_resico_consolidacion_proformas.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0075_isr_resico_conversion_proforma.sql",
+    "sha256": "c9d7455fbc7373c50577ac5fb6e715d28467b4508c2effd4ecf75f93a9ae7b9e",
+    "replays": [
+      "0075_isr_resico_conversion_proforma.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0076_isr_resico_factura_manual.sql",
+    "sha256": "3ac5dcd38f14c52fe11199a0791be62c6796d71f3defd133b5be8ea2de827c8b",
+    "replays": [
+      "0076_isr_resico_factura_manual.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0077_isr_resico_intentos_timbrado.sql",
+    "sha256": "b88e723859b4a9398edcf50f19c0b348b93f22d7d3a952f213dd7c872efcbd80",
+    "replays": [
+      "0077_isr_resico_intentos_timbrado.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0078_isr_resico_recuperar_timbrado.sql",
+    "sha256": "8430edc3ef77b9b76072095a7ce1a4f8a87338291146a2ba7d376956bb3e9283",
+    "replays": [
+      "0078_isr_resico_recuperar_timbrado.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0079_isr_resico_cobranza.sql",
+    "sha256": "1fc2d8d6ce3704a4523d8f71f287adedd931f6c4aceb85ace433d3d382461ef0",
+    "replays": [
+      "0079_isr_resico_cobranza.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0080_isr_resico_timbrado_notas.sql",
+    "sha256": "fe4f54521ba3e3d057e401cbf4608a5cc7d57e49cb040f1000940880c410e4d4",
+    "replays": [
+      "0080_isr_resico_timbrado_notas.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0081_isr_resico_timbrado_rep.sql",
+    "sha256": "8d3027e3b135952bfd035470929b63f77ac82f07b719e17b22781f009a210a21",
+    "replays": [
+      "0081_isr_resico_timbrado_rep.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0082_isr_resico_reemplazo.sql",
+    "sha256": "af04b637e4ad3918e3ec0e4143c34bee3a4d902e1a039c91ebe017df9ef2f4fb",
+    "replays": [
+      "0082_isr_resico_reemplazo.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0083_selected_security_internal_helpers_snapshot_writes.sql",
+    "sha256": "60296254ddc720ad9274b2b02159299456cb550121729dd4ca077c5332608f5d",
+    "replays": [
+      "0083_selected_security_internal_helpers_snapshot_writes.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0084_brokers_tabulador_comisiones.sql",
+    "sha256": "4398728bdeebc6531f5802ab90e36dd2979bd70c9f02ae85f537f262e14d5e48",
+    "replays": [
+      "0084_brokers_tabulador_comisiones.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0085_broker_alta_prospecto_propiedades_empresa.sql",
+    "sha256": "053f6b4451d3a09db4709689809b1ea79626a20549dea21fcc1b4b156a61aa38",
+    "replays": [
+      "0085_broker_alta_prospecto_propiedades_empresa.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0086_empresa_prospecto_externo.sql",
+    "sha256": "96941879ff2d3bc1a7e99c1fcd046a9309df757d54d5b7449ea85bd514e08e75",
+    "replays": [
+      "0086_empresa_prospecto_externo.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0087_oportunidad_vendedor_externo.sql",
+    "sha256": "fc4517a9f841603d94f63e429a164cccdb569d1fd7332504432caa0f53f43bfe",
+    "replays": [
+      "0087_oportunidad_vendedor_externo.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0088_oportunidad_vendedor_externo_guard_null.sql",
+    "sha256": "f32350bb0c10024ea0d01a1a44cf16a43b99f0affea43317810ff105b3584f32",
+    "replays": [
+      "0088_oportunidad_vendedor_externo_guard_null.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0089_brokers_comision_exclusiva_sin_kam.sql",
+    "sha256": "2144d011267284843d8ce8c9ea46896bed523d1346962fe981582397ed6916f3",
+    "replays": [
+      "0089_brokers_comision_exclusiva_sin_kam.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0090_lectores_membresias_y_libro_respetan_rls.sql",
+    "sha256": "70fc855d14638ef45bbf16cc61afb5538f51da01db6a1508b629cf03ac3cf59e",
+    "replays": [
+      "0090_lectores_membresias_y_libro_respetan_rls.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0091_demoras_y_pago_detalle_acceso_protegido.sql",
+    "sha256": "6cd632a9dee6233f43e4c5d606b560bfb7c172298ebac71306d096a0d586faf0",
+    "replays": [
+      "0091_demoras_y_pago_detalle_acceso_protegido.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0092_auxiliares_seleccionados_acceso_protegido.sql",
+    "sha256": "ad83fb3851f436fa2d4469126b386010eb3afed6699a83d16aa0c612921a8c79",
+    "replays": [
+      "0092_auxiliares_seleccionados_acceso_protegido.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0093_actividad_embarque_bitacora_misma_organizacion.sql",
+    "sha256": "d52a1a33ce842b6eb7887747df3922476235fe718a652d4977690c478e7a6fff",
+    "replays": [
+      "0093_actividad_embarque_bitacora_misma_organizacion.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0094_autoridad_local_avisos_seleccionados.sql",
+    "sha256": "54b2177cafedd41c05dfb255336480896eb7bb586362d3fd7d0930be4f3a271b",
+    "replays": [
+      "0094_autoridad_local_avisos_seleccionados.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

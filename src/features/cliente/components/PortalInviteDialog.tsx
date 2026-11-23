@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Send } from "lucide-react";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { useInviteClientUser } from "@/features/cliente/hooks";
+import { emailSchema } from "@/lib/validation/mutationSchemas.shared";
 
 interface Props {
   open: boolean;
@@ -20,16 +21,30 @@ export default function PortalInviteDialog({
   organizationId,
 }: Props) {
   const [email, setEmail] = useState("");
+  const [mostrarError, setMostrarError] = useState(false);
+  const id = useId();
+  const emailRef = useRef<HTMLInputElement>(null);
   const inviteMutation = useInviteClientUser(clienteId);
+  const correo = email.trim();
+  const correoValido = correo !== "" && emailSchema.safeParse(correo).success;
+  const errorVisible = mostrarError && !correoValido;
 
   // 13.85.10 — Toasts viven en `useInviteClientUser`.
-  const handleInvite = () => {
+  const handleInvite = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (inviteMutation.isPending) return;
+    if (!correoValido) {
+      setMostrarError(true);
+      emailRef.current?.focus();
+      return;
+    }
     inviteMutation.mutate(
-      { email, cliente_id: clienteId, organization_id: organizationId },
+      { email: correo, cliente_id: clienteId, organization_id: organizationId },
       {
         onSuccess: () => {
           onOpenChange(false);
           setEmail("");
+          setMostrarError(false);
         },
       },
     );
@@ -43,24 +58,35 @@ export default function PortalInviteDialog({
       title="Invitar cliente al portal"
       description="Envía una invitación al cliente para acceder al portal de seguimiento."
       size="md"
+      formId={id}
+      onSubmit={handleInvite}
       footer={
         <>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleInvite} disabled={!email} loading={inviteMutation.isPending}>
+          <Button type="submit" form={id} loading={inviteMutation.isPending}>
             Enviar Invitación
           </Button>
         </>
       }
     >
       <div className="space-y-2">
-        <Label htmlFor="portal-invite-email">Email del cliente</Label>
+        <Label htmlFor={`${id}-email`}>Email del cliente</Label>
         <Input
-          id="portal-invite-email"
+          id={`${id}-email`}
+          ref={emailRef}
           type="email"
+          required
           placeholder="cliente@empresa.com"
+          aria-invalid={errorVisible || undefined}
+          aria-describedby={errorVisible ? `${id}-error` : undefined}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
+        {errorVisible && (
+          <p id={`${id}-error`} role="alert" className="text-body-sm text-destructive">
+            {correo ? "Escribe un correo electrónico válido." : "Escribe el correo electrónico del cliente."}
+          </p>
+        )}
       </div>
       <p className="text-xs text-muted-foreground">
         Se creará una cuenta con rol de cliente y se le enviará un correo. Al abrir

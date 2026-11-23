@@ -9,11 +9,11 @@
 --
 --   · CASO 1 (positivo): el contador registra el pago con su cuenta activa.
 --   · CASO 2 (negativo): cuenta inactiva → LC_PAGO_CUENTA_INACTIVA.
---   · CASO 3 (negativo): cuenta de otra organización → LC_PAGO_CUENTA_OTRA_ORG.
+--   · CASO 3 (negativo): cuenta ajena oculta por 0092 → LC_PAGO_CUENTA_INEXISTENTE.
 --   · CASO 4 (negativo): cuenta inexistente → LC_PAGO_CUENTA_INEXISTENTE.
 --
 -- Ejecución manual:
---   psql "$SUPABASE_DB_URL" -f supabase/tests/pago_proveedor_contador_lock_cuenta.sql
+--   En la base efímera, bun run db:verify -- --suites flujos_atomicos
 -- =============================================================
 
 BEGIN;
@@ -78,6 +78,7 @@ DECLARE
   v_res  jsonb;
   v_reintento jsonb;
   v_msg  text;
+  v_msg_ajena text;
 BEGIN
   -- ── CASO 1 · el contador SÍ puede registrar el pago.
   v_res := public.registrar_pago_proveedor_atomico(
@@ -110,15 +111,15 @@ BEGIN
   END;
   RAISE NOTICE 'CASO 2 OK: cuenta inactiva rechazada';
 
-  -- ── CASO 3 · cuenta de otra organización sigue rechazada.
+  -- ── CASO 3 · la cuenta ajena es invisible para el contador.
   BEGIN
     v_res := public.registrar_pago_proveedor_atomico(
       v_pf, public.fecha_negocio_mx(), 100, 'MXN', 'Transferencia', 'MNY-CTD-C3', v_aj);
     RAISE EXCEPTION 'REGRESION P0: se aceptó una cuenta de otra organización';
   EXCEPTION WHEN OTHERS THEN
-    GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
-    IF v_msg !~ 'LC_PAGO_CUENTA_OTRA_ORG' THEN
-      RAISE EXCEPTION 'CASO 3 FALLÓ: se esperaba LC_PAGO_CUENTA_OTRA_ORG, se obtuvo: %', v_msg;
+    GET STACKED DIAGNOSTICS v_msg_ajena = MESSAGE_TEXT;
+    IF v_msg_ajena !~ '^LC_PAGO_CUENTA_INEXISTENTE:' THEN
+      RAISE EXCEPTION 'CASO 3 FALLÓ: se esperaba LC_PAGO_CUENTA_INEXISTENTE, se obtuvo: %', v_msg_ajena;
     END IF;
   END;
   RAISE NOTICE 'CASO 3 OK: cuenta de otra organización rechazada';
@@ -131,8 +132,8 @@ BEGIN
     RAISE EXCEPTION 'REGRESION P0: se aceptó una cuenta inexistente';
   EXCEPTION WHEN OTHERS THEN
     GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
-    IF v_msg !~ 'LC_PAGO_CUENTA_INEXISTENTE' THEN
-      RAISE EXCEPTION 'CASO 4 FALLÓ: se esperaba LC_PAGO_CUENTA_INEXISTENTE, se obtuvo: %', v_msg;
+    IF v_msg IS DISTINCT FROM v_msg_ajena THEN
+      RAISE EXCEPTION 'CASO 4 FALLÓ: la cuenta ausente y la cuenta ajena deben dar el mismo error, se obtuvo: %', v_msg;
     END IF;
   END;
   RAISE NOTICE 'CASO 4 OK: cuenta inexistente rechazada';

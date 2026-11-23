@@ -25,9 +25,28 @@ beforeEach(() => {
 describe('correlación desde los callers reales', () => {
   it('la bitácora de UI usa el ID confirmado de la nota', async () => {
     render(<TabNotas notas={[]} embarqueId="e1" expediente="ELIMP00011" />);
-    fireEvent.change(screen.getByPlaceholderText('Escribe una nota…'), { target: { value: 'Cita de entrega en Apodaca' } });
+    const campo = screen.getByPlaceholderText('Escribe una nota…');
+    fireEvent.change(campo, { target: { value: 'Cita de entrega en Apodaca' } });
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Enviar nota' })); });
     await vi.waitFor(() => expect(m.audit).toHaveBeenCalledWith(expect.objectContaining({ detalles: { nota: 'Cita de entrega en Apodaca', notaId: id } })));
+    expect(campo).toHaveValue('');
+  });
+
+  it('conserva el nuevo borrador escrito durante el guardado de la nota anterior', async () => {
+    let resolverNota!: (notaId: string) => void;
+    m.nota.mockReturnValueOnce(new Promise<string>((resolve) => { resolverNota = resolve; }));
+    render(<TabNotas notas={[]} embarqueId="e1" expediente="ELIMP00011" />);
+    const campo = screen.getByPlaceholderText('Escribe una nota…');
+    fireEvent.change(campo, { target: { value: ' Cita de entrega en Apodaca ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar nota' }));
+    fireEvent.change(campo, { target: { value: 'Confirmar horario de recibo' } });
+
+    await act(async () => { resolverNota(id); });
+    expect(m.nota).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ contenido: 'Cita de entrega en Apodaca' }));
+    expect(m.audit).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      detalles: { nota: 'Cita de entrega en Apodaca', notaId: id },
+    }));
+    expect(campo).toHaveValue('Confirmar horario de recibo');
   });
 
   it('registra ETA y su evento con una sola operación', async () => {

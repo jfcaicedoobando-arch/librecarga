@@ -74,7 +74,9 @@ describe('confirmación del destinatario del recordatorio', () => {
     mocks.invoke.mockReturnValueOnce(pendingA).mockResolvedValueOnce(consulta('factura-b', 'otro@example.test'));
     const p = props();
     const view = render(<DialogRecordatorioCobranza {...p} />, { wrapper: createWrapper() });
+    fireEvent.change(screen.getByLabelText('Mensaje opcional'), { target: { value: 'Nota de A' } });
     view.rerender(<DialogRecordatorioCobranza {...p} factura={{ ...factura, factura_id: 'factura-b' }} />);
+    expect(screen.getByLabelText('Mensaje opcional')).toHaveValue('');
     await screen.findByText('otro@example.test', { exact: false });
     await act(async () => resolveA(consulta()));
     expect(screen.queryByText('anterior@example.test', { exact: false })).not.toBeInTheDocument();
@@ -102,8 +104,12 @@ describe('confirmación del destinatario del recordatorio', () => {
     const p = props();
     const view = render(<DialogRecordatorioCobranza {...p} />, { wrapper: createWrapper() });
     await waitFor(() => expect(enviar()).toBeEnabled());
+    fireEvent.change(screen.getByLabelText('Mensaje opcional'), { target: { value: 'Nota descartada' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(p.onOpenChange).toHaveBeenCalledWith(false);
     view.rerender(<DialogRecordatorioCobranza {...p} open={false} />);
     view.rerender(<DialogRecordatorioCobranza {...p} />);
+    expect(screen.getByLabelText('Mensaje opcional')).toHaveValue('');
     expect(enviar()).toBeDisabled();
     expect(screen.queryByText('anterior@example.test', { exact: false })).not.toBeInTheDocument();
     await act(async () => resolveFresh(consulta('factura-a', 'vigente@example.test')));

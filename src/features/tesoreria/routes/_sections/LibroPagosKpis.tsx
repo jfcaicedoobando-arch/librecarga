@@ -10,34 +10,40 @@ import type { TotalesLibroPagos } from "@/features/tesoreria/domain/libroPagos";
 interface Props {
   totales: TotalesLibroPagos;
   isLoading: boolean;
+  isError: boolean;
 }
 
-export function LibroPagosKpis({ totales, isLoading }: Props) {
-  const netoNegativo = totales.netoMxn < 0;
+export function LibroPagosKpis({ totales, isLoading, isError }: Props) {
+  const importe = (valor: number) => isError ? "N/D" : formatCurrency(valor, "MXN");
+  const netoNegativo = !isError && totales.netoMxn < 0;
 
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard label="Cobrado a clientes" value={formatCurrency(totales.cobradoMxn, "MXN")} loading={isLoading} />
-        <KpiCard label="Pagado a proveedores" value={formatCurrency(totales.pagadoMxn, "MXN")} loading={isLoading} />
+        <KpiCard label="Cobrado a clientes" value={importe(totales.cobradoMxn)} loading={isLoading} />
+        <KpiCard label="Pagado a proveedores" value={importe(totales.pagadoMxn)} loading={isLoading} />
         <KpiCard
           label="Neto del periodo"
-          value={formatCurrency(totales.netoMxn, "MXN")}
+          value={importe(totales.netoMxn)}
           variant={netoNegativo ? "destructive" : "default"}
           loading={isLoading}
         />
-        <KpiCard label="Pagos registrados" value={String(totales.conteo)} loading={isLoading} />
+        <KpiCard label="Pagos registrados" value={isError ? "N/D" : String(totales.conteo)} loading={isLoading} />
       </div>
-      <p className="text-body-sm text-muted-foreground">
-        Devoluciones de anticipos: {formatCurrency(totales.devueltoMxn, "MXN")}, incluidas en el neto.
-        Los equivalentes en pesos usan el tipo de cambio guardado; las devoluciones usan el TC del anticipo original.
-        Los cobros con complemento de pago cancelado se conservan como histórico, pero no suman en
-        estos totales.
-        {/* MNY-P2.3: los pagos sin T/C registrado no se valúan con una tasa inventada. */}
-        {totales.sinTcCount > 0
-          ? ` ${totales.sinTcCount} pago(s) en moneda extranjera no tienen tipo de cambio registrado y quedan fuera de los totales en pesos.`
-          : ""}
-      </p>
+      {isError ? (
+        <p className="text-body-sm text-muted-foreground">No se pudieron cargar los totales del período.</p>
+      ) : (
+        <p className="text-body-sm text-muted-foreground">
+          Devoluciones de anticipos: {formatCurrency(totales.devueltoMxn, "MXN")}, incluidas en el neto.
+          Los equivalentes en pesos usan el tipo de cambio guardado; las devoluciones usan el TC del anticipo original.
+          Los cobros con complemento de pago cancelado se conservan como histórico, pero no suman en
+          estos totales.
+          {/* MNY-P2.3: los pagos sin T/C registrado no se valúan con una tasa inventada. */}
+          {totales.sinTcCount > 0
+            ? ` ${totales.sinTcCount} pago(s) en moneda extranjera no tienen tipo de cambio registrado y quedan fuera de los totales en pesos.`
+            : ""}
+        </p>
+      )}
     </div>
   );
 }

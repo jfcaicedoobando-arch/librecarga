@@ -1,21 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { MemoryRouter } from "react-router";
-import { FILTROS_LIBRO_PAGOS_INICIALES, type PagoLibro } from "../../domain/libroPagos";
+import { FILTROS_LIBRO_PAGOS_INICIALES, type FiltrosLibroPagos, type PagoLibro } from "../../domain/libroPagos";
 
-const state = vi.hoisted(() => ({ pagos: [] as PagoLibro[], sheet: vi.fn(() => null) }));
+const state = vi.hoisted(() => ({
+  pagos: [] as PagoLibro[], sheet: vi.fn(() => null), filtros: null as FiltrosLibroPagos | null,
+  descargarPdf: vi.fn<(documento: ReactElement, nombre: string) => Promise<void>>(),
+}));
 vi.mock("@/hooks/shared", () => ({ useDocumentTitle: vi.fn(), useIsMobile: () => true }));
-vi.mock("@/features/tesoreria/hooks", () => ({ useCuentasBancarias: () => ({ data: [] }) }));
+vi.mock("@/features/tesoreria/hooks", () => ({
+  useCuentasBancarias: () => ({ data: [{ id: "tesoreria-qa", alias: "Operativa", banco: "Banco QA", moneda: "MXN" }] }),
+}));
 vi.mock("@/features/tesoreria/hooks/useLibroPagos", () => ({
-  useLibroPagos: () => ({ data: { pagos: state.pagos }, isLoading: false, isError: false, refetch: vi.fn() }),
+  useLibroPagos: () => ({ data: { pagos: state.pagos }, organizationId: "org-qa", isLoading: false, isError: false, refetch: vi.fn() }),
 }));
 vi.mock("@/features/tesoreria/hooks/useFiltrosLibroPagosUrl", () => ({
   useFiltrosLibroPagosUrl: () => ({ rango: { desde: "2026-10-01", hasta: "2026-10-07" },
-    filtros: FILTROS_LIBRO_PAGOS_INICIALES, setRango: vi.fn(), actualizarFiltros: vi.fn() }),
+    filtros: state.filtros ?? FILTROS_LIBRO_PAGOS_INICIALES, setRango: vi.fn(), actualizarFiltros: vi.fn() }),
 }));
 vi.mock("@/features/tesoreria/components/DetallePagoSheet", () => ({ DetallePagoSheet: state.sheet }));
 vi.mock("../_sections/LibroPagosToolbar", () => ({ LibroPagosToolbar: () => null }));
-vi.mock("../_sections/LibroPagosExportButtons", () => ({ LibroPagosExportButtons: () => null }));
+vi.mock("@/pdf/emisor", () => ({ cargarEmisorReporte: async () => undefined }));
+vi.mock("@/pdf/render/descargarPdf", () => ({ descargarPdf: state.descargarPdf }));
+vi.mock("@/lib/ui/appFeedback", () => ({ notifyError: vi.fn(), notifySuccess: vi.fn() }));
 
 import TesoreriaPagos from "../TesoreriaPagos";
 
@@ -30,6 +38,8 @@ const base: PagoLibro = {
 describe("AUD99/121 · pantalla de pagos en móvil", () => {
   beforeEach(() => {
     state.sheet.mockClear();
+    state.descargarPdf.mockReset();
+    state.filtros = null;
     state.pagos = [base, { ...base, id: "ordinario", contraparte: "Proveedor pago", documento_folio: "FP-PAGO",
       es_ajuste: false, metodo_pago: "03", referencia: "Cierre sin pago: condonacion", monto: 116, monto_mxn: 116 }];
   });
@@ -50,5 +60,24 @@ describe("AUD99/121 · pantalla de pagos en móvil", () => {
     fireEvent.click(row);
     expect(state.sheet).toHaveBeenLastCalledWith(expect.objectContaining({ ref_pago: { tipo: "pago", id } }), undefined);
     expect(state.pagos.map((p) => p.monto)).toEqual([1, 116]);
+  });
+
+  it("exporta el alcance del filtro, sólo las filas visibles y sus mismos totales", async () => {
+    state.pagos[1] = { ...state.pagos[1], cuenta_bancaria_id: "tesoreria-qa" };
+    state.filtros = { ...FILTROS_LIBRO_PAGOS_INICIALES, vista: "realizados", cuentaId: "tesoreria-qa",
+      moneda: "MXN", metodo: "Transferencia", conciliacion: "pendientes", texto: "  condonacion  " };
+    render(<MemoryRouter><TesoreriaPagos /></MemoryRouter>);
+    expect(screen.getByText("1 de 2 pagos del periodo")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Exportar PDF" }));
+    await waitFor(() => expect(state.descargarPdf).toHaveBeenCalledOnce());
+    const [documento, archivo] = state.descargarPdf.mock.calls[0];
+    expect(archivo).toBe("pagos-2026-10-01-2026-10-07.pdf");
+    const { container } = render(documento);
+    expect(container).toHaveTextContent("1 de 2 pagos del periodo");
+    expect(container).toHaveTextContent("Vista: Realizados · Cuenta bancaria: Operativa — Banco QA (MXN)");
+    expect(container).toHaveTextContent("Moneda: MXN · Medio de pago: Transferencia · Conciliación: Pendientes · Búsqueda: condonacion");
+    expect(container).toHaveTextContent("FP-PAGO");
+    expect(container).not.toHaveTextContent("FP-AJUSTE");
+    expect(container).toHaveTextContent(/Total pagado \(MXN\):\s*MXN 116\.00/);
   });
 });

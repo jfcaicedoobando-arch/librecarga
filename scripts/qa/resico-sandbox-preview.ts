@@ -4,10 +4,10 @@
  * Requires FACTURAPI_SANDBOX_QA_KEY, FACTURAPI_SANDBOX_EXPECTED_ORG_ID,
  * and PDFTOTEXT_PATH (trusted local executable). Raw PDFs/text/errors never reach stdout.
  */
-import { consultarPerfilProveedor } from "../../supabase/functions/facturapi-perfil-fiscal/proveedor.ts";
+import { consultarPerfilProveedor } from "../../supabase/functions/_shared/facturapiPerfilProveedor.ts";
 import { basicAuthHeader, FACTURAPI_BASE } from "../../supabase/functions/_shared/facturapiAuth.ts";
 import { buildFacturapiPayload, type ConceptoInterno } from "../../supabase/functions/facturapi-emitir/helpers.ts";
-import { recalcularTotalesFacturapi } from "../../supabase/functions/facturapi-emitir/cuadreFacturapi.ts";
+import { recalcularTotalesFacturapi } from "../../supabase/functions/_shared/cuadreFacturapi.ts";
 import { clasificarCoherenciaIva } from "../../supabase/functions/_shared/coherenciaIva.ts";
 import { extraerPdf, PdfPreviewError } from "./resico-preview-pdf.ts";
 export { montosPdf } from "./resico-preview-pdf.ts";

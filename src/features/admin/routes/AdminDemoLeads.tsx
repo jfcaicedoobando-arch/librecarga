@@ -4,7 +4,8 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { Users2, Copy, Inbox } from "lucide-react";
-import { fetchDemoLeads, type DemoLead } from "@/features/admin/services/demoLeads";
+import { fetchDemoLeads } from "@/features/admin/services/demoLeads";
+import { demoLeadsToCsv } from "@/features/admin/services/demoLeadsCsv";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,37 +22,6 @@ import { ErrorState } from "@/components/shared/states/ErrorState";
 
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { DetailTableHead } from "@/components/shared/DetailTable";
-function toCsv(rows: DemoLead[]): string {
-  const headers = [
-    "fecha",
-    "nombre",
-    "empresa",
-    "email",
-    "telefono",
-    "utm_source",
-    "utm_medium",
-    "utm_campaign",
-    "referrer",
-  ];
-  const esc = (v: string | null | undefined) => `"${(v ?? "").replace(/"/g, '""')}"`;
-  const lines = rows.map((r) =>
-    [
-      new Date(r.created_at).toISOString(),
-      r.nombre,
-      r.empresa,
-      r.email,
-      r.telefono_e164,
-      r.utm_source,
-      r.utm_medium,
-      r.utm_campaign,
-      r.referrer,
-    ]
-      .map(esc)
-      .join(","),
-  );
-  return [headers.join(","), ...lines].join("\n");
-}
-
 export default function AdminDemoLeads() {
   useDocumentTitle('Leads de la demo');
   const { toast } = useToast();
@@ -59,7 +29,7 @@ export default function AdminDemoLeads() {
   const rows = data ?? [];
 
   const handleExport = () => {
-    const csv = toCsv(rows);
+    const csv = demoLeadsToCsv(rows);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

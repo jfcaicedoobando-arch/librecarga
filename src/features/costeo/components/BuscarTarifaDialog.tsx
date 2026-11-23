@@ -40,7 +40,7 @@ export function BuscarTarifaDialog({
     fecha,
   });
 
-  const { diagnostico } = useDiagnosticoTarifas({
+  const { diagnostico, isFetching: consultandoDiagnostico } = useDiagnosticoTarifas({
     puertoOrigenId: origen,
     puertoDestinoId: mismoPuerto ? "" : destino,
     tipoContenedorIds,
@@ -86,8 +86,9 @@ export function BuscarTarifaDialog({
           <TipoContenedorSelect id="td-tipo" value={tipo} onChange={setTipo} />
         </div>
         <div>
-          <Label htmlFor="td-fecha">Fecha</Label>
-          <DatePickerMx value={fecha} onChange={setFecha} className="w-full" />
+          <Label htmlFor="td-fecha">Fecha de vigencia</Label>
+          <DatePickerMx id="td-fecha" value={fecha} onChange={setFecha} className="w-full" aria-describedby="td-fecha-ayuda" />
+          <p id="td-fecha-ayuda" className="mt-1 text-label text-muted-foreground">Si se deja vacía, se consulta la fecha de hoy.</p>
         </div>
       </div>
 
@@ -103,6 +104,7 @@ export function BuscarTarifaDialog({
           onElegir={onElegir} onOpenChange={onOpenChange}
           selectLabel={selectLabel}
           diagnostico={diagnostico}
+          consultandoDiagnostico={consultandoDiagnostico}
         />
       )}
     </FormDialogShell>

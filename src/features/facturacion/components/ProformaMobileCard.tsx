@@ -5,8 +5,7 @@
  */
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { formatCurrency, formatDate, toTitleCase } from "@/lib/formatters";
-import { getEstadoUnificado, etiquetaEstadoUnificado } from "@/lib/domain/estadoUnificado";
-import { etiquetaProformaConvertida } from "@/lib/domain/etiquetaCicloProforma";
+import { getEstadoUnificado, etiquetaEstadoProformaListado } from "@/lib/domain/estadoUnificado";
 import type { ProformaConFactura } from "@/features/embarques/hooks";
 import { totalesListadoProforma } from "@/features/proformas/domain";
 import { labelExpediente } from "@/lib/domain/labelExpediente";
@@ -14,12 +13,7 @@ import { labelExpediente } from "@/lib/domain/labelExpediente";
 export function ProformaMobileCard({ proforma }: { proforma: ProformaConFactura }) {
   const estado = getEstadoUnificado(proforma);
   const totales = totalesListadoProforma(proforma);
-  // R170-01: mismo criterio que la tabla de escritorio — dentro del bucket
-  // "facturada" distingue borrador/por-timbrar/emitida.
-  const label =
-    estado === "facturada"
-      ? etiquetaProformaConvertida(proforma.facturas_asociadas ?? [])
-      : etiquetaEstadoUnificado(proforma);
+  const label = etiquetaEstadoProformaListado(proforma);
   return (
     <div className="min-w-0 flex-1 space-y-1">
       <div className="flex items-center justify-between gap-2">

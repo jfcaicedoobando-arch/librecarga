@@ -9,6 +9,7 @@ DECLARE
   v_now timestamptz := now();
   v_motivo text;
   v_titulo text; v_mensaje text; v_tipo text;
+  v_liberados integer := 0;
 BEGIN
   IF p_respuesta NOT IN ('aceptada','rechazada') THEN
     RAISE EXCEPTION 'Respuesta inválida. Debe ser aceptada o rechazada.';
@@ -38,13 +39,17 @@ BEGIN
          motivo_rechazo = CASE WHEN p_respuesta='rechazada' THEN v_motivo ELSE motivo_rechazo END,
          updated_at = v_now
    WHERE id = p_proforma_id;
+  IF p_respuesta = 'rechazada' AND v_proforma.evaluacion_fiscal IS NOT NULL THEN
+    v_liberados := public._liberar_conceptos_proforma_portal(v_proforma.id, v_proforma.organization_id);
+  END IF;
   INSERT INTO public.bitacora_actividad (organization_id, usuario_id, usuario_email, accion, modulo, entidad_id, entidad_nombre, detalles)
   VALUES (v_proforma.organization_id, auth.uid(), COALESCE(v_user_email,''),
           CASE WHEN p_respuesta='aceptada' THEN 'proforma_aceptada_cliente' ELSE 'proforma_rechazada_cliente' END,
           'proformas', p_proforma_id, COALESCE(v_proforma.numero,''),
           jsonb_build_object('proforma_id', p_proforma_id, 'numero', v_proforma.numero,
                              'cliente_id', v_proforma.cliente_id, 'cliente_nombre', v_proforma.cliente_nombre,
-                             'respuesta', p_respuesta, 'motivo', v_motivo, 'origen','portal_cliente'));
+                             'respuesta', p_respuesta, 'motivo', v_motivo, 'conceptos_liberados', v_liberados,
+                             'origen','portal_cliente'));
   v_tipo := CASE WHEN p_respuesta='aceptada' THEN 'proforma_aceptada' ELSE 'proforma_rechazada' END;
   v_titulo := 'Proforma ' || COALESCE(v_proforma.numero,'') || ' ' ||
               CASE WHEN p_respuesta='aceptada' THEN 'aceptada por el cliente' ELSE 'rechazada por el cliente' END;

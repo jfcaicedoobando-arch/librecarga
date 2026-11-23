@@ -21,6 +21,7 @@ import { SinDesgloseBanner } from "@/features/cotizacion/components/SinDesgloseB
 import { TipoCambioCotizacionCard } from "@/features/cotizacion/components/wizard/TipoCambioCotizacionCard";
 import { monedaObjetivoCotizacion, requiereTipoCambioCotizacion } from "@/features/cotizacion/domain/mezclaMonedas";
 import { useCostosAutoSync } from "@/features/cotizacion/hooks/wizard/useCostosAutoSync";
+import { VistaFiscalCotizacion } from "./VistaFiscalCotizacion";
 
 type WizardForm = ReturnType<typeof import("@/features/cotizacion/hooks").useCotizacionWizardForm>;
 
@@ -42,6 +43,7 @@ export function CotizacionWizardSteps({ w, clientes, esMaritimo, sinDesgloseFlag
   });
   // Suscripciones puntuales: solo re-renderea el resumen cuando cambia ese campo.
   const control = form.control;
+  const clienteId = useWatch({ control, name: "clienteId" }) || null;
   const esProspecto = useWatch({ control, name: "esProspecto" });
   const prospectoEmpresa = useWatch({ control, name: "prospectoEmpresa" });
   const origen = useWatch({ control, name: "origen" });
@@ -61,6 +63,7 @@ export function CotizacionWizardSteps({ w, clientes, esMaritimo, sinDesgloseFlag
   const monedaTarifa = tarifaId && !pricingSolicitudId ? monedaElegida : null;
   const monedaCanonica = monedaObjetivoCotizacion(tarifaId, monedaElegida, pricingSolicitudId, monedaCrm);
   const requiereTipoCambio = requiereTipoCambioCotizacion(w.conceptosUSD, w.conceptosMXN, monedaCanonica, monedaTarifa);
+  const conceptosVenta = [...w.conceptosUSD, ...w.conceptosMXN];
 
   if (w.currentStep === 1) {
     return (
@@ -116,7 +119,8 @@ export function CotizacionWizardSteps({ w, clientes, esMaritimo, sinDesgloseFlag
           {requiereTipoCambio && (
             <TipoCambioCotizacionCard value={w.tipoCambioUsd} onChange={w.setTipoCambioUsd} monedaCanonica={monedaCanonica} />
           )}
-          <SeccionConceptosVentaCotizacion
+          <VistaFiscalCotizacion clienteId={clienteId} cotizacionId={w.cotizacionId} conceptos={conceptosVenta}>
+            {(resumenFiscal) => <SeccionConceptosVentaCotizacion
             conceptosUSD={w.conceptosUSD}
             conceptosMXN={w.conceptosMXN}
             actualizarConceptoUSD={(i, c, v) => w.actualizarConcepto("USD", i, c, v)}
@@ -130,15 +134,18 @@ export function CotizacionWizardSteps({ w, clientes, esMaritimo, sinDesgloseFlag
             subtotalMXN={w.subtotalMXN}
             ivaMXN={w.ivaMXN}
             totalMXN={w.totalMXN}
-          />
+            resumenFiscal={resumenFiscal}
+            />}
+          </VistaFiscalCotizacion>
         </>
       )}
 
       {w.currentStep === 4 && (
         <>
           {sinDesgloseFlag && <SinDesgloseBanner onCargarCostos={irACargarCostos} />}
-          <PasoResumenCotizacion
-            conceptosVenta={[...w.conceptosUSD, ...w.conceptosMXN]}
+          <VistaFiscalCotizacion clienteId={clienteId} cotizacionId={w.cotizacionId} conceptos={conceptosVenta}>
+            {(resumenFiscal) => <PasoResumenCotizacion
+            conceptosVenta={conceptosVenta}
             plUSD={w.plUSD}
             plMXN={w.plMXN}
             tieneCostosUSD={w.costosUSD.length > 0}
@@ -158,8 +165,9 @@ export function CotizacionWizardSteps({ w, clientes, esMaritimo, sinDesgloseFlag
             totalUSD={w.totalUSD}
             totalMXN={w.totalMXN}
             esEdicion={w.isEditMode}
-
-          />
+            resumenFiscal={resumenFiscal}
+            />}
+          </VistaFiscalCotizacion>
         </>
       )}
     </div>

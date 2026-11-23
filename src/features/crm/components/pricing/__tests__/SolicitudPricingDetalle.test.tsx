@@ -41,7 +41,7 @@ const solicitud: SolicitudPricingRow = {
 };
 const tarifa: TarifaRespuestaRow = {
   id: "tarifa-respuesta", flete_base: 1.23, moneda: "USD", unidad_flete: null, carta_garantia: null,
-  transit_time_dias: null, vigente_hasta: "2026-11-08", agente: { nombre: "Agente" },
+  transit_time_dias: null, vigente_hasta: "2026-11-08", notas: "Sujeto a espacio en buque", agente: { nombre: "Agente" },
   naviera: { name: "APL" }, tipo: { code: "40HC" }, ruta: { origen: { name: "Ningbo" }, destino: { name: "Manzanillo" } },
 };
 const botonCotizar = () => screen.queryByRole("button", { name: "Cotizar con esta opción" });

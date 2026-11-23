@@ -18,7 +18,7 @@ import { FacturaNotasCreditoTable } from "./FacturaNotasCreditoTable";
 import type { Moneda } from "@/features/facturacion/types";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { ClaimPendingBanner } from "./ClaimPendingBanner";
-import { parseConceptosSugeridos } from "./facturaNotasCreditoConceptos";
+import { parseConceptosSugeridos, usaCuadreAgrupadoNC } from "./facturaNotasCreditoConceptos";
 
 interface Props {
   facturaId: string;
@@ -140,6 +140,7 @@ export function FacturaNotasCreditoSeccion(props: Props) {
         saldoFactura={saldoFactura}
         uuidFacturaOriginal={uuidFacturaOriginal}
         conceptosSugeridos={conceptosSugeridos}
+        cuadreAgrupado={usaCuadreAgrupadoNC(snapshotEmision)}
         facturaCobrada={!!cobroVigente}
         formaPagoCobro={cobroVigente?.forma_pago ?? null}
       />

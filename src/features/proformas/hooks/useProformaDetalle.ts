@@ -9,14 +9,14 @@ import {
   fetchConceptosProforma,
   fetchConceptosConsolidados,
   type ProformaDetalleFull,
-  type ConceptoVentaRow,
   type ProformaConceptoConsolidadoRow,
 } from "@/features/proformas/services";
 import { queryKeys } from "@/lib/query";
+import { leerConceptosFiscalesProforma, type ConceptoProformaDocumento } from "../domain/proformaFiscal";
 
 export interface ProformaDetalleData {
   proforma: ProformaDetalleFull;
-  conceptos: ConceptoVentaRow[];
+  conceptos: ConceptoProformaDocumento[];
   conceptosConsolidados: ProformaConceptoConsolidadoRow[];
 }
 
@@ -30,7 +30,7 @@ export function useProformaDetalle(id: string | undefined) {
       if (!proforma) return null;
       const esConsolidada = !!proforma.es_consolidada;
       const [conceptos, conceptosConsolidados] = await Promise.all([
-        esConsolidada ? Promise.resolve([]) : fetchConceptosProforma(proforma.id),
+        esConsolidada ? Promise.resolve([]) : leerConceptosFiscalesProforma(proforma) ?? fetchConceptosProforma(proforma.id),
         esConsolidada ? fetchConceptosConsolidados(proforma.id) : Promise.resolve([]),
       ]);
       return { proforma, conceptos, conceptosConsolidados };

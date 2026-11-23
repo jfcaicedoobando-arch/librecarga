@@ -64,7 +64,11 @@ BEGIN
 
   IF NOT public.is_org_member(v_org)
      OR NOT public.rls_tenant_scope_ok(v_org)
-     OR NOT public.puede_escribir_cotizaciones() THEN
+     OR NOT public.puede_escribir_cotizaciones()
+     OR NOT public.has_any_role_in_org(auth.uid(),
+       ARRAY['admin','admin_org','gerente_comercial','vendedor','ejecutivo_pricing',
+             'coordinador_logistico','gerente_operaciones','operador','customer_service']::public.app_role[],
+       v_org) THEN
     RAISE EXCEPTION 'LC_COTIZACION_SIN_PERMISO_ESCRITURA' USING ERRCODE = '42501';
   END IF;
 

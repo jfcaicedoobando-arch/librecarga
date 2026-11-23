@@ -11,6 +11,7 @@
 
 export const RANGO_DESDE_LABEL = "Desde";
 export const RANGO_HASTA_LABEL = "Hasta";
+export const RANGO_INVERTIDO_MENSAJE = "La fecha Desde no puede ser posterior a Hasta.";
 
 /** Prefijos canónicos permitidos para rangos con contexto. */
 export const RANGO_PREFIJOS = [

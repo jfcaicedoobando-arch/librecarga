@@ -6,6 +6,8 @@ import { TratamientoIvaProforma } from "./TratamientoIvaProforma";
 import type { Tables } from "@/types/db";
 import type { TotalesProforma } from "./PasoSeleccionConceptos";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
+import { TotalesFiscalesProforma } from "@/features/proformas";
+import { leerFiscalProforma } from "@/features/proformas/domain";
 
 type ConceptoVenta = Tables<"conceptos_venta">;
 
@@ -15,12 +17,15 @@ interface Props {
   tasaIva: number;
   notas: string;
   pendientesIva: ConceptoVenta[];
-  numeroCreado?: string;
+  proformaCreada?: Tables<"proformas">;
 }
 
 export function PasoConfirmacionProforma({
-  conceptosSeleccionados, totales, tasaIva, notas, pendientesIva, numeroCreado,
+  conceptosSeleccionados, totales, tasaIva, notas, pendientesIva, proformaCreada,
 }: Props) {
+  const bloquesFiscales = leerFiscalProforma(proformaCreada ?? {})?.bloques;
+  const numeroCreado = proformaCreada?.numero;
+  const antesDeRetenciones = !bloquesFiscales && conceptosSeleccionados.some((c) => c.evaluacion_fiscal != null);
   const etiquetaIvaMxn = etiquetaIvaFilas(
     conceptosSeleccionados.filter((c) => c.moneda === "MXN"),
     tasaIva,
@@ -68,8 +73,11 @@ export function PasoConfirmacionProforma({
 
 
 
-      <div className="rounded-md border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
-        <SectionHeading as="h3" className="mb-2">Totales finales</SectionHeading>
+      {bloquesFiscales ? <div className="rounded-md border bg-muted/20 p-4">
+        <TotalesFiscalesProforma bloques={bloquesFiscales} />
+      </div> : <div className="rounded-md border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
+        <SectionHeading as="h3" className="mb-2">{antesDeRetenciones ? "Importes antes de retenciones" : "Totales finales"}</SectionHeading>
+        {antesDeRetenciones && <p className="text-body-sm text-muted-foreground">El desglose fiscal y el neto se confirman al guardar la proforma.</p>}
         {totales.subtotal_usd > 0 && (
           <div className="space-y-1 text-body">
             <div className="flex justify-between"><span>Subtotal USD:</span><span>{formatCurrency(totales.subtotal_usd, "USD")}</span></div>
@@ -84,7 +92,7 @@ export function PasoConfirmacionProforma({
             <div className="flex justify-between font-bold text-base pt-1 border-t"><span>Total MXN:</span><span>{formatCurrency(totales.total_mxn, "MXN")}</span></div>
           </div>
         )}
-      </div>
+      </div>}
 
       {notas.trim() && (
         <div className="rounded-md border p-3 bg-muted/20">

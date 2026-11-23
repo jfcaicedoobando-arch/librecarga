@@ -5,6 +5,7 @@
  */
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
 import { authorizeOrgRole, ROLES_EMISOR_FISCAL } from "../_shared/auth.ts";
+import type { FacturapiAmbiente } from "../_shared/facturapiAuth.ts";
 import { jsonResponse } from "../_shared/response.ts";
 
 export interface ReqBody {
@@ -18,6 +19,7 @@ export interface NcRow {
   organization_id: string;
   facturapi_id: string | null;
   estado: string | null;
+  ambiente?: FacturapiAmbiente | null;
 }
 
 export type CtxResult =
@@ -41,12 +43,15 @@ export function validateRequest(req: Request, body: ReqBody): Response | null {
 async function cargarNc(supabase: SupabaseClient, id: string): Promise<CtxResult> {
   const { data, error } = await supabase
     .from("factura_notas_credito")
-    .select("id, organization_id, facturapi_id, estado")
+    .select("id, organization_id, facturapi_id, estado, ambiente")
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
   const nc = data as NcRow | null;
   if (error || !nc) return { ok: false, response: jsonResponse({ error: "nota_credito_not_found" }, 404) };
-  if (typeof nc.facturapi_id !== "string" || !nc.facturapi_id) return { ok: false, response: jsonResponse({ error: "no_timbrada" }, 409) };
+  if (typeof nc.facturapi_id !== "string" || !nc.facturapi_id || nc.facturapi_id.startsWith("PENDING:")) {
+    return { ok: false, response: jsonResponse({ error: "no_timbrada" }, 409) };
+  }
   if (nc.estado === "Cancelada") {
     return {
       ok: false,
@@ -63,22 +68,26 @@ async function cargarNc(supabase: SupabaseClient, id: string): Promise<CtxResult
  */
 async function resolverSustituta(
   supabase: SupabaseClient,
-  organizationId: string,
+  nc: NcRow,
   uuidFiscal: string,
 ): Promise<{ ok: true; facturapiId: string } | { ok: false; response: Response }> {
-  const { data } = await supabase
+  let query = supabase
     .from("factura_notas_credito")
     .select("id, facturapi_id")
-    .eq("organization_id", organizationId)
+    .eq("organization_id", nc.organization_id)
     .eq("uuid_fiscal", uuidFiscal)
-    .maybeSingle();
+    .neq("id", nc.id)
+    .is("deleted_at", null)
+    .in("estado", ["Timbrada", "Aplicada"]);
+  if (nc.ambiente) query = query.eq("ambiente", nc.ambiente);
+  const { data } = await query.maybeSingle();
   const facturapiId = (data as { facturapi_id?: string | null } | null)?.facturapi_id;
-  if (!facturapiId) {
+  if (!facturapiId || facturapiId.startsWith("PENDING:")) {
     return {
       ok: false,
       response: jsonResponse({
         error: "sustituta_no_encontrada",
-        message: "No hay una nota de crédito timbrada con ese UUID en esta organización. Timbra primero la NC sustituta.",
+        message: "No hay una nota de crédito vigente con ese UUID en el ambiente de la nota original.",
       }, 422),
     };
   }
@@ -99,7 +108,7 @@ export async function preloadCancelContext(
 
   if (body.motivo !== "01") return { ok: true, nc };
 
-  const sustituta = await resolverSustituta(supabase, nc.organization_id, body.sustituye_uuid!);
+  const sustituta = await resolverSustituta(supabase, nc, body.sustituye_uuid!);
   if (!sustituta.ok) return { ok: false, response: sustituta.response };
   return { ok: true, nc, sustituyeFacturapiId: sustituta.facturapiId };
 }

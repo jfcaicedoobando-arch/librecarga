@@ -9,7 +9,7 @@ import { labelExpediente } from "@/lib/domain/labelExpediente";
 import { getErrorMessage } from "@/lib/errors";
 import { diffFields, SENSITIVE_FIELDS } from "@/lib/domain/auditDiff";
 import { diffConceptos } from "@/lib/domain/auditDiffConceptos";
-import { validarContenedoresMaritimo, validarRutaMaritimaRequerida, buildBitacoraDetallesEdit } from "./useEditarEmbarqueWizard.helpers";
+import { resolverRutaAlGuardar, buildBitacoraDetallesEdit } from "./useEditarEmbarqueWizard.helpers";
 import type { useEmbarqueForm } from "@/features/embarques/hooks/useEmbarqueForm";
 import type { useConceptosForm } from "@/features/cotizacion/hooks";
 import type { useUpdateEmbarque, useEmbarque } from "@/features/embarques/hooks/useEmbarques";
@@ -18,9 +18,14 @@ import type { Tables } from "@/integrations/supabase/types";
 import type { ConceptoLike } from "@/lib/domain/auditDiffConceptos";
 import { evaluarMargenMinimo } from "@/lib/domain/margenMinimo";
 import { totalesMargenUSD } from "@/features/embarques/domain/totalesMargenUSD";
+import { captureAuthDataScope } from "@/lib/auth/authOperationScope";
+import { prepararRevisionFiscalEmbarque, type PropuestaRevisionFiscalEmbarque } from "../services/evaluacionFiscalEmbarque";
+import { consultarAprobacionMargen } from "../services/aprobacionMargen";
 
 type ContactoRow = Pick<Tables<"contactos_cliente">, "id" | "nombre" | "tipo" | "pais">;
-
+async function usaAprobacionBorrador(id: string, estado: string) {
+  return estado === 'Borrador' && await consultarAprobacionMargen(id) !== null;
+}
 interface Deps {
   id: string | undefined;
   embarque: ReturnType<typeof useEmbarque>["data"];
@@ -33,7 +38,7 @@ interface Deps {
   userEmail: string | undefined;
   conceptosVenta: ReturnType<typeof useConceptosForm>["conceptosVenta"];
   conceptosCosto: ReturnType<typeof useConceptosForm>["conceptosCosto"];
-  conceptosVentaDb: ConceptoLike[];
+  conceptosVentaDb: (ConceptoLike & Pick<Tables<"conceptos_venta">, "evaluacion_fiscal">)[];
   conceptosCostoDb: ConceptoLike[];
   proveedoresDb: { id: string; nombre: string }[];
   updateEmbarque: ReturnType<typeof useUpdateEmbarque>;
@@ -44,6 +49,8 @@ interface Deps {
   margenMinimoPct: number;
   puedeAutorizarMargen: boolean;
   confirmar?: (mensaje: string) => boolean;
+  solicitarRevisionFiscal: (propuesta: PropuestaRevisionFiscalEmbarque) => Promise<string | null>;
+  signal: AbortSignal;
 }
 
 /** Margen en USD (misma conversión que el paso de costos) o mensaje si falta T/C. */
@@ -74,6 +81,40 @@ function validarMargenMinimo(deps: Deps): boolean {
   return confirmar(`${resumen} ¿Autorizas y guardas este cambio?`);
 }
 
+async function confirmarCambiosFiscales(
+  deps: Deps,
+  embarque: NonNullable<Deps["embarque"]>,
+  clienteId: string | null,
+  conceptosVenta: ReturnType<Deps["buildConceptosVentaPayload"]>,
+  scope: ReturnType<typeof captureAuthDataScope>,
+) {
+  const { conceptosVentaDb, signal, solicitarRevisionFiscal } = deps;
+  if (!conceptosVentaDb.some((concepto) => concepto.evaluacion_fiscal != null) || !embarque.updated_at) return undefined;
+  const propuesta = await prepararRevisionFiscalEmbarque({
+    embarqueId: embarque.id, organizationId: embarque.organization_id,
+    clienteAnterior: embarque.cliente_id, clienteId, conceptosVenta, expectedUpdatedAt: embarque.updated_at,
+  });
+  if (signal.aborted) return null;
+  scope.assertCurrent();
+  if (!propuesta) return undefined;
+  const motivo = await solicitarRevisionFiscal(propuesta);
+  if (motivo === null || signal.aborted) return null;
+  scope.assertCurrent();
+  return { huella: propuesta.huella, motivo };
+}
+
+function notificarErrorAlGuardar(err: unknown, signal: AbortSignal) {
+  if (signal.aborted) return;
+  const msg = getErrorMessage(err);
+  const conflicto = typeof err === "object" && err !== null && "message" in err
+    && String(err.message).includes("LC_CONFLICTO_CONCURRENCIA");
+  notifyError(undefined, {
+    title: conflicto ? "Otro usuario modificó este embarque" : "Error al actualizar",
+    description: conflicto ? "Recarga la página para ver los cambios más recientes y vuelve a guardar." : msg,
+    error: err,
+    method: "HANDLE_SAVE",
+  });
+}
 
 export async function ejecutarGuardarEmbarque(deps: Deps): Promise<void> {
   const {
@@ -81,42 +122,24 @@ export async function ejecutarGuardarEmbarque(deps: Deps): Promise<void> {
     buildEmbarquePayload, buildConceptosVentaPayload, buildConceptosCostoPayload,
     contactos, selectedClienteNombre, userEmail,
     conceptosVenta, conceptosCosto, conceptosVentaDb, conceptosCostoDb, proveedoresDb,
-    updateEmbarque, registrarActividad, setCurrentStep, navigate,
+    updateEmbarque, registrarActividad, setCurrentStep, navigate, signal,
   } = deps;
   if (!id || !embarque) return;
   try {
-    const contenedoresActuales = methods.getValues('contenedores') ?? [];
-    const modoActual = methods.getValues('modo');
-    const errContenedores = validarContenedoresMaritimo(
-      modoActual,
-      contenedoresActuales,
-      methods.getValues('tipoServicio'),
-    );
-    if (errContenedores) {
-      notifyError(undefined, {
-        title: "Faltan datos de contenedores",
-        description: errContenedores.description,
-        method: "HANDLE_SAVE",
-      });
-      setCurrentStep(errContenedores.step);
-      return;
-    }
-
-    const errRuta = validarRutaMaritimaRequerida(modoActual, {
+    const ruta = resolverRutaAlGuardar({
+      modo: methods.getValues('modo'),
+      contenedores: methods.getValues('contenedores'),
       naviera: methods.getValues('naviera'),
       tipoServicio: methods.getValues('tipoServicio'),
     });
-    if (errRuta) {
-      notifyError(undefined, {
-        title: "Faltan datos de la ruta",
-        description: errRuta.description,
-        method: "HANDLE_SAVE",
-      });
-      setCurrentStep(errRuta.step);
+    if (ruta.error) {
+      notifyError(undefined, { title: ruta.titulo, description: ruta.error.description, method: "HANDLE_SAVE" });
+      setCurrentStep(ruta.error.step);
       return;
     }
 
-    const nuevoEmbarquePayload = buildEmbarquePayload(contactos, selectedClienteNombre || '', userEmail || '');
+    const clienteNombre = selectedClienteNombre ?? "";
+    const nuevoEmbarquePayload = buildEmbarquePayload(contactos, clienteNombre, userEmail ?? "");
     const nuevosVenta = buildConceptosVentaPayload(conceptosVenta);
     const nuevosCosto = buildConceptosCostoPayload(conceptosCosto, proveedoresDb);
 
@@ -126,24 +149,30 @@ export async function ejecutarGuardarEmbarque(deps: Deps): Promise<void> {
     const cambiosCosto = diffConceptos(conceptosCostoDb, nuevosCosto);
     const tocoMontos = cambiosVenta.agregados + cambiosVenta.eliminados + cambiosVenta.modificados
       + cambiosCosto.agregados + cambiosCosto.eliminados + cambiosCosto.modificados > 0;
-    if (tocoMontos && !validarMargenMinimo(deps)) return;
-
-    // v13.823.64: sólo Marítimo/Multimodal sincronizan contenedores hijos. En
-    // Aéreo/Terrestre el peso, volumen y piezas se capturan en el embarque; al
-    // sincronizar los "contenedores" vacíos que arrastra la conversión desde
-    // cotización, el recálculo automático los ponía en cero.
-    const sincronizaContenedores = modoActual === "Marítimo" || modoActual === "Multimodal";
+    const scope = captureAuthDataScope();
+    // Sólo liberar borradores si el servidor ya ofrece el guard de aprobación; candidata ausente => flujo previo.
+    const borradorConAprobacion = await usaAprobacionBorrador(id, embarque.estado);
+    if (signal.aborted) return;
+    scope.assertCurrent();
+    if (tocoMontos && !borradorConAprobacion && !validarMargenMinimo(deps)) return;
+    const revisionFiscal = await confirmarCambiosFiscales(deps, embarque,
+      nuevoEmbarquePayload.cliente_id ?? embarque.cliente_id, nuevosVenta, scope);
+    if (revisionFiscal === null || signal.aborted) return;
+    scope.assertCurrent();
 
     await updateEmbarque.mutateAsync({
       id,
       embarque: nuevoEmbarquePayload,
       conceptosVenta: nuevosVenta,
       conceptosCosto: nuevosCosto,
-      contenedores: sincronizaContenedores ? contenedoresActuales : undefined,
+      contenedores: ruta.contenedores,
       // FIX-15 · Enviamos el `updated_at` que leímos al hidratar el wizard
       // para que la RPC rechace el guardado si alguien más ya guardó.
       expectedUpdatedAt: embarque.updated_at ?? null,
+      revisionFiscal,
     });
+    if (signal.aborted) return;
+    scope.assertCurrent();
 
 
     const v = methods.getValues();
@@ -153,7 +182,7 @@ export async function ejecutarGuardarEmbarque(deps: Deps): Promise<void> {
       entidad_id: id,
       entidad_nombre: labelExpediente(embarque.expediente, embarque.id),
       detalles: buildBitacoraDetallesEdit({
-        clienteNombre: selectedClienteNombre ?? '',
+        clienteNombre,
         modo: v.modo,
         tipo: v.tipo,
         cambiosEmbarque,
@@ -165,17 +194,6 @@ export async function ejecutarGuardarEmbarque(deps: Deps): Promise<void> {
     notifySuccess(undefined, { title: "Embarque actualizado", description: `${labelExpediente(embarque.expediente, embarque.id)} guardado correctamente.` });
     navigate(`/embarques/${id}`);
   } catch (err: unknown) {
-    const msg = getErrorMessage(err);
-    // FIX-15 · Conflicto de concurrencia: mensaje humano en vez del código crudo.
-    if (msg.includes("LC_CONFLICTO_CONCURRENCIA")) {
-      notifyError(undefined, {
-        title: "Otro usuario modificó este embarque",
-        description: "Recarga la página para ver los cambios más recientes y vuelve a guardar.",
-        error: err,
-        method: "HANDLE_SAVE",
-      });
-      return;
-    }
-    notifyError(undefined, { title: "Error al actualizar", description: msg, error: err, method: "HANDLE_SAVE" });
+    notificarErrorAlGuardar(err, signal);
   }
 }

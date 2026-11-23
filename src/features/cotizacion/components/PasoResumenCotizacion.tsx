@@ -1,4 +1,5 @@
 import { Info } from "lucide-react";
+import type { ReactNode } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { WizardSection } from "@/components/shared/WizardSection";
 import { formatCurrency } from "@/lib/formatters";
@@ -29,6 +30,7 @@ interface Props {
   tipo: string;
   totalUSD: number;
   totalMXN: number;
+  resumenFiscal?: ReactNode;
   /** Sólo cambia el texto del aviso final (crear borrador vs. guardar cambios). */
   esEdicion?: boolean;
 }
@@ -39,7 +41,7 @@ const DATO = (label: string, valor: string) => ({ label, valor });
 export default function PasoResumenCotizacion({
   plUSD, plMXN, tieneCostosUSD, tieneCostosMXN, conceptosVenta,
   nombreCliente, origen, destino, numContenedores, cargaLcl,
-  modo, incoterm, tipo, totalUSD, totalMXN, esEdicion = false,
+  modo, incoterm, tipo, totalUSD, totalMXN, resumenFiscal, esEdicion = false,
 }: Props) {
 
   // BL-COT-04: sólo el marítimo se mide en contenedores.
@@ -80,7 +82,7 @@ export default function PasoResumenCotizacion({
         ))}
       </WizardSection>
 
-      <WizardSection title="Totales de la cotización">
+      {resumenFiscal ?? <WizardSection title="Totales de la cotización">
         <div className="flex flex-col items-end gap-1">
           <span className="text-body font-semibold tabular-nums">
             Total USD: {formatCurrency(totalUSD, "USD")}
@@ -89,7 +91,7 @@ export default function PasoResumenCotizacion({
             Total MXN (c/IVA): {formatCurrency(totalMXN, "MXN")}
           </span>
         </div>
-      </WizardSection>
+      </WizardSection>}
 
       {/* Aviso informativo, no una advertencia: sólo dice qué pasará al guardar. */}
       <Alert variant="info">

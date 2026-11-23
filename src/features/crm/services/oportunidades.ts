@@ -64,12 +64,19 @@ export async function listOportunidadesTodas(
 export async function getOportunidad(id: string): Promise<CrmOportunidadRow | null> {
   // Soft-delete: el detalle por URL directa tampoco puede resolver una
   // oportunidad eliminada (la ruta muestra "no encontrada" con `null`).
-  return unwrap(
+  const oportunidad = await unwrap(
     supabase
       .from("crm_oportunidades")
       .select(COLS)
       .eq("id", id)
       .is("deleted_at", null)
       .maybeSingle(),
-  ) as Promise<CrmOportunidadRow | null>;
+  );
+  if (!oportunidad) return null;
+  const { data: vendedorExterno, error } = await supabase.rpc("crm_oportunidad_vendedor_externo", {
+    p_oportunidad_id: id,
+  });
+  if (error) throw error;
+  // SAFE-CAST: conserva el contrato existente del detalle con proyección COLS, enriquecido sólo con el nombre leído.
+  return { ...oportunidad, vendedor_externo: vendedorExterno ?? null } as CrmOportunidadRow;
 }

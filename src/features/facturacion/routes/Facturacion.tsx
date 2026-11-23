@@ -60,7 +60,7 @@ export default function Facturacion() {
   const { canEmitirFactura } = usePermissions();
   const [openFacturaManual, setOpenFacturaManual] = useState(false);
 
-  const { setRango, desdeIso, hastaIso } = useFacturacionDateRange();
+  const { setRango, limpiar: limpiarRango, desdeIso, hastaIso } = useFacturacionDateRange();
 
   const bandejaUrlRaw = searchParams.get("bandeja");
   const bandejaAliased = bandejaUrlRaw && BANDEJA_ALIASES[bandejaUrlRaw]
@@ -89,7 +89,7 @@ export default function Facturacion() {
     search, setSearch,
     filterEstado, filterCliente, setFilter,
     page, setPage, pageSize, setPageSize,
-    paginatedFacturas, facturasFiltradas, totalPages, totalCount,
+    paginatedFacturas, facturasFiltradas, totalPages, totalCount, rangoInvertido,
     loadingFacturas,
     errorFacturas,
     refetchFacturas,
@@ -115,13 +115,10 @@ export default function Facturacion() {
             title="Facturación"
             description="Panel fiscal: CFDI, complemento de pagos (REP) y cartera de clientes"
           />
-          <div className="flex items-center gap-2 shrink-0">
-            <PeriodoFiscalSelector
-              desdeIso={desdeIso} hastaIso={hastaIso}
-              // Igual que los inputs manuales: un preset cambia el universo,
-              // así que hay que volver a la página 0 o el usuario cae en vacío.
-              onChange={setRango}
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            {activeBandeja === "emitidas" && (
+              <PeriodoFiscalSelector desdeIso={desdeIso} hastaIso={hastaIso} onChange={setRango} />
+            )}
             {canEmitirFactura && (
               <Button onClick={() => setOpenFacturaManual(true)}>
                 <FilePlus2 className="h-4 w-4 mr-2" /> Nueva factura manual
@@ -144,6 +141,7 @@ export default function Facturacion() {
                 filterEstado, filterCliente, setFilter,
                 fechaDesde: desdeIso ?? "", setFechaDesde,
                 fechaHasta: hastaIso ?? "", setFechaHasta,
+                rangoInvertido, limpiarRango,
                 clientes: clientesDisponibles,
                 loadingClientes, errorClientes, onRetryClientes: refetchClientes,
                 onClear: clearFiltros,

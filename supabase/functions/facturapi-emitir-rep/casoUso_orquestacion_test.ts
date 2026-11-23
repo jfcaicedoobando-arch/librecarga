@@ -7,6 +7,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 
 async function execute(options: Parameters<typeof fixtureRep>[0] = {}) {
   const fixture = fixtureRep(options);
+  const perfiles: unknown[] = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = () => {
     fixture.events.push("xml");
@@ -15,13 +16,15 @@ async function execute(options: Parameters<typeof fixtureRep>[0] = {}) {
   try {
     const response = await emitirRepCasoUso({
       supabase: fixture.supabase as unknown as ArgsCasoUsoRep["supabase"],
+      admin: fixture.supabase as unknown as ArgsCasoUsoRep["admin"],
       pagoId: "pago-1", usuario: { id: "usuario-1" }, json,
-      resolverFacturapi: async org => {
+      resolverFacturapi: async (org, origen) => {
         assertEquals(org, "org-1");
+        perfiles.push(origen);
         return { ok: true, data: { client: fixture.client, apiKey: "sk_test_mock", ambiente: "sandbox" } };
       },
     });
-    return { ...fixture, response, body: await response.json() };
+    return { ...fixture, perfiles, response, body: await response.json() };
   } finally { globalThis.fetch = originalFetch; }
 }
 
@@ -62,6 +65,24 @@ Deno.test("orquestación REP: éxito valida→claim→create→respaldo→persis
   assertEquals(r.body.uuid, "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee");
   assertEquals(r.pago.estado_rep, "Timbrado");
   assertEquals(r.pago.facturapi_rep_id, "rep-remoto-1");
+});
+
+Deno.test("orquestación REP: usa ambiente y receptor congelados en el CFDI", async () => {
+  const receptor = { id: "cliente-1", nombre: "Receptor del CFDI original",
+    rfc: "EKU9003173C9", regimen_fiscal: "601", codigo_postal: "01010" };
+  const r = await execute({ factura: {
+    evaluacion_fiscal: {}, ambiente: "sandbox",
+    snapshot_emision: { evaluacion_fiscal: {}, cliente_snapshot: receptor,
+      organizacion_snapshot: { id: "org-1", facturapi_org_id: "pac-qa", rfc: "GODE561231GR8",
+        regimen_fiscal: "626", codigo_postal: "01000" } },
+  } });
+  assertEquals(r.response.status, 202);
+  assertEquals(r.events, ["summary", "reservar_rep_isr", "create", "xml", "registrar_resultado_rep_isr"]);
+  assertEquals(r.perfiles, [{ ambiente: "sandbox", receptor,
+    emisor: { facturapiOrgId: "pac-qa", rfc: "GODE561231GR8", regimen: "626", cp: "01000" } }]);
+  assertEquals(r.payloads[0].customer, {
+    legal_name: receptor.nombre, tax_id: receptor.rfc, tax_system: "601", address: { zip: "01010" },
+  });
 });
 
 Deno.test("orquestación REP: falla al persistir no libera claim ni vuelve a emitir", async () => {

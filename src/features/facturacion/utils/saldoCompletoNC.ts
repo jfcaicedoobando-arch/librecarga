@@ -42,8 +42,8 @@ export const MOTIVO_IMPORTES_CERO =
  * Escala cada renglón para que la suma de totales iguale `saldo`, conservando
  * el tratamiento fiscal de cada uno.
  */
-function prorratear(saldo: number, lineas: ConceptoNotaCredito[]): ConceptoNotaCredito[] {
-  const totalOriginal = calcularTotalesNC(lineas).total;
+function prorratear(saldo: number, lineas: ConceptoNotaCredito[], totalOriginal: number): ConceptoNotaCredito[] {
+  if (saldo === totalOriginal) return lineas;
   const factor = saldo / totalOriginal;
   // La NC acredita importes, no unidades entregadas. Cantidad 1 evita perder
   // centavos al volver a redondear un precio dividido entre 100 o 1 000 000.
@@ -55,9 +55,9 @@ function prorratear(saldo: number, lineas: ConceptoNotaCredito[]): ConceptoNotaC
 export const MOTIVO_CUADRE_FISCAL =
   "No se puede representar el saldo exacto con estos impuestos y redondeos. Captura los conceptos manualmente; no se aplicó el atajo.";
 
-function resultadoExacto(saldo: number, conceptos: ConceptoNotaCredito[]): ResultadoSaldoCompleto {
-  const ajustados = ajustarSaldoFiscalNC(saldo, conceptos);
-  if (!ajustados || calcularTotalesNC(ajustados).total !== roundMoney(saldo)) {
+function resultadoExacto(saldo: number, conceptos: ConceptoNotaCredito[], agrupar: boolean): ResultadoSaldoCompleto {
+  const ajustados = ajustarSaldoFiscalNC(saldo, conceptos, agrupar);
+  if (!ajustados || calcularTotalesNC(ajustados, agrupar).total !== roundMoney(saldo)) {
     return { ok: false, motivo: MOTIVO_CUADRE_FISCAL };
   }
   return { ok: true, conceptos: ajustados };
@@ -67,18 +67,20 @@ export function conceptosPorSaldoCompleto(
   saldo: number,
   sugeridos: ConceptoNotaCredito[],
   base: ConceptoNotaCredito,
+  agrupar = false,
 ): ResultadoSaldoCompleto {
   if (!Number.isFinite(saldo) || saldo <= 0) return { ok: false, motivo: MOTIVO_SALDO_INVALIDO };
   const lineas = sugeridos.filter((c) => Number(c.precio_unitario ?? 0) !== 0);
   if (lineas.length === 0) {
     if (lineaIndeterminadaNC(base)) return { ok: false, motivo: MOTIVO_TRATAMIENTO_INDEFINIDO };
-    return resultadoExacto(saldo, [conceptoPorSaldo(saldo, base)]);
+    return resultadoExacto(saldo, [conceptoPorSaldo(saldo, base)], agrupar);
   }
   if (lineas.some(lineaIndeterminadaNC)) {
     return { ok: false, motivo: MOTIVO_TRATAMIENTO_INDEFINIDO };
   }
   const claves = new Set(lineas.map(claveTratamientoNC));
-  if (claves.size === 1) return resultadoExacto(saldo, [conceptoPorSaldo(saldo, lineas[0])]);
-  if (calcularTotalesNC(lineas).total <= 0) return { ok: false, motivo: MOTIVO_IMPORTES_CERO };
-  return resultadoExacto(saldo, prorratear(saldo, lineas));
+  if (!agrupar && claves.size === 1) return resultadoExacto(saldo, [conceptoPorSaldo(saldo, lineas[0])], false);
+  const totalOriginal = calcularTotalesNC(lineas, agrupar).total;
+  if (totalOriginal <= 0) return { ok: false, motivo: MOTIVO_IMPORTES_CERO };
+  return resultadoExacto(saldo, prorratear(saldo, lineas, totalOriginal), agrupar);
 }

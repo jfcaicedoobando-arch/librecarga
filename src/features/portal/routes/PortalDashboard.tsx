@@ -25,11 +25,13 @@ import { PortalEmbarquesRecientesCard } from "@/features/portal/components/dashb
 import { useDocumentTitle } from "@/hooks/shared";
 import { opcionesSolicitante } from "@/features/portal/domain/clientesSolicitantes";
 import { ErrorState } from "@/components/shared/states/ErrorState";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 
 export default function PortalDashboard() {
   useDocumentTitle('Portal');
   const [solicitudAbierta, setSolicitudAbierta] = useState(false);
-  const { data: clientUsers = [] } = usePortalClientUsers();
+  const { data: clientUsers = [], isLoading: loadingClientes, isError: errorClientes, refetch: refetchClientes } =
+    usePortalClientUsers();
   const { data: clienteName } = usePortalClienteName();
   const { data: contactoName } = usePortalContactoNombre();
   const { data: orgName } = usePortalOrgName();
@@ -42,7 +44,7 @@ export default function PortalDashboard() {
   // B-068/B-076: la tarjeta de Facturación Pendiente se alimenta del MISMO
   // agregado que el estado de cuenta del portal — saldo real por moneda
   // (incluye Parcialmente pagada y resta pagos + notas de crédito).
-  const { kpis: kpisCobranza, isLoading: loadingFac, isError: errorFac, refetch: refetchFac } = useEstadoCuenta({
+  const saldos = useEstadoCuenta({
     clienteIds,
     soloConSaldo: true,
   });
@@ -53,17 +55,17 @@ export default function PortalDashboard() {
     estadoDistribucion,
   } = usePortalDashboardKpis(embarques);
 
-  const cargando = loadingEmb || loadingCot || loadingFac;
+  const cargando = loadingClientes || loadingEmb || loadingCot;
 
   return (
     <PortalPageShell>
-      {(errorEmb || errorCot || errorFac) && (
+      {(errorClientes || errorEmb || errorCot) && (
         <ErrorState
           className="mb-2"
           onRetry={() => {
-            void refetchEmb();
-            void refetchCot();
-            void refetchFac();
+            if (errorClientes) void refetchClientes();
+            if (errorEmb) void refetchEmb();
+            if (errorCot) void refetchCot();
           }}
         />
       )}
@@ -94,7 +96,7 @@ export default function PortalDashboard() {
             values={{
               embarques: embarquesActivos.length,
               cotizaciones: cotizaciones.filter((c) => c.estado === "Enviada").length,
-              facturas: kpisCobranza.facturasAdeudadas,
+              facturas: saldos.hasData ? saldos.kpis.facturasAdeudadas : null,
             }}
           />
 
@@ -107,12 +109,7 @@ export default function PortalDashboard() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <PortalFacturacionPendienteCard
-              montos={kpisCobranza.adeudado}
-              total={kpisCobranza.facturasAdeudadas}
-              vencidas={kpisCobranza.facturasVencidas}
-              className="lg:col-span-1"
-            />
+            <FacturacionPendiente saldos={saldos} errorClientes={errorClientes} />
             <PortalEmbarquesRecientesCard
               embarques={embarquesActivos}
               className="lg:col-span-2"
@@ -122,5 +119,36 @@ export default function PortalDashboard() {
       )}
 
     </PortalPageShell>
+  );
+}
+
+function FacturacionPendiente({
+  saldos: { kpis, hasData, isLoading, isError, refetch },
+  errorClientes,
+}: {
+  saldos: ReturnType<typeof useEstadoCuenta>;
+  errorClientes: boolean;
+}) {
+  return (
+    <section aria-label="Facturación pendiente" className="space-y-2">
+      {isError && (
+        <ErrorState
+          title={hasData ? "No pudimos actualizar tus saldos" : "No pudimos consultar tus saldos"}
+          description={hasData ? "Se muestran los saldos de la última consulta exitosa." : undefined}
+          onRetry={() => void refetch()}
+        />
+      )}
+      {hasData ? (
+        <PortalFacturacionPendienteCard
+          montos={kpis.adeudado}
+          total={kpis.facturasAdeudadas}
+          vencidas={kpis.facturasVencidas}
+        />
+      ) : isLoading ? (
+        <EmptyStateInline loading message="Cargando saldos…" />
+      ) : !isError && !errorClientes && (
+        <EmptyStateInline message="Los saldos estarán disponibles cuando tengas una empresa vinculada." />
+      )}
+    </section>
   );
 }

@@ -28,6 +28,7 @@ export interface FacturaRow {
   serie: string | null;
   numero: string | null;
   uso_cfdi?: string | null;
+  evaluacion_fiscal?: unknown;
 }
 
 /**
@@ -54,7 +55,7 @@ export type BusquedaCfdi =
 export async function loadFactura(supabase: SupabaseClient, facturaId: string): Promise<FacturaRow | Response> {
   const { data: factura, error: fErr } = await supabase
     .from("facturas")
-    .select("id, organization_id, facturapi_id, facturapi_claim_at, facturapi_pendiente_id, serie, numero, uso_cfdi")
+    .select("id, organization_id, facturapi_id, facturapi_claim_at, facturapi_pendiente_id, serie, numero, uso_cfdi, evaluacion_fiscal")
     .eq("id", facturaId)
     .maybeSingle<FacturaRow>();
   if (fErr || !factura) return jsonResponse({ error: "factura_not_found", detail: fErr?.message }, 404);

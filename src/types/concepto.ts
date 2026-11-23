@@ -1,3 +1,5 @@
+import type { Tables } from "@/types/db";
+
 export interface ConceptoVentaLocal {
   id: number;
   /**
@@ -7,6 +9,13 @@ export interface ConceptoVentaLocal {
    * usuario queda `null`/`undefined`.
    */
   dbId?: string | null;
+  /** Server fiscal assessment; null remains legacy, never an inferred exemption. */
+  evaluacionFiscal?: Tables<"conceptos_venta">["evaluacion_fiscal"];
+  tasaRetIsr?: number | null;
+  montoRetIsr?: number | null;
+  tasaRetIva?: number | null;
+  origen?: string | null;
+  cotizacionConceptoOrigenId?: string | null;
   concepto: string;
   cantidad: number;
   precioUnitario: number;

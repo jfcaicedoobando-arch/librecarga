@@ -5,6 +5,7 @@
 import { BarChart3 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EmptyState from "@/components/empty/EmptyState";
+import { LoadingState } from "@/components/shared/states/LoadingState";
 import type { CrmReporteRow, CrmTableroRow } from "@/features/crm/services/reportes/tiposReportes";
 import { TarjetaReporte } from "./TarjetaReporte";
 
@@ -12,6 +13,9 @@ interface Props {
   tableros: CrmTableroRow[];
   activoId: string | null;
   reportes: CrmReporteRow[];
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
   isSuperAdmin: boolean;
   onSeleccionarTablero: (id: string) => void;
   onEditarReporte: (r: CrmReporteRow) => void;
@@ -28,13 +32,23 @@ export function TableroContenido(p: Props) {
           ))}
         </TabsList>
       </Tabs>
-      {p.reportes.length === 0 ? (
+      {(p.isLoading || p.isError) && (
+        <LoadingState
+          key={p.activoId}
+          label="Cargando reportes…"
+          error={p.isError}
+          errorLabel="No se pudieron cargar los reportes de este tablero."
+          onRetry={p.onRetry}
+        />
+      )}
+      {!p.isLoading && !p.isError && p.reportes.length === 0 && (
         <EmptyState
           icon={BarChart3}
           title="Este tablero no tiene reportes"
           description={p.isSuperAdmin ? "Agrega el primero con el botón de arriba." : "Pide al administrador que agregue reportes."}
         />
-      ) : (
+      )}
+      {p.reportes.length > 0 && (
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {p.reportes.map((r) => (
             <TarjetaReporte

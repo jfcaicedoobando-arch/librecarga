@@ -31,6 +31,7 @@ function renderDialog(overrides: Partial<FormPago> = {}) {
       facturaPago={factura}
       onClose={() => {}}
       cuentasCompatibles={cuentas}
+      consultaCuentas={{ isLoading: false, isError: false, isFetching: false, refetch: vi.fn() }}
       form={{ ...form, ...overrides }}
       setField={vi.fn()}
       onEjecutar={onEjecutar}

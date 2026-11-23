@@ -21,6 +21,11 @@ import PortalCotizacionTotalCard from "@/features/portal/components/cotizacion/P
 import { useRegisterBreadcrumbLabel } from "@/lib/contexts/BreadcrumbContext";
 import { useDocumentTitle } from "@/hooks/shared";
 import { useVolver } from "@/hooks/shared/useVolver";
+import { todayLocalISO } from "@/lib/date/today";
+
+function fechaDeCotizacionVencida({ estado, fecha_vigencia }: { estado: string; fecha_vigencia: string | null }) {
+  if (estado === "Enviada" && fecha_vigencia && fecha_vigencia < todayLocalISO()) return fecha_vigencia;
+}
 
 export default function PortalCotizacionDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -67,6 +72,7 @@ export default function PortalCotizacionDetalle() {
   } = totales;
   // cast: comentario_cliente vive en la fila DB pero no en el tipo dominio mínimo
   const comentarioCliente = (cot as { comentario_cliente?: string | null }).comentario_cliente;
+  const fechaVencida = fechaDeCotizacionVencida(cot);
 
   return (
     <PortalPageShell>
@@ -74,7 +80,7 @@ export default function PortalCotizacionDetalle() {
         folio={cot.folio}
         estado={cot.estado}
         clienteNombre={cot.cliente_nombre}
-        
+        aceptacionBloqueada={Boolean(fechaVencida)}
         onAceptar={() => setConfirmAction("Aceptada")}
         onRechazar={() => setConfirmAction("Rechazada")}
       />
@@ -86,6 +92,7 @@ export default function PortalCotizacionDetalle() {
         embarqueExpediente={(cot as { embarque_expediente?: string | null }).embarque_expediente ?? null}
         fechaAceptacion={(cot as { fecha_aceptacion?: string | null }).fecha_aceptacion ?? null}
         fechaRechazo={(cot as { fecha_rechazo?: string | null }).fecha_rechazo ?? null}
+        fechaVencida={fechaVencida}
       />
 
       <DatosGeneralesCard cot={cot} />

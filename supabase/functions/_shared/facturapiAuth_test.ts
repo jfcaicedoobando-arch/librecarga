@@ -43,6 +43,29 @@ function cleanupEnv() {
   Deno.env.delete("LEGACY_FACTURAPI_AMBIENTE");
 }
 
+Deno.test("resolveFacturapiKey: recupera un intento sandbox con su llave aunque el ambiente activo sea live", async () => {
+  const llamadas: unknown[] = [];
+  const sb = makeSupabase({
+    ambiente: "live",
+    api_key_sandbox_secret_name: null,
+    api_key_live_secret_name: null,
+    api_key_sandbox_vault_id: "vault-sandbox",
+    api_key_live_vault_id: "vault-live",
+    facturapi_org_id: "fapi_org_1",
+  }, (fn, args) => {
+    llamadas.push([fn, args]);
+    return Promise.resolve({ data: `key-${args.p_ambiente}`, error: null });
+  });
+  const actual = await resolveFacturapiKey(sb, "org-1");
+  const historico = await resolveFacturapiKey(sb, "org-1", "sandbox");
+  assertEquals(actual.ok && actual.data.apiKey, "key-live");
+  assertEquals(historico.ok && historico.data.apiKey, "key-sandbox");
+  assertEquals(llamadas, [
+    ["get_facturapi_api_key_internal", { p_org_id: "org-1", p_ambiente: "live" }],
+    ["get_facturapi_api_key_internal", { p_org_id: "org-1", p_ambiente: "sandbox" }],
+  ]);
+});
+
 
 Deno.test("resolveFacturapiKey: usa secret sandbox cuando ambiente=sandbox", async () => {
   cleanupEnv();

@@ -74,19 +74,19 @@ export function aplicarFiltrosCotizaciones<T extends FiltrableQuery>(
     ) as T;
   }
 
-  if (f.filterEstado !== "todos") q = q.eq("estado", f.filterEstado) as T;
+  const estado = f.soloAceptadasSinEmbarque ? "Aceptada" : f.filterEstado;
+  if (estado !== "todos") q = q.eq("estado", estado) as T;
   if (f.filterCliente !== "todos") q = q.eq("cliente_id", f.filterCliente) as T;
 
   if (f.segmento === "prospectos") q = q.eq("es_prospecto", true) as T;
   else if (f.segmento === "clientes") q = q.or("es_prospecto.is.null,es_prospecto.eq.false") as T;
 
   if (f.soloAceptadasSinEmbarque) {
-    q = q.eq("estado", "Aceptada") as T;
     q = q.is("embarque_id", null) as T;
   }
 
   if (!f.incluirInactivas) {
-    const estadoExplicito = f.filterEstado !== "todos" && (ESTADOS_INACTIVOS as readonly string[]).includes(f.filterEstado);
+    const estadoExplicito = estado !== "todos" && (ESTADOS_INACTIVOS as readonly string[]).includes(estado);
     if (!estadoExplicito) {
       q = q.not("estado", "in", `(${ESTADOS_INACTIVOS.join(",")})`) as T;
     }

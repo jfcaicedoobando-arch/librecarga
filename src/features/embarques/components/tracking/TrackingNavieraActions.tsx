@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ExternalLink, Copy, Check, AlertCircle, Lightbulb } from "lucide-react";
 import { useNavieras } from "@/features/catalogos/hooks/useNavieras";
-import { resolverTrackingCarrier } from "@/features/embarques/domain/trackingCarrier";
+import { resolverTrackingCarrier, type TrackingCarrier } from "@/features/embarques/domain/trackingCarrier";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 
 /**
@@ -55,10 +54,17 @@ interface Props {
  * - Botón para abrir la URL de tracking de la naviera (catálogo en tabla `navieras`).
  * - Botón para copiar el BL Master / MAWB al portapapeles.
  */
-function getTrackingTooltip(referencia: string | null, esMaritimo: boolean, refLabel: string): string {
-  if (!referencia) return `Falta el ${refLabel}`;
-  if (!esMaritimo) return "El tracking aéreo se consulta directamente en la web de la aerolínea";
-  return "Esta naviera no tiene URL de tracking configurada — pídele al admin que la agregue en Configuración › Navieras";
+function motivoTracking(
+  carrier: TrackingCarrier,
+  { isLoading, isError }: { isLoading: boolean; isError: boolean },
+): string {
+  if (!carrier.referencia) return `Captura el ${carrier.refLabel} en Resumen.`;
+  if (!carrier.carrier && !carrier.esMaritimo) return "Captura la aerolínea en Resumen para consultar su sitio web.";
+  if (!carrier.esMaritimo) return "Consulta el tracking en el sitio web de la aerolínea.";
+  if (!carrier.carrier) return "Captura la naviera en Resumen para habilitar el enlace.";
+  if (isLoading) return "Consultando el enlace de tracking de la naviera…";
+  if (isError) return "No se pudo consultar el enlace de tracking. Actualiza la página para reintentar.";
+  return "La naviera no tiene un enlace de tracking configurado. Pídele al administrador que lo agregue en Configuración › Navieras.";
 }
 
 function resolveTrackingUrl(
@@ -75,8 +81,9 @@ function resolveTrackingUrl(
 }
 
 export function TrackingNavieraActions(props: Props) {
-  const { data: navieras = [] } = useNavieras();
+  const { data: navieras = [], isLoading, isError } = useNavieras();
   const [copied, setCopied] = useState(false);
+  const motivoId = useId();
 
   // v13.823.366 — Terrestre no tiene consulta web de transportista: antes caía
   // por accidente en el copy aéreo ("Captura la aerolínea y el MAWB").
@@ -137,38 +144,21 @@ export function TrackingNavieraActions(props: Props) {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span>
-                    <Button size="sm" variant="outline" onClick={handleCopy} disabled={!referencia}>
-                      <CopyIcon className="h-4 w-4 mr-1" />
-                      {copyLabel}
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                {!referencia && <TooltipContent>Captura primero el {refLabel} en Resumen</TooltipContent>}
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span>
-                    <Button size="sm" onClick={handleOpen} disabled={!trackingUrl}>
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Abrir tracking de {carrierBtnLabel}
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                {!trackingUrl && (
-                  <TooltipContent>
-                    {getTrackingTooltip(referencia, esMaritimo, refLabel)}
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
+            <Button size="sm" variant="outline" onClick={handleCopy} disabled={!referencia}
+              aria-describedby={!referencia ? motivoId : undefined}>
+              <CopyIcon className="h-4 w-4 mr-1" />
+              {copyLabel}
+            </Button>
+            <Button size="sm" onClick={handleOpen} disabled={!trackingUrl}
+              aria-describedby={!trackingUrl ? motivoId : undefined}>
+              <ExternalLink className="h-4 w-4 mr-1" />
+              Abrir tracking de {carrierBtnLabel}
+            </Button>
           </div>
         </div>
+        {!trackingUrl && <p id={motivoId} className="text-body-sm text-muted-foreground">
+          {motivoTracking(info, { isLoading, isError })}
+        </p>}
         <p className="flex items-start gap-1.5 text-body-sm text-muted-foreground">
           <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           <span>

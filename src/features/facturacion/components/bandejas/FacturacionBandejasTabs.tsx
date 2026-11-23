@@ -7,9 +7,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ListSkeleton } from "@/components/shared/states/ListSkeleton";
 import { BandejaTabs, type BandejaId } from "@/features/facturacion/components/bandejas/BandejaTabs";
 
-import type {
-  FacturasEmitidasAcciones, FacturasEmitidasFiltros, FacturasEmitidasTabla,
-} from "@/features/facturacion/components/facturasEmitidasProps";
+import type { FacturasEmitidasProps } from "../facturasEmitidasProps";
 
 const BANDEJAS = {
   "embarques-sin-factura": lazy(() => import("./BandejaPorFacturar").then((m) => ({ default: m.BandejaPorFacturar }))),
@@ -27,11 +25,7 @@ interface Props {
   activeBandeja: BandejaId;
   setActiveBandeja: (next: string) => void;
   /** Props agrupadas de la bandeja "Emitidas" (auditoría punto 7). */
-  emitidas: {
-    filtros: FacturasEmitidasFiltros;
-    tabla: FacturasEmitidasTabla;
-    acciones: FacturasEmitidasAcciones;
-  };
+  emitidas: FacturasEmitidasProps;
 }
 
 export function FacturacionBandejasTabs(p: Props) {

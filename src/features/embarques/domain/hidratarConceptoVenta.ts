@@ -17,6 +17,12 @@ export interface ConceptoVentaDbLike {
   tasa_iva_aplicada?: number | string | null;
   /** SAT 01 — `null` = fila legacy (se resuelve por flag + tasa). */
   tipo_iva?: string | null;
+  evaluacion_fiscal?: ConceptoVentaLocal["evaluacionFiscal"];
+  tasa_ret_isr?: number | string | null;
+  monto_ret_isr?: number | string | null;
+  tasa_ret_iva?: number | string | null;
+  origen?: string | null;
+  cotizacion_concepto_origen_id?: string | null;
 }
 
 export function mapConceptoVentaDbAFila(
@@ -41,5 +47,11 @@ export function mapConceptoVentaDbAFila(
     tasaIva: v.tasa_iva_aplicada == null ? null : Number(v.tasa_iva_aplicada),
     // SAT 01 — tratamiento explícito tal cual; `null` = legacy.
     tipoIva: v.tipo_iva ?? null,
+    evaluacionFiscal: v.evaluacion_fiscal ?? null,
+    tasaRetIsr: v.tasa_ret_isr == null ? null : Number(v.tasa_ret_isr),
+    montoRetIsr: v.monto_ret_isr == null ? null : Number(v.monto_ret_isr),
+    tasaRetIva: v.tasa_ret_iva == null ? null : Number(v.tasa_ret_iva),
+    origen: v.origen ?? null,
+    cotizacionConceptoOrigenId: v.cotizacion_concepto_origen_id ?? null,
   };
 }

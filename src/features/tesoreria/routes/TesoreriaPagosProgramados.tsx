@@ -1,6 +1,8 @@
 import { useDocumentTitle } from "@/hooks/shared/useDocumentTitle";
+import { useFiltroUrl } from "@/hooks/shared/useFiltroUrl";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { useOptimisticSearchParams } from "nuqs/adapters/react-router/v8";
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchPagosProgramables,
@@ -19,7 +21,7 @@ import { erroresPagoProgramado } from "@/features/tesoreria/domain/pagoProgramad
 import { esPagoEfectivo } from "@/features/tesoreria/domain/conciliacionPago";
 import { EjecutarPagoDialog, type FormPago } from "./_sections/EjecutarPagoDialog";
 import { PagosProgramadosTablas } from "./_sections/PagosProgramadosTablas";
-import { buildPagosProgramadosColumns, filtrarProgramables, type FiltroBandeja } from "./_sections/pagosProgramadosColumns";
+import { buildPagosProgramadosColumns, filtrarProgramables, FILTROS_BANDEJA, type FiltroBandeja } from "./_sections/pagosProgramadosColumns";
 import { FILTRO_ANCHO } from "@/lib/ui/filterWidths";
 
 export default function TesoreriaPagosProgramados() {
@@ -33,18 +35,19 @@ export default function TesoreriaPagosProgramados() {
   });
 
   // Filtro EXPLÍCITO del usuario — por defecto se muestra todo.
-  const [filtro, setFiltro] = useState<FiltroBandeja>("todas");
+  const [filtro, setFiltro] = useFiltroUrl("mostrar", FILTROS_BANDEJA, "todas");
   const [facturaPago, setFacturaPago] = useState<FacturaProgramable | null>(null);
   const [form, setForm] = useState<FormPago>({
     cuentaBancariaId: "", fecha: todayLocalISO(), monto: 0, metodoPago: "Transferencia", referencia: "",
   });
 
-  const { data: cuentas = [] } = useCuentasBancarias();
+  const consultaCuentas = useCuentasBancarias();
+  const cuentas = consultaCuentas.data;
   const ejecutarPago = useEjecutarPagoProgramado();
   const requestIdRef = useRef<string | null>(null);
 
   const cuentasCompatibles = useMemo(
-    () => cuentas.filter((c) => c.moneda === facturaPago?.moneda),
+    () => (cuentas ?? []).filter((c) => c.moneda === facturaPago?.moneda),
     [cuentas, facturaPago],
   );
 
@@ -96,13 +99,14 @@ export default function TesoreriaPagosProgramados() {
   // CI-02: "Programar pago" / "Revisar aprobación" navegan a la factura de
   // Compras vía callback.
   const navigate = useNavigate();
-  const location = useLocation();
+  const { pathname } = useLocation();
+  const search = useOptimisticSearchParams().toString();
   const abrirFactura = useCallback(
     (f: FacturaProgramable) => navigate(
       `/compras/facturas/${f.id}?tab=fiscal${puedeEjecutarPago(f) && !f.fecha_programada_pago ? "#programacion-pago" : ""}`,
-      { state: { from: location.pathname + location.search } },
+      { state: { from: search ? `${pathname}?${search}` : pathname } },
     ),
-    [navigate, location.pathname, location.search],
+    [navigate, pathname, search],
   );
   const columns = useMemo(
     () => buildPagosProgramadosColumns(abrirDialogoPago, abrirFactura),
@@ -134,9 +138,9 @@ export default function TesoreriaPagosProgramados() {
       {/* B-030: filtro explícito y visible. Default: "Todas" para no ocultar
           facturas silenciosamente como hacía la RPC anterior. */}
       <div className="flex items-center gap-2">
-        <span className="text-body text-muted-foreground">Mostrar:</span>
+        <label htmlFor="mostrar-pagos-programados" className="text-body text-muted-foreground">Mostrar:</label>
         <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroBandeja)}>
-          <SelectTrigger className={FILTRO_ANCHO.lg}><SelectValue /></SelectTrigger>
+          <SelectTrigger id="mostrar-pagos-programados" className={FILTRO_ANCHO.lg}><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas las pendientes</SelectItem>
             <SelectItem value="programadas">Solo con pago programado</SelectItem>
@@ -151,6 +155,7 @@ export default function TesoreriaPagosProgramados() {
         facturaPago={facturaPago}
         onClose={() => setFacturaPago(null)}
         cuentasCompatibles={cuentasCompatibles}
+        consultaCuentas={consultaCuentas}
         form={form}
         setField={setField}
         onEjecutar={handleEjecutar}

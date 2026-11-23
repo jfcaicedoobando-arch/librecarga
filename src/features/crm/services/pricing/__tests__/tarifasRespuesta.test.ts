@@ -20,6 +20,7 @@ function makeRow(overrides: Partial<TarifaRespuestaRow> = {}): TarifaRespuestaRo
     carta_garantia: true,
     transit_time_dias: 28,
     vigente_hasta: "2026-10-31",
+    notas: "Sujeto a espacio",
     agente: { nombre: "Agente" },
     naviera: { name: "Naviera" },
     tipo: { code: "40HC" },

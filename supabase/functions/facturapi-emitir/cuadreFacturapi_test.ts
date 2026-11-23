@@ -1,6 +1,6 @@
 import { assertEquals, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { diferenciasCuadreFiscal, type ConceptoCuadre } from "./cuadreFiscal.ts";
-import { diferenciasCuadreFacturapi, recalcularTotalesFacturapi, usaCuadreFacturapi } from "./cuadreFacturapi.ts";
+import { diferenciasCuadreFiscal, type ConceptoCuadre } from "../_shared/cuadreFiscal.ts";
+import { diferenciasCuadreFacturapi, recalcularTotalesFacturapi, usaCuadreFacturapi } from "../_shared/cuadreFacturapi.ts";
 import { validarCuadreFiscal, validarCuadreSubtotal } from "./contextoCuadre.ts";
 import type { FacturaRow } from "./types.ts";
 

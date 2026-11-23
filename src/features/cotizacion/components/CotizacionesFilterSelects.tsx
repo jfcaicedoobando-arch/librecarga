@@ -44,15 +44,15 @@ type SegmentoConteos = { clientes: number; prospectos: number; todas: number };
  *  clientes activos; los KPIs y la tabla siguen al segmento elegido. */
 export function SegmentoTabs({
   value, conteos, onChange,
-}: { value: string; conteos: SegmentoConteos; onChange: (v: string) => void }) {
+}: { value: string; conteos?: SegmentoConteos; onChange: (v: string) => void }) {
   return (
     <Tabs value={value} onValueChange={onChange} className="w-full">
       <TabsList aria-label="Segmento de cotizaciones">
-        <TabsTrigger value="clientes">De clientes ({conteos.clientes})</TabsTrigger>
-        <TabsTrigger value="prospectos">A prospectos ({conteos.prospectos})</TabsTrigger>
-        <TabsTrigger value="todas">Todas ({conteos.todas})</TabsTrigger>
+        <TabsTrigger value="clientes">De clientes{conteos && ` (${conteos.clientes})`}</TabsTrigger>
+        <TabsTrigger value="prospectos">A prospectos{conteos && ` (${conteos.prospectos})`}</TabsTrigger>
+        <TabsTrigger value="todas">Todas{conteos && ` (${conteos.todas})`}</TabsTrigger>
       </TabsList>
-      <p className="mt-1 text-body-sm text-muted-foreground">Los conteos corresponden a cotizaciones, no a personas o empresas.</p>
+      {conteos && <p className="mt-1 text-body-sm text-muted-foreground">Los conteos corresponden a cotizaciones, no a personas o empresas.</p>}
     </Tabs>
   );
 }

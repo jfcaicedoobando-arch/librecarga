@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
 import { useCrearContactoCrm } from "@/features/crm/hooks/useObjetosCrm";
 import { usePropiedadesCrm } from "@/features/crm/hooks/usePropiedadesCrm";
@@ -75,12 +76,12 @@ export function NuevoContactoDialog({ open, onOpenChange }: Props) {
       size="lg"
       formId={FORM_ID}
       onSubmit={onSubmit}
-      isDirty={contactoSucio(nombre, email, telefono, empresa) && !crear.isPending}
+      isDirty={(contactoSucio(nombre, email, telefono, empresa) || Object.keys(valores).length > 0) && !crear.isPending}
       busy={crear.isPending}
       footer={
         <>
           {faltan && (nombre || empresa) && <span className="mr-auto text-caption text-muted-foreground">Falta: {faltan}</span>}
-          <Button type="button" variant="outline" onClick={cerrar} disabled={crear.isPending}>Cancelar</Button>
+          <FormDialogCancelarBoton onCancelar={cerrar} disabled={crear.isPending} />
           <Button type="submit" form={FORM_ID} disabled={!listo}>{crear.isPending ? "Guardando…" : "Guardar"}</Button>
         </>
       }

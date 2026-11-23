@@ -16,9 +16,8 @@ import { sortByString, sortByDate } from "@/components/shared/dataTable/sortingF
 import {
   getEstadoUnificado,
   rankEstadoUnificado,
-  etiquetaEstadoUnificado,
+  etiquetaEstadoProformaListado,
 } from "@/lib/domain/estadoUnificado";
-import { etiquetaProformaConvertida } from "@/lib/domain/etiquetaCicloProforma";
 import { COL_W } from "@/components/shared/dataTable/columnWidths";
 import { Link } from "react-router";
 import { labelExpediente } from "@/lib/domain/labelExpediente";
@@ -146,14 +145,7 @@ export function buildProformasColumns({
       cell: ({ row }) => {
         const p = row.original;
         const estado = getEstadoUnificado(p);
-        // R170-01: dentro del bucket "facturada" (conversión ya bloqueada por
-        // `factura_id`), la etiqueta distingue borrador/por-timbrar/emitida
-        // reutilizando la misma lógica que el detalle y el historial del
-        // embarque, en vez de asumir emisión fiscal por default.
-        const label =
-          estado === "facturada"
-            ? etiquetaProformaConvertida(p.facturas_asociadas ?? [])
-            : etiquetaEstadoUnificado(p);
+        const label = etiquetaEstadoProformaListado(p);
         // v13.681.0 · UI-1: colores desde el statusRegistry (dominio proforma).
         return <StatusBadge domain="proforma" status={estado} label={label} />;
       },

@@ -25,11 +25,12 @@ export interface ResultadosBodyProps {
   onOpenChange: (v: boolean) => void;
   selectLabel?: string;
   diagnostico?: DiagnosticoTarifas;
+  consultandoDiagnostico: boolean;
 }
 
 export function ResultadosBody({
   origen, destino, tipo, isFetching, tarifas, error, onRetry, isRefetching,
-  onElegir, onOpenChange, selectLabel, diagnostico,
+  onElegir, onOpenChange, selectLabel, diagnostico, consultandoDiagnostico,
 }: ResultadosBodyProps) {
   if (!origen || !destino || !tipo) {
     return (
@@ -52,7 +53,7 @@ export function ResultadosBody({
     );
   }
   if (tarifas.length === 0) {
-    return <TarifasSinResultado diagnostico={diagnostico} />;
+    return <TarifasSinResultado diagnostico={diagnostico} consultando={consultandoDiagnostico} />;
   }
   const meta = computeRankingMeta(tarifas);
   return (

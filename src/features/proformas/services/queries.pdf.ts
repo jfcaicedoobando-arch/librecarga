@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
 import { unwrap } from "@/lib/supabase/response";
+import { leerConceptosFiscalesProforma } from "../domain/proformaFiscal";
+import type { ProformaRow } from "./types";
 
 /**
  * Consultas usadas exclusivamente para armar el PDF de proforma.
@@ -29,4 +31,12 @@ export async function fetchEmbarqueParaPdf(embarqueId: string) {
       .is("deleted_at", null)
       .single(),
   );
+}
+
+export async function fetchConceptosFiscalesParaPdf(proforma: ProformaRow) {
+  const guardados = proforma.conceptos_fiscales === undefined
+    ? await unwrap(supabase.from("proformas").select("conceptos_fiscales")
+      .eq("id", proforma.id).eq("organization_id", proforma.organization_id).is("deleted_at", null).single())
+    : proforma;
+  return leerConceptosFiscalesProforma({ ...proforma, conceptos_fiscales: guardados.conceptos_fiscales }) ?? [];
 }

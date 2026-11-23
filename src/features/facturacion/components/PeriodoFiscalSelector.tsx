@@ -9,7 +9,7 @@
  * El cierre "duro" de período fiscal quedó fuera de alcance por
  * decisión de producto.
  */
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { Calendar } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -80,6 +80,7 @@ function etiquetaMesActual(): string {
 }
 
 export function PeriodoFiscalSelector({ desdeIso, hastaIso, onChange }: Props) {
+  const id = useId();
   const preset = useMemo(() => detectarPreset(desdeIso, hastaIso), [desdeIso, hastaIso]);
 
   const handleChange = (next: string) => {
@@ -87,10 +88,13 @@ export function PeriodoFiscalSelector({ desdeIso, hastaIso, onChange }: Props) {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden />
+    <div className="flex flex-wrap items-center gap-2">
+      <label htmlFor={id} className="flex items-center gap-2 text-body-sm text-muted-foreground">
+        <Calendar className="h-4 w-4" aria-hidden />
+        Periodo de emisión
+      </label>
       <Select value={preset} onValueChange={handleChange}>
-        <SelectTrigger className="h-8 w-[190px] text-body">
+        <SelectTrigger id={id} className="h-8 w-[190px] text-body">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

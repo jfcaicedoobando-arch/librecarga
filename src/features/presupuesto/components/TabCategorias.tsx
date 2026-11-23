@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CardSkeleton } from "@/components/shared/skeletons";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
@@ -63,8 +64,18 @@ export function TabCategorias() {
     }
   };
 
-  if (cats.isLoading) return <CardSkeleton lines={6} />;
-  const sinDatos = (cats.data ?? []).length === 0;
+  if (cats.isError) {
+    return (
+      <ErrorStateInline
+        title="No pudimos cargar las categorías"
+        message="Reintenta la consulta para revisar la configuración del presupuesto."
+        onRetry={() => void cats.refetch()}
+        retrying={cats.isFetching}
+      />
+    );
+  }
+  if (!cats.isSuccess) return <CardSkeleton lines={6} />;
+  const sinDatos = cats.data.length === 0;
 
   const columns: ColumnDef<CategoriaPresupuesto, unknown>[] = defineColumns<CategoriaPresupuesto>([
     { id: "nombre", header: "Nombre", meta: { width: COL_W.texto, className: "font-medium" }, cell: ({ row }) => row.original.nombre },
@@ -127,7 +138,7 @@ export function TabCategorias() {
           ) : (
             <DataTable
               columns={columns}
-              data={cats.data ?? []}
+              data={cats.data}
               rowKey={(c) => c.id}
               density={TABLE_DENSITY.embebida}
             />

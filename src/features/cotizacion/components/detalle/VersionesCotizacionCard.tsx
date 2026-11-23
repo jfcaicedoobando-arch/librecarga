@@ -6,9 +6,9 @@
  */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { History } from "lucide-react";
 import { Hint } from "@/components/shared/Hint";
+import { LoadingState } from "@/components/shared/states/LoadingState";
 import { formatDate } from "@/lib/formatters";
 import { useVersionesCotizacion } from "@/features/cotizacion/hooks/useCotizacionVersiones";
 
@@ -23,9 +23,9 @@ interface Props {
 }
 
 export function VersionesCotizacionCard({ cotizacionId, estadoActual }: Props) {
-  const { data: versiones = [], isLoading } = useVersionesCotizacion(cotizacionId);
+  const { data: versiones = [], isLoading, isError, refetch } = useVersionesCotizacion(cotizacionId);
 
-  if (isLoading) {
+  if (versiones.length === 0 && (isLoading || isError)) {
     return (
       <Card>
         <CardHeader>
@@ -34,7 +34,13 @@ export function VersionesCotizacionCard({ cotizacionId, estadoActual }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-16 w-full" />
+          <LoadingState
+            minHeight="min-h-16"
+            label="Cargando historial…"
+            error={isError}
+            errorLabel="No se pudo cargar el historial de versiones."
+            onRetry={() => void refetch()}
+          />
         </CardContent>
       </Card>
     );

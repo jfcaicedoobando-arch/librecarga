@@ -14,6 +14,7 @@ export interface TarifaRespuestaRow {
   carta_garantia: boolean | null;
   transit_time_dias: number | null;
   vigente_hasta: string | null;
+  notas: string | null;
   agente: { nombre: string } | null;
   naviera: { name: string } | null;
   tipo: { code: string } | null;
@@ -21,7 +22,7 @@ export interface TarifaRespuestaRow {
 }
 
 const COLS = [
-  "id, flete_base, moneda, unidad_flete, carta_garantia, transit_time_dias, vigente_hasta",
+  "id, flete_base, moneda, unidad_flete, carta_garantia, transit_time_dias, vigente_hasta, notas",
   "agente:costeo_agentes(nombre), naviera:navieras(name), tipo:tipos_contenedor(code)",
   "ruta:costeo_rutas(origen:puertos!costeo_rutas_puerto_origen_id_fkey(name), destino:puertos!costeo_rutas_puerto_destino_id_fkey(name))",
 ].join(", ");

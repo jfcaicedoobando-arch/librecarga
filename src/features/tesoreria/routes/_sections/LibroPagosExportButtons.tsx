@@ -9,11 +9,12 @@ import { descargarBlob } from "@/lib/downloadBlob";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 import {
   filasLibroPagosExport,
+  describirFiltrosLibroPagos,
   libroPagosACsv,
   nombreArchivoLibroPagos,
   resumenLibroPagos,
 } from "@/features/tesoreria/services/libroPagosExport";
-import type { PagoLibro, TotalesLibroPagos } from "@/features/tesoreria/domain/libroPagos";
+import type { FiltrosLibroPagos, PagoLibro, TotalesLibroPagos } from "@/features/tesoreria/domain/libroPagos";
 import type { RangoPagos } from "@/features/tesoreria/domain/libroPagosRangos";
 import { cargarEmisorReporte } from "@/pdf/emisor";
 import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
@@ -23,9 +24,12 @@ interface Props {
   rango: RangoPagos;
   totales: TotalesLibroPagos;
   organizationId: string | null;
+  filtros: FiltrosLibroPagos;
+  totalPeriodo: number;
+  cuentaActiva?: string;
 }
 
-export function LibroPagosExportButtons({ pagos, rango, totales, organizationId }: Props) {
+export function LibroPagosExportButtons({ pagos, rango, totales, organizationId, filtros, totalPeriodo, cuentaActiva }: Props) {
   const [generandoPdf, setGenerandoPdf] = useState(false);
   const sinDatos = pagos.length === 0;
   const filas = filasLibroPagosExport(pagos);
@@ -60,6 +64,7 @@ export function LibroPagosExportButtons({ pagos, rango, totales, organizationId 
           resumen={resumenLibroPagos(rango.desde, rango.hasta, totales)}
           filas={filas}
           emisor={emisor}
+          alcance={{ totalPeriodo, filtros: describirFiltrosLibroPagos(filtros, cuentaActiva) }}
         />,
         nombreArchivoLibroPagos(rango.desde, rango.hasta, "pdf"),
       );

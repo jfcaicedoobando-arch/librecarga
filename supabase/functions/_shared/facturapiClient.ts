@@ -44,7 +44,9 @@
 // `_shared/facturapiSdk.ts` (un solo lugar con los casts del SDK).
 // @ts-ignore -- typings del paquete no resolubles desde el especificador `npm:` en Deno.
 import FacturapiDefault from "npm:facturapi@6.0.0";
-import { resolveFacturapiKey, facturapiResolverClient, type FacturapiResolveResult } from "./facturapiAuth.ts";
+import {
+  resolveFacturapiKey, facturapiResolverClient, type FacturapiAmbiente, type FacturapiResolveResult,
+} from "./facturapiAuth.ts";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
 import { normalizarErrorFacturapi } from "./facturapiErrorNormalizado.ts";
 
@@ -81,8 +83,9 @@ export type FacturapiClientResult =
 export async function getFacturapiClient(
   supabase: SupabaseClient,
   organizationId: string,
+  ambienteIntento?: FacturapiAmbiente,
 ): Promise<FacturapiClientResult> {
-  const resolved = await resolveFacturapiKey(facturapiResolverClient(supabase), organizationId);
+  const resolved = await resolveFacturapiKey(facturapiResolverClient(supabase), organizationId, ambienteIntento);
   if (!resolved.ok) return { ok: false, data: resolved.data };
 
   const { apiKey, ambiente, facturapiOrgId } = resolved.data;

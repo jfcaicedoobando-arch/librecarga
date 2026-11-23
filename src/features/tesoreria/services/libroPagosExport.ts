@@ -2,13 +2,17 @@
  * Exportación (lógica pura) del libro maestro de pagos a CSV y PDF.
  */
 import { estadoConciliacionPago } from "@/features/tesoreria/domain/conciliacionPago";
-import { formatCurrency, formatDate } from "@/lib/formatters";
+import { formatCurrency, formatDate, toTitleCase } from "@/lib/formatters";
 import { toCsv } from "@/lib/csv/serializeCsv";
 import {
   etiquetaTipoPagoLibro,
+  FILTROS_LIBRO_PAGOS_INICIALES,
+  VISTA_LABELS,
+  type FiltrosLibroPagos,
   type PagoLibro,
   type TotalesLibroPagos,
 } from "@/features/tesoreria/domain/libroPagos";
+import { etiquetaMetodoPago } from "@/features/tesoreria/domain/metodoPago";
 
 export interface FilaLibroPagosExport {
   fecha: string;
@@ -88,6 +92,22 @@ export function libroPagosACsv(filas: readonly FilaLibroPagosExport[]): string {
       f.referencia, f.cuenta, f.monto, f.tipoCambio, f.fuenteTc, f.montoMxn, f.estado,
     ]),
   );
+}
+
+/** Contexto del PDF, en los mismos términos que los filtros de la vista. */
+export function describirFiltrosLibroPagos(filtros: FiltrosLibroPagos, cuenta?: string): string[] {
+  const porDefecto = FILTROS_LIBRO_PAGOS_INICIALES;
+  const vista = VISTA_LABELS[filtros.vista];
+  const texto = filtros.texto.trim().replace(/\s+/g, " ");
+  return [
+    vista && filtros.vista !== porDefecto.vista && `Vista: ${vista}`,
+    filtros.cuentaId !== porDefecto.cuentaId && `Cuenta bancaria: ${cuenta ?? "seleccionada"}`,
+    filtros.moneda !== porDefecto.moneda && `Moneda: ${filtros.moneda}`,
+    filtros.metodo !== porDefecto.metodo && `Medio de pago: ${etiquetaMetodoPago(filtros.metodo)}`,
+    filtros.conciliacion !== porDefecto.conciliacion && `Conciliación: ${toTitleCase(filtros.conciliacion)}`,
+    filtros.rep !== porDefecto.rep && `Complemento: ${toTitleCase(filtros.rep)}`,
+    texto && `Búsqueda: ${texto.length > 120 ? `${texto.slice(0, 120)}…` : texto}`,
+  ].filter((valor): valor is string => Boolean(valor));
 }
 
 /** Resumen del periodo, ya formateado, para encabezar el CSV/PDF. */

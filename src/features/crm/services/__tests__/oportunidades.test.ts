@@ -99,6 +99,24 @@ describe("eliminarOportunidad", () => {
 });
 
 describe("getOportunidad", () => {
+  it("obtiene automáticamente el broker sin sustituir al vendedor interno", async () => {
+    mock.setTableResult("crm_oportunidades", { data: { id: "op-1", vendedor_email: "kam@example.com" }, error: null });
+    mock.setRpcResult("crm_oportunidad_vendedor_externo", { data: "Saretshaar Ponce de Leon Rosales", error: null });
+    expect(await getOportunidad("op-1")).toMatchObject({
+      vendedor_externo: "Saretshaar Ponce de Leon Rosales", vendedor_email: "kam@example.com",
+    });
+    expect(mock.rpcCalls).toContainEqual({ fn: "crm_oportunidad_vendedor_externo", args: { p_oportunidad_id: "op-1" } });
+  });
+  it("sin broker conserva vacío el vendedor externo", async () => {
+    mock.setTableResult("crm_oportunidades", { data: { id: "op-1" }, error: null });
+    mock.setRpcResult("crm_oportunidad_vendedor_externo", { data: null, error: null });
+    expect(await getOportunidad("op-1")).toMatchObject({ vendedor_externo: null });
+  });
+  it("propaga el error de consulta del broker", async () => {
+    mock.setTableResult("crm_oportunidades", { data: { id: "op-1" }, error: null });
+    mock.setRpcResult("crm_oportunidad_vendedor_externo", { data: null, error: { message: "No autorizado" } });
+    await expect(getOportunidad("op-1")).rejects.toMatchObject({ message: "No autorizado" });
+  });
   it("exige deleted_at null: una oportunidad eliminada no resuelve por URL", async () => {
     mock.setTableResult("crm_oportunidades", { data: null, error: null });
     const res = await getOportunidad("op-borrada");

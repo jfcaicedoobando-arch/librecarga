@@ -21,6 +21,7 @@ export interface PagoProveedorRow {
   moneda: Tables<"pagos_proveedor">["moneda"];
   tipo_cambio_usd: number | null;
   metodo_pago: string;
+  es_ajuste: boolean;
   referencia: string | null;
   cuenta_bancaria_id: string | null;
   proveedor_factura_id: string;
@@ -36,7 +37,7 @@ export interface ListarPagosFiltros {
   hasta?: string;
   proveedorId?: string;
   metodoPago?: string;
-  moneda?: "MXN" | "USD";
+  moneda?: PagoProveedorRow["moneda"];
   search?: string;
 }
 
@@ -63,7 +64,7 @@ export async function listarPagosProveedorGlobalPagina(
     .select(
       `
       id, fecha_pago, monto, moneda, tipo_cambio_usd, metodo_pago, referencia,
-      cuenta_bancaria_id, proveedor_factura_id,
+      es_ajuste, cuenta_bancaria_id, proveedor_factura_id,
       proveedor_facturas!inner(
         folio_interno, folio_proveedor, total, proveedor_id,
         proveedores(nombre)
@@ -103,6 +104,7 @@ export async function listarPagosProveedorGlobalPagina(
     moneda: PagoProveedorRow["moneda"];
     tipo_cambio_usd: string | number | null;
     metodo_pago: string;
+    es_ajuste: boolean | null;
     referencia: string | null;
     cuenta_bancaria_id: string | null;
     proveedor_factura_id: string;
@@ -122,6 +124,7 @@ export async function listarPagosProveedorGlobalPagina(
     moneda: r.moneda,
     tipo_cambio_usd: r.tipo_cambio_usd == null ? null : Number(r.tipo_cambio_usd),
     metodo_pago: r.metodo_pago,
+    es_ajuste: r.es_ajuste === true,
     referencia: r.referencia,
     cuenta_bancaria_id: r.cuenta_bancaria_id,
     proveedor_factura_id: r.proveedor_factura_id,

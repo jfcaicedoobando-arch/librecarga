@@ -51,7 +51,7 @@ export function AccionesProforma({ proforma, downloadingId, onDescargar }: Props
   const { autorizacion } = useClienteAutorizacion(proforma.cliente_id ?? null);
   const { aprobar: aprobarInterna, isPending: aprobando } = useAprobarProformaInterna();
 
-  const { facturada, cancelada, puedeConvertir, puedeResponder, mostrarHint } = computarFlags(
+  const { facturada, cancelada, puedePublicar, tokenPublico, puedeConvertir, puedeResponder, mostrarHint } = computarFlags(
     proforma,
     canEmitirFactura,
     canResponderProformaManual,
@@ -62,6 +62,7 @@ export function AccionesProforma({ proforma, downloadingId, onDescargar }: Props
     convertir({
       proformaIds: [proforma.id],
       organizationId: proforma.organization_id,
+      fiscal: proforma.evaluacion_fiscal != null,
       diasCredito: resolverDiasCredito(
         proforma.dias_credito,
         proforma.cliente_full?.dias_credito,
@@ -127,16 +128,13 @@ export function AccionesProforma({ proforma, downloadingId, onDescargar }: Props
     puedeAprobarInterna,
     puedeResponder: puedeResponder && !puedeAprobarInterna,
     // VF-20: el vendedor (sólo lectura) no ve la acción de envío.
-    puedeEnviar: canEditarProforma && !cancelada,
+    puedeEnviar: canEditarProforma && puedePublicar,
     onDescargar,
     onEnviar: () => setEnviarOpen(true),
     onAceptarManual: () => setManualOpen("aceptada"),
     onRechazarManual: () => setManualOpen("rechazada"),
   });
 
-  // SAFE-CAST: columna pública generada al enviar la proforma; los tipos
-  // generados aún no la incluyen.
-  const tokenPublico = (proforma as unknown as { token_publico?: string | null }).token_publico ?? null;
   const more = buildMoreItems({
     tokenPublico,
     embarqueId: proforma.embarque_id ?? null,
@@ -158,7 +156,7 @@ export function AccionesProforma({ proforma, downloadingId, onDescargar }: Props
       {mostrarHint && (
         <HintRespuestaCliente requiereAutorizacion={autorizacion.requiereAutorizacionProforma} puedeResponder={canResponderProformaManual} />
       )}
-      {!cancelada && (
+      {puedePublicar && (
         <>
           <EnviarProformaDialog open={enviarOpen} onOpenChange={setEnviarOpen} proforma={proforma} />
           {manualOpen && (

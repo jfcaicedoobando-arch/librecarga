@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Props {
-  resumen: { porCapturar: number; capturadas: number; rechazadas: number };
+  resumen?: { porCapturar: number; capturadas: number; rechazadas: number };
   sinXml: number;
   puedeSubir: boolean;
   canEdit: boolean;
@@ -30,14 +30,16 @@ export function EntrantesCardHeader({ resumen, sinXml, puedeSubir, canEdit, cerr
         <CardDescription>
           Adjunta PDF y XML si el proveedor es mexicano; para proveedores extranjeros, adjunta el PDF. Contabilidad captura la factura.
         </CardDescription>
-        <div className="flex flex-wrap gap-2 pt-1">
-          <Badge variant="warning" size="sm">{resumen.porCapturar} por capturar</Badge>
-          <Badge variant="success" size="sm">{resumen.capturadas} capturadas</Badge>
-          {resumen.rechazadas > 0 && (
-            <Badge variant="destructive" size="sm">{resumen.rechazadas} rechazadas</Badge>
-          )}
-          {sinXml > 0 && <Badge variant="warning" size="sm">{sinXml} sin XML</Badge>}
-        </div>
+        {resumen && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Badge variant="warning" size="sm">{resumen.porCapturar} por capturar</Badge>
+            <Badge variant="success" size="sm">{resumen.capturadas} capturadas</Badge>
+            {resumen.rechazadas > 0 && (
+              <Badge variant="destructive" size="sm">{resumen.rechazadas} rechazadas</Badge>
+            )}
+            {sinXml > 0 && <Badge variant="warning" size="sm">{sinXml} sin XML</Badge>}
+          </div>
+        )}
       </div>
       {puedeSubir && (
         <Button size="sm" onClick={onSubir}>

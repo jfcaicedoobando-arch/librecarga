@@ -8,7 +8,6 @@
  *     (pendientes + mías + `fecha_programada < now`), así que el contador y la
  *     paginación corresponden al conjunto vencido.
  */
-import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router";
 import { X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,6 +40,7 @@ import { ActividadMobileCard } from "@/features/crm/components/ActividadMobileCa
 
 type ActividadesFilters = { tipo: string; estado: string; responsable: string } & Record<string, string>;
 const DEFAULTS: ActividadesFilters = { tipo: "todos", estado: "pendientes", responsable: "todos" };
+const FILTROS_VENCIDAS = { estado: "pendientes", responsable: "mias" } as const;
 
 export default function Actividades() {
   useDocumentTitle('Actividades CRM');
@@ -64,8 +64,8 @@ export default function Actividades() {
         tipo: (filters.tipo as CrmActividadTipo | "todos") ?? "todos",
         // v13.823.49 — `?filtro=vencidas` se resuelve en la consulta: pendientes,
         // del responsable actual y con fecha programada anterior a ahora.
-        estado: vencidasOnly ? "pendientes" : ((filters.estado as "pendientes" | "completadas" | "todas") ?? "pendientes"),
-        responsable: vencidasOnly ? "mias" : ((filters.responsable as "mias" | "todos") ?? "todos"),
+        estado: vencidasOnly ? FILTROS_VENCIDAS.estado : ((filters.estado as "pendientes" | "completadas" | "todas") ?? "pendientes"),
+        responsable: vencidasOnly ? FILTROS_VENCIDAS.responsable : ((filters.responsable as "mias" | "todos") ?? "todos"),
         vencidas: vencidasOnly,
         page,
         pageSize,
@@ -78,15 +78,11 @@ export default function Actividades() {
     },
   });
 
-  // Shortcut `?filtro=vencidas`: preconfigura pendientes + mías la primera vez.
-  const setFilterRef = useRef(list.setFilter);
-  setFilterRef.current = list.setFilter;
-  useEffect(() => {
-    if (vencidasOnly) {
-      setFilterRef.current("estado", "pendientes");
-      setFilterRef.current("responsable", "mias");
-    }
-  }, [vencidasOnly]);
+  const filtrosVisibles = vencidasOnly ? { ...list.filters, ...FILTROS_VENCIDAS } : list.filters;
+  const chips = vencidasOnly
+    ? list.activeChips.filter(({ key }) => key !== "filter:estado" && key !== "filter:responsable")
+    : list.activeChips;
+  const activeCount = chips.length + Number(Boolean(list.search));
 
   // P2-4: nunca exponer filas de la consulta anterior bajo filtros nuevos.
   const items = list.isStaleView ? [] : list.rows;
@@ -109,7 +105,7 @@ export default function Actividades() {
       <CrmSubheader
         context={list.isStaleView ? "Actualizando…" : pluralizar(list.count, "actividad", { plural: "actividades" })}
         actions={vencidasOnly ? (
-          <Button variant="outline" size="sm" onClick={limpiarFiltro} className="h-7">
+          <Button variant="outline" size="sm" onClick={limpiarFiltro} className="h-7" aria-label="Quitar filtro Vencidas">
             <X className="h-3 w-3 mr-1" /> Filtro: Vencidas
           </Button>
         ) : undefined}
@@ -119,14 +115,17 @@ export default function Actividades() {
         search={list.search}
         onSearchChange={list.setSearch}
         searchPlaceholder="Buscar por asunto…"
-        chips={list.activeChips}
-        activeCount={list.activeCount}
+        chips={chips}
+        activeCount={activeCount}
         onClearAll={list.resetAll}
         primary={
-          <ActividadesFiltros filters={list.filters} onChange={list.setFilter} />
+          <ActividadesFiltros filters={filtrosVisibles} onChange={list.setFilter} vencidasOnly={vencidasOnly} />
         }
       />
-      {(list.activeCount > 0 || list.search) && (
+      {vencidasOnly && (
+        <p className="text-body-sm text-muted-foreground">Vencidas muestra tus actividades pendientes. Quita ese filtro para cambiar el estado o el responsable.</p>
+      )}
+      {activeCount > 0 && (
         <p className="text-body-sm text-muted-foreground">Esta vista está filtrada. Las actividades nuevas se mostrarán sólo si coinciden con los filtros.</p>
       )}
       <Card>

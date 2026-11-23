@@ -52,16 +52,9 @@ export default function NuevoClienteDialog({ open, onOpenChange }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [confirmarSalida, setConfirmarSalida] = useState(false);
 
-  // R-15: no descartar la captura en silencio si el usuario ya escribió algo.
-  const hayCambios =
-    !!c.csfFile ||
-    Object.values(c.form as Record<string, unknown>).some(
-      (v) => v !== null && v !== undefined && v !== "" && v !== false,
-    );
-
   const intentarCerrar = () => {
     if (c.isSaving) return;
-    if (hayCambios) setConfirmarSalida(true);
+    if (c.hayCambios) setConfirmarSalida(true);
     else c.resetAndClose();
   };
 

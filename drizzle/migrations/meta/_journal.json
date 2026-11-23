@@ -498,6 +498,174 @@
       "when": 1794694500005,
       "tag": "0070_factura_resico_totales_agrupados",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1794694500006,
+      "tag": "0071_isr_resico_cotizacion_embarque",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1794694500007,
+      "tag": "0072_isr_resico_revision_embarque",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1794694500008,
+      "tag": "0073_isr_resico_proforma_normal",
+      "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1794694500009,
+      "tag": "0074_isr_resico_consolidacion_proformas",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1794694500010,
+      "tag": "0075_isr_resico_conversion_proforma",
+      "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1794694500011,
+      "tag": "0076_isr_resico_factura_manual",
+      "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1794694500012,
+      "tag": "0077_isr_resico_intentos_timbrado",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1794694500013,
+      "tag": "0078_isr_resico_recuperar_timbrado",
+      "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1794694500014,
+      "tag": "0079_isr_resico_cobranza",
+      "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1794694500015,
+      "tag": "0080_isr_resico_timbrado_notas",
+      "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1794694500016,
+      "tag": "0081_isr_resico_timbrado_rep",
+      "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1794694500017,
+      "tag": "0082_isr_resico_reemplazo",
+      "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1795197629441,
+      "tag": "0083_selected_security_internal_helpers_snapshot_writes",
+      "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1795204152189,
+      "tag": "0084_brokers_tabulador_comisiones",
+      "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1795214364163,
+      "tag": "0085_broker_alta_prospecto_propiedades_empresa",
+      "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1795214694896,
+      "tag": "0086_empresa_prospecto_externo",
+      "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1795215212890,
+      "tag": "0087_oportunidad_vendedor_externo",
+      "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1795215233459,
+      "tag": "0088_oportunidad_vendedor_externo_guard_null",
+      "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1795216114678,
+      "tag": "0089_brokers_comision_exclusiva_sin_kam",
+      "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1795216317917,
+      "tag": "0090_lectores_membresias_y_libro_respetan_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1795216947515,
+      "tag": "0091_demoras_y_pago_detalle_acceso_protegido",
+      "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1795217713125,
+      "tag": "0092_auxiliares_seleccionados_acceso_protegido",
+      "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1795217798656,
+      "tag": "0093_actividad_embarque_bitacora_misma_organizacion",
+      "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1795219226749,
+      "tag": "0094_autoridad_local_avisos_seleccionados",
+      "breakpoints": true
     }
   ]
 }

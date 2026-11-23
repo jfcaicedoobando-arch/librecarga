@@ -27,6 +27,9 @@ DECLARE
   v_estado_link text;
   v_rl jsonb;
   v_moneda_legacy text;
+  v_bloques jsonb;
+  v_mxn jsonb;
+  v_usd jsonb;
 BEGIN
   v_rl := public.check_ratelimit(
     'rpc:portal_obtener_proforma_por_token:'
@@ -70,7 +73,30 @@ BEGIN
     );
   END IF;
 
-  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+  IF v_proforma.evaluacion_fiscal IS NOT NULL THEN
+    -- Proyección pública de los importes y renglones guardados, sin perfil ni linaje interno.
+    SELECT jsonb_agg(jsonb_build_object('moneda', b->'moneda', 'subtotal', b->'subtotal', 'iva', b->'iva',
+      'ret_isr', b->'ret_isr', 'ret_iva', b->'ret_iva', 'total', b->'total') ORDER BY b->>'moneda')
+      INTO v_bloques FROM jsonb_array_elements(v_proforma.evaluacion_fiscal->'bloques') b;
+    SELECT b INTO v_mxn FROM jsonb_array_elements(v_bloques) b WHERE b->>'moneda' = 'MXN';
+    SELECT b INTO v_usd FROM jsonb_array_elements(v_bloques) b WHERE b->>'moneda' = 'USD';
+    IF NOT v_proforma.es_consolidada THEN
+      SELECT jsonb_agg(jsonb_build_object('id', c->'id', 'descripcion', c->'descripcion', 'cantidad', c->'cantidad',
+      'precio_unitario', c->'precio_unitario', 'importe', c->'total', 'moneda', c->'moneda',
+      'tipo_iva', c->'tipo_iva', 'tasa_iva_aplicada', c->'tasa_iva_aplicada', 'aplica_iva', c->'aplica_iva') ORDER BY ord)
+      INTO v_conceptos FROM jsonb_array_elements(v_proforma.conceptos_fiscales) WITH ORDINALITY AS l(c, ord);
+    END IF;
+    v_moneda_legacy := CASE WHEN v_mxn IS NOT NULL THEN 'MXN' ELSE 'USD' END;
+  ELSE
+    v_moneda_legacy := CASE
+      WHEN v_proforma.subtotal_mxn > 0
+        OR (v_proforma.subtotal_mxn = 0 AND v_proforma.subtotal_usd = 0)
+      THEN 'MXN' ELSE 'USD' END;
+    v_mxn := jsonb_build_object('subtotal', v_proforma.subtotal_mxn, 'iva', v_proforma.iva_mxn, 'total', v_proforma.total_mxn);
+    v_usd := jsonb_build_object('subtotal', v_proforma.subtotal_usd, 'iva', v_proforma.iva_usd, 'total', v_proforma.total_usd);
+  END IF;
+  IF v_conceptos IS NULL THEN
+    SELECT COALESCE(jsonb_agg(jsonb_build_object(
     'id', pcc.id,
     'descripcion', pcc.descripcion,
     'cantidad', pcc.cantidad,
@@ -83,17 +109,8 @@ BEGIN
   ) ORDER BY pcc.created_at), '[]'::jsonb)
     INTO v_conceptos
     FROM public.proforma_conceptos_consolidados pcc
-   WHERE pcc.proforma_id = v_proforma.id;
-
-  -- FIX4 N-2: las columnas singulares ya no existen (multimoneda dual). Las
-  -- claves legacy se derivan: MXN si hay subtotal_mxn o si ambos son cero
-  -- (default histórico); si no, USD. El front nuevo usa los juegos duales.
-  v_moneda_legacy := CASE
-    WHEN v_proforma.subtotal_mxn > 0
-      OR (v_proforma.subtotal_mxn = 0 AND v_proforma.subtotal_usd = 0)
-    THEN 'MXN'
-    ELSE 'USD'
-  END;
+   WHERE pcc.proforma_id = v_proforma.id AND pcc.deleted_at IS NULL;
+  END IF;
 
   RETURN jsonb_build_object(
     'estado_link', v_estado_link,
@@ -103,17 +120,18 @@ BEGIN
       'cliente_nombre', v_proforma.cliente_nombre,
       'expediente', v_proforma.expediente,
       -- Juegos duales (fuente de verdad multimoneda)
-      'subtotal_mxn', v_proforma.subtotal_mxn,
-      'iva_mxn', v_proforma.iva_mxn,
-      'total_mxn', v_proforma.total_mxn,
-      'subtotal_usd', v_proforma.subtotal_usd,
-      'iva_usd', v_proforma.iva_usd,
-      'total_usd', v_proforma.total_usd,
+      'subtotal_mxn', v_mxn->'subtotal',
+      'iva_mxn', v_mxn->'iva',
+      'total_mxn', v_mxn->'total',
+      'subtotal_usd', v_usd->'subtotal',
+      'iva_usd', v_usd->'iva',
+      'total_usd', v_usd->'total',
+      'totales_fiscales', v_bloques,
       -- Claves legacy singulares derivadas (compat con el front publicado)
       'moneda', v_moneda_legacy,
-      'subtotal', CASE WHEN v_moneda_legacy = 'MXN' THEN v_proforma.subtotal_mxn ELSE v_proforma.subtotal_usd END,
-      'iva', CASE WHEN v_moneda_legacy = 'MXN' THEN v_proforma.iva_mxn ELSE v_proforma.iva_usd END,
-      'total', CASE WHEN v_moneda_legacy = 'MXN' THEN v_proforma.total_mxn ELSE v_proforma.total_usd END,
+      'subtotal', CASE WHEN v_moneda_legacy = 'MXN' THEN v_mxn->'subtotal' ELSE v_usd->'subtotal' END,
+      'iva', CASE WHEN v_moneda_legacy = 'MXN' THEN v_mxn->'iva' ELSE v_usd->'iva' END,
+      'total', CASE WHEN v_moneda_legacy = 'MXN' THEN v_mxn->'total' ELSE v_usd->'total' END,
       'estado_cliente', v_proforma.estado_cliente,
       'aceptada_at', v_proforma.aceptada_at,
       'rechazada_at', v_proforma.rechazada_at,

@@ -28,9 +28,12 @@ paths = [
 id = "generic-api-key"
 
 [[rules.allowlists]]
-description = "Verified baseline SQL column joins; exact context only"
+description = "Verified baseline and replay preimage SQL column joins; exact context only"
 condition = "AND"
-paths = ['''^supabase/schema/baseline\.sql$''']
+paths = [
+  '''^supabase/schema/baseline\.sql$''',
+  '''^scripts/ci/drizzle-history/preconditions/authority-0092-0094\.sql$''',
+]
 regexTarget = "match"
 regexes = ['''^auth\.users u ON u\.id = (?:fe2\.enviado_por|fe3\.subido_por|fe4\.capturado_por)$''']
 

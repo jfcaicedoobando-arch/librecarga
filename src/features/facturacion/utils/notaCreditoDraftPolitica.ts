@@ -79,6 +79,7 @@ export function draftInicialNC(params: {
 export interface ContextoFacturaNC {
   saldoFactura: number;
   uuidFacturaOriginal: string | null;
+  cuadreAgrupado?: boolean;
 }
 
 export interface DerivadosNC {
@@ -99,7 +100,7 @@ export interface DerivadosNC {
 
 export function derivadosNC(draft: DraftNC, ctx: ContextoFacturaNC): DerivadosNC {
   // B-007: la NC refleja el total con IVA para que iguale el saldo original.
-  const totales = calcularTotalesNC(draft.conceptos);
+  const totales = calcularTotalesNC(draft.conceptos, ctx.cuadreAgrupado);
   const monto = totales.total;
 
   const excedeSaldo = monto > ctx.saldoFactura + 0.01;

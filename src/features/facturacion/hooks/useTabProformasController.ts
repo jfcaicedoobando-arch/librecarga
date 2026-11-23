@@ -9,8 +9,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { useProformas, type ProformaConFactura, type ProformaRow } from "@/features/embarques/hooks/useProformas";
 import { useDescargarProformaPdf } from "@/features/embarques/hooks/useDescargarProformaPdf";
-import { useTabProformasState, type FiltroEstadoProforma } from "./useTabProformasState";
+import { useTabProformasState, type EstadoProformaControlado, type FiltroEstadoProforma } from "./useTabProformasState";
 import { totalesListadoProforma } from "@/features/proformas/domain";
+import { etiquetaEstadoProformaListado } from "@/lib/domain/estadoUnificado";
 
 function isConvertible(p: ProformaConFactura): boolean {
   if ((p.estado_proforma ?? "pendiente") === "facturada") return false;
@@ -19,6 +20,10 @@ function isConvertible(p: ProformaConFactura): boolean {
   // conceptos a la proforma consolidada: convertirla emitiría una factura sin
   // líneas. El servidor también lo rechaza (`LC_PROFORMA_FUENTE_CONSOLIDADA`).
   if (p.estado_revision === "consolidada") return false;
+  if (p.evaluacion_fiscal != null) {
+    return !p.es_consolidada && !!p.embarque_id && !p.factura_id && !p.factura_secundaria_id
+      && !p.folio_factura_externa && p.estado_cliente !== "rechazada";
+  }
   return p.estado_cliente === "aceptada";
 }
 
@@ -27,6 +32,7 @@ function isConvertible(p: ProformaConFactura): boolean {
 export function useTabProformasController(opts?: {
   isInRange?: (fecha: string | null | undefined) => boolean;
   estadoInicial?: FiltroEstadoProforma;
+  estadoControlado?: EstadoProformaControlado;
 }) {
   const [proformaAFacturar, setProformaAFacturar] = useState<ProformaRow | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -34,7 +40,7 @@ export function useTabProformasController(opts?: {
   const { data: proformas = [], isLoading, isError, refetch } = useProformas();
   const { descargar, downloadingId } = useDescargarProformaPdf();
 
-  const state = useTabProformasState(proformas, opts?.isInRange, opts?.estadoInicial);
+  const state = useTabProformasState(proformas, opts?.isInRange, opts?.estadoInicial, opts?.estadoControlado);
   const {
     filtered, paginated, counts, totalPages,
     search, filtroEstado, filtroCliente, filtroOperador, fechaDesde, fechaHasta,
@@ -57,6 +63,16 @@ export function useTabProformasController(opts?: {
     () => proformas.filter((p) => selectedIds.has(p.id) && isConvertible(p)),
     [proformas, selectedIds],
   );
+  const seleccionFueraDeFiltros = useMemo(() => {
+    if (selectedProformas.length === 0) return [];
+    const idsFiltrados = new Set(filtered.map((p) => p.id));
+    return selectedProformas.filter((p) => !idsFiltrados.has(p.id));
+  }, [filtered, selectedProformas]);
+
+  const quitarSeleccionFueraDeFiltros = () => {
+    const idsOcultos = new Set(seleccionFueraDeFiltros.map((p) => p.id));
+    setSelectedIds((prev) => new Set([...prev].filter((id) => !idsOcultos.has(id))));
+  };
 
   // Validación de fusión: mismo cliente (las proformas guardan totales en USD
   // y MXN; la moneda final de la factura la define la serie/conversión y se
@@ -109,7 +125,7 @@ export function useTabProformasController(opts?: {
     numero: p.numero, expediente: p.expediente, cliente: p.cliente_nombre,
     operador: p.operador ?? "", dias_credito: p.dias_credito ?? "",
     ...totalesListadoProforma(p),
-    fecha: p.fecha_emision, estado: p.estado_proforma ?? "pendiente",
+    fecha: p.fecha_emision, estado: etiquetaEstadoProformaListado(p),
     folio_factura: p.folio_factura_externa ?? "", fecha_facturacion: p.fecha_facturacion ?? "",
   }));
 
@@ -136,6 +152,7 @@ export function useTabProformasController(opts?: {
     // selección múltiple (Fase 3 — fusión)
     selectedIds, toggleSelected, clearSelected, isConvertible,
     selectedProformas, fusionInfo,
+    seleccionFueraDeFiltros: seleccionFueraDeFiltros.length, quitarSeleccionFueraDeFiltros,
     // export CSV
     csvColumns, csvRows,
     // dialog facturación (flujo legado)

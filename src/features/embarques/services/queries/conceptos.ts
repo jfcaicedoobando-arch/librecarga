@@ -22,7 +22,7 @@ const COLS_CONCEPTOS_VENTA =
   // confirmado cambiaba al guardar.
   // SAT 01: `tipo_iva` se selecciona para que una fila "No objeto" se hidrate
   // como tal al editar, en vez de degradarse a legacy/exento.
-  "id, embarque_id, descripcion, cantidad, precio_unitario, total, moneda, organization_id, created_at, estado_facturacion, proforma_id, aplica_iva, tasa_iva_aplicada, tipo_iva, contenedor_id";
+  "id, embarque_id, descripcion, cantidad, precio_unitario, total, moneda, organization_id, created_at, estado_facturacion, proforma_id, aplica_iva, tasa_iva_aplicada, tipo_iva, contenedor_id, evaluacion_fiscal, tasa_ret_isr, monto_ret_isr, origen, cotizacion_concepto_origen_id";
 
 export async function fetchEmbarqueConceptosVenta(
   embarqueId: string,

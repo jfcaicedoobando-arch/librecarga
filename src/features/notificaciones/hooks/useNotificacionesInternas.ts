@@ -57,6 +57,10 @@ export function useNotificacionesInternas() {
   return {
     notificaciones: query.data ?? [],
     isLoading: query.isLoading,
+    isSuccess: query.isSuccess,
+    isError: query.isError,
+    isFetching: query.isFetching,
+    refetch: query.refetch,
     noLeidas,
     marcarLeida: marcarLeidaMut.mutate,
     marcarTodasLeidas: marcarTodasMut.mutate,

@@ -52,6 +52,25 @@ describe("deriveFacturaFlags", () => {
     expect(r.puedeSustituirCfdi).toBe(true);
   });
 
+  it("el borrador fiscal permite timbrar y dar de baja con los conceptos protegidos", () => {
+    const flags = deriveFacturaFlags({
+      deleted_at: null, estado: "Borrador", fecha_emision: POST, evaluacion_fiscal: { estado: "confirmado" },
+    }, true);
+    expect(flags).toMatchObject({
+      esBorrador: true, puedeEditarBorrador: false, puedeEliminarBorrador: true, puedeTimbrarDesdeSistema: true,
+    });
+  });
+
+  it("un intento fiscal pendiente deja disponible la recuperación y evita una segunda emisión", () => {
+    const flags = deriveFacturaFlags({
+      deleted_at: null, estado: "Borrador", fecha_emision: POST,
+      evaluacion_fiscal: { estado: "confirmado" }, facturapi_id: "PENDING:intento",
+    }, true);
+    expect(flags).toMatchObject({
+      esBorrador: false, puedeEditarBorrador: false, puedeEliminarBorrador: false, puedeTimbrarDesdeSistema: false,
+    });
+  });
+
   it("Timbrada + Vencida + canEdit → puede cancelar y sustituir CFDI", () => {
     const r = deriveFacturaFlags(
       { deleted_at: null, estado: "Vencida", uuid_fiscal: "UUID-1", fecha_emision: POST },

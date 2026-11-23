@@ -52,6 +52,19 @@ it("muestra el vacío sin categorías sin ofrecer quitar un filtro inactivo", ()
   expect(screen.queryByRole("button", { name: 'Quitar filtro "Solo excepciones"' })).not.toBeInTheDocument();
 });
 
+it("anuncia la dirección en la columna con el orden vigente", () => {
+  render(<TabVsReal />);
+  const variacion = screen.getByRole("columnheader", { name: "Variación" });
+  const categoria = screen.getByRole("columnheader", { name: "Categoría" });
+  expect(variacion).toHaveAttribute("aria-sort", "descending");
+  fireEvent.click(screen.getByRole("button", { name: "Variación" }));
+  expect(variacion).toHaveAttribute("aria-sort", "ascending");
+  expect(categoria).not.toHaveAttribute("aria-sort");
+  fireEvent.click(screen.getByRole("button", { name: "Categoría" }));
+  expect(variacion).not.toHaveAttribute("aria-sort");
+  expect(categoria).toHaveAttribute("aria-sort", "ascending");
+});
+
 it("EX08: muestra importe y captura, filtra y exporta las mismas excepciones sin ocultar parcialidad", async () => {
   const sinCaptura = { ...normal, categoria_id: "s", categoria_nombre: "Sin captura", presupuesto_mxn: 0, presupuesto_capturado: false, real_mxn: 250, variacion_mxn: 250, cumplimiento_pct: 0 };
   const ceroCapturado = { ...sinCaptura, categoria_id: "c", categoria_nombre: "Cero capturado", presupuesto_capturado: true, real_mxn: 50, variacion_mxn: 50 };

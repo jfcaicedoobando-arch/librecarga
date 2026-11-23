@@ -1,6 +1,6 @@
 /** Sólo I/O en memoria para el caso de uso real (sin SDK ni DB remotos). */
-interface Options { factura?: { deleted_at?: string | null; organization_id?: string }; summary?: "divergent" | "unavailable"; claimTaken?: boolean; pending?: boolean; persistenceFails?: boolean }
 type Row = Record<string, unknown>;
+interface Options { factura?: Row; summary?: "divergent" | "unavailable"; claimTaken?: boolean; pending?: boolean; persistenceFails?: boolean }
 
 export function fixtureRep(options: Options = {}) {
   const events: string[] = [];
@@ -10,6 +10,7 @@ export function fixtureRep(options: Options = {}) {
     id: "pago-1", factura_id: "factura-1", organization_id: "org-1",
     monto: 680, monto_aplicado_factura: 680, moneda: "MXN", tipo_cambio: 1,
     fecha_pago: "2026-10-03", forma_pago: "03", estado_rep: "Pendiente",
+    updated_at: "2026-10-03T12:00:00.000Z",
     uuid_rep: null, facturapi_rep_id: null,
   };
   const tables: Record<string, Row[]> = {
@@ -55,19 +56,26 @@ export function fixtureRep(options: Options = {}) {
   const supabase = {
     from: query,
     storage: { from: () => ({ upload: () => Promise.resolve({ data: {}, error: null }) }) },
+    rpc: (op: string, args: Row) => {
+      events.push(op);
+      if (op === "reservar_rep_isr") return Promise.resolve({ data: { claim: "PENDING:rep-protegido" }, error: null });
+      return Promise.resolve({ data: { estado: args.p_estado }, error: null });
+    },
   };
   const client = { invoices: {
     paymentSummary: async (id: string, params: { amount: number }) => {
       events.push("summary");
       if (id !== "factura-remota-1" || params.amount !== 680) throw new Error("identity / amount mismatch");
       if (options.summary === "unavailable") throw new Error("fixture provider unavailable");
-      return { installment: 1, last_balance: options.summary === "divergent" ? 1 : 1360, amount: 680,
+      return { uuid: "11111111-2222-4333-8444-555555555555", installment: 1,
+        last_balance: options.summary === "divergent" ? 1 : 1360, amount: 680,
         currency: "MXN", taxes: [{ type: "IVA", rate: 0.16, base: 500 }] };
     },
     create: async (payload: Row) => {
       events.push("create"); payloads.push(payload);
       return { id: "rep-remoto-1", uuid: options.pending ? null : "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
-        status: options.pending ? "pending" : "valid", folio_number: 19, series: "REP" };
+        status: options.pending ? "pending" : "valid", folio_number: 19, series: "REP",
+        external_id: payload.external_id, type: "P", livemode: false, total: 0 };
     },
   } };
   return { supabase, client, pago, events, patches, payloads };

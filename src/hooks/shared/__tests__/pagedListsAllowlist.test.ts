@@ -26,13 +26,28 @@ const MIGRATED_ROUTES = [
   "src/features/cotizacion/routes/Cotizaciones.tsx",
 ] as const;
 
+const CONTROLLERS: Partial<Record<string, { path: string; call: RegExp }>> = {
+  "src/features/bandejas/routes/Cartera.tsx": {
+    path: "src/features/bandejas/hooks/useCarteraPage.ts",
+    call: /\buseCarteraPage\(/,
+  },
+  "src/features/cotizacion/routes/Cotizaciones.tsx": {
+    path: "src/features/cotizacion/hooks/useCotizacionesPageController.ts",
+    call: /\buseCotizacionesPageController\(/,
+  },
+};
+
 describe("Filtros globales — allowlist de rutas migradas", () => {
   it.each(MIGRATED_ROUTES)(
     "%s usa el primitivo paginado unificado",
     (relPath) => {
       const src = readFileSync(resolve(process.cwd(), relPath), "utf8");
-      const usesPrimitive = /useServerPagedList|useClientPagedList/.test(src);
-      expect(usesPrimitive, `${relPath} debe importar useServerPagedList o useClientPagedList`).toBe(true);
+      const controller = CONTROLLERS[relPath];
+      const primitiveSource = controller
+        ? readFileSync(resolve(process.cwd(), controller.path), "utf8")
+        : src;
+      if (controller) expect(src).toMatch(controller.call);
+      expect(primitiveSource, `${relPath} debe usar un primitivo paginado`).toMatch(/\buse(?:Server|Client)PagedList(?:<|\()/);
     },
   );
 

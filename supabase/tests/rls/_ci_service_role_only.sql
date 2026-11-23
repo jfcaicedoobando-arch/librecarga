@@ -25,6 +25,12 @@
 DROP TABLE IF EXISTS pg_temp._ci_service_role_only;
 CREATE TEMP TABLE _ci_service_role_only (fn text);
 INSERT INTO _ci_service_role_only (fn) VALUES
+  -- Drizzle 0083 y 0092 cierran estos auxiliares antes del grant de pruebas.
+  ('public._assert_receptor_fiscal_valido(uuid)'),
+  ('public._calcular_demoras_montos_contenedor(uuid, uuid, uuid, integer, text)'),
+  ('public._cxp_desvincular_por_rechazo(uuid, text)'),
+  ('public._refact_reps_bloqueantes(uuid)'),
+  ('public._resolver_proveedor_por_nombre(uuid, text)'),
   ('public.registrar_perfil_fiscal_emisor(uuid, text, uuid, timestamptz, integer, jsonb)'),
   ('public._perfil_fiscal_emisor_resultado(public.perfiles_fiscales_emisor, public.facturapi_credenciales, text)'),
   ('public.reservar_evento_facturapi_webhook(uuid, text, jsonb)'),
@@ -191,5 +197,17 @@ INSERT INTO _ci_service_role_only (fn) VALUES
    ('public._crm_lead_sync_estado_empresa()'),
    -- Private explicit identity resolver, called only by authorized conversion RPCs.
    ('public._crm_empresa_para_conversion(uuid, uuid, uuid)'),
-   ('public._crm_empresa_validar_lead()');
+   ('public._crm_empresa_validar_lead()'),
+   -- Timbrado evaluado y verificación fiscal desde las funciones Edge.
+   ('public.validar_cotizacion_fiscal_envio(uuid, text, uuid)'),
+   ('public.reservar_timbrado_isr(uuid, uuid, jsonb, jsonb)'),
+   ('public.obtener_intento_timbrado_isr(uuid, uuid, text)'),
+   ('public.registrar_resultado_timbrado_isr(uuid, text, text, jsonb)'),
+   ('public.reservar_nota_credito_isr(uuid, uuid, uuid, timestamp with time zone)'),
+   ('public.obtener_intento_nota_credito_isr(uuid, uuid, text)'),
+   ('public.registrar_resultado_nota_credito_isr(uuid, uuid, text, text, jsonb)'),
+   ('public.reservar_rep_isr(uuid, uuid, uuid, timestamp with time zone, jsonb)'),
+   ('public.obtener_intento_rep_isr(uuid, uuid, text)'),
+   ('public.registrar_resultado_rep_isr(uuid, uuid, text, text, jsonb)'),
+   ('public._isr_rep_confirmado_webhook(uuid, uuid, text, text, text)');
 

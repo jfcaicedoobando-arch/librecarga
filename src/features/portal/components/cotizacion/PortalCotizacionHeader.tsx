@@ -10,6 +10,7 @@ interface PortalCotizacionHeaderProps {
   folio: string;
   estado: string;
   clienteNombre: string;
+  aceptacionBloqueada: boolean;
   onAceptar: () => void;
   onRechazar: () => void;
 }
@@ -24,6 +25,7 @@ export default function PortalCotizacionHeader({
   folio,
   estado,
   clienteNombre,
+  aceptacionBloqueada,
   onAceptar,
   onRechazar,
 }: PortalCotizacionHeaderProps) {
@@ -52,6 +54,7 @@ export default function PortalCotizacionHeader({
               </Button>
               <Button
                 className="bg-success text-success-foreground hover:bg-success/90"
+                disabled={aceptacionBloqueada}
                 onClick={onAceptar}
               >
                 <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -76,6 +79,7 @@ export default function PortalCotizacionHeader({
             </Button>
             <Button
               className="flex-1 bg-success text-success-foreground hover:bg-success/90"
+              disabled={aceptacionBloqueada}
               onClick={onAceptar}
             >
               <CheckCircle2 className="h-4 w-4 mr-2" />

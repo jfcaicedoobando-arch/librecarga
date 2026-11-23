@@ -13,6 +13,15 @@ const c = (extra: Partial<ConceptoNotaCredito>): ConceptoNotaCredito => ({
 });
 
 describe("calcularTotalesNC", () => {
+  it("agrupa dos renglones aprobados y conserva el total de la factura RESICO", () => {
+    const linea = c({ precio_unitario: 100.4, tipo_iva: "gravado_16", tasa_iva: .16,
+      tasa_ret_isr: .0125, tasa_ret_iva: .04 });
+    expect(calcularTotalesNC([linea, linea], true)).toEqual({
+      subtotal: 200.8, iva: 32.13, retIsr: 2.51, retIva: 8.03, total: 222.39,
+    });
+    expect(calcularTotalesNC([linea, linea]).total).toBe(222.36);
+  });
+
   it("factura mixta: cada renglón aporta su propio IVA", () => {
     const t = calcularTotalesNC([
       c({ tipo_iva: "gravado_16", tasa_iva: 0.16 }),

@@ -105,7 +105,7 @@ export default function AdminDashboard() {
                     <div className="text-body font-medium truncate">{o.nombre}</div>
                     <div className="text-body-sm text-muted-foreground">{o.plan} · {formatDate(o.created_at)}</div>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <ArrowRight className="size-4 text-muted-foreground shrink-0" />
                 </button>
               ))
             )}

@@ -12,18 +12,21 @@ import {
   NotasCard,
 } from "@/features/proformas/components/ProformaDetalleCards";
 import type { calcularTotalesProforma } from "@/features/proformas/domain/proforma";
-import type { ProformaDetalleFull, ConceptoVentaRow } from "@/features/proformas/services";
+import type { ProformaDetalleFull } from "@/features/proformas/services";
+import type { ConceptoProformaDocumento } from "@/features/proformas/domain/proformaFiscal";
+import type { BloqueFiscalCotizacion } from "@/features/cotizacion/domain/snapshotFiscalCotizacion";
 
 type Totales = ReturnType<typeof calcularTotalesProforma>;
 
 interface Props {
   proforma: ProformaDetalleFull;
-  conceptos: ConceptoVentaRow[];
+  conceptos: ConceptoProformaDocumento[];
   totales: Totales;
   emptyConceptos: string;
+  bloquesFiscales?: BloqueFiscalCotizacion[];
 }
 
-export function ProformaTabs({ proforma, conceptos, totales, emptyConceptos }: Props) {
+export function ProformaTabs({ proforma, conceptos, totales, emptyConceptos, bloquesFiscales }: Props) {
   const facturas = proforma.facturas_asociadas ?? [];
   const clienteFull = proforma.cliente_full ?? null;
   const embarqueFull = proforma.embarque_full ?? null;
@@ -39,6 +42,7 @@ export function ProformaTabs({ proforma, conceptos, totales, emptyConceptos }: P
           conceptos={conceptos}
           totales={totales}
           emptyMessage={emptyConceptos}
+          bloquesFiscales={bloquesFiscales}
         />
       ),
     },

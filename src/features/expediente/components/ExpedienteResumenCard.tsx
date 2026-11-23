@@ -67,14 +67,16 @@ export function ExpedienteResumenCard({ titulo, resumen, onAgregar }: Props) {
                   : "Falta capturar este documento"}
               </p>
             </div>
-            {!r.documento && onAgregar && (
+            {onAgregar && (!r.documento || r.estado === "Vencido" || r.estado === "Por vencer") && (
               <Button
                 variant="ghost"
-                size="icon"
-                aria-label={`Agregar ${r.tipo}`}
+                size={r.documento ? "sm" : "icon"}
+                aria-label={`${r.documento ? "Renovar" : "Agregar"} ${r.tipo}`}
+                className="shrink-0"
                 onClick={() => onAgregar(r.tipo)}
               >
-                <FileUp className="h-4 w-4" />
+                <FileUp className="h-4 w-4" aria-hidden="true" />
+                {r.documento && "Renovar"}
               </Button>
             )}
           </div>

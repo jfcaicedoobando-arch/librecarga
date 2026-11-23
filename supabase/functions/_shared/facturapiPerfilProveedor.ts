@@ -1,4 +1,4 @@
-import { basicAuthHeader, FACTURAPI_BASE } from "../_shared/facturapiAuth.ts";
+import { basicAuthHeader, FACTURAPI_BASE } from "./facturapiAuth.ts";
 
 export class PerfilFiscalError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }

@@ -7,6 +7,7 @@
  * y todo se filtraba/paginaba en memoria: con más de 1000 cotizaciones las más
  * viejas desaparecían del listado, de los KPIs y del CSV.
  */
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerPagedList } from "@/hooks/shared/useServerPagedList";
 import { useOrgFilter } from "@/hooks/shared/useOrgFilter";
@@ -21,6 +22,7 @@ import {
   type CotizacionesFiltrosSql,
 } from "@/features/cotizacion/services/paginados";
 import { fetchCotizacionAgregados } from "@/features/cotizacion/services/agregados";
+import { estadoCompatibleConAceptadasSinEmbarque } from "@/features/cotizacion/domain/filtroAceptadasSinEmbarque";
 import type { CotizacionListItem, SegmentoCotizacion } from "@/features/cotizacion/services/cotizacionListTypes";
 
 export const ESTADOS_COTIZACION = [
@@ -52,9 +54,6 @@ const DEFAULT_FILTERS = {
 type CotizacionFilters = Record<keyof typeof DEFAULT_FILTERS, string>;
 
 const SORTABLE_KEYS = Object.keys(SORT_KEY_TO_COLUMN);
-const KPIS_VACIOS = { total: 0, aceptadas: 0, rechazadas: 0, tasa: "0.0" };
-const CONTEOS_VACIOS = { clientes: 0, prospectos: 0, todas: 0 };
-
 function normalizarSegmento(valor: string): SegmentoCotizacion {
   return valor === "prospectos" || valor === "todas" ? valor : "clientes";
 }
@@ -111,16 +110,26 @@ export function useCotizacionesPageController() {
       }),
   });
 
+  const { setFilter } = lista;
+  const soloAceptadasSinEmbarque = lista.filters.aceptadasSinEmbarque === "si";
+  const estadoIncompatible = soloAceptadasSinEmbarque &&
+    !estadoCompatibleConAceptadasSinEmbarque(lista.filters.estado);
+  // Un enlace anterior puede contener ambos filtros. La bandeja es el más específico.
+  useEffect(() => {
+    if (estadoIncompatible) setFilter("estado", DEFAULT_FILTERS.estado);
+  }, [estadoIncompatible, setFilter]);
+
   const segmento = normalizarSegmento(lista.filters.segmento);
 
   // COT-NEW-01: los conteos comparten el filtro de vigencia con la tabla.
   const incluirInactivas = lista.filters.incluirInactivas === "si";
   const agregadosQueryKey = ["cotizaciones", "agregados", organizationId, segmento, incluirInactivas];
-  const { data: agregados } = useQuery({
+  const consultaAgregados = useQuery({
     queryKey: agregadosQueryKey,
     queryFn: () => fetchCotizacionAgregados(organizationId, segmento, incluirInactivas),
     staleTime: staleTimes.MEDIUM,
   });
+  const agregados = consultaAgregados.isError ? undefined : consultaAgregados.data;
 
   const filtrosActuales = aFiltrosSql(organizationId, lista.search, lista.filters);
 
@@ -134,31 +143,34 @@ export function useCotizacionesPageController() {
     paginated: lista.rows,
     /** Total del servidor (ya no es el largo del array en memoria). */
     total: lista.count,
-    kpis: agregados?.kpis ?? KPIS_VACIOS,
+    kpis: agregados?.kpis,
+    errorAgregados: consultaAgregados.isError,
+    consultandoAgregados: consultaAgregados.isFetching,
+    reintentarAgregados: consultaAgregados.refetch,
     canEdit,
     // filtros
     search: lista.search,
-    filterEstado: lista.filters.estado,
+    filterEstado: estadoIncompatible ? DEFAULT_FILTERS.estado : lista.filters.estado,
     filterCliente: lista.filters.cliente,
     filterSinCostos: lista.filters.sinCostos === "si",
     incluirInactivas: lista.filters.incluirInactivas === "si",
-    soloAceptadasSinEmbarque: lista.filters.aceptadasSinEmbarque === "si",
+    soloAceptadasSinEmbarque,
     segmento,
-    segmentoConteos: agregados?.segmentoConteos ?? CONTEOS_VACIOS,
+    segmentoConteos: agregados?.segmentoConteos,
     totalAceptadasSinEmbarque: agregados?.totalAceptadasSinEmbarque ?? 0,
     page: lista.page,
     pageSize: lista.pageSize,
     totalPages: lista.totalPages,
     setSearch: lista.setSearch,
-    setFilter: lista.setFilter,
+    setFilter,
     setPage: lista.setPage,
     setPageSize: lista.setPageSize,
     controlledSort: lista.controlledSort,
     setSort: lista.setSort,
     pagination: lista.pagination,
     // UnifiedFiltersBar
-    activeChips: lista.activeChips,
-    activeCount: lista.activeCount,
+    activeChips: estadoIncompatible ? lista.activeChips.filter((chip) => chip.key !== "filter:estado") : lista.activeChips,
+    activeCount: lista.activeCount - Number(estadoIncompatible),
     resetAll: lista.resetAll,
     // acciones (delegadas a useCotizacionActions)
     cotizacionAEliminar: actions.cotizacionAEliminar,

@@ -40,7 +40,7 @@ const solicitud: SolicitudPricingRow = {
 };
 const tarifa: TarifaRespuestaRow = {
   id: "t1", flete_base: 100, moneda: "USD", unidad_flete: null, carta_garantia: null,
-  transit_time_dias: null, vigente_hasta: null, agente: { nombre: "Agente nuevo" }, naviera: null, tipo: null, ruta: null,
+  transit_time_dias: null, vigente_hasta: null, notas: null, agente: { nombre: "Agente nuevo" }, naviera: null, tipo: null, ruta: null,
 };
 let client: QueryClient;
 const view = (estado = "enviada") => (

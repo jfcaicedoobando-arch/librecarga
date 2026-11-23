@@ -11,6 +11,7 @@ import { useCostosPreciosCalc } from "@/features/embarques/hooks/useCostosPrecio
 import { CostosCard, VentasCard } from "./StepCostosPreciosCards";
 import { StepCostosTcAviso } from "./StepCostosTcAviso";
 import { StepCostosPreciosAlerts } from "./StepCostosPreciosAlerts";
+import { PreviewFiscalEmbarque } from "./facturacion/PreviewFiscalEmbarque";
 import type { StepValidationErrors } from "@/features/embarques/domain/embarqueWizardSchemas";
 import type { EmbarqueFormValues } from "@/features/embarques/hooks";
 import type { ConceptoVentaLocal as ConceptoVentaRow, ConceptoCostoLocal as ConceptoCostoRow } from "@/types/concepto";
@@ -40,11 +41,7 @@ interface Props {
   costosBloqueados?: boolean;
 }
 
-// VIS-CE-251-01: `minmax(0,1fr)` permite que la rejilla se ajuste al ancho
-// del card (los `1fr` forzaban mínimos intrínsecos y los importes se
-// recortaban). R257 · VIS-CE-251-01: el ancho mayor (150px) va a la columna
-// de Total (última antes del botón) para que quepan el importe y el indicador
-// FX; la de Contenedor usa 110px.
+// `minmax(0,1fr)` evita recortes. La columna Total reserva espacio para el importe y el indicador FX.
 const COSTO_COLS_BASE = "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_88px_150px_36px]";
 const COSTO_COLS_CONT = "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px_88px_110px_150px_36px]";
 const VENTA_COLS_BASE = "lg:grid-cols-[minmax(0,1fr)_72px_120px_88px_150px_36px]";
@@ -165,6 +162,7 @@ export function StepCostosPrecios(props: Props) {
           totalUSD={totalVentaUSD}
           filasMixtasCount={ventaCalc.filasMixtas.length}
         />
+        <PreviewFiscalEmbarque conceptos={conceptosVenta} clienteId={watch("clienteId")} embarqueId={embarqueId} />
         <Card>
           <CardContent className="p-4 space-y-3">
             <div className="grid grid-cols-3 gap-4 text-center">

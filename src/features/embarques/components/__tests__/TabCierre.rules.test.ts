@@ -4,6 +4,8 @@
  * estado del embarque sea respetado.
  */
 import { describe, it, expect } from "vitest";
+import { CERRAR_EMBARQUE, hasRole } from "@/lib/access/permissionMatrix";
+import type { AppRole } from "@/types/appRole";
 
 /**
  * Replica la lógica embebida en TabCierre.tsx para validarla de forma aislada.
@@ -11,12 +13,11 @@ import { describe, it, expect } from "vitest";
  */
 const ESTADOS_LISTOS_PARA_CIERRE = new Set(["entregado", "eir", "por liquidar"]);
 function puedeCerrar(opts: {
-  isAdmin: boolean;
-  canEditFinance: boolean;
+  role: AppRole;
   estatus: string;
 }): boolean {
   return (
-    (opts.isAdmin || opts.canEditFinance) &&
+    hasRole(CERRAR_EMBARQUE, opts.role) &&
     ESTADOS_LISTOS_PARA_CIERRE.has((opts.estatus ?? "").toLowerCase())
   );
 }
@@ -27,30 +28,29 @@ function puedeReabrir(opts: { isSuperAdmin: boolean; isAdmin: boolean }): boolea
 
 describe("cierre — reglas de gating", () => {
   it("admin con embarque entregado puede cerrar", () => {
-    expect(puedeCerrar({ isAdmin: true, canEditFinance: false, estatus: "entregado" })).toBe(true);
+    expect(puedeCerrar({ role: "admin", estatus: "entregado" })).toBe(true);
   });
 
   it("admin con embarque EIR (marítimo) puede cerrar", () => {
-    expect(puedeCerrar({ isAdmin: true, canEditFinance: false, estatus: "eir" })).toBe(true);
-    expect(puedeCerrar({ isAdmin: true, canEditFinance: false, estatus: "EIR" })).toBe(true);
+    expect(puedeCerrar({ role: "admin", estatus: "eir" })).toBe(true);
+    expect(puedeCerrar({ role: "admin", estatus: "EIR" })).toBe(true);
   });
 
   it("admin con embarque en Por liquidar puede cerrar (v13.380.1)", () => {
-    expect(puedeCerrar({ isAdmin: true, canEditFinance: false, estatus: "Por liquidar" })).toBe(true);
+    expect(puedeCerrar({ role: "admin", estatus: "Por liquidar" })).toBe(true);
   });
 
-
-  it("contador (canEditFinance) con embarque entregado puede cerrar", () => {
-    expect(puedeCerrar({ isAdmin: false, canEditFinance: true, estatus: "entregado" })).toBe(true);
+  it("Contabilidad consulta el cierre sin permiso para ejecutarlo", () => {
+    expect(puedeCerrar({ role: "contador", estatus: "entregado" })).toBe(false);
   });
 
   it("admin NO puede cerrar si el embarque no está entregado ni en EIR", () => {
-    expect(puedeCerrar({ isAdmin: true, canEditFinance: true, estatus: "en_transito" })).toBe(false);
-    expect(puedeCerrar({ isAdmin: true, canEditFinance: true, estatus: "cerrado" })).toBe(false);
+    expect(puedeCerrar({ role: "admin", estatus: "en_transito" })).toBe(false);
+    expect(puedeCerrar({ role: "admin", estatus: "cerrado" })).toBe(false);
   });
 
-  it("operador sin canEditFinance no puede cerrar aunque esté entregado", () => {
-    expect(puedeCerrar({ isAdmin: false, canEditFinance: false, estatus: "entregado" })).toBe(false);
+  it("operador no puede cerrar aunque esté entregado", () => {
+    expect(puedeCerrar({ role: "operador", estatus: "entregado" })).toBe(false);
   });
 
   it("super_admin siempre puede reabrir", () => {
