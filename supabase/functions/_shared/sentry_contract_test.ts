@@ -24,13 +24,13 @@ import { assertConcurrentReports, createSentryContractHarness, deferred, payload
 
 // No --allow-net is needed. Use Sentry's actual envelope/buffer transport with
 // an in-memory request executor; never replace fetch, Deno.serve, or OTEL APIs.
-Deno.test({ name: "SDK 11.11.0: offline real SDK contracts",
+Deno.test({ name: "Sentry: offline real SDK contracts",
   permissions: { net: false, env: "inherit", read: "inherit" }, fn: async (t) => {
   const harness = await createSentryContractHarness();
   const { sdk, delivered } = harness;
   try {
     await t.step("init/version/singleton, restrictive collection, no runtime or OTEL patching", () => {
-      assertEquals(sdk.SDK_VERSION, "11.11.0");
+      assertEquals(sdk.SDK_VERSION, "11.12.0");
       assertEquals(harness.transportCount, 1);
       assertStrictEquals(sdk.getClient(), sdk.getCurrentScope().getClient());
       const options = sdk.getClient<InstanceType<typeof sdk.DenoClient>>()!.getOptions();
@@ -145,7 +145,7 @@ Deno.test({ name: "SDK 11.11.0: offline real SDK contracts",
       const json = delivered.join("\n");
       assert(!/mock@example.invalid|XAXX010101000|MOCK_(?:TOKEN|ACCESS|ROOT|CHILD)/.test(json), "sensitive synthetic data reached transport");
       assert(json.includes("libre-carga-edge@mock-contract"));
-      assert(payloads(delivered).some((event) => event.sdk?.version === "11.11.0"));
+      assert(payloads(delivered).some((event) => event.sdk?.version === sdk.SDK_VERSION));
     });
 
     await t.step("flush waits for actual buffered delivery and honors its timeout", async () => {
@@ -167,7 +167,7 @@ Deno.test({ name: "SDK 11.11.0: offline real SDK contracts",
       }
       assertEquals(await flushing, true);
       assert(delivered.some((text) => text.includes("bounded-flush")));
-      // SDK 11.11.0's PromiseBuffer races an unrefed timer without cancelling it
+      // The SDK's PromiseBuffer races an unrefed timer without cancelling it
       // when delivery wins. Let that specific 50ms timer finish; keep sanitizers on.
       await new Promise((resolve) => setTimeout(resolve, 60));
     });
