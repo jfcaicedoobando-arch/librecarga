@@ -1,5 +1,10 @@
 # Changelog
 
+## [13.824.99] - 2026-11-22
+- **Confirmaciones y captura:** Proformas identifica las selecciones fuera de los filtros, Compras empieza cada lote con la justificación vacía y Tarifario exige un monto explícito y confirma el retiro de cargos.
+- **Operación y finanzas:** Embarques, Facturación y Compras explican los fallos de consulta y permiten reintentar. El PDF de Presupuesto vs. Real incluye los avisos de datos parciales y gastos sin tipo de cambio.
+- **Navegación y accesibilidad:** incorpora nombres de filtros en el Libro de pagos, estados de REP y conciliación en sus tarjetas móviles, pestañas de Tarifario visibles en pantallas estrechas y filas navegables en Proveedores.
+
 ## [13.824.98] - 2026-11-22
 - **Captura y cobranza:** Demoras bloquea la edición hasta cargar el tabulador, Presupuesto guarda el cero explícito y el correo de estado de cuenta desglosa los saldos por moneda.
 - **Operación diaria:** Embarques, Proveedores y Notificaciones distinguen entre una consulta fallida y una lista vacía. Expediente permite renovar documentos y avisa al elegir un archivo de más de 15 MB.
