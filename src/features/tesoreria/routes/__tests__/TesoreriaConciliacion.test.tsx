@@ -10,8 +10,9 @@
  * CerrarFacturaSinPagoDialog.test.tsx).
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
+import { BrowserRouter, MemoryRouter } from "react-router";
+import { NuqsAdapter } from "nuqs/adapters/react-router/v8";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 import type { useVirtualizer } from "@tanstack/react-virtual";
@@ -55,6 +56,10 @@ vi.mock("@/features/tesoreria/components/PanelConciliacionMovimiento", () => ({
   ),
 }));
 
+vi.mock("@/hooks/shared/usePermissions", () => ({
+  usePermissions: () => ({ canCapturarMovimientoBancario: true }),
+}));
+
 vi.mock("@/components/ui/select", () => ({
   Select: ({ children, value, onValueChange }: { children: ReactNode; value: string; onValueChange: (v: string) => void }) => (
     <select data-testid="mock-select" value={value} onChange={(e) => onValueChange(e.target.value)}>
@@ -70,11 +75,22 @@ vi.mock("@/components/ui/select", () => ({
 import TesoreriaConciliacion from "../TesoreriaConciliacion";
 
 const cuenta = { id: "cta-1", banco: "BBVA", alias: "Principal", moneda: "MXN" };
+const cuentaUsd = { id: "cta-2", banco: "BBVA", alias: "Cuenta USD", moneda: "USD" };
 
 const movimientos = [
   { id: "m-1", cuenta_bancaria_id: cuenta.id, fecha: "2026-01-01", concepto: "Pago cliente A", cargo: 0, abono: 1000, estado_conciliacion: "Pendiente" },
   { id: "m-2", cuenta_bancaria_id: cuenta.id, fecha: "2026-01-02", concepto: "Comisión bancaria", cargo: 50, abono: 0, estado_conciliacion: "Conciliado" },
 ];
+
+function prepararDosCuentas() {
+  mockUseCuentasBancarias.mockReturnValue({ data: [cuenta, cuentaUsd] });
+  mockUseMovimientos.mockImplementation((filtros) => ({
+    data: filtros?.cuenta_bancaria_id === cuentaUsd.id
+      ? [{ ...movimientos[0], id: "m-usd", cuenta_bancaria_id: cuentaUsd.id, concepto: "Pago en USD" }]
+      : movimientos,
+    isLoading: false,
+  }));
+}
 
 function renderPage() {
   // v13.777.7 — la página lee el filtro `estado` de la URL con nuqs
@@ -134,14 +150,7 @@ describe("TesoreriaConciliacion — VirtualDataTable (P3)", () => {
   });
 
   it("borra la selección al cambiar de cuenta y muestra sólo la moneda del movimiento elegido", async () => {
-    const cuentaUsd = { id: "cta-2", banco: "BBVA", alias: "Cuenta USD", moneda: "USD" };
-    mockUseCuentasBancarias.mockReturnValue({ data: [cuenta, cuentaUsd] });
-    mockUseMovimientos.mockImplementation((filtros) => ({
-      data: filtros?.cuenta_bancaria_id === cuentaUsd.id
-        ? [{ ...movimientos[0], id: "m-usd", cuenta_bancaria_id: cuentaUsd.id, concepto: "Pago en USD" }]
-        : movimientos,
-      isLoading: false,
-    }));
+    prepararDosCuentas();
     renderPage();
     seleccionarCuenta();
     fireEvent.click(await screen.findByText("Pago cliente A"));
@@ -152,6 +161,27 @@ describe("TesoreriaConciliacion — VirtualDataTable (P3)", () => {
     expect(screen.getByTestId("panel-conciliacion")).toHaveTextContent("sin-seleccion");
     fireEvent.click(await screen.findByText("Pago en USD"));
     expect(screen.getByTestId("panel-conciliacion")).toHaveTextContent("m-usd USD");
+  });
+
+  it("la navegación de vuelta cambia cuenta y descarta la selección y el formulario anteriores", async () => {
+    prepararDosCuentas();
+    const url = "/tesoreria/conciliacion?estado=Conciliado&cuenta=";
+    window.history.replaceState({ idx: 0, key: "usd", usr: null }, "", url + cuentaUsd.id);
+    window.history.pushState({ idx: 1, key: "mxn", usr: null }, "", url + cuenta.id);
+    render(<BrowserRouter><NuqsAdapter><TooltipProvider><TesoreriaConciliacion /></TooltipProvider></NuqsAdapter></BrowserRouter>);
+
+    fireEvent.click(await screen.findByText("Pago cliente A"));
+    expect(screen.getByTestId("panel-conciliacion")).toHaveTextContent("m-1 MXN");
+    fireEvent.click(screen.getByRole("button", { name: "Movimiento manual" }));
+    const dialogo = screen.getByRole("dialog", { name: "Registrar movimiento manual" });
+    fireEvent.change(within(dialogo).getByRole("textbox", { name: /Concepto/ }), { target: { value: "Borrador MXN" } });
+
+    window.history.back();
+    await waitFor(() => expect(screen.getByTestId("panel-conciliacion")).toHaveTextContent("sin-seleccion"));
+    expect(screen.queryByRole("dialog", { name: "Registrar movimiento manual" })).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByText("Pago en USD"));
+    expect(screen.getByTestId("panel-conciliacion")).toHaveTextContent("m-usd USD");
+    expect(screen.getAllByTestId("mock-select")[1]).toHaveValue("Conciliado");
   });
 
   it("no rompe con isLoading=true (skeleton de VirtualDataTable)", () => {
