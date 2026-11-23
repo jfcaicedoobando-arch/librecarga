@@ -9,9 +9,9 @@
  * replay, permisos o invariantes en una BD efímera. Sólo modela declaraciones
  * CREATE OR REPLACE FUNCTION public.<nombre sin comillas>: CREATE simple,
  * nombres entrecomillados y ALTER/DROP requieren replay real. El único SQL
- * dinámico modelado es Drizzle0035: fuente/preimágenes fijadas, orden y
- * ocurrencias comprobados; ningún otro DO se interpreta. Los triggers y ACL
- * de ese patch siguen requiriendo replay real.
+ * dinámico modelado se limita a los parches revisados de Drizzle0035 y
+ * Drizzle0094. Drizzle0092 ajusta el modo de seguridad de un espejo. Las
+ * fuentes, preimágenes y ocurrencias se comprueban y se conserva el replay real.
  * Uso: bun run audit:replay-mirror.
  */
 import fs from "node:fs";
@@ -19,6 +19,7 @@ import path from "node:path";
 import { auditarIndiceReplayMirror, indexarMigraciones, leerBaseline } from "./lib/replayMirror";
 
 import { aplicarDrizzle0035 } from "./lib/replayMirrorDrizzle0035";
+import { aplicarReplayMirrorAuthority } from "./lib/replayMirrorAuthority";
 import { readIsolatedDrizzleReplay } from "./ci/drizzle-history/control.mjs";
 
 const ROOT = process.cwd();
@@ -51,7 +52,7 @@ try {
   // Las definiciones forward nuevas se aplican después del historial de Supabase.
   const forward = new Map([...isolated].filter(([file]) => Number(file.slice(0, 4)) >= 50));
   for (const [signature, definition] of indexarMigraciones(forward)) index.set(signature, definition);
-  const result = auditarIndiceReplayMirror(espejos, index, baseline);
+  const result = auditarIndiceReplayMirror(espejos, aplicarReplayMirrorAuthority(index, isolated), baseline);
   if (result.violaciones.length) {
     console.error("❌ audit:replay-mirror — divergencia o excepción fuera de su huella exacta:");
     for (const violation of result.violaciones) console.error(`  - ${violation}`);

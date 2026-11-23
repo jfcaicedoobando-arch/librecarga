@@ -25,7 +25,7 @@ CREATE OR REPLACE FUNCTION public._lock_cuenta_bancaria(p_cuenta_id uuid)
 RETURNS TABLE(org_id uuid, moneda_txt text, esta_activa boolean)
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path TO 'public'
 AS $$
 BEGIN
   IF p_cuenta_id IS NULL THEN

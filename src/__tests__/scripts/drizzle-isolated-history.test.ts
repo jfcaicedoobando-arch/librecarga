@@ -80,8 +80,20 @@ describe("isolated Drizzle history is not deployment-eligible", () => {
       "0080_isr_resico_timbrado_notas.sql",
       "0081_isr_resico_timbrado_rep.sql",
       "0082_isr_resico_reemplazo.sql",
+      "0083_selected_security_internal_helpers_snapshot_writes.sql",
+      "0084_brokers_tabulador_comisiones.sql",
+      "0085_broker_alta_prospecto_propiedades_empresa.sql",
+      "0086_empresa_prospecto_externo.sql",
+      "0087_oportunidad_vendedor_externo.sql",
+      "0088_oportunidad_vendedor_externo_guard_null.sql",
+      "0089_brokers_comision_exclusiva_sin_kam.sql",
+      "0090_lectores_membresias_y_libro_respetan_rls.sql",
+      "0091_demoras_y_pago_detalle_acceso_protegido.sql",
+      "0092_auxiliares_seleccionados_acceso_protegido.sql",
+      "0093_actividad_embarque_bitacora_misma_organizacion.sql",
+      "0094_autoridad_local_avisos_seleccionados.sql",
     ]);
-    expect(readIsolatedDrizzleReplay().size).toBe(60);
+    expect(readIsolatedDrizzleReplay().size).toBe(72);
     const archive = paths[1].replace("0022_refacturar_proforma_abre_edicion.sql", "meta/_journal.json");
     expect(JSON.parse(read(archive)).entries[22]).toMatchObject({ idx: 22, when: 1792518064767, tag: "0022_refacturar_proforma_abre_edicion" });
     expect(JSON.parse(read("drizzle/migrations/meta/_journal.json")).entries[22].tag).toBe("0022_cotizacion_comercial");
