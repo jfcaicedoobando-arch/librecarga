@@ -32,10 +32,12 @@ describe("presentación del resumen comercial", () => {
   it("el paso4 usa conceptos y la moneda manual sin depender de costos en esa moneda", () => {
     render(<PasoResumenCotizacion plUSD={usd} plMXN={mxn} tieneCostosUSD tieneCostosMXN={false}
       conceptosVenta={ventas} nombreCliente="Cliente" origen="Origen" destino="Destino" numContenedores={1}
-      modo="Terrestre" incoterm="DAP" tipo="Importación" totalUSD={174} totalMXN={10200} />);
+      modo="Terrestre" incoterm="DAP" tipo="Importación" totales={{ usd: 174, mxn: 10200 }} />);
     expect(screen.getByText("USD 150.00")).toBeInTheDocument();
     expect(screen.getByText("USD 100.00")).toBeInTheDocument();
     expect(screen.getByText("MXN")).toBeInTheDocument();
+    expect(screen.getByText(/Total USD:.*174\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/Total MXN \(c\/IVA\):.*10,200\.00/)).toBeInTheDocument();
   });
 
   it.each([{ conceptosDescartados: 1 }, { conceptosVenta: [{ ...venta, cantidad: Number.NaN }] }])("oculta métricas con datos incompletos %j", props => {

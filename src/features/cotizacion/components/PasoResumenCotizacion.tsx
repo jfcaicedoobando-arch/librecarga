@@ -30,8 +30,7 @@ interface Props {
   modo: string;
   incoterm: string;
   tipo: string;
-  totalUSD: number;
-  totalMXN: number;
+  totales: { usd: number; mxn: number };
   resumenFiscal?: ReactNode;
   accionesEdicion?: {
     editarDatos: () => void;
@@ -50,7 +49,7 @@ const DATO = (label: string, valor: string) => ({ label, valor });
 export default function PasoResumenCotizacion({
   plUSD, plMXN, tieneCostosUSD, tieneCostosMXN, conceptosVenta,
   nombreCliente, origen, destino, numContenedores, cargaLcl,
-  modo, incoterm, tipo, totalUSD, totalMXN, resumenFiscal, esEdicion = false, accionesEdicion, banderasAereas,
+  modo, incoterm, tipo, totales, resumenFiscal, esEdicion = false, accionesEdicion, banderasAereas,
 }: Props) {
 
   // BL-COT-04: sólo el marítimo se mide en contenedores.
@@ -98,10 +97,10 @@ export default function PasoResumenCotizacion({
         {resumenFiscal ?? (
         <div className="flex flex-col items-end gap-1">
           <span className="text-body font-semibold tabular-nums">
-            Total USD: {formatCurrency(totalUSD, "USD")}
+            Total USD: {formatCurrency(totales.usd, "USD")}
           </span>
           <span className="text-body font-semibold tabular-nums">
-            Total MXN (c/IVA): {formatCurrency(totalMXN, "MXN")}
+            Total MXN (c/IVA): {formatCurrency(totales.mxn, "MXN")}
           </span>
         </div>
         )}
