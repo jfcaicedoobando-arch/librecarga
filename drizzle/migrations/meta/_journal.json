@@ -715,6 +715,13 @@
       "when": 1795470091998,
       "tag": "0101_tarifa_multimodo_moneda",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1795470809537,
+      "tag": "0102_costeo_tarifa_tramos_tenant_scope",
+      "breakpoints": true
     }
   ]
 }

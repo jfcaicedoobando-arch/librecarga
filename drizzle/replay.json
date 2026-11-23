@@ -800,5 +800,13 @@
       "0101_tarifa_multimodo_moneda.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0102_costeo_tarifa_tramos_tenant_scope.sql",
+    "sha256": "81588859e3f96db447c1c4434b602dbbd9a8ffaac829e50fb9afd7621eeaf39c",
+    "replays": [
+      "0102_costeo_tarifa_tramos_tenant_scope.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]
