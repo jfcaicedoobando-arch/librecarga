@@ -83,7 +83,7 @@ export default function OportunidadCard({ op, onClick, proxima, estadoProximas =
     <Card
       ref={setNodeRef}
       style={style}
-      onPointerDown={arrastrable ? listeners?.onPointerDown : undefined}
+      onPointerDown={arrastrable ? (event) => listeners?.onPointerDown?.(event) : undefined}
       onClick={(e) => {
         if (isDragging) return;
         e.stopPropagation();
@@ -96,7 +96,7 @@ export default function OportunidadCard({ op, onClick, proxima, estadoProximas =
           {...attributes}
           type="button"
           ref={setActivatorNodeRef}
-          onKeyDown={listeners?.onKeyDown}
+          onKeyDown={(event) => listeners?.onKeyDown?.(event)}
           onClick={(event) => event.stopPropagation()}
           aria-label={`Mover ${op.nombre} de etapa`}
           className="absolute right-1 top-1 z-10 flex size-9 touch-none items-center justify-center rounded-md text-muted-foreground hover:bg-muted cursor-grab active:cursor-grabbing focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"

@@ -99,7 +99,7 @@ describe("fetchLayoutContableData", () => {
       id: `f-${index}`, numero: `F-${index}`, cliente_id: `c-${index}`,
     }));
     for (const lote of [filas.slice(0, 200), filas.slice(200)]) {
-      mock.setTableResultOnce("facturas", { data: lote.toReversed(), error: null });
+      mock.setTableResultOnce("facturas", { data: [...lote].reverse(), error: null });
       mock.setTableResultOnce("clientes", { data: lote.map(({ cliente_id }) => ({ id: cliente_id, rfc: "RFC" })), error: null });
     }
     const res = await fetchLayoutContableData(filas.map(({ id }) => id), scope);
