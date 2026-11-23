@@ -7,6 +7,8 @@ import { pathToFileURL } from 'node:url';
 const DIR = 'scripts/ci/drizzle-history';
 const COMMIT = 'ec96cf2e4bbb4443be463f1496da0189df2d1bef';
 const ARCHIVE = `archive/${COMMIT}`;
+const AUTHORITY_PREIMAGES = 'preconditions/authority-0092-0094.sql';
+const AUTHORITY_PREIMAGES_SHA256 = 'f44cca1dbe2e9fecb0202920c3a95f9061a58155fb424957a2bed354e54b23f5';
 // Explicit historical order: the archived idx 22 predates the current idx 22.
 export const HISTORY = [
   { file: '0021_refacturar_proforma_rpc.sql', sha256: '8f5c299f5c593fe398e620056d8a2971a9f9ed4e90940310df173023fa9572e5', eligibleName: '20261026184800_replay_refacturar_proforma_rpc.sql' },
@@ -100,6 +102,7 @@ function pinned(root, file, expected) {
 
 function rejectEligibleCopies(root) {
   const forbidden = new Set(HISTORY.map(item => item.sha256));
+  forbidden.add(AUTHORITY_PREIMAGES_SHA256);
   const dir = path.join(root, 'supabase/migrations');
   for (const file of fs.readdirSync(dir).filter(file => file.endsWith('.sql'))) {
     if (forbidden.has(hash(fs.readFileSync(path.join(dir, file))))) {
@@ -138,7 +141,10 @@ export function readIsolatedDrizzleReplay(root = process.cwd()) {
 
 export function listIsolatedHistory(root = process.cwd()) {
   readIsolatedDrizzleReplay(root);
-  return HISTORY.map(item => `${DIR}/${item.file}`);
+  pinned(root, AUTHORITY_PREIMAGES, AUTHORITY_PREIMAGES_SHA256);
+  return HISTORY.flatMap(({ file }) => file.startsWith('0092_')
+    ? [`${DIR}/${AUTHORITY_PREIMAGES}`, `${DIR}/${file}`]
+    : [`${DIR}/${file}`]);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

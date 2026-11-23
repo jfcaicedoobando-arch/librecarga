@@ -25,6 +25,12 @@
 DROP TABLE IF EXISTS pg_temp._ci_service_role_only;
 CREATE TEMP TABLE _ci_service_role_only (fn text);
 INSERT INTO _ci_service_role_only (fn) VALUES
+  -- Drizzle 0083 y 0092 cierran estos auxiliares antes del grant de pruebas.
+  ('public._assert_receptor_fiscal_valido(uuid)'),
+  ('public._calcular_demoras_montos_contenedor(uuid, uuid, uuid, integer, text)'),
+  ('public._cxp_desvincular_por_rechazo(uuid, text)'),
+  ('public._refact_reps_bloqueantes(uuid)'),
+  ('public._resolver_proveedor_por_nombre(uuid, text)'),
   ('public.registrar_perfil_fiscal_emisor(uuid, text, uuid, timestamptz, integer, jsonb)'),
   ('public._perfil_fiscal_emisor_resultado(public.perfiles_fiscales_emisor, public.facturapi_credenciales, text)'),
   ('public.reservar_evento_facturapi_webhook(uuid, text, jsonb)'),
