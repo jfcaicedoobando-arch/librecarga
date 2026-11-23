@@ -23,6 +23,14 @@ function Accion({ e, onPedir }: { e: EmpresaEncontrada; onPedir: () => void }) {
   return <Button size="sm" variant="outline" onClick={onPedir}>Solicitar</Button>;
 }
 
+function estadoBusqueda(termino: string, consultado: string, brokerId: string | null,
+  consulta: { isFetching: boolean; isError: boolean; isSuccess: boolean }) {
+  if (!brokerId || termino.length < 3) return "inactiva";
+  if (termino !== consultado || consulta.isFetching) return "buscando";
+  if (consulta.isError) return "error";
+  return consulta.isSuccess ? "lista" : "buscando";
+}
+
 export default function BrokerConsultar() {
   useDocumentTitle("Consultar empresa");
   const orgs = useBrokerOrganizaciones();
@@ -32,8 +40,9 @@ export default function BrokerConsultar() {
   const buscado = useDebounce(texto, 300);
   const q = useBuscarEmpresaBroker(brokerId, buscado);
   const [pedir, setPedir] = useState<EmpresaEncontrada | null>(null);
-  const [alta, setAlta] = useState(false);
-  const listo = buscado.trim().length >= 3 && q.isSuccess;
+  const [alta, setAlta] = useState<string | null>(null);
+  const termino = texto.trim();
+  const estado = estadoBusqueda(termino, buscado.trim(), brokerId, q);
   const res = q.data ?? [];
 
   return (
@@ -52,8 +61,11 @@ export default function BrokerConsultar() {
         </Select>
       )}
       <SearchInput value={texto} onChange={setTexto} placeholder="Escribe al menos 3 letras del nombre…" aria-label="Buscar empresa" />
-      {q.isError && <p className="text-body-sm text-destructive">No se pudo buscar. Intenta de nuevo.</p>}
-      {listo && (
+      {estado === "buscando" && <p role="status" className="text-body-sm text-muted-foreground">Buscando…</p>}
+      {estado === "error" && (
+        <p role="alert" className="text-body-sm text-destructive">No se pudo buscar. Intenta de nuevo.</p>
+      )}
+      {estado === "lista" && (
         <Card>
           <CardContent className="p-0 divide-y">
             {res.map((e) => (
@@ -68,7 +80,7 @@ export default function BrokerConsultar() {
             {res.length === 0 && (
               <div className="flex flex-wrap items-center justify-between gap-2 p-3">
                 <span className="text-body-sm text-muted-foreground">No encontramos esa empresa.</span>
-                <Button size="sm" onClick={() => setAlta(true)}><Plus className="h-4 w-4" /> Registrar empresa nueva</Button>
+                <Button size="sm" onClick={() => setAlta(termino)}><Plus className="h-4 w-4" /> Registrar empresa nueva</Button>
               </div>
             )}
           </CardContent>
@@ -76,7 +88,7 @@ export default function BrokerConsultar() {
       )}
       <MisSolicitudesBroker />
       <SolicitudEmpresaDialog brokerId={brokerId} empresa={pedir} onClose={() => setPedir(null)} />
-      {alta && <AltaProspectoDialog brokerId={brokerId} open nombreInicial={texto.trim()} onClose={() => setAlta(false)} />}
+      {alta && <AltaProspectoDialog brokerId={brokerId} open nombreInicial={alta} onClose={() => setAlta(null)} />}
     </div>
   );
 }

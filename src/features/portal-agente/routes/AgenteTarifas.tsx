@@ -76,16 +76,18 @@ export default function AgenteTarifas() {
     }
   }, []);
 
-  // B-086: antes de abrir el form de duplicar se traen los recargos reales de
-  // la tarifa (BAF/LSS/ISPS...) — la "nueva versión" debe ser fiel. Si la
-  // carga falla, se abre sin recargos (comportamiento anterior).
-  const handleDuplicar = useCallback(async (t: AgenteTarifaRow) => {
-    let recargos: TarifaRecargoInput[] = [];
+  const handleDuplicar = useCallback(async function duplicarTarifa(t: AgenteTarifaRow) {
     try {
       const rows = await fetchRecargosDeTarifa(t.id);
-      recargos = recargosIniciales(rows, false);
-    } catch { /* silencioso: el usuario puede recapturar recargos a mano */ }
-    setEditor({ open: true, modo: "duplicar", initial: toInitial(t, recargos) });
+      setEditor({ open: true, modo: "duplicar", initial: toInitial(t, recargosIniciales(rows, false)) });
+    } catch (error: unknown) {
+      notifyError(undefined, {
+        title: "No se pudieron cargar los recargos de la tarifa",
+        description: "Reintenta para duplicar la tarifa con sus recargos.",
+        error, method: "AGENTE_DUPLICAR_TARIFA", context: { tarifaId: t.id },
+        action: { label: "Reintentar", onClick: () => { void duplicarTarifa(t); } },
+      });
+    }
   }, []);
 
   const columns = useMemo(

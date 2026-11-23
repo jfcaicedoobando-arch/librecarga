@@ -10,6 +10,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardSkeleton } from "@/components/shared/skeletons";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableCell } from "@/components/ui/table";
 import { DetailTableHead, DetailTableRow } from "@/components/shared/DetailTable";
@@ -46,25 +47,50 @@ export function TabCaptura({ anio, onAnioChange }: Props) {
 
   const [draft, setDraft] = useState<Record<string, string>>({});
 
+  if (cats.isError || presup.isError) {
+    return (
+      <ErrorStateInline
+        title="No se pudo cargar el presupuesto"
+        message="Reintenta para consultar los montos y continuar la captura."
+        retrying={cats.isFetching || presup.isFetching}
+        onRetry={() => {
+          if (cats.isError) void cats.refetch();
+          if (presup.isError) void presup.refetch();
+        }}
+      />
+    );
+  }
+
   if (cats.isLoading || presup.isLoading) {
     return <CardSkeleton lines={8} />;
   }
 
-  const handleBlur = async (categoria_id: string, periodo: string, raw: string) => {
-    if (!organizationId) return;
+  const handleBlur = async (categoria_id: string, periodo: string) => {
+    const key = `${categoria_id}|${periodo}`;
+    const raw = draft[key];
+    if (!organizationId || raw === undefined) return;
+    const limpiarDraft = () => setDraft((d) => {
+      if (d[key] !== raw) return d;
+      const next = { ...d };
+      delete next[key];
+      return next;
+    });
     const monto = Number(raw);
-    if (Number.isNaN(monto) || monto < 0) {
+    if (!Number.isFinite(monto) || monto < 0) {
       notifyError(undefined, { title: "Monto inválido", method: "FEATURES_PRESUPUESTO_COMPONENTS_TABCAPTURA_1" });
       return;
     }
-    const key = `${categoria_id}|${periodo}`;
-    if (matriz.get(key) === monto) return; // sin cambio
+    const almacenado = matriz.get(key);
+    if (almacenado === monto || (almacenado === undefined && raw === "")) {
+      limpiarDraft();
+      return;
+    }
     try {
       await upsert.mutateAsync({
         categoria_id, periodo, monto_mxn: monto,
         organization_id: organizationId, creado_por: user?.id ?? null,
       });
-      setDraft((d) => { const n = { ...d }; delete n[key]; return n; });
+      limpiarDraft();
     } catch (e) {
       notifyError(undefined, { title: "No se pudo guardar el presupuesto", description: getErrorMessage(e), error: e, method: "FEATURES_PRESUPUESTO_COMPONENTS_TABCAPTURA_2" });
     }
@@ -108,8 +134,7 @@ export function TabCaptura({ anio, onAnioChange }: Props) {
                     {MESES_LABEL.map((_, mi) => {
                       const periodo = `${anio}-${String(mi + 1).padStart(2, "0")}`;
                       const key = `${c.id}|${periodo}`;
-                      const stored = matriz.get(key) ?? 0;
-                      const val = draft[key] ?? (stored === 0 ? "" : String(stored));
+                      const val = draft[key] ?? String(matriz.get(key) ?? "");
                       return (
                         <TableCell key={mi} className="p-1">
                           <Input
@@ -118,7 +143,7 @@ export function TabCaptura({ anio, onAnioChange }: Props) {
                             className="h-7 text-right tabular-nums px-1"
                             value={val}
                             onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
-                            onBlur={(e) => handleBlur(c.id, periodo, e.target.value || "0")}
+                            onBlur={() => void handleBlur(c.id, periodo)}
                           />
                         </TableCell>
                       );

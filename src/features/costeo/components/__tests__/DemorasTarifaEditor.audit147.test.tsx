@@ -2,11 +2,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { DemorasTramoInput } from "../../types/navieraCondicion";
 
-const state = vi.hoisted(() => ({ tramos: [] as DemorasTramoInput[], mutateAsync: vi.fn() }));
+const state = vi.hoisted(() => ({
+  tramos: [] as DemorasTramoInput[] | undefined,
+  isError: false,
+  isFetching: false,
+  refetch: vi.fn(),
+  mutateAsync: vi.fn(),
+}));
 const tipos = [{ id: "40", code: "40HC", name: "40 pies" }];
 vi.mock("@/features/costeo/hooks/useNavieraCondiciones", () => ({
   useTiposContenedorDemoras: () => ({ data: tipos }),
-  useDemorasTramos: () => ({ data: state.tramos }),
+  useDemorasTramos: () => ({
+    data: state.tramos, isError: state.isError, isFetching: state.isFetching, refetch: state.refetch,
+  }),
   useReemplazarTramos: () => ({ mutateAsync: state.mutateAsync, isPending: false }),
 }));
 import { DemorasTarifaEditor } from "../DemorasTarifaEditor";
@@ -14,7 +22,67 @@ import { DemorasTarifaEditor } from "../DemorasTarifaEditor";
 const tramo = (dia: number, moneda: string): DemorasTramoInput => ({
   tipo_contenedor_id: "40", desde_dia: dia, hasta_dia: dia, monto_por_dia: 1, moneda,
 });
-beforeEach(() => { vi.clearAllMocks(); state.mutateAsync.mockResolvedValue(undefined); });
+beforeEach(() => {
+  vi.clearAllMocks();
+  state.tramos = [];
+  state.isError = false;
+  state.isFetching = false;
+  state.mutateAsync.mockResolvedValue(undefined);
+});
+
+describe("consulta del tabulador", () => {
+  const agregar = () => screen.getByRole("button", { name: "Tramo" });
+  const guardar = () => screen.getByRole("button", { name: "Guardar tabulador" });
+
+  it("bloquea editar y guardar hasta cargar los tramos", () => {
+    state.tramos = undefined;
+    const view = render(<DemorasTarifaEditor navieraCondicionId="cond" />);
+    expect(screen.getByRole("status")).toHaveTextContent("Cargando tabulador de demoras");
+    expect(screen.queryByText(/Sin tramos/)).not.toBeInTheDocument();
+    expect(agregar()).toBeDisabled();
+    expect(guardar()).toBeDisabled();
+    fireEvent.click(agregar());
+    fireEvent.click(guardar());
+    expect(state.mutateAsync).not.toHaveBeenCalled();
+
+    state.tramos = [];
+    view.rerender(<DemorasTarifaEditor navieraCondicionId="cond" />);
+    expect(screen.getByText(/Sin tramos/)).toBeInTheDocument();
+    fireEvent.click(agregar());
+    expect(screen.getByLabelText("Monto por día del tramo 1")).toBeInTheDocument();
+  });
+
+  it.each([false, true])("permite reintentar el error con datos en caché = %s", (enCache) => {
+    const tramos = [tramo(1, "USD")];
+    state.tramos = enCache ? tramos : undefined;
+    state.isError = true;
+    const view = render(<DemorasTarifaEditor navieraCondicionId="cond" />);
+    expect(screen.getByRole("alert")).toHaveTextContent("No se pudo cargar el tabulador");
+    expect(screen.queryByText(/Sin tramos/)).not.toBeInTheDocument();
+    expect(agregar()).toBeDisabled();
+    expect(guardar()).toBeDisabled();
+    fireEvent.click(guardar());
+    expect(state.mutateAsync).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(state.refetch).toHaveBeenCalledOnce();
+
+    state.isError = false;
+    state.tramos = tramos;
+    view.rerender(<DemorasTarifaEditor navieraCondicionId="cond" />);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Monto por día del tramo 1")).toBeInTheDocument();
+    expect(guardar()).toBeEnabled();
+  });
+
+  it("permite guardar un tabulador vacío después de quitar deliberadamente el último tramo cargado", () => {
+    state.tramos = [tramo(1, "USD")];
+    render(<DemorasTarifaEditor navieraCondicionId="cond" />);
+    fireEvent.click(screen.getByRole("button", { name: "Quitar tramo 1" }));
+    fireEvent.click(guardar());
+    expect(state.mutateAsync).toHaveBeenCalledOnce();
+    expect(state.mutateAsync).toHaveBeenCalledWith({ navieraCondicionId: "cond", tipoContenedorId: "40", tramos: [] });
+  });
+});
 
 describe("audit147 · moneda del tabulador", () => {
   it("una mezcla guardada se muestra íntegra y bloquea guardar con explicación", async () => {

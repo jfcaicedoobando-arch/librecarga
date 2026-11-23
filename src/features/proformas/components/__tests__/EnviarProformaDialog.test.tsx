@@ -53,17 +53,19 @@ const proforma = {
 
 function renderDialog() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
+  const onOpenChange = vi.fn();
+  const contenido = (open: boolean, detalle: ProformaDetalleFull) =>
     React.createElement(
       QueryClientProvider,
       { client: qc },
       React.createElement(EnviarProformaDialog, {
-        open: true,
-        onOpenChange: vi.fn(),
-        proforma,
+        open,
+        onOpenChange,
+        proforma: detalle,
       }),
-    ),
-  );
+    );
+  const vista = render(contenido(true, proforma));
+  return { rerenderDialog: (open = true, detalle = proforma) => vista.rerender(contenido(open, detalle)) };
 }
 
 describe("EnviarProformaDialog — ocultar correos recientes", () => {
@@ -80,6 +82,40 @@ describe("EnviarProformaDialog — ocultar correos recientes", () => {
     });
   });
   afterEach(() => vi.unstubAllGlobals());
+
+  it("conserva el correo en edición cuando se actualizan los destinatarios y el detalle", () => {
+    useDestinatariosSugeridosMock.mockReturnValue({ data: undefined });
+    const { rerenderDialog } = renderDialog();
+    const campos = [
+      { label: "Para *", value: "nuevo@x.com" },
+      { label: "CC (opcional)", value: "copia@x.com" },
+      { label: "Asunto", value: "Asunto acordado" },
+      { label: "Mensaje", value: "Mensaje capturado" },
+    ];
+    for (const { label, value } of campos) fireEvent.change(screen.getByLabelText(label), { target: { value } });
+
+    useDestinatariosSugeridosMock.mockReturnValue({
+      data: { sugerencias: ["previo@x.com"], ultimo: { to: ["previo@x.com"], cc: ["otra-copia@x.com"] } },
+    });
+    rerenderDialog(true, { ...proforma, expediente: "EXP-1 corregido" });
+
+    for (const { label, value } of campos) expect(screen.getByLabelText(label)).toHaveValue(value);
+  });
+
+  it("precarga campos intactos y permite usar las sugerencias al volver a abrir", () => {
+    const { rerenderDialog } = renderDialog();
+    fireEvent.click(screen.getByText("a@x.com"));
+    useDestinatariosSugeridosMock.mockReturnValue({
+      data: { sugerencias: ["previo@x.com"], ultimo: { to: ["previo@x.com"], cc: ["copia@x.com"] } },
+    });
+    rerenderDialog();
+    expect(screen.getByLabelText("Para *")).toHaveValue("a@x.com");
+    expect(screen.getByLabelText("CC (opcional)")).toHaveValue("copia@x.com");
+
+    rerenderDialog(false);
+    rerenderDialog();
+    expect(screen.getByLabelText("Para *")).toHaveValue("previo@x.com");
+  });
 
   it("muestra el resultado por destinatario y reconcilia con la misma clave", async () => {
     invokeMock.mockResolvedValueOnce({
