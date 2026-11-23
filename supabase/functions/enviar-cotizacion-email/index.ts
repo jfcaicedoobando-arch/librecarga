@@ -53,7 +53,7 @@ async function loadCotizacion(
 ): Promise<LoadResult> {
   const { data, error } = await admin
     .from('cotizaciones')
-    .select('id, folio, organization_id, cliente_id, cliente_nombre, origen, destino, incoterm, modo, fecha_vigencia, estado, deleted_at, es_prospecto, oportunidad_id')
+    .select('id, folio, organization_id, cliente_id, cliente_nombre, origen, destino, incoterm, modo, fecha_vigencia, estado, deleted_at, es_prospecto, oportunidad_id, prospecto_email')
     .eq('id', cotizacionId)
     .maybeSingle();
   // El cliente sin tipos devuelve campos `unknown`: se fija la forma esperada.

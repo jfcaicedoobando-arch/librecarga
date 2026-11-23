@@ -5,7 +5,8 @@ import type { AdminClient, Cotizacion } from "./sendHelpers.ts";
 
 const fingerprint = "a".repeat(32);
 const cot: Cotizacion = { id: "cot", folio: "COT-1", organization_id: "org", cliente_id: null,
-  cliente_nombre: "QA", origen: "", destino: "", incoterm: "", modo: "", fecha_vigencia: null, estado: "Borrador" };
+  cliente_nombre: "QA", origen: "", destino: "", incoterm: "", modo: "", fecha_vigencia: null, estado: "Borrador",
+  prospecto_email: "qa@example.test" };
 const fiscal = { schema_version: "cotizacion_fiscal_v1", estado: "confirmado", organization_id: "org", cliente_id: null,
   conceptos_fingerprint: fingerprint, bloques: [{ moneda: "MXN", total: 230.42 }] };
 
@@ -58,4 +59,13 @@ Deno.test("prepare: pending review rejected before signed upload", async () => {
   const response = await handlePrepare(adminResult(null, { code: "P0001" }).admin, "org/cot/file.pdf", {}, "actor",
     { cot, expectedFingerprint: fingerprint });
   assertEquals(response.status, 409);
+});
+
+Deno.test("send: prospect quote rejects unregistered recipients before fiscal RPC", async () => {
+  const { admin, calls } = adminResult(fiscal);
+  const response = await handleSend({ admin, cot, userId: "actor", userEmail: "qa@example.test", timestamp: 1,
+    supabaseUrl: "https://example.test", supabaseServiceKey: "synthetic", cors: {},
+    body: { destinatarios: [{ email: "ajeno@example.test" }], fiscal_fingerprint: fingerprint } });
+  assertEquals(response.status, 400);
+  assertEquals(calls.length, 0);
 });

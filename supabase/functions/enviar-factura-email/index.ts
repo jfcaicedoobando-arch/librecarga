@@ -20,6 +20,7 @@ import {
   sendToRecipients,
 } from './helpers.ts';
 import { buildTemplateData, persistEnvio } from './persist.ts';
+import { DESTINATARIO_NO_PERMITIDO, emailsPermitidosCliente } from '../_shared/destinatarioCliente.ts';
 
 Deno.serve(wrapEdgeHandler("enviar-factura-email", async (req) => {
   const preflight = handlePreflightStrict(req);
@@ -43,6 +44,15 @@ Deno.serve(wrapEdgeHandler("enviar-factura-email", async (req) => {
   const parsed = parseBody(body);
   if (parsed.validRecipients.length === 0) {
     return json(cors, { error: 'Al menos un destinatario válido es requerido' }, 400);
+  }
+  // Destinatarios y copias deben ser contactos registrados del cliente.
+  const permitidos = factura.cliente_id
+    ? await emailsPermitidosCliente(authed.admin, factura.cliente_id)
+    : new Set<string>();
+  const ajenos = [...parsed.validRecipients.map((d) => d.email), ...parsed.ccEmails]
+    .filter((e) => !permitidos.has(e.trim().toLowerCase()));
+  if (ajenos.length > 0) {
+    return json(cors, { error: 'Uno o más correos no pertenecen a los contactos del cliente', code: DESTINATARIO_NO_PERMITIDO }, 400);
   }
 
   const resolverClient = facturapiResolverClient(authed.admin);

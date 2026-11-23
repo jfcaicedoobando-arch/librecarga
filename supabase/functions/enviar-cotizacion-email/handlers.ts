@@ -25,6 +25,7 @@ import { isEmail } from './emailValidation.ts';
 import { ESTADOS_NO_ENVIABLES, validarCotizacionEnviable } from './envioGuards.ts';
 export { ESTADOS_NO_ENVIABLES, validarCotizacionEnviable };
 import { jsonResponse } from "../_shared/response.ts";
+import { emailsPermitidosProspecto } from './destinatariosProspecto.ts';
 import { validarFiscalEnvio, totalesFiscalesCorreo, rutaPdfFiscal } from "./fiscalEnvio.ts";
 export { isEmail };
 
@@ -205,8 +206,9 @@ async function validarEnvio(
   if (!okRol) {
     return jsonResponse({ error: 'Tu rol no puede enviar cotizaciones' }, 403, cors);
   }
-  if (!cot.cliente_id) return null;
-  const permitidos = await emailsPermitidosCliente(admin as never, cot.cliente_id);
+  const permitidos = cot.cliente_id
+    ? await emailsPermitidosCliente(admin as never, cot.cliente_id)
+    : await emailsPermitidosProspecto(admin as never, cot.organization_id, cot.oportunidad_id, cot.prospecto_email);
   const ajenos = [...parsed.validRecipients.map((d) => d.email), ...parsed.ccEmails]
     .filter((e) => !permitidos.has(e.trim().toLowerCase()));
   if (ajenos.length > 0) {

@@ -23,6 +23,7 @@ export interface Cotizacion {
   /** v13.823.355 — necesarios para el candado de envío (prospecto/CRM). */
   es_prospecto?: boolean | null;
   oportunidad_id?: string | null;
+  prospecto_email?: string | null;
   deleted_at?: string | null;
 }
 
