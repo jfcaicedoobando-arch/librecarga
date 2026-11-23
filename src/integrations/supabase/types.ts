@@ -5080,6 +5080,7 @@ export type Database = {
           sector_economico: string | null
           servicio: string | null
           solicitante_id: string
+          submodalidad: string | null
           tarifa_tarifario_id: string | null
           tipo_carga: string | null
           tipo_operacion: string | null
@@ -5122,6 +5123,7 @@ export type Database = {
           sector_economico?: string | null
           servicio?: string | null
           solicitante_id: string
+          submodalidad?: string | null
           tarifa_tarifario_id?: string | null
           tipo_carga?: string | null
           tipo_operacion?: string | null
@@ -5164,6 +5166,7 @@ export type Database = {
           sector_economico?: string | null
           servicio?: string | null
           solicitante_id?: string
+          submodalidad?: string | null
           tarifa_tarifario_id?: string | null
           tipo_carga?: string | null
           tipo_operacion?: string | null

@@ -11,7 +11,7 @@ export type OpcionPricingRow = Database["public"]["Tables"]["crm_pricing_opcione
 export type OpcionPricingInsert = Database["public"]["Tables"]["crm_pricing_opciones"]["Insert"];
 
 export const SERVICIOS_PRICING = ["Marítimo", "Terrestre", "Aéreo"] as const;
-export const INCOTERMS_PRICING = ["EXW", "FAS", "FCA", "FOB", "CFR", "CIF", "DAP", "DDP", "DPU"] as const;
+export const INCOTERMS_PRICING = ["EXW", "FAS", "FCA", "FOB", "CFR", "CIF", "CPT", "CIP", "DAP", "DDP", "DPU"] as const;
 export const MONEDAS_PRICING = ["USD", "MXN", "EUR"] as const;
 export const UNIDADES_MEDIDA_PRICING = [
   { value: "kg", label: "Kilogramos (kg)" },
@@ -73,6 +73,7 @@ export function mensajeErrorPricing(err: unknown): string {
     LC_PRICING_SIN_PERMISO: "Solo Pricing o el solicitante pueden hacer esto.",
     LC_PRICING_NO_EDITABLE: "La solicitud ya no acepta cambios en opciones.",
     LC_PRICING_ESTADO_INVALIDO: "La solicitud ya cambió de estado. Recarga la página.",
+    LC_PRICING_INCOTERM_MODO: "FAS, FOB, CFR y CIF sólo aplican a transporte marítimo.",
     LC_PRICING_SOLICITANTE_INVALIDO: "El solicitante no pertenece a la empresa.",
   };
   const faltan = /LC_PRICING_INCOMPLETA:\s*(.+)/.exec(msg);

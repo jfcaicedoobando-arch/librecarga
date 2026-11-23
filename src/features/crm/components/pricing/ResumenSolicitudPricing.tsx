@@ -13,7 +13,7 @@ export function ResumenSolicitudPricing({ solicitud: s }: { solicitud: Solicitud
   const solicitante = usuarios.find((u) => u.user_id === s.solicitante_id)?.nombre ?? null;
   const campos: Array<[string, string | number | null]> = [
     ["Solicitante", solicitante], ["Fecha", formatFechaDia(s.fecha)], ["Cliente", s.cliente],
-    ["Modo de transporte", s.servicio], ["Complejidad", ETIQUETA_COMPLEJIDAD[s.complejidad as ComplejidadPricing] ?? s.complejidad],
+    ["Modo de transporte", s.servicio], ["Submodalidad", s.submodalidad], ["Complejidad", ETIQUETA_COMPLEJIDAD[s.complejidad as ComplejidadPricing] ?? s.complejidad],
     ["Tipo de solicitud", s.tipo_solicitud ? ETIQUETA_TIPO_SOLICITUD[s.tipo_solicitud] ?? s.tipo_solicitud : null],
     ["Tipo de operación", s.tipo_operacion], ["Sector económico", s.sector_economico],
     ["Incoterm", s.incoterm], ["IMO", siNo(s.imo)], ["Commodity", s.commodity],

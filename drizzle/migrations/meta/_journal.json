@@ -673,6 +673,13 @@
       "when": 1795460830691,
       "tag": "0095_pricing_sla_horas_habiles",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1795462095516,
+      "tag": "0096_pricing_submodalidad_incoterms_modo",
+      "breakpoints": true
     }
   ]
 }

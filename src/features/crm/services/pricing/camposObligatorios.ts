@@ -3,9 +3,10 @@
  * (la base decide). Opcionales: notas, delivery, fecha tentativa y adjuntos.
  */
 import type { SolicitudPricingRow } from "./tiposPricing";
+import { requiereSubmodalidad } from "./modoPricing";
 
 type Datos = Partial<Pick<SolicitudPricingRow,
-  "solicitante_id" | "fecha" | "cliente" | "servicio" | "tipo_operacion" | "incoterm" | "sector_economico" | "imo"
+  "solicitante_id" | "fecha" | "cliente" | "servicio" | "submodalidad" | "tipo_operacion" | "incoterm" | "sector_economico" | "imo"
   | "commodity" | "tipo_carga" | "cantidad" | "estibable" | "peso" | "unidad_medida" | "dimensiones"
   | "origen" | "pol" | "destino" | "pod">>;
 
@@ -19,7 +20,9 @@ const OBLIGATORIOS: Array<[keyof Datos, string]> = [
 
 export function camposFaltantesSolicitud(d: Datos): string[] {
   return OBLIGATORIOS.filter(([k]) => {
+    if (k === "tipo_carga" && d.submodalidad !== "FCL" && d.submodalidad !== "Arrastre") return false;
     const v = d[k];
     return v == null || (typeof v === "string" && v.trim() === "");
-  }).map(([, etiqueta]) => etiqueta);
+  }).map(([, etiqueta]) => etiqueta)
+    .concat(requiereSubmodalidad(d.servicio) && !d.submodalidad ? ["Submodalidad"] : []);
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { camposFaltantesSolicitud } from "../camposObligatorios";
 
 const completa = {
-  solicitante_id: "u", fecha: "2026-11-05", cliente: "ACME", servicio: "Marítimo", tipo_operacion: "Importación",
+  solicitante_id: "u", fecha: "2026-11-05", cliente: "ACME", servicio: "Marítimo", submodalidad: "FCL", tipo_operacion: "Importación",
   incoterm: "FOB", sector_economico: "General", imo: false, commodity: "Llantas", tipo_carga: "40' HC", cantidad: 1,
   estibable: true, peso: "1000", unidad_medida: "kg", dimensiones: "1x1x1", origen: "China", pol: "CNSHA",
   destino: "México", pod: "MXZLO",
