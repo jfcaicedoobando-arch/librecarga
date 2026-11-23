@@ -15,6 +15,10 @@ import { DEFAULT_PAGE_SIZE } from "@/hooks/shared";
 import { getEstadoUnificado, type EstadoUnificadoProforma } from "@/lib/domain/estadoUnificado";
 
 export type FiltroEstadoProforma = "todas" | EstadoUnificadoProforma;
+export interface EstadoProformaControlado {
+  value: FiltroEstadoProforma;
+  onChange: (value: FiltroEstadoProforma) => void;
+}
 
 const TODOS = "todos";
 // Keep the default predicate stable: changing it invalidates filtered data and
@@ -34,15 +38,23 @@ export function useTabProformasState(
   proformas: ProformaConFactura[],
   isInRange: (fecha: string | null | undefined) => boolean = FECHA_SIN_RESTRICCION,
   estadoInicial: FiltroEstadoProforma = "todas",
+  estadoControlado?: EstadoProformaControlado,
 ) {
   const [search, setSearchState] = useState("");
-  const [filtroEstado, setFiltroEstadoState] = useState<FiltroEstadoProforma>(estadoInicial);
+  const [estadoLocal, setEstadoLocal] = useState<FiltroEstadoProforma>(estadoInicial);
+  const filtroEstado = estadoControlado?.value ?? estadoLocal;
+  const setFiltroEstadoState = estadoControlado?.onChange ?? setEstadoLocal;
   const [filtroCliente, setFiltroClienteState] = useState<string>(TODOS);
   const [filtroOperador, setFiltroOperadorState] = useState<string>(TODOS);
   const [fechaDesde, setFechaDesdeState] = useState<string>("");
   const [fechaHasta, setFechaHastaState] = useState<string>("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [estadoAnterior, setEstadoAnterior] = useState(filtroEstado);
+  if (filtroEstado !== estadoAnterior) {
+    setEstadoAnterior(filtroEstado);
+    setPage(0);
+  }
 
   // P1 (auditoría v13.823.143 · bug 2): base con todos los filtros aplicados
   // EXCEPTO el de estado. Los contadores se calculan sobre ella para que
