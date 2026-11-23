@@ -53,11 +53,11 @@ function sdkSpecifiers(source, filename = "edge.ts") {
 }
 
 function assertEdgePin(specifier, file) {
-  assert.match(specifier, /^npm:@supabase\/supabase-js@2\.119\.0(?:\/cors)?$/, file);
+  assert.match(specifier, /^npm:@supabase\/supabase-js@2\.119\.2(?:\/cors)?$/, file);
 }
 
 test("Edge pin inventory detects alternate CDN imports and dynamic import types", () => {
-  const allowed = "npm:@supabase/supabase-js@2.119.0";
+  const allowed = "npm:@supabase/supabase-js@2.119.2";
   assert.deepEqual(sdkSpecifiers(`import {createClient} from '${allowed}';
     export type {SupabaseClient} from '${allowed}';
     type Client = import('${allowed}').SupabaseClient;
@@ -65,8 +65,8 @@ test("Edge pin inventory detects alternate CDN imports and dynamic import types"
   for (const specifier of [
     "https://esm.sh/v135/@supabase/supabase-js@2.45.0",
     "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/+esm",
-    "https://esm.sh/@supabase/supabase-js@2.119.0",
-    "npm:@supabase/supabase-js@^2.119.0",
+    "https://esm.sh/@supabase/supabase-js@2.119.2",
+    "npm:@supabase/supabase-js@^2.119.2",
   ]) {
     assert.deepEqual(sdkSpecifiers(`import {createClient} from '${specifier}';`), [specifier]);
     assert.throws(() => assertEdgePin(specifier, "negative-control.ts"), { name: "AssertionError" });
@@ -127,9 +127,9 @@ function assertHeaders(request) {
   assert.equal(request.headers.get("authorization"), `Bearer ${token}`);
 }
 
-test("Supabase and its five installed consumers stay aligned with stable 2.119.0 and Node 26", () => {
+test("Supabase and its five installed consumers stay aligned with stable 2.119.2 and Node 26", () => {
   const sdk = installedManifest(require, "@supabase/supabase-js");
-  assert.equal(sdk.version, "2.119.0");
+  assert.equal(sdk.version, "2.119.2");
   const sdkRequire = createRequire(require.resolve("@supabase/supabase-js"));
   const pinnedNode = readFileSync(path.join(root, ".node-version"), "utf8").trim();
   assert.match(pinnedNode, /^26\.\d+\.\d+$/);
@@ -137,8 +137,8 @@ test("Supabase and its five installed consumers stay aligned with stable 2.119.0
   for (const name of ["auth-js", "functions-js", "postgrest-js", "realtime-js", "storage-js"]) {
     const dependency = `@supabase/${name}`;
     const installed = installedManifest(sdkRequire, dependency);
-    assert.equal(sdk.dependencies[dependency], "2.119.0", dependency);
-    assert.equal(installed.version, "2.119.0", dependency);
+    assert.equal(sdk.dependencies[dependency], "2.119.2", dependency);
+    assert.equal(installed.version, "2.119.2", dependency);
     assert.equal(installed.engines.node, ">=22.0.0", dependency);
   }
 });

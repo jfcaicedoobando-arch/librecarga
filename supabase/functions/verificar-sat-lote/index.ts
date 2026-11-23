@@ -23,7 +23,7 @@
  *
  * v13.710.0
  */
-import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import { buildCors, handlePreflightStrict } from "../_shared/cors.ts";
 import { wrapEdgeHandler, captureEdgeException } from "../_shared/sentry.ts";
 import { jsonResponse } from "../_shared/response.ts";

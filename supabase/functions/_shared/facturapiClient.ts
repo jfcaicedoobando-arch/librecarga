@@ -47,7 +47,7 @@ import FacturapiDefault from "npm:facturapi@6.1.0";
 import {
   resolveFacturapiKey, facturapiResolverClient, type FacturapiAmbiente, type FacturapiResolveResult,
 } from "./facturapiAuth.ts";
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import { normalizarErrorFacturapi } from "./facturapiErrorNormalizado.ts";
 
 export type FacturapiClient = object;

@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import { resolveFacturapiKey, type FacturapiAmbiente } from "../_shared/facturapiAuth.ts";
 import { consultarPerfilProveedor, PerfilFiscalError } from "../_shared/facturapiPerfilProveedor.ts";
 

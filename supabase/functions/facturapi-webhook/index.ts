@@ -6,7 +6,7 @@
  * Configurar en FacturApi Dashboard → Webhooks:
  *   https://<project>.functions.supabase.co/facturapi-webhook?org=<UUID_ORG>
  */
-import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { wrapEdgeHandler, captureEdgeException, captureEdgeMessage } from "../_shared/sentry.ts";
 import { computeEventKey, leerCuerpoAcotado, MAX_WEBHOOK_BYTES, type FacturapiWebhookEvent } from "../_shared/facturapi-webhook/helpers.ts";

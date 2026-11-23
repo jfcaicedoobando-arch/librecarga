@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import { conciliarYRegistrarIsr, registrarResultadoIsr } from "../_shared/registrarEmisionIsr.ts";
 import { datosTimbradoConfirmado, prepararSolicitudTimbradoIsr } from "../_shared/solicitarTimbradoIsr.ts";
 import { cuerpoTimbradoPendiente } from "../_shared/timbradoPendiente.ts";
