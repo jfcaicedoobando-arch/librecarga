@@ -12,6 +12,7 @@ import { NuevoUsuarioCredencialesSection } from "./NuevoUsuarioCredencialesSecti
 import { NuevoUsuarioAccesoSection } from "./NuevoUsuarioAccesoSection";
 import { PASSWORD_MIN } from "@/lib/passwords/policy";
 import { useNuevoUsuarioForm } from "../../hooks/useNuevoUsuarioForm";
+import { useOrganization } from "@/lib/contexts/OrganizationContext";
 
 interface Props {
   open: boolean;
@@ -35,6 +36,7 @@ export default function NuevoUsuarioDialog({
     setTouched, emailError, passwordError, isDirty, reset, submit,
   } = useNuevoUsuarioForm();
   const createUser = useCreateUser();
+  const { organization } = useOrganization();
   const { data: orgs = [] } = useOrganizationsList(open && showOrgSelector);
 
   const handleSubmit = submit((values) => {
@@ -65,6 +67,7 @@ export default function NuevoUsuarioDialog({
     );
   }, (errors) => {
     setTouched({ email: true, password: true });
+    if (errors.email) document.getElementById("nu-email")?.focus();
     if (!errors.email && errors.password) {
       notifyError(undefined, {
         title: "Error",
@@ -87,7 +90,7 @@ export default function NuevoUsuarioDialog({
       description={
         showOrgSelector
           ? "Registra un usuario y asígnalo a una organización."
-          : "Registra un usuario para tu organización y asígnale un rol."
+          : `Asigna un rol a la persona que estás agregando a ${organization?.nombre ?? "tu organización activa"}.`
       }
       size="2xl"
       isDirty={isDirty}

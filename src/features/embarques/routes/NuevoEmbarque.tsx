@@ -1,5 +1,7 @@
 import { FormProvider } from "react-hook-form";
 import { useNavigate } from "react-router";
+import { usePermissions } from "@/hooks/shared/usePermissions";
+import { hasRouteAccess } from "@/lib/access/roleRouteMatrix";
 import { DraftRestoreBanner } from "@/features/cotizacion/components/wizard/DraftRestoreBanner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,7 @@ const steps = [
 
 export default function NuevoEmbarque() {
   const navigate = useNavigate();
+  const { role } = usePermissions();
   const {
     w,
     draftDetectado,
@@ -30,6 +33,9 @@ export default function NuevoEmbarque() {
     handleDiscard,
     handleFinishConLimpieza,
   } = useNuevoEmbarquePageController();
+  const volverA = w.cotizacionVinculada && hasRouteAccess(role, "/cotizaciones")
+    ? `/cotizaciones/${w.cotizacionVinculada.id}`
+    : "/embarques";
 
   return (
     <FormProvider {...w.methods}>
@@ -63,8 +69,8 @@ export default function NuevoEmbarque() {
         setCurrentStep={w.setCurrentStep}
         totalSteps={4}
         isPending={w.isPending}
-        saveLabel="Crear embarque"
-        onBack={() => navigate("/embarques")}
+        saveLabel="Crear borrador de embarque"
+        onBack={() => navigate(volverA)}
         onFinish={() => { void handleFinishConLimpieza(); }}
         validateStep={(step) => w.validateStep(step)}
         // RFE-06 (Ola 11): dirty real de react-hook-form — capturar el paso 1

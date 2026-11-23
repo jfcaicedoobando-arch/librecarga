@@ -36,7 +36,9 @@ export function useVistaFiscalCotizacion({
     gcTime: 30_000,
     retry: false,
   });
-  if (consulta.isError && coinciden) return { estado: "error" } as const;
+  if (consulta.isError && coinciden && !consulta.isFetching) {
+    return { estado: "error", reintentar: () => { void consulta.refetch(); } } as const;
+  }
   if (!cotizacionId && !clienteId) return { estado: "legacy" } as const;
   if (!coinciden || consulta.isFetching || consulta.isPlaceholderData || consulta.data == null) {
     return { estado: "cargando" } as const;

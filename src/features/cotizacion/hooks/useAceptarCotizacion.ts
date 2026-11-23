@@ -43,11 +43,14 @@ export function useAceptarCotizacion({
     queryFn: () => (oportunidadId ? fetchMonedaOportunidad(oportunidadId) : null),
     enabled: open && !!oportunidadId,
     staleTime: 0,
+    retry: false,
   });
 
   const monedaOportunidad = monedaQuery.data ?? null;
+  const cargandoMoneda = Boolean(oportunidadId) && (monedaQuery.isPending || monedaQuery.isFetching);
+  const monedaNoVerificada = Boolean(oportunidadId) && !cargandoMoneda && (monedaQuery.isError || !monedaOportunidad);
   const hayChoqueMoneda =
-    !!oportunidadId
+    !cargandoMoneda && !monedaNoVerificada && !!oportunidadId
     && !!monedaCotizacion
     && !!monedaOportunidad
     && monedaOportunidad !== monedaCotizacion;
@@ -55,7 +58,7 @@ export function useAceptarCotizacion({
   const abrir = useCallback(() => setOpen(true), []);
 
   const confirmar = useCallback(async () => {
-    if (enviando) return;
+    if (enviando || cargandoMoneda || monedaNoVerificada) return;
     setEnviando(true);
     try {
       if (hayChoqueMoneda && oportunidadId && monedaCotizacion) {
@@ -91,10 +94,10 @@ export function useAceptarCotizacion({
       // El toast de error lo emite la mutación / el normalizador de errores.
     } finally {
       setEnviando(false);
-      void monedaQuery.refetch();
+      if (oportunidadId) void monedaQuery.refetch();
     }
   }, [
-    enviando, hayChoqueMoneda, oportunidadId, monedaCotizacion,
+    enviando, cargandoMoneda, monedaNoVerificada, hayChoqueMoneda, oportunidadId, monedaCotizacion,
     aplicarEstado, monedaQuery,
   ]);
 
@@ -104,7 +107,9 @@ export function useAceptarCotizacion({
     abrir,
     confirmar,
     enviando,
-    cargandoMoneda: monedaQuery.isLoading,
+    cargandoMoneda,
+    monedaNoVerificada,
+    reintentarMoneda: () => void monedaQuery.refetch(),
     hayChoqueMoneda,
     monedaOportunidad,
   };

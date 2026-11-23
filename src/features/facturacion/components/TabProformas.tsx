@@ -13,8 +13,8 @@ import { usePermissions } from "@/hooks/shared";
 import { useMemo } from "react";
 import { todayLocalISO } from "@/lib/date/today";
 import { CargaGuard } from "@/components/shared/states/CargaGuard";
-import { mensajeVacioProformas } from "./proformasEmptyCopy";
 import { ProformasEmptyState } from "./proformasEmpty";
+import { mensajeVacioProformas, proformasTieneFiltros } from "./proformasEmptyCopy";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { ProformaMobileCard } from "./ProformaMobileCard";
 import { LABEL_ESTADO_UNIFICADO } from "@/lib/domain/estadoUnificado";
@@ -147,14 +147,13 @@ export function TabProformas({ isInRange, estadoInicial, estadoControlado }: {
             isLoading={c.isLoading}
             emptyMessage={mensajeVacioProformas(c.search, c.filtroEstado)}
             emptyState={
-              c.proformas.length > 0 && c.filtered.length === 0 ? (
-                <ProformasEmptyState
-                  search={c.search}
-                  filtroEstado={c.filtroEstado}
-                  onLimpiarBusqueda={() => c.setSearch("")}
-                  onLimpiarFiltros={c.clearFiltros}
-                />
-              ) : undefined
+              <ProformasEmptyState
+                search={c.search}
+                filtroEstado={c.filtroEstado}
+                hayFiltrosAdicionales={proformasTieneFiltros(c, Boolean(isInRange))}
+                onLimpiarBusqueda={() => c.setSearch("")}
+                onLimpiarFiltros={c.clearFiltros}
+              />
             }
             rowKey={(p) => p.id}
             density={TABLE_DENSITY.listado}

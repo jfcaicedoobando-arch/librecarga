@@ -10,7 +10,8 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { useOrgActiva } from "@/hooks/shared/useOrgActiva";
 import { Seo } from "@/components/shared/Seo";
 import { completeOnboarding } from "@/features/onboarding/services/completeOnboarding";
-import { OnboardingForm } from "@/features/onboarding/components/OnboardingForm";
+import { OnboardingForm, type OnboardingFormProps } from "@/features/onboarding/components/OnboardingForm";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
 import { PageSkeleton } from "@/components/shared/skeletons/PageSkeleton";
@@ -19,6 +20,7 @@ import { notifyError } from "@/lib/ui/appFeedback";
 import { ROUTES } from "@/constants/routes";
 import { validateOnboarding } from "@/features/onboarding/lib/onboardingValidation";
 import { getErrorMessage } from "@/lib/errors";
+import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 
 export default function Onboarding() {
   const { user, organization, loading, refreshProfile } = useAuth();
@@ -32,6 +34,9 @@ export default function Onboarding() {
   const [moneda, setMoneda] = useState<string>(organization?.moneda_preferida ?? "MXN");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmarOmitir, setConfirmarOmitir] = useState(false);
+  const [reintentando, setReintentando] = useState(false);
+  const [campoError, setCampoError] = useState<OnboardingFormProps["campoError"]>();
 
   if (loading) {
     return (
@@ -46,9 +51,12 @@ export default function Onboarding() {
 
   const submit = async (opts: { skipFiscal: boolean }) => {
     setError(null);
+    setCampoError(undefined);
     const v = validateOnboarding({ rfc, direccion, moneda, skipFiscal: opts.skipFiscal });
     if (!v.ok) {
       setError(v.message);
+      setCampoError(v.field);
+      document.getElementById(`onb-${v.field}`)?.focus();
       return;
     }
     // Ola 4 · N30: sin org activa no hay onboarding que guardar.
@@ -86,7 +94,23 @@ export default function Onboarding() {
     void submit({ skipFiscal: false });
   };
 
+  const reintentar = async () => {
+    setReintentando(true);
+    setError(null);
+    try {
+      await refreshProfile();
+    } catch {
+      setError("No pudimos actualizar tu acceso. Inténtalo de nuevo.");
+    } finally {
+      setReintentando(false);
+    }
+  };
+
   const handleSkip = () => {
+    if (rfc.trim() || direccion.trim()) {
+      setConfirmarOmitir(true);
+      return;
+    }
     void submit({ skipFiscal: true });
   };
 
@@ -100,6 +124,18 @@ export default function Onboarding() {
         ogDescription="Últimos datos de tu agencia antes de empezar a operar embarques y cotizaciones en Libre Carga."
         ogUrl="https://librecarga.com/onboarding"
       />
+      <ConfirmActionDialog
+        open={confirmarOmitir}
+        onOpenChange={setConfirmarOmitir}
+        title="¿Continuar sin datos fiscales?"
+        description="Se conservará la moneda elegida. El RFC y la dirección que capturaste se descartarán."
+        confirmLabel="Continuar sin datos fiscales"
+        cancelLabel="Conservar captura"
+        onConfirm={() => {
+          setConfirmarOmitir(false);
+          void submit({ skipFiscal: true });
+        }}
+      />
       <Card className="w-full max-w-xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -112,6 +148,12 @@ export default function Onboarding() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {!organizationId ? (
+            <div className="space-y-3" role="status">
+              <p>{error ?? "Aún no pudimos determinar tu organización. Reintenta la carga de tu acceso antes de capturar los datos."}</p>
+              <Button variant="outline" onClick={() => void reintentar()} loading={reintentando}>Reintentar acceso</Button>
+            </div>
+          ) : (
           <OnboardingForm
             rfc={rfc}
             onRfcChange={setRfc}
@@ -120,10 +162,12 @@ export default function Onboarding() {
             moneda={moneda}
             onMonedaChange={setMoneda}
             error={error}
+            campoError={campoError}
             submitting={submitting}
             onSubmit={handleSubmit}
             onSkip={handleSkip}
           />
+          )}
         </CardContent>
       </Card>
     </div>

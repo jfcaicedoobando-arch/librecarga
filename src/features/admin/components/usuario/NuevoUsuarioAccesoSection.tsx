@@ -58,11 +58,11 @@ export function NuevoUsuarioAccesoSection({
 
       {showOrgSelector && (
         <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5">
+          <Label htmlFor="nu-organizacion" className="flex items-center gap-1.5">
             <Building2 className="h-3.5 w-3.5" /> Organización
           </Label>
           <Select value={orgId} onValueChange={onOrgIdChange}>
-            <SelectTrigger>
+            <SelectTrigger id="nu-organizacion">
               <SelectValue placeholder="Selecciona organización" />
             </SelectTrigger>
             <SelectContent>
@@ -77,11 +77,11 @@ export function NuevoUsuarioAccesoSection({
       )}
 
       <div className="space-y-1.5">
-        <Label className="flex items-center gap-1.5">
+        <Label htmlFor="nu-rol" className="flex items-center gap-1.5">
           <ShieldCheck className="h-3.5 w-3.5" /> Rol
         </Label>
         <Select value={role} onValueChange={(v) => onRoleChange(v as AppRole)}>
-          <SelectTrigger>
+          <SelectTrigger id="nu-rol">
             <SelectValue>{ROLE_LABELS[role]}</SelectValue>
           </SelectTrigger>
           <SelectContent className="max-h-96 w-[var(--radix-select-trigger-width)]">

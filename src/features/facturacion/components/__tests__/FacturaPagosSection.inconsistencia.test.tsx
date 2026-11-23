@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render as rtlRender, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ReactElement } from "react";
+import type { PropsWithChildren, ReactElement } from "react";
 
 // v13.823.26: `ResponsiveDataTable` usa `useNavigate`, así que el render de
 // prueba necesita un Router.
@@ -16,11 +16,14 @@ const render = (ui: ReactElement) => {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   });
-  return rtlRender(
-    <QueryClientProvider client={client}>
-      <MemoryRouter>{ui}</MemoryRouter>
-    </QueryClientProvider>,
-  );
+  function Providers({ children }: PropsWithChildren) {
+    return (
+      <QueryClientProvider client={client}>
+        <MemoryRouter>{children}</MemoryRouter>
+      </QueryClientProvider>
+    );
+  }
+  return rtlRender(ui, { wrapper: Providers });
 };
 import { FacturaPagosSection } from "../detalle/FacturaPagosSection";
 
@@ -67,6 +70,16 @@ describe("FacturaPagosSection · aviso de inconsistencia", () => {
   it("muestra la alerta cuando el estado es Pagada y no hay respaldo", () => {
     render(<FacturaPagosSection {...baseProps} estadoFactura="Pagada" />);
     expect(screen.getByText("Estado inconsistente")).toBeInTheDocument();
+  });
+
+  it("espera las notas de crédito antes de mostrar cifras o estado de liquidación", () => {
+    ncMock.mockReturnValue({ isLoading: true });
+    const { rerender } = render(<FacturaPagosSection {...baseProps} estadoFactura="Emitida" />);
+    expect(screen.getByRole("status")).toHaveTextContent("Calculando saldo");
+    expect(screen.queryByText("Saldo", { exact: true })).not.toBeInTheDocument();
+    ncMock.mockReturnValue({ data: [], isLoading: false });
+    rerender(<FacturaPagosSection {...baseProps} estadoFactura="Emitida" />);
+    expect(screen.getByText("Saldo", { exact: true })).toBeInTheDocument();
   });
 
   it("no muestra la alerta cuando la factura está Emitida", () => {

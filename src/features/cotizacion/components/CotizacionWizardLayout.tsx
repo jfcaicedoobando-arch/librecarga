@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -11,6 +11,7 @@ import { ConfirmSinDesgloseDialog } from "@/features/cotizacion/components/Confi
 import { WizardTotalsBar } from "@/features/cotizacion/components/wizard/WizardTotalsBar";
 import { useCotizacionKeyboardShortcuts } from "@/features/cotizacion/hooks/wizard/useCotizacionKeyboardShortcuts";
 import { usePermissions } from "@/hooks/shared";
+import { useCotizacionFolio } from "@/features/cotizacion/hooks/useCotizacionQueries";
 import { useDirtyGuard } from "@/hooks/shared/useDirtyGuard";
 import { ejecutarSalidaWizard } from "@/features/cotizacion/components/wizard/salidaWizard";
 import type { EstadoCatalogoClientes } from "./seccionDestinatario/EstadoConsultaClientes";
@@ -34,6 +35,7 @@ interface CotizacionWizardLayoutProps {
   saveLabel: string;
   /** P1 (v13.294.1): flush del autosave para atajo Ctrl/Cmd+S. */
   onFlushDraft?: () => void;
+  esAlta?: boolean;
 }
 
 export default function CotizacionWizardLayout({
@@ -45,8 +47,11 @@ export default function CotizacionWizardLayout({
   onBack,
   saveLabel,
   onFlushDraft,
+  esAlta = false,
 }: CotizacionWizardLayoutProps) {
+  const { data: folioBorrador } = useCotizacionFolio(esAlta ? w.cotizacionId : null);
   const { form, handleSiguiente, handleGuardar, handleBack: wHandleBack, handleCotizarSinDesglose, isPending } = w;
+  const pasosRef = useRef<HTMLDivElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSinDesglose, setShowSinDesglose] = useState(false);
   const isBusy = isProcessing || isPending;
@@ -61,14 +66,17 @@ export default function CotizacionWizardLayout({
     try { await fn(); } finally { setIsProcessing(false); }
   }, [isBusy]);
 
-  const handleNext = useCallback(() => { void runProcessing(handleSiguiente); }, [runProcessing, handleSiguiente]);
+  const handleNext = useCallback(() => {
+    void runProcessing(() => {
+      if (w.currentStep === 2) {
+        pasosRef.current?.querySelector<HTMLElement>(
+          '[data-costo-cotizacion] [aria-describedby^="costo-"]:not([disabled])',
+        )?.focus();
+      }
+      return handleSiguiente();
+    });
+  }, [runProcessing, handleSiguiente, w.currentStep]);
   const handleSave = useCallback(() => { void runProcessing(handleGuardar); }, [runProcessing, handleGuardar]);
-  // Ola C · #13: guarda de salida. Antes se podía navegar (sidebar, migas) con
-  // el wizard a medio capturar y se perdía todo sin aviso.
-  // RN-EC-5: el "Volver" del header era navegación programática y saltaba la
-  // guarda; ahora también pasa por confirmarSalida.
-  // v13.819.1: el botón "Cancelar" del paso 1 también navegaba directo al
-  // listado sin advertir de la captura pendiente.
   const { guardDialog, confirmarSalida } = useDirtyGuard(form.formState.isDirty && !isBusy);
   const handleBack = useCallback(
     () => ejecutarSalidaWizard({
@@ -106,7 +114,6 @@ export default function CotizacionWizardLayout({
 
   const handleBackHeader = useCallback(() => { confirmarSalida(onBack); }, [confirmarSalida, onBack]);
 
-  // P1 (v13.294.0) — atajos de teclado del wizard.
   const handleFlushDraft = useCallback(() => {
     if (!onFlushDraft) return;
     onFlushDraft();
@@ -124,7 +131,7 @@ export default function CotizacionWizardLayout({
     <FormProvider {...form}>
       <WizardShell
         title={title}
-        subtitle={subtitle}
+        subtitle={folioBorrador ? `Borrador ${folioBorrador}` : subtitle}
         steps={WIZARD_STEPS}
         currentStep={w.currentStep}
         onStepClick={(s) => w.setCurrentStep(s)}
@@ -133,8 +140,6 @@ export default function CotizacionWizardLayout({
         contentMaxWidth="6xl"
         footer={
           <>
-            {/* v13.823.286: los totales viven en el pie, no flotando sobre el
-                contenido del paso. */}
             {mostrarTotales && <WizardTotalsBar plUSD={w.plUSD} plMXN={w.plMXN}
               conceptosVenta={w.currentStep === 3 ? [...w.conceptosUSD, ...w.conceptosMXN] : undefined}
               sinCostosRegistrados={w.currentStep === 3 && w.costosInternos.length === 0} />}
@@ -148,6 +153,7 @@ export default function CotizacionWizardLayout({
               onSave={handleSave}
               onCotizarSinDesglose={handleOpenSinDesglose}
               canSkipCostos={canCotizarSinDesglose}
+              guardarBorradorAlContinuar={esAlta}
             />
           </>
         }
@@ -167,14 +173,17 @@ export default function CotizacionWizardLayout({
             </AlertDescription>
           </Alert>
         )}
-        <CotizacionWizardSteps
-          w={w}
-          clientes={clientes}
-          catalogoClientes={catalogoClientes}
-          esMaritimo={esMaritimo}
-          sinDesgloseFlag={sinDesgloseFlag}
-          irACargarCostos={irACargarCostos}
-        />
+        <div ref={pasosRef}>
+          <CotizacionWizardSteps
+            w={w}
+            clientes={clientes}
+            catalogoClientes={catalogoClientes}
+            esMaritimo={esMaritimo}
+            sinDesgloseFlag={sinDesgloseFlag}
+            irACargarCostos={irACargarCostos}
+            bloqueado={isBusy}
+          />
+        </div>
       </WizardShell>
 
       <ConfirmSinDesgloseDialog

@@ -5,7 +5,7 @@
 
 export type OnboardingValidationResult =
   | { ok: true; rfc: string; direccion: string; moneda: string }
-  | { ok: false; message: string };
+  | { ok: false; field: "rfc" | "direccion" | "moneda"; message: string };
 
 const MONEDAS_VALIDAS = ["MXN", "USD", "EUR"] as const;
 
@@ -32,6 +32,7 @@ export function validateOnboarding(input: {
     if (rfcClean === "") {
       return {
         ok: false,
+        field: "rfc",
         message:
           "Captura el RFC de la organización o pulsa Configurar después.",
       };
@@ -39,16 +40,17 @@ export function validateOnboarding(input: {
     if (!RFC_REGEX.test(rfcClean)) {
       return {
         ok: false,
+        field: "rfc",
         message:
           "El RFC no tiene un formato válido. Persona moral: 12 caracteres (3 letras + fecha + homoclave); persona física: 13 (4 letras + fecha + homoclave). Ejemplo: ABC010203XY4.",
       };
     }
     if (dirClean !== "" && (dirClean.length < 5 || dirClean.length > 500)) {
-      return { ok: false, message: "La dirección debe tener entre 5 y 500 caracteres." };
+      return { ok: false, field: "direccion", message: "La dirección debe tener entre 5 y 500 caracteres." };
     }
   }
   if (!MONEDAS_VALIDAS.includes(input.moneda as (typeof MONEDAS_VALIDAS)[number])) {
-    return { ok: false, message: "Selecciona una moneda válida." };
+    return { ok: false, field: "moneda", message: "Selecciona una moneda válida." };
   }
   return { ok: true, rfc: rfcClean, direccion: dirClean, moneda: input.moneda };
 }

@@ -66,6 +66,23 @@ beforeEach(() => {
   respuesta();
 });
 
+it("bloquea la aceptación al fallar la consulta de moneda y permite reintentar", async () => {
+  crm.moneda.mockRejectedValueOnce(new Error("sin conexión"));
+  const { result } = montar("opp-1");
+  await act(async () => { await result.current.handlers.handleCambiarEstado("Aceptada"); });
+  await waitFor(() => expect(result.current.handlers.aceptar.monedaNoVerificada).toBe(true));
+  await act(async () => { await result.current.handlers.aceptar.confirmar(); });
+  expect(mock.rpcCalls).toEqual([]);
+  act(() => result.current.handlers.aceptar.reintentarMoneda());
+  await waitFor(() => {
+    expect(result.current.handlers.aceptar.cargandoMoneda).toBe(false);
+    expect(result.current.handlers.aceptar.monedaNoVerificada).toBe(false);
+    expect(crm.moneda).toHaveBeenCalledTimes(2);
+  });
+  await act(async () => { await result.current.handlers.aceptar.confirmar(); });
+  expect(mock.rpcCalls.map((call) => call.fn)).toEqual(["aceptar_cotizacion_version"]);
+});
+
 describe("prospecto Enviada → Aceptar → Convertir original (RPC simuladas)", () => {
   const cliente = { nombre: "ACME", contacto: "Ana", email: "ana@test.local", telefono: "5555555555",
     rfc: "ACM010101AA1", direccion: "Calle 1", ciudad: "CDMX", estado: "CDMX", cp: "06600",
@@ -79,6 +96,7 @@ describe("prospecto Enviada → Aceptar → Convertir original (RPC simuladas)",
       data: { version_aceptada: 4, origen_aceptacion: "aceptacion_prospecto_crm", sin_cambios: false }, error: null,
     });
     await act(async () => { await result.current.handlers.handleCambiarEstado("Aceptada"); });
+    await waitFor(() => expect(result.current.handlers.aceptar.cargandoMoneda).toBe(false));
     await act(async () => { await result.current.handlers.aceptar.confirmar(); });
     expect(mock.rpcCalls.map((call) => call.fn)).toEqual(["aceptar_cotizacion_version"]);
     expect(feedback.success).toHaveBeenCalledTimes(1);
@@ -91,6 +109,7 @@ describe("prospecto Enviada → Aceptar → Convertir original (RPC simuladas)",
       data: { version_aceptada: 4, origen_aceptacion: "aceptacion_prospecto_crm", sin_cambios: true }, error: null,
     });
     await act(async () => { await result.current.handlers.handleCambiarEstado("Aceptada"); });
+    await waitFor(() => expect(result.current.handlers.aceptar.cargandoMoneda).toBe(false));
     await act(async () => { await result.current.handlers.aceptar.confirmar(); });
     expect(feedback.success).toHaveBeenCalledTimes(2);
     mock.setRpcResult("convertir_prospecto_a_cliente_rpc", { data: { cliente_id: "cli-1", nombre: "ACME", creado: true }, error: null });
@@ -104,6 +123,7 @@ describe("prospecto Enviada → Aceptar → Convertir original (RPC simuladas)",
       data: { version_aceptada: 4, origen_aceptacion: "autorizacion_cliente", sin_cambios: true }, error: null,
     });
     await act(async () => { await result.current.handlers.handleCambiarEstado("Aceptada"); });
+    await waitFor(() => expect(result.current.handlers.aceptar.cargandoMoneda).toBe(false));
     await act(async () => { await result.current.handlers.aceptar.confirmar(); });
     expect(mock.rpcCalls.map((call) => call.fn)).toEqual([
       "aceptar_cotizacion_version", "aceptar_cotizacion_version",
@@ -120,6 +140,7 @@ describe("prospecto Enviada → Aceptar → Convertir original (RPC simuladas)",
     const { result } = montar("opp-1", { estado, cliente_id: null, es_prospecto: true, prospecto_empresa: "ACME" });
     mock.setRpcResult("aceptar_cotizacion_version", { data: null, error: { code: "P0001", message: "LC_COTIZACION_ESTADO_INVALIDO" } });
     await act(async () => { await result.current.handlers.handleCambiarEstado("Aceptada"); });
+    await waitFor(() => expect(result.current.handlers.aceptar.cargandoMoneda).toBe(false));
     await act(async () => { await result.current.handlers.aceptar.confirmar(); });
     expect(mock.rpcCalls.map((call) => call.fn)).toEqual(["aceptar_cotizacion_version"]);
     expect(mock.tableCalls).toEqual([]);
@@ -161,7 +182,7 @@ describe("aceptación interna: detalle → mutación → autoridad canónica", (
     await act(async () => { await result.current.handlers.handleCambiarEstado("Aceptada"); });
     expect(mock.rpcCalls).toEqual([]);
     expect(result.current.handlers.aceptar.open).toBe(true);
-    if (oportunidadId) await waitFor(() => expect(crm.moneda).toHaveBeenCalledWith(oportunidadId));
+    if (oportunidadId) await waitFor(() => expect(result.current.handlers.aceptar.cargandoMoneda).toBe(false));
     await act(async () => { await result.current.handlers.aceptar.confirmar(); });
     expect(mock.rpcCalls).toEqual([{ fn: "aceptar_cotizacion_version", args: { p_cotizacion_id: "cot-1" } }]);
     expect(mock.tableCalls).toEqual([]);
@@ -209,9 +230,11 @@ describe("aceptación interna: detalle → mutación → autoridad canónica", (
   it.each([null, "opp-1"])("reintento idempotente con oportunidad %s no agrega escrituras ni avisos", async (oportunidadId) => {
     const { result } = montar(oportunidadId);
     await act(async () => { await result.current.handlers.handleCambiarEstado("Aceptada"); });
+    await waitFor(() => expect(result.current.handlers.aceptar.cargandoMoneda).toBe(false));
     await act(async () => { await result.current.handlers.aceptar.confirmar(); });
     respuesta(true);
     await act(async () => { await result.current.handlers.handleCambiarEstado("Aceptada"); });
+    await waitFor(() => expect(result.current.handlers.aceptar.cargandoMoneda).toBe(false));
     await act(async () => { await result.current.handlers.aceptar.confirmar(); });
     expect(mock.rpcCalls).toEqual(Array(2).fill({ fn: "aceptar_cotizacion_version", args: { p_cotizacion_id: "cot-1" } }));
     expect(mock.tableCalls).toEqual([]);
@@ -224,6 +247,7 @@ describe("aceptación interna: detalle → mutación → autoridad canónica", (
     mock.supabase.rpc.mockRejectedValueOnce(new Error("respuesta perdida"));
     const { result } = montar();
     await act(async () => { await result.current.handlers.handleCambiarEstado("Aceptada"); });
+    await waitFor(() => expect(result.current.handlers.aceptar.cargandoMoneda).toBe(false));
     await act(async () => { await result.current.handlers.aceptar.confirmar(); });
     expect(result.current.handlers.aceptar.open).toBe(true);
     expect(feedback.error).toHaveBeenCalledTimes(1);
@@ -246,6 +270,7 @@ describe("aceptación interna: detalle → mutación → autoridad canónica", (
     mock.setRpcResult("aceptar_cotizacion_version", { data: null, error: { code, message } });
     const { result } = montar();
     await act(async () => { await result.current.handlers.handleCambiarEstado("Aceptada"); });
+    await waitFor(() => expect(result.current.handlers.aceptar.cargandoMoneda).toBe(false));
     await act(async () => { await result.current.handlers.aceptar.confirmar(); });
     expect(mock.rpcCalls).toHaveLength(1);
     expect(mock.tableCalls).toEqual([]);

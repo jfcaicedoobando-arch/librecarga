@@ -12,7 +12,7 @@ import { hoyMx } from "@/lib/date/mx";
 import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
 import { getSessionCacheGeneration, subscribeSessionCacheGeneration } from "@/lib/auth/sessionCacheRegistry";
 import { ErrorEnvioSolicitudPricing, useGuardarSolicitud } from "@/features/crm/hooks/usePricingCrm";
-import { solicitudCompleta, type SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
+import { camposFaltantesSolicitud, type SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
 import { subirAdjunto } from "@/features/crm/services/pricing/adjuntosPricing";
 import { notifyError } from "@/lib/ui/appFeedback";
 import { SolicitudPricingCampos, type DatosSolicitud } from "./SolicitudPricingCampos";
@@ -25,6 +25,7 @@ interface Props {
   oportunidadId: string;
   clienteNombre?: string | null;
   solicitud?: SolicitudPricingRow | null;
+  onRevisarTarifario?: (solicitudId: string) => void;
 }
 
 const FORM_ID = "solicitud-pricing";
@@ -49,7 +50,7 @@ export function SolicitudPricingDialog(props: Props) {
     organizationId={organizationId} userId={user?.id} /> : null;
 }
 
-function SesionSolicitudPricing({ open, onOpenChange, oportunidadId, clienteNombre, solicitud, organizationId, userId }:
+function SesionSolicitudPricing({ open, onOpenChange, oportunidadId, clienteNombre, solicitud, organizationId, userId, onRevisarTarifario }:
   Props & { organizationId?: string | null; userId?: string }) {
   const guardar = useGuardarSolicitud();
   const [datos, setDatos] = useState<DatosSolicitud>(() => inicial(userId ?? "", clienteNombre, solicitud));
@@ -73,7 +74,7 @@ function SesionSolicitudPricing({ open, onOpenChange, oportunidadId, clienteNomb
     setSucio(true);
   };
 
-  const ejecutar = async (enviar: boolean) => {
+  const ejecutar = async (enviar: boolean, revisar = false) => {
     const token = generacion.current;
     if (!organizationId || !token || enCurso.current || guardar.isPending) return;
     const scope = captureAuthOperationScope();
@@ -90,6 +91,7 @@ function SesionSolicitudPricing({ open, onOpenChange, oportunidadId, clienteNomb
       await subirPendientes(organizationId, id, vigente);
       if (!vigente()) return;
       setSucio(false);
+      if (revisar) onRevisarTarifario?.(id);
       onOpenChange(false);
     } catch (error) {
       if (!vigente()) return;
@@ -120,8 +122,12 @@ function SesionSolicitudPricing({ open, onOpenChange, oportunidadId, clienteNomb
     }
   };
   // El envío final se hace desde el detalle, tras revisar el tarifario.
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); void ejecutar(false); };
-  const completa = solicitudCompleta(datos);
+  const faltantes = camposFaltantesSolicitud(datos);
+  const completa = faltantes.length === 0;
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (completa) void ejecutar(false, true);
+  };
 
   return (
     <FormDialogShell
@@ -144,12 +150,15 @@ function SesionSolicitudPricing({ open, onOpenChange, oportunidadId, clienteNomb
             Guardar borrador
           </Button>
           <Button type="submit" form={FORM_ID} disabled={!completa || busy}
-            title={completa ? undefined : "Falta Service, origen (o POL) y destino (o POD)"}>
+            aria-describedby={completa ? undefined : "pr-faltantes"}>
             {busy ? "Guardando…" : "Revisar tarifario"}
           </Button>
         </>
       }
     >
+      {!completa && <p id="pr-faltantes" role="status" className="text-body-sm text-muted-foreground">
+        Completa estos datos para revisar el tarifario: {faltantes.join(", ")}.
+      </p>}
       <SolicitudPricingCampos datos={datos} set={set} disabled={busy} />
       {solicitud && organizationId
         ? <AdjuntosSolicitudPricing organizationId={organizationId} solicitudId={solicitud.id} puedeAdjuntar />

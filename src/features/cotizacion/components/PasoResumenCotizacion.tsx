@@ -1,6 +1,7 @@
 import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { WizardSection } from "@/components/shared/WizardSection";
 import { formatCurrency } from "@/lib/formatters";
 import type { ConceptoVentaCotizacion } from "@/features/cotizacion/types";
@@ -31,6 +32,9 @@ interface Props {
   totalUSD: number;
   totalMXN: number;
   resumenFiscal?: ReactNode;
+  onEditarDatos?: () => void;
+  onEditarConceptos?: () => void;
+  edicionBloqueada?: boolean;
   /** Sólo cambia el texto del aviso final (crear borrador vs. guardar cambios). */
   esEdicion?: boolean;
 }
@@ -41,7 +45,7 @@ const DATO = (label: string, valor: string) => ({ label, valor });
 export default function PasoResumenCotizacion({
   plUSD, plMXN, tieneCostosUSD, tieneCostosMXN, conceptosVenta,
   nombreCliente, origen, destino, numContenedores, cargaLcl,
-  modo, incoterm, tipo, totalUSD, totalMXN, resumenFiscal, esEdicion = false,
+  modo, incoterm, tipo, totalUSD, totalMXN, resumenFiscal, esEdicion = false, onEditarDatos, onEditarConceptos, edicionBloqueada,
 }: Props) {
 
   // BL-COT-04: sólo el marítimo se mide en contenedores.
@@ -73,7 +77,8 @@ export default function PasoResumenCotizacion({
         notaPie="El IVA no forma parte de la utilidad"
       />
 
-      <WizardSection title="Datos de la operación" columns={3}>
+      <WizardSection title="Datos de la operación" columns={3}
+        actions={onEditarDatos && <Button type="button" variant="outline" size="sm" disabled={edicionBloqueada} onClick={onEditarDatos}>Editar datos</Button>}>
         {datos.map((d) => (
           <div key={d.label}>
             <span className="text-body-sm text-muted-foreground">{d.label}</span>
@@ -82,7 +87,9 @@ export default function PasoResumenCotizacion({
         ))}
       </WizardSection>
 
-      {resumenFiscal ?? <WizardSection title="Totales de la cotización">
+      <WizardSection title="Totales de la cotización"
+        actions={onEditarConceptos && <Button type="button" variant="outline" size="sm" disabled={edicionBloqueada} onClick={onEditarConceptos}>Editar conceptos</Button>}>
+        {resumenFiscal ?? (
         <div className="flex flex-col items-end gap-1">
           <span className="text-body font-semibold tabular-nums">
             Total USD: {formatCurrency(totalUSD, "USD")}
@@ -91,7 +98,8 @@ export default function PasoResumenCotizacion({
             Total MXN (c/IVA): {formatCurrency(totalMXN, "MXN")}
           </span>
         </div>
-      </WizardSection>}
+        )}
+      </WizardSection>
 
       {/* Aviso informativo, no una advertencia: sólo dice qué pasará al guardar. */}
       <Alert variant="info">

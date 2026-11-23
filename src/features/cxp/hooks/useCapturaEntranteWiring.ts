@@ -10,7 +10,7 @@
  * `facturaIdPendiente` para reintentar sólo el paso pendiente (UPDATE sobre
  * el documento del buzón) sin volver a insertar la factura.
  */
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useCapturarFacturaEntrante } from "./useFacturasEntrantes";
 import { copiarArchivosEntranteAFactura } from "@/features/cxp/services/copiarArchivosEntrante";
 import { notifyBestEffortFallo } from "./useNuevaFacturaProveedorForm.bestEffort";
@@ -37,6 +37,8 @@ export function useCapturaEntranteWiring({
   // fallo: se conserva para permitir reintento idempotente (nunca se vuelve
   // a crear la factura, sólo se reintenta el UPDATE del documento).
   const [facturaIdPendiente, setFacturaIdPendiente] = useState<string | null>(null);
+  const cerrandoRef = useRef(false);
+  const [cerrandoEntrada, setCerrandoEntrada] = useState(false);
 
   const embarqueInicial: EmbarqueSeleccionado | null =
     initialEmbarqueAdHoc ??
@@ -83,6 +85,9 @@ export function useCapturaEntranteWiring({
    */
   const ejecutarCierre = useCallback(
     async (facturaId: string): Promise<boolean> => {
+      if (cerrandoRef.current) return false;
+      cerrandoRef.current = true;
+      setCerrandoEntrada(true);
       try {
         await cerrarCiclo(facturaId);
         setFacturaIdPendiente(null);
@@ -99,6 +104,9 @@ export function useCapturaEntranteWiring({
           action: { label: "Reintentar", onClick: () => { void ejecutarCierre(facturaId); } },
         });
         return false;
+      } finally {
+        cerrandoRef.current = false;
+        setCerrandoEntrada(false);
       }
     },
     [cerrarCiclo, onCerrar, entrante?.id, organizationId],
@@ -119,5 +127,5 @@ export function useCapturaEntranteWiring({
     [entrante, ejecutarCierre, onCerrar],
   );
 
-  return { embarqueInicial, onDone, facturaIdPendiente, reintentar };
+  return { embarqueInicial, onDone, facturaIdPendiente, cerrandoEntrada, reintentar };
 }

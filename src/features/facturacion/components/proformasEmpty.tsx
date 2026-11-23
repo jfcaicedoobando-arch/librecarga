@@ -4,20 +4,26 @@
  * (Power of 10) sin cambiar el copy ni el comportamiento.
  */
 import { FileSpreadsheet } from "lucide-react";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { usePermissions } from "@/hooks/shared";
+import { hasRouteAccess } from "@/lib/access/roleRouteMatrix";
 import EmptyState from "@/components/empty/EmptyState";
 
 
 export function ProformasEmptyState({
   search,
   filtroEstado,
+  hayFiltrosAdicionales = false,
   onLimpiarBusqueda,
   onLimpiarFiltros,
 }: {
   search: string;
   filtroEstado: string;
+  hayFiltrosAdicionales?: boolean;
   onLimpiarBusqueda: () => void;
   onLimpiarFiltros: () => void;
 }) {
+  const { role } = usePermissions();
   const q = search.trim();
   if (q) {
     return (
@@ -26,6 +32,18 @@ export function ProformasEmptyState({
         title={`Sin resultados para «${q}»`}
         description="Ajusta la búsqueda o límpiala para ver todas las proformas."
         primaryAction={{ label: "Limpiar búsqueda", onClick: onLimpiarBusqueda }}
+      />
+    );
+  }
+  if (filtroEstado === "todas" && !hayFiltrosAdicionales) {
+    return (
+      <EmptyStateInline
+        icon={FileSpreadsheet}
+        message="Aún no hay proformas"
+        hint="Abre un embarque confirmado y elige Generar proforma en la pestaña Facturación."
+        action={hasRouteAccess(role, "/embarques")
+          ? { label: "Ir a Embarques", to: "/embarques" }
+          : undefined}
       />
     );
   }

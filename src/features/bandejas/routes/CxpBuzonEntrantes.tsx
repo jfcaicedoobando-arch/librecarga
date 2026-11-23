@@ -138,6 +138,7 @@ export default function CxpBuzonEntrantes() {
           <FacturasEntrantesLista
             rows={capturadas.data ?? []}
             isLoading={capturadas.isLoading}
+            errorHistorial={capturadas.isError ? { onRetry: () => void capturadas.refetch(), retrying: capturadas.isFetching } : undefined}
             puedeProcesar={false}
             soloLectura
             tituloVacio="Sin documentos capturados"
@@ -150,6 +151,7 @@ export default function CxpBuzonEntrantes() {
           <FacturasEntrantesLista
             rows={rechazadas.data ?? []}
             isLoading={rechazadas.isLoading}
+            errorHistorial={rechazadas.isError ? { onRetry: () => void rechazadas.refetch(), retrying: rechazadas.isFetching } : undefined}
             puedeProcesar={false}
             soloLectura
             tituloVacio="Sin documentos rechazados"

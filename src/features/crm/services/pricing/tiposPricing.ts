@@ -85,9 +85,17 @@ export function aNumero(v: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+type DatosMinimosSolicitud = Pick<SolicitudPricingInsert, "servicio" | "origen" | "pol" | "destino" | "pod">;
+
 /** Mismo criterio que la RPC de envío: servicio + origen/POL + destino/POD. */
-export function solicitudCompleta(d: {
-  servicio?: string | null; origen?: string | null; pol?: string | null; destino?: string | null; pod?: string | null;
-}): boolean {
-  return !!d.servicio && !!(d.origen?.trim() || d.pol?.trim()) && !!(d.destino?.trim() || d.pod?.trim());
+export function camposFaltantesSolicitud(d: DatosMinimosSolicitud): string[] {
+  const faltantes: string[] = [];
+  if (!d.servicio) faltantes.push("modo de transporte");
+  if (!(d.origen?.trim() || d.pol?.trim())) faltantes.push("origen (país o puerto)");
+  if (!(d.destino?.trim() || d.pod?.trim())) faltantes.push("destino (país o puerto)");
+  return faltantes;
+}
+
+export function solicitudCompleta(d: DatosMinimosSolicitud): boolean {
+  return camposFaltantesSolicitud(d).length === 0;
 }

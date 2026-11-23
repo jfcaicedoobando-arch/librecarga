@@ -14,6 +14,8 @@ import { useProformasListas, type FilaProformaLista } from "@/features/facturaci
 import { BandejaShell } from "./BandejaShell";
 import { COL_W } from "@/components/shared/dataTable/columnWidths";
 import { FilteredListEmptyState } from "@/components/empty/FilteredListEmptyState";
+import { usePermissions } from "@/hooks/shared/usePermissions";
+import { hasRouteAccess } from "@/lib/access/roleRouteMatrix";
 
 const columns = defineColumns<FilaProformaLista>([
   {
@@ -52,6 +54,8 @@ const columns = defineColumns<FilaProformaLista>([
 
 export function BandejaProformasListas() {
   const { data, isLoading, isError, refetch } = useProformasListas();
+  const { role } = usePermissions();
+  const puedeVerProformas = hasRouteAccess(role, "/proformas");
   const paged = useClientPagedList<FilaProformaLista, Record<string, string>>({
     data,
     isLoading,
@@ -89,7 +93,8 @@ export function BandejaProformasListas() {
             emptyState={<FilteredListEmptyState
               filtered={paged.activeCount > 0} onClearFilters={paged.resetAll} icon={FileCheck2}
               message="Sin proformas listas para crear un borrador de factura."
-              hint="Las proformas listas aparecerán aquí para continuar con la facturación."
+              hint="Las proformas aparecen aquí después de la aprobación que corresponde a cada cliente."
+              action={puedeVerProformas ? { label: "Ver proformas pendientes", to: "/proformas?estado=pendiente" } : undefined}
             />}
             rowKey={(r) => r.id}
             getRowHref={(r) => `/proformas/${r.id}`}

@@ -1,6 +1,8 @@
 import { useDeferredValue } from "react";
 import { ClipboardList, Plus } from "lucide-react";
 import { useDocumentTitle } from "@/hooks/shared";
+import { usePermissions } from "@/hooks/shared/usePermissions";
+import { hasRouteAccess } from "@/lib/access/roleRouteMatrix";
 import { Card, CardContent } from "@/components/ui/card";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { PageContainer } from "@/components/shared/PageContainer";
@@ -21,9 +23,7 @@ import { FloatingActionButton } from "@/components/shared/FloatingActionButton";
 import { EtiquetaMargenBajo } from '../components/EtiquetaMargenBajo';
 import { Button } from '@/components/ui/button';
 
-
 import { buildEmbarquesDescription } from "@/features/embarques/domain/embarquesPageHelpers";
-
 
 export default function Embarques() {
   useDocumentTitle("Embarques");
@@ -36,6 +36,8 @@ export default function Embarques() {
   // v13.303.26 — el CTA "Nuevo embarque" desaparece: los embarques sólo se crean
   // desde una cotización Aceptada (política tarifa-first, sin excepciones).
   const canCrear = false;
+  const { role } = usePermissions();
+  const puedeVerCotizaciones = hasRouteAccess(role, "/cotizaciones");
 
 
 
@@ -55,7 +57,7 @@ export default function Embarques() {
   // de esconder la puerta de entrada, explicamos el prerrequisito y llevamos a
   // Cotizaciones (navegación proactiva, no un error después del hecho).
   const goNuevoDesdeCotizacion = () => {
-    navigate("/cotizaciones", { state: { origen: "nuevo-embarque" } });
+    navigate("/cotizaciones?aceptadasSinEmbarque=si", { state: { origen: "nuevo-embarque" } });
   };
   // E-12 (auditoría visual 2026-08-24): mientras la consulta no resuelve, el
   // encabezado no puede afirmar "0 embarques" — se contradecía con el skeleton
@@ -85,7 +87,7 @@ export default function Embarques() {
               exportandoCsv={exportandoCsv}
               onExport={exportarCsv}
               onNuevo={goNuevo}
-              onNuevoDesdeCotizacion={goNuevoDesdeCotizacion}
+              onNuevoDesdeCotizacion={puedeVerCotizaciones ? goNuevoDesdeCotizacion : undefined}
             />
 
           )
@@ -100,7 +102,7 @@ export default function Embarques() {
         errorDescription="Revisa tu conexión e intenta de nuevo."
       >
         {isEmptyState ? (
-          <EmbarquesEmptyState canEdit={canCrear} onCreate={goNuevo} />
+          <EmbarquesEmptyState canEdit={canCrear} onCreate={goNuevo} onBuscarCotizacion={goNuevoDesdeCotizacion} />
         ) : (
           <>
           {alertasError ? (
@@ -184,11 +186,11 @@ export default function Embarques() {
       </CargaGuard>
 
       {/* UIA-16: en mobile el alta primaria vive en el FAB (el header oculta el botón <md). */}
-      {!isEmptyState ? (
+      {!isEmptyState && (canCrear || puedeVerCotizaciones) ? (
         <FloatingActionButton
           onClick={canCrear ? goNuevo : goNuevoDesdeCotizacion}
           icon={canCrear ? <Plus className="h-6 w-6" /> : <ClipboardList className="h-6 w-6" />}
-          label={canCrear ? "Nuevo embarque" : "Ver cotizaciones"}
+          label={canCrear ? "Nuevo embarque" : "Buscar cotización aceptada"}
         />
       ) : null}
     </PageContainer>

@@ -95,9 +95,10 @@ export default function DialogContacto({ open, onOpenChange, contacto, onSave, i
         <div>
           <Label htmlFor="contacto-tipo">Tipo</Label>
           <Select value={form.tipo} onValueChange={v => handleChange('tipo', v)}>
-            <SelectTrigger id="contacto-tipo" className="mt-1"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="contacto-tipo" aria-describedby="contacto-tipo-ayuda" className="mt-1"><SelectValue /></SelectTrigger>
             <SelectContent>{TIPOS_CONTACTO.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
           </Select>
+          <p id="contacto-tipo-ayuda" className="mt-1 text-label text-muted-foreground">Elige su papel en el embarque. Exportador envía la mercancía e Importador la recibe.</p>
         </div>
         <div><Label htmlFor="contacto-rfc">Tax ID</Label><Input id="contacto-rfc" value={form.rfc} onChange={e => handleChange('rfc', e.target.value)} className="mt-1" /></div>
         <div><Label htmlFor="contacto-pais">País</Label><Input id="contacto-pais" value={form.pais} onChange={e => handleChange('pais', e.target.value)} className="mt-1" /></div>

@@ -18,19 +18,20 @@ export function ResumenSaldo({
 }
 
 export function FooterAcciones({
-  ocupado, timbrandoRep, invalido, onCancel, formId,
+  ocupado, timbrandoRep, invalido, intentaTimbrarRep, onCancel, formId,
 }: {
-  ocupado: boolean; timbrandoRep: boolean; invalido: boolean;
+  ocupado: boolean; timbrandoRep: boolean; invalido: boolean; intentaTimbrarRep: boolean;
   onCancel: () => void;
   /** id del `<form>` del cuerpo: permite enviar con Enter y con este botón. */
   formId: string;
 }) {
   const cerrar = useFormDialogCerrar();
+  const etiqueta = intentaTimbrarRep ? "Registrar pago e intentar timbrar REP" : "Registrar pago";
   return (
     <>
       <Button type="button" variant="outline" onClick={cerrar ?? onCancel} disabled={ocupado}>Cancelar</Button>
       <Button type="submit" form={formId} disabled={invalido} loading={ocupado}>
-        {timbrandoRep ? "Timbrando REP…" : "Registrar pago"}
+        {timbrandoRep ? "Timbrando REP…" : etiqueta}
       </Button>
     </>
   );

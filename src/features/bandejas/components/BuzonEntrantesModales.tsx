@@ -65,6 +65,7 @@ export function BuzonEntrantesModales({
       />
 
       <DialogNuevaFacturaProveedor
+        key={entranteCaptura?.id}
         open={Boolean(entranteCaptura)}
         onOpenChange={(v) => { if (!v) onCerrarCaptura(); }}
         entrante={entranteCaptura}

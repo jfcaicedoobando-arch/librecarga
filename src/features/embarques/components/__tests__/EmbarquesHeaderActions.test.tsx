@@ -1,7 +1,7 @@
 /**
  * Regresión (v13.823.323): cuando la creación directa está bloqueada
  * (política tarifa-first), la CTA de la lista NO puede llamarse
- * "Nuevo embarque" — debe anunciar su destino real ("Ver cotizaciones")
+ * "Nuevo embarque" — debe anunciar su destino real ("Buscar cotización aceptada")
  * y ejecutar la navegación hacia cotizaciones.
  */
 import { describe, it, expect, vi } from "vitest";
@@ -9,7 +9,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { EmbarquesHeaderActions } from "../EmbarquesHeaderActions";
 
 describe("EmbarquesHeaderActions", () => {
-  it("sin alta directa muestra 'Ver cotizaciones' y nunca 'Nuevo embarque'", () => {
+  it("sin alta directa muestra 'Buscar cotización aceptada' y nunca 'Nuevo embarque'", () => {
     const onNuevoDesdeCotizacion = vi.fn();
     render(
       <EmbarquesHeaderActions
@@ -21,7 +21,7 @@ describe("EmbarquesHeaderActions", () => {
       />,
     );
     expect(screen.queryByText("Nuevo embarque")).toBeNull();
-    const cta = screen.getByRole("button", { name: /ver cotizaciones/i });
+    const cta = screen.getByRole("button", { name: /buscar cotización aceptada/i });
     fireEvent.click(cta);
     expect(onNuevoDesdeCotizacion).toHaveBeenCalledTimes(1);
   });

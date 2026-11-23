@@ -1,17 +1,15 @@
-/**
- * Dialog para enviar la proforma al cliente por email.
- *
- * Muestra el resultado por destinatario y permite reconciliar un envío pendiente.
- */
+/** Envío de proforma por correo con resultado por destinatario. */
 import { useEffect, useRef, useState } from "react";
+import { CampoCorreoProforma, type ErrorCorreoProforma } from "./CampoCorreoProforma";
 import { Mail } from "lucide-react";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
+import { emailSchema } from "@/lib/validation/mutationSchemas.shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCopyText } from "@/hooks/shared/useCopyText";
-import { notifyError } from "@/lib/ui/appFeedback";
 import { useDestinatariosSugeridos } from "@/features/proformas/hooks/useDestinatariosSugeridos";
 import { useEmailsOcultos } from "@/features/proformas/hooks/useEmailsOcultos";
 import { useEnviarProformaEmail, type EnviarProformaVars } from "@/features/proformas/hooks/useEnviarProformaEmail";
@@ -24,6 +22,14 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   proforma: ProformaDetalleFull;
+}
+
+function defaultAsunto(proforma: ProformaDetalleFull) {
+  return `Proforma ${proforma.numero ?? ""} para su aprobación`.trim();
+}
+
+function destinatariosIniciales(ultimo?: { to: string[]; cc: string[] } | null) {
+  return [ultimo?.to.join(", ") ?? "", ultimo?.cc.join(", ") ?? ""];
 }
 
 function defaultMensaje(p: ProformaDetalleFull): string {
@@ -44,13 +50,18 @@ export function EnviarProformaDialog({ open, onOpenChange, proforma }: Props) {
   const [cc, setCc] = useState("");
   const [asunto, setAsunto] = useState("");
   const [mensaje, setMensaje] = useState("");
+  const [contenidoInicial, setContenidoInicial] = useState({ asunto: "", mensaje: "" });
   const proformaInicializada = useRef<string | null>(null);
   const correosEditados = useRef({ to: false, cc: false });
+  const paraRef = useRef<HTMLInputElement>(null);
+  const ccRef = useRef<HTMLInputElement>(null);
+  const [errorCorreo, setErrorCorreo] = useState<ErrorCorreoProforma | null>(null);
   const [envio, setEnvio] = useState<{ resultado: EnviarProformaEmailResult; vars: EnviarProformaVars } | null>(null);
   const { data: memoria } = useDestinatariosSugeridos(proforma.cliente_id);
   const { ocultos, isOculto, ocultar, restaurar, restaurarVarios } = useEmailsOcultos(proforma.cliente_id);
 
   const sugerenciasVisibles = (memoria?.sugerencias ?? []).filter((e) => !isOculto(e));
+  const [paraInicial, ccInicial] = destinatariosIniciales(memoria?.ultimo);
 
   useEffect(() => {
     if (!open) {
@@ -60,19 +71,21 @@ export function EnviarProformaDialog({ open, onOpenChange, proforma }: Props) {
     if (proformaInicializada.current !== proforma.id) {
       proformaInicializada.current = proforma.id;
       correosEditados.current = { to: false, cc: false };
-      setAsunto(`Proforma ${proforma.numero ?? ""} para su aprobación`.trim());
-      setMensaje(defaultMensaje(proforma));
+      setErrorCorreo(null);
+      const inicial = { asunto: defaultAsunto(proforma), mensaje: defaultMensaje(proforma) };
+      setContenidoInicial(inicial);
+      setAsunto(inicial.asunto);
+      setMensaje(inicial.mensaje);
     }
-    if (!correosEditados.current.to) setDestinatarios(memoria?.ultimo?.to.join(", ") ?? "");
-    if (!correosEditados.current.cc) setCc(memoria?.ultimo?.cc.join(", ") ?? "");
-  }, [open, proforma, memoria]);
-
+    if (!correosEditados.current.to) setDestinatarios(paraInicial);
+    if (!correosEditados.current.cc) setCc(ccInicial);
+  }, [open, proforma, paraInicial, ccInicial]);
   function editarEmail(target: "to" | "cc", valor: string) {
     correosEditados.current[target] = true;
+    setErrorCorreo((error) => error?.campo === target ? null : error);
     const setter = target === "to" ? setDestinatarios : setCc;
     setter(valor);
   }
-
   function agregarEmail(target: "to" | "cc", email: string) {
     const current = target === "to" ? destinatarios : cc;
     const partes = current.split(/[,;\s]+/).map((s) => s.trim().toLowerCase()).filter(Boolean);
@@ -90,14 +103,23 @@ export function EnviarProformaDialog({ open, onOpenChange, proforma }: Props) {
   function handleEnviar() {
     const to = destinatarios.split(/[,;\s]+/).filter(Boolean).map((email) => ({ email }));
     const ccList = cc.split(/[,;\s]+/).filter(Boolean);
-    if (to.length === 0) {
-      notifyError(undefined, { title: "Ingresa al menos un destinatario", method: "PROFORMAS_ENVIAR_VALIDACION" });
+    if (!to.length || to.some(({ email }) => !emailSchema.safeParse(email).success)) {
+      setErrorCorreo({ campo: "to", texto: to.length ? "Revisa el formato de los correos en Para." : "Ingresa al menos un destinatario." });
+      paraRef.current?.focus();
+      return;
+    }
+    if (ccList.some((email) => !emailSchema.safeParse(email).success)) {
+      setErrorCorreo({ campo: "cc", texto: "Revisa el formato de los correos en CC." });
+      ccRef.current?.focus();
       return;
     }
     enviarMut.mutate({ to, ccList, asunto, mensaje });
   }
 
   const loading = enviarMut.isPending;
+  const valores = [destinatarios, cc, asunto, mensaje];
+  const iniciales = [paraInicial, ccInicial, contenidoInicial.asunto, contenidoInicial.mensaje];
+  const isDirty = !envio && valores.some((valor, i) => valor !== iniciales[i]);
   const cerrar = (next: boolean) => {
     if (loading) return;
     if (!next && envio?.resultado.estado !== "pendiente") setEnvio(null);
@@ -114,9 +136,7 @@ export function EnviarProformaDialog({ open, onOpenChange, proforma }: Props) {
 
   const footer = !envio ? (
     <>
-      <Button variant="outline" onClick={() => cerrar(false)} disabled={loading}>
-        Cancelar
-      </Button>
+      <FormDialogCancelarBoton onCancelar={() => cerrar(false)} disabled={loading} />
       <Button onClick={handleEnviar} loading={loading}>
         Enviar correo
       </Button>
@@ -138,6 +158,8 @@ export function EnviarProformaDialog({ open, onOpenChange, proforma }: Props) {
       title="Enviar proforma al cliente"
       description="El cliente recibirá un correo con un enlace seguro para aceptar o rechazar la proforma."
       size="lg"
+      busy={loading}
+      isDirty={isDirty}
       footer={footer}
     >
       {!envio && (
@@ -146,8 +168,8 @@ export function EnviarProformaDialog({ open, onOpenChange, proforma }: Props) {
             {sugerenciasVisibles.map((e) => <option key={e} value={e} />)}
           </datalist>
           <div>
-            <Label htmlFor="dest">Para *</Label>
-            <Input id="dest" list="proforma-emails-sugeridos" value={destinatarios} onChange={(e) => editarEmail("to", e.target.value)} placeholder="cliente@empresa.com, otro@empresa.com" />
+            <CampoCorreoProforma campo="to" ref={paraRef} error={errorCorreo} value={destinatarios}
+              onChange={(valor) => editarEmail("to", valor)} />
             <DestinatariosRecientesChips
               sugerencias={sugerenciasVisibles}
               ocultos={ocultos}
@@ -158,11 +180,8 @@ export function EnviarProformaDialog({ open, onOpenChange, proforma }: Props) {
             />
           </div>
 
-          <div>
-            <Label htmlFor="cc">CC (opcional)</Label>
-            <Input id="cc" list="proforma-emails-sugeridos" value={cc} onChange={(e) => editarEmail("cc", e.target.value)} placeholder="contabilidad@empresa.com" />
-          </div>
-
+          <CampoCorreoProforma campo="cc" ref={ccRef} error={errorCorreo} value={cc}
+            onChange={(valor) => editarEmail("cc", valor)} />
           <div>
             <Label htmlFor="asunto">Asunto</Label>
             <Input id="asunto" value={asunto} onChange={(e) => setAsunto(e.target.value)} />

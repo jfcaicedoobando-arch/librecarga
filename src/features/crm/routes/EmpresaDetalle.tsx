@@ -1,5 +1,5 @@
 /** /crm/empresas/:id — Ficha de empresa con contactos y oportunidades ligadas. */
-import { useParams } from "react-router";
+import { useLocation, useParams } from "react-router";
 import { Building2 } from "lucide-react";
 import { DetailHeader } from "@/components/shared/DetailHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
@@ -34,6 +34,7 @@ function AccionesEmpresa({ id, data, estado, canEditCrm }: {
 
 export default function CrmEmpresaDetalle() {
   const { id = "" } = useParams<{ id: string }>();
+  const { search } = useLocation();
   const { data, isLoading, isError, refetch } = useEmpresaCrm(id);
   const { canEditCrm } = usePermissions();
   useDocumentTitle(data ? `Empresa · ${data.nombre}` : "Empresa");
@@ -42,7 +43,7 @@ export default function CrmEmpresaDetalle() {
   return (
     <PageContainer>
       <DetailHeader
-        backTo="/crm/empresas"
+        backTo={`/crm/empresas${search}`}
         icon={<Building2 className="size-6 text-accent" />}
         title={data?.nombre ?? "Empresa"}
         subtitle={data ? `Alta: ${formatFechaDia(data.created_at)}` : undefined}

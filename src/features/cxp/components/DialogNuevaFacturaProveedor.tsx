@@ -114,8 +114,9 @@ function DialogNuevaFacturaProveedorForm({
   const footer = (
     <CapturaFacturaFooter
       pasos={pasos}
-      guardando={ctl.isPending}
+      guardando={ctl.isPending || wiring.cerrandoEntrada}
       puedeGuardar={ctl.puedeGuardar}
+      facturaIdPendiente={wiring.facturaIdPendiente}
       onCancelar={cerrarYLimpiar}
       // Con una factura ya creada y pendiente de marcarse como capturada,
       // "Guardar" reintenta sólo ese paso (nunca vuelve a insertar la factura).
@@ -142,7 +143,7 @@ function DialogNuevaFacturaProveedorForm({
         footer={footer}
         // YG-04: con captura en curso, cerrar por X/Escape/clic exterior pide confirmación.
         isDirty={hayCaptura}
-        busy={{ active: ctl.isPending || isNavigating, suppressDiscardConfirmation: isNavigating }}
+        busy={{ active: ctl.isPending || wiring.cerrandoEntrada || isNavigating, suppressDiscardConfirmation: isNavigating }}
         stepper={{ step: pasos.paso, totalSteps: pasos.totalPasos, labels: [...pasos.etiquetas] }}
         headerAside={
           <TotalesChipDesglose

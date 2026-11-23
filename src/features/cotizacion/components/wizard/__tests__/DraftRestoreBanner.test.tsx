@@ -49,7 +49,11 @@ describe("DraftRestoreBanner", () => {
       <DraftRestoreBanner savedAt={Date.now()} onRestore={onRestore} onDiscard={onDiscard} />,
     );
     fireEvent.click(screen.getByRole("button", { name: /Restaurar/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Descartar/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Descartar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Conservar borrador" }));
+    expect(onDiscard).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Descartar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Eliminar borrador local" }));
     expect(onRestore).toHaveBeenCalledTimes(1);
     expect(onDiscard).toHaveBeenCalledTimes(1);
   });

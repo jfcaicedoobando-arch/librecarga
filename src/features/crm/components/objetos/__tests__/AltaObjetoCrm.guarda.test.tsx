@@ -1,13 +1,15 @@
 import { useState } from "react";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NuevaEmpresaDialog } from "../NuevaEmpresaDialog";
 import { NuevoContactoDialog } from "../NuevoContactoDialog";
 
-const { crear, cargarPropiedades, refetch } = vi.hoisted(() => ({
+const { crear, cargarPropiedades, refetch, empresasSimilares } = vi.hoisted(() => ({
   crear: vi.fn(),
   cargarPropiedades: vi.fn(),
   refetch: vi.fn(),
+  empresasSimilares: vi.fn(),
 }));
 
 vi.mock("@/features/crm/hooks/useObjetosCrm", () => ({
@@ -19,7 +21,7 @@ vi.mock("@/features/crm/hooks/usePropiedadesCrm", () => ({
   usePropiedadesCrm: cargarPropiedades,
 }));
 vi.mock("@/features/crm/hooks/useEmpresasSimilares", () => ({
-  useEmpresasSimilares: () => ({ data: { filas: [] } }),
+  useEmpresasSimilares: empresasSimilares,
 }));
 
 const pais = { id: "pais-qa", clave: "pais", etiqueta: "País", tipo: "texto", archivada: false, opciones: [] };
@@ -27,6 +29,7 @@ const pais = { id: "pais-qa", clave: "pais", etiqueta: "País", tipo: "texto", a
 beforeEach(() => {
   vi.clearAllMocks();
   cargarPropiedades.mockReturnValue({ isSuccess: true, data: [], refetch });
+  empresasSimilares.mockReturnValue({ data: { filas: [] } });
 });
 
 describe("Alta de objetos CRM", () => {
@@ -50,6 +53,23 @@ describe("Alta de objetos CRM", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
     fireEvent.click(await screen.findByRole("button", { name: "Descartar" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(crear).not.toHaveBeenCalled();
+  });
+
+  it("conserva la empresa en captura al cancelar la apertura de un duplicado", async () => {
+    empresasSimilares.mockReturnValue({ data: { filas: [{ id: "empresa-1", nombre: "Empresa existente" }], total: 1 } });
+    render(<MemoryRouter initialEntries={["/crm/empresas"]}><Routes>
+      <Route path="/crm/empresas" element={<NuevaEmpresaDialog open onOpenChange={vi.fn()} />} />
+      <Route path="/crm/empresas/:id" element={<h1>Ficha de empresa</h1>} />
+    </Routes></MemoryRouter>);
+    const campo = screen.getByRole("textbox", { name: /nombre/i });
+    fireEvent.change(campo, { target: { value: "Empresa" } });
+    fireEvent.click(await screen.findByRole("link", { name: "Empresa existente" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Seguir completando" }));
+    expect(campo).toHaveValue("Empresa");
+    fireEvent.click(screen.getByRole("link", { name: "Empresa existente" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Descartar y abrir empresa" }));
+    expect(await screen.findByRole("heading", { name: "Ficha de empresa" })).toBeInTheDocument();
     expect(crear).not.toHaveBeenCalled();
   });
 

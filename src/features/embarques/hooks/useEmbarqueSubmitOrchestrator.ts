@@ -162,8 +162,12 @@ export function useEmbarqueSubmitOrchestrator() {
       });
 
       notifySuccess(undefined, {
-        title: "Embarque creado",
-        description: "Borrador registrado. Completa los datos operativos y confirma para iniciar el seguimiento.",
+        title: "Borrador de embarque creado",
+        description: "Completa los datos operativos y confirma para iniciar el seguimiento.",
+        action: embarqueCreadoId ? {
+          label: "Abrir borrador",
+          onClick: () => navigate(`/embarques/${embarqueCreadoId}`),
+        } : undefined,
       });
       navigate("/embarques");
       return true;

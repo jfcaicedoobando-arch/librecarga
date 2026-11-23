@@ -3,6 +3,7 @@
  * Extraídos de `TarifaFormFields.tsx` en 13.133.2 para cumplir Power-of-10
  * (≤200 líneas por archivo).
  */
+import { useId } from "react";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/shared/MoneyInput";
 import { Label } from "@/components/ui/label";
@@ -62,14 +63,19 @@ export function NumerosFields({ form, setForm, errores }: NumerosProps) {
 }
 
 export function VigenciaFields({ form, setForm, errores }: NumerosProps) {
+  const id = useId();
+  const errorId = `${id}-rango`;
   const msg = errores && (errores.vigente_desde || errores.vigente_hasta)
     ? mensajeVigencia(form.vigente_desde, form.vigente_hasta)
     : null;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
-        <Label htmlFor="tarifa-vig-desde">{rangoLabel("Vigencia", "desde")} *</Label>
+        <Label htmlFor={`${id}-desde`}>{rangoLabel("Vigencia", "desde")} *</Label>
         <DatePickerMx
+          id={`${id}-desde`}
+          calendarLabel="Elegir inicio de vigencia"
+          aria-describedby={msg ? errorId : undefined}
           value={form.vigente_desde}
           calendarMax={form.vigente_hasta || undefined}
           onChange={(v) => setForm({ ...form, vigente_desde: v })}
@@ -77,15 +83,18 @@ export function VigenciaFields({ form, setForm, errores }: NumerosProps) {
         />
       </div>
       <div>
-        <Label htmlFor="tarifa-vig-hasta">{rangoLabel("Vigencia", "hasta")} *</Label>
+        <Label htmlFor={`${id}-hasta`}>{rangoLabel("Vigencia", "hasta")} *</Label>
         <DatePickerMx
+          id={`${id}-hasta`}
+          calendarLabel="Elegir término de vigencia"
+          aria-describedby={msg ? errorId : undefined}
           value={form.vigente_hasta}
           calendarMin={form.vigente_desde || undefined}
           onChange={(v) => setForm({ ...form, vigente_hasta: v })}
           className={`w-full ${invalidCls(errores?.vigente_hasta) ?? ""}`}
         />
       </div>
-      {msg && <p role="alert" className="sm:col-span-2 text-body-sm text-destructive">{msg}</p>}
+      {msg && <p id={errorId} role="alert" className="sm:col-span-2 text-body-sm text-destructive">{msg}</p>}
     </div>
   );
 }

@@ -43,6 +43,8 @@ interface Props {
   onSelect: (producto: ProductoCatalogo) => void;
   placeholder?: string;
   disabled?: boolean;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
   /** Q-10: si se provee, el combobox ofrece "usar como concepto libre" con el texto buscado. */
   onConceptoLibre?: (texto: string) => void;
 }
@@ -115,7 +117,7 @@ function OpcionesCatalogo({ productos, seleccionadoId, fronteraHabilitada, puede
   );
 }
 
-export function ProductoServicioSelect({ value, onSelect, placeholder = "Selecciona producto", disabled, onConceptoLibre }: Props) {
+export function ProductoServicioSelect({ value, onSelect, placeholder = "Selecciona producto", disabled, onConceptoLibre, ...accesibilidad }: Props) {
   const { role } = useAuth();
   const { organizationId } = useOrgActiva();
   const puedeCrearConcepto = !role || !ROLES_SIN_ALTA_CATALOGO.includes(role);
@@ -142,6 +144,7 @@ export function ProductoServicioSelect({ value, onSelect, placeholder = "Selecci
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          {...accesibilidad}
           disabled={disabled || isLoading}
             className={cn(
               "w-full justify-between font-normal",

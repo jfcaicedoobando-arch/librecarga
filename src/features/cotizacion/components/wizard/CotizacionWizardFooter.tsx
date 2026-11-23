@@ -26,6 +26,7 @@ interface Props {
   isProcessing?: boolean;
   /** Role gate (Pack D): sólo gerencia/admin puede ver el atajo destructivo. */
   canSkipCostos?: boolean;
+  guardarBorradorAlContinuar?: boolean;
 }
 
 export function CotizacionWizardFooter({
@@ -38,8 +39,12 @@ export function CotizacionWizardFooter({
   onCotizarSinDesglose,
   isProcessing = false,
   canSkipCostos = false,
+  guardarBorradorAlContinuar = false,
 }: Props) {
   const busy = isPending || isProcessing;
+  const siguienteLabel = guardarBorradorAlContinuar && currentStep === 1
+    ? "Guardar borrador y continuar"
+    : "Siguiente";
   // v13.293.0 (P0): "Cotizar sin desglose" ya no compite con "Siguiente".
   // Se relega a un menú "Más acciones" para bajar riesgo de click accidental.
   const mostrarMenuMas = currentStep === 1 && !!onCotizarSinDesglose && canSkipCostos;
@@ -89,12 +94,12 @@ export function CotizacionWizardFooter({
                   ? (currentStep === 4 ? "Guardando…" : "Procesando…")
                   : currentStep === 4
                     ? <><Save className="h-4 w-4 mr-1" /> {saveLabel}</>
-                    : <>Siguiente <ChevronRight className="h-4 w-4 ml-1" /></>}
+                    : <>{siguienteLabel} <ChevronRight className="h-4 w-4 ml-1" /></>}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top" className="text-body-sm">
               <span className="font-medium">
-                {currentStep === 4 ? "Guardar" : "Siguiente"}
+                {currentStep === 4 ? "Guardar" : siguienteLabel}
               </span>
               <kbd className="ml-2 rounded bg-muted px-1.5 py-0.5 text-label font-mono">Ctrl</kbd>
               <span className="mx-0.5 text-label">+</span>

@@ -1,14 +1,5 @@
-/**
- * Barra de acciones del detalle de proforma. Usa el componente compartido
- * `DetalleActionBar` para mantener el mismo design language que
- * `FacturaDetalle` y `TabFacturacion` del embarque.
- *
- * Acciones:
- * - primary: Convertir a factura (cuando el cliente aceptó y hay permiso).
- * - secondary: Descargar PDF · Enviar al cliente · Aceptar/Rechazar manual.
- * - more: Ver embarque (drilldown al expediente).
- */
-import { useState } from "react";
+/** Acciones del detalle de proforma, sujetas al estado y los permisos de la sesión. */
+import { useRef, useState } from "react";
 import {
   buildPrimaryItem,
   buildSecondaryItems,
@@ -48,10 +39,12 @@ export function AccionesProforma({ proforma, downloadingId, onDescargar }: Props
   const { canEmitirFactura, canResponderProformaManual, canEditarProforma } = usePermissions();
   const { convertir, isPending: convirtiendo } = useConvertirProformaDirecto();
   const validarLimite = useValidarLimiteCredito();
+  const consultaCreditoActiva = useRef(false);
+  const [verificandoCredito, setVerificandoCredito] = useState(false);
   const { autorizacion } = useClienteAutorizacion(proforma.cliente_id ?? null);
   const { aprobar: aprobarInterna, isPending: aprobando } = useAprobarProformaInterna();
 
-  const { facturada, cancelada, puedePublicar, tokenPublico, puedeConvertir, puedeResponder, mostrarHint } = computarFlags(
+  const { facturada, cancelada, puedePublicar, tokenPublico, puedeConvertir, puedeResponder, mostrarHint, indicarRelevoFacturacion } = computarFlags(
     proforma,
     canEmitirFactura,
     canResponderProformaManual,
@@ -71,11 +64,13 @@ export function AccionesProforma({ proforma, downloadingId, onDescargar }: Props
   };
 
   const onConvertir = async () => {
-    if (!puedeConvertir) return;
+    if (!puedeConvertir || convirtiendo || creditoAlerta || consultaCreditoActiva.current) return;
     if (!proforma.cliente_id) {
       ejecutarConversion();
       return;
     }
+    consultaCreditoActiva.current = true;
+    setVerificandoCredito(true);
     try {
       const resultado = await validarLimite({
         clienteId: proforma.cliente_id,
@@ -89,6 +84,9 @@ export function AccionesProforma({ proforma, downloadingId, onDescargar }: Props
     } catch (err) {
       // Falla silenciosa: no bloqueamos la conversión por un error de validación.
       notifyError(undefined, { title: "No se pudo validar el límite de crédito", error: err });
+    } finally {
+      consultaCreditoActiva.current = false;
+      setVerificandoCredito(false);
     }
     ejecutarConversion();
   };
@@ -117,6 +115,7 @@ export function AccionesProforma({ proforma, downloadingId, onDescargar }: Props
     puedeConvertir,
     puedeAprobarInterna,
     convirtiendo,
+    verificandoCredito,
     aprobando,
     onConvertir,
     onAprobarInterna: () => aprobarInterna(proforma.id),
@@ -153,6 +152,11 @@ export function AccionesProforma({ proforma, downloadingId, onDescargar }: Props
         <RefacturarProformaAccion proformaId={proforma.id} numero={proforma.numero ?? ""} habilitada />
       )}
       {!autorizacion.requiereAutorizacionProforma && <BadgeClienteDeCasa tipo="proforma" />}
+      {indicarRelevoFacturacion && (
+        <p className="text-body-sm text-muted-foreground">
+          Lista para facturar. Pide a una persona con permiso de emisión que cree el borrador.
+        </p>
+      )}
       {mostrarHint && (
         <HintRespuestaCliente requiereAutorizacion={autorizacion.requiereAutorizacionProforma} puedeResponder={canResponderProformaManual} />
       )}

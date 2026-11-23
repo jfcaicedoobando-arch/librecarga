@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { Button } from "@/components/ui/button";
 import { labelExpediente } from "@/lib/domain/labelExpediente";
 import { DetailHeader } from "@/components/shared/DetailHeader";
 import { useVolver } from "@/hooks/shared/useVolver";
@@ -9,6 +10,7 @@ import { EmbarqueBadgeAdmin } from "./EmbarqueBadgeAdmin";
 import { EmbarqueHeaderDialogs } from "./EmbarqueHeaderDialogs";
 import { EmbarqueDetalleHeaderActions } from "./EmbarqueDetalleHeaderActions";
 import { usePermissions } from "@/hooks/shared/usePermissions";
+import { hasRouteAccess } from "@/lib/access/roleRouteMatrix";
 import { useCotizacionFolio } from "@/features/cotizacion/hooks";
 import { useEmbarqueEstadoActions } from "@/features/embarques/hooks/useEmbarqueEstadoActions";
 import type { EmbarqueRow } from "@/features/embarques/hooks";
@@ -48,9 +50,10 @@ export function EmbarqueDetalleHeader({
 }: Props) {
 
   const volver = useVolver("/embarques");
-  const { isAdmin } = usePermissions();
+  const { isAdmin, role } = usePermissions();
   const puedeReabrir = isAdmin && estadoVisual === "Cerrado";
-  const { data: cotizacionFolio } = useCotizacionFolio(embarque.cotizacion_id);
+  const puedeConsultarCotizacion = hasRouteAccess(role, "/cotizaciones");
+  const cotizacionOrigen = useCotizacionFolio(puedeConsultarCotizacion ? embarque.cotizacion_id : null);
 
   const {
     handleAvanzarEstado,
@@ -93,12 +96,21 @@ export function EmbarqueDetalleHeader({
             <span>{toTitleCase(embarque.cliente_nombre)}</span>
             <span aria-hidden className="mx-1.5 opacity-60">·</span>
             {embarque.cotizacion_id ? (
-              cotizacionFolio ? (
+              !puedeConsultarCotizacion ? (
+                <span className="text-body-sm">Cotización de origen vinculada · Sin acceso</span>
+              ) : cotizacionOrigen.isLoading ? (
+                <span role="status" className="text-body-sm">Consultando cotización de origen…</span>
+              ) : cotizacionOrigen.isError ? (
+                <Button type="button" variant="link" size="sm" className="h-auto p-0"
+                  onClick={() => void cotizacionOrigen.refetch()}>
+                  Reintentar consulta de cotización
+                </Button>
+              ) : cotizacionOrigen.data ? (
                 <Link
                   to={`/cotizaciones/${embarque.cotizacion_id}`}
                   className="text-body-sm hover:text-foreground hover:underline"
                 >
-                  Cotización origen: {cotizacionFolio}
+                  Cotización origen: {cotizacionOrigen.data}
                 </Link>
               ) : (
                 <span className="text-body-sm">Cotización origen no disponible</span>

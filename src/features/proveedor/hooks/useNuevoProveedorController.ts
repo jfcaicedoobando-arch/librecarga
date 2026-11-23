@@ -1,11 +1,9 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useRef, useState } from "react";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import type { DocumentoChecklist } from "@/components/shared/DocumentChecklist";
-import { findProveedorByRfcEnOrg, ProveedorDuplicadoError } from "@/features/proveedor/services";
-import { proveedores as proveedoresKeys } from "@/features/proveedor/queryKeys";
+import { ProveedorDuplicadoError } from "@/features/proveedor/services";
 import { useOrgFilter } from "@/hooks/shared";
-import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
+import { useDuplicadoProveedor } from "./useDuplicadoProveedor";
 import {
   DOCS_EXTRANJERO,
   DOCS_NACIONAL,
@@ -37,24 +35,14 @@ export function useNuevoProveedorController(
   const initialForm = useState(() => formInicialProveedor(prefill))[0];
   const [form, setForm] = useState<NuevoProveedorForm>(() => initialForm);
   const [saving, setSaving] = useState(false);
+  const saveInFlight = useRef(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [documentos, setDocumentos] = useState<DocumentoChecklist[]>([]);
   const [csfLoading, setCsfLoading] = useState(false);
+  const [csfNombre, setCsfNombre] = useState<string | null>(null);
+  const lecturaCsf = useRef(0);
 
-  // Verificación de RFC duplicado con debounce + React Query.
-  // El debounce evita disparar la query en cada tecla; React Query cachea el
-  // resultado por (org, rfc) para no repetir el fetch si el usuario borra y
-  // reescribe el mismo RFC.
-  const rfcTrimmed = form.rfc.trim();
-  const debouncedRfc = useDebouncedValue(rfcTrimmed, 300);
-  const rfcCheckQuery = useQuery({
-    queryKey: proveedoresKeys.rfcCheck(debouncedRfc, organizationId),
-    queryFn: () => findProveedorByRfcEnOrg(debouncedRfc, organizationId as string),
-    enabled: !!debouncedRfc && !!organizationId,
-    staleTime: 30_000,
-    retry: false,
-  });
-  const rfcDuplicado = rfcCheckQuery.data ?? null;
+  const duplicado = useDuplicadoProveedor(form.rfc, organizationId);
   const isLogistico = form.categoria === "Logistico";
   const isGasto = form.categoria === "GastoOperativo";
   const isAgenteCarga = isLogistico && form.tipo === "Agente de Carga";
@@ -121,25 +109,31 @@ export function useNuevoProveedorController(
   };
 
   const reset = () => {
+    lecturaCsf.current += 1;
+    setCsfLoading(false);
+    setCsfNombre(null);
     setForm({ ...EMPTY_PROVEEDOR_FORM });
     setStep(1);
     setDocumentos([]);
   };
 
   const resetAndClose = () => {
+    if (saveInFlight.current) return;
     reset();
     onClose();
   };
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm) || documentos.some((d) => d.adjuntado);
 
-  const handleSave = async () => {
-
+  const handleSave = async (enfocarClabe?: () => void) => {
+    if (saveInFlight.current) return;
     const validacion = preparePayload(form);
     if (!validacion.ok) {
+      if (validacion.motivo === "clabe") enfocarClabe?.();
       notifyError(undefined, { title: validacion.mensaje, method: `FEATURES_PROVEEDOR_HOOKS_USENUEVOPROVEEDORCONTROLLER_${validacion.motivo === "clabe" ? 1 : 2}` });
       return;
     }
+    saveInFlight.current = true;
     setSaving(true);
     try {
       await onSave(validacion.payload);
@@ -148,14 +142,20 @@ export function useNuevoProveedorController(
     } catch (err) {
       if (err instanceof ProveedorDuplicadoError) return;
     } finally {
+      saveInFlight.current = false;
       setSaving(false);
     }
   };
 
   const handleCsfUpload = async (file: File) => {
+    const solicitud = ++lecturaCsf.current;
     setCsfLoading(true);
     const patch = await procesarCsfUpload(file);
-    if (patch) setForm((prev) => mergeCsfPatch(prev, patch));
+    if (solicitud !== lecturaCsf.current) return;
+    if (patch) {
+      setForm((prev) => mergeCsfPatch(prev, patch));
+      setCsfNombre(file.name);
+    }
     setCsfLoading(false);
   };
 
@@ -164,11 +164,12 @@ export function useNuevoProveedorController(
     step,
     documentos,
     csfLoading,
+    csfNombre,
     isLogistico,
     isGasto,
     isAgenteCarga,
     rfcLabel,
-    rfcDuplicado,
+    ...duplicado,
     saving,
     isStep1Valid,
     faltantesStep1,

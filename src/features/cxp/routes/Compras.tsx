@@ -1,14 +1,4 @@
-/**
- * Dashboard del módulo Compras (`/compras`) — v13.307.22 rediseño ejecutivo.
- *
- * Auditoría previa detectó 14 bloques con 5 duplicados (KPIs vs QuickLinks vs
- * sidebar). Este rediseño consolida:
- *  - 4 KPIs accionables (clickeables, sin duplicar cifras entre sí).
- *  - Gráfica de aging (reemplaza los 3 KPIs de vencimiento).
- *  - Tendencia de captura 14 días (nueva señal ejecutiva).
- *  - Top proveedores con barra proporcional + últimas facturas.
- *  - Eliminada la fila de 6 QuickLinks (duplicaba el sidebar).
- */
+/** Dashboard de compras, aprobaciones, pagos y antigüedad de saldos. */
 import { useMemo, useState } from "react";
 import { ShoppingCart, Plus, Inbox, ShieldCheck, Landmark, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +13,7 @@ import { useCxpPendientesAprobacion } from "@/features/cxp/hooks/useCxpPendiente
 import { usePermissions } from "@/hooks/shared";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/formatters";
 import { TopProveedoresCard, UltimasFacturasCard } from "./_sections/ComprasDashboardCards";
-import { KpiCard } from "./_sections/ComprasDashboardTiles";
+import { KpiCard, LecturaCompra } from "./_sections/ComprasDashboardTiles";
 import { ComprasAgingChart } from "./_sections/ComprasAgingChart";
 import { ComprasCapturaTrend } from "./_sections/ComprasCapturaTrend";
 import { ROUTES } from "@/constants/routes";
@@ -40,9 +30,12 @@ function rotulosPorAprobar(importes: Array<[number, string]>, pendientes: number
 export default function Compras() {
   const { canCapturarFacturaProveedor } = usePermissions();
   const { data: cxp = [], kpis, isLoading, isError, refetch } = useFacturasCxP();
-  const { data: porCapturar = [] } = useCxpPorCapturar();
-  const { rowsFiltradas: aging, totales: agingTotales, monedaActiva: agingMoneda } = useCxpAging();
-  const { data: pendientesAprob = 0 } = useCxpPendientesAprobacion();
+  const captura = useCxpPorCapturar();
+  const { data: porCapturar = [] } = captura;
+  const antiguedad = useCxpAging();
+  const { rowsFiltradas: aging, totales: agingTotales, monedaActiva: agingMoneda } = antiguedad;
+  const aprobacion = useCxpPendientesAprobacion();
+  const { data: pendientesAprob = 0 } = aprobacion;
   const [openNueva, setOpenNueva] = useState(false);
 
   const metrics = useMemo(() => {
@@ -118,6 +111,7 @@ export default function Compras() {
       {/* Fila 1 · 4 KPIs accionables (cada uno navega a su bandeja) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
+          lectura={captura}
           label="Por capturar"
           value={metrics.embarquesPorCapturar}
           sub="embarques sin factura"
@@ -127,6 +121,7 @@ export default function Compras() {
           hint="Embarques con presupuesto operativo cargado pero aún sin factura de proveedor capturada."
         />
         <KpiCard
+          lectura={aprobacion}
           label="Por aprobar"
           value={pendientesAprob}
           sub={importesAprobacion.sub}
@@ -162,7 +157,9 @@ export default function Compras() {
       {/* Fila 2 · Gráficas ejecutivas: aging (2/3) + tendencia de captura (1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-2">
-          <ComprasAgingChart totales={agingTotales} moneda={agingMoneda} />
+          <LecturaCompra titulo="Antigüedad de saldos" lectura={antiguedad}>
+            <ComprasAgingChart totales={agingTotales} moneda={agingMoneda} />
+          </LecturaCompra>
         </div>
         <div className="lg:col-span-1">
           <ComprasCapturaTrend rows={cxp} />
@@ -171,7 +168,9 @@ export default function Compras() {
 
       {/* Fila 3 · Contexto de proveedores y capturas recientes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <TopProveedoresCard rows={topProveedores} />
+        <LecturaCompra titulo="Proveedores con mayor saldo" lectura={antiguedad}>
+          <TopProveedoresCard rows={topProveedores} />
+        </LecturaCompra>
         <UltimasFacturasCard rows={ultimasFacturas} />
       </div>
       </CargaGuard>

@@ -22,15 +22,11 @@ interface Props {
   onModoExpedienteChange?: (modo: 'nuevo' | 'existente') => void;
   expedienteSeleccionado?: ExpedienteCliente | null;
   onSeleccionarExpediente?: (exp: ExpedienteCliente) => void;
-  /**
-   * v13.303.26: vincular cotización es siempre obligatorio (política tarifa-first).
-   * La prop se conserva por compatibilidad de llamadas pero ya no altera el label.
-   */
+  sinExpedientes?: boolean;
   requiereCotizacion?: boolean;
   /** Cuando es false, se oculta el bloque de expediente (crear/asociar). Default: true. */
   permiteExpediente?: boolean;
 }
-
 
 export function BloqueVinculacion({
   cotizacionesAceptadas,
@@ -38,7 +34,7 @@ export function BloqueVinculacion({
   onVincularCotizacion,
   onDesvincularCotizacion,
   clienteId,
-  expedientesCliente,
+  expedientesCliente, sinExpedientes,
   modoExpediente,
   onModoExpedienteChange,
   expedienteSeleccionado,
@@ -104,6 +100,9 @@ export function BloqueVinculacion({
         )}
       </div>
 
+      {permiteExpediente && sinExpedientes && (
+        <p className="text-body-sm text-muted-foreground">El cliente aún no tiene expedientes. Se generará uno nuevo para este embarque.</p>
+      )}
       {permiteExpediente && clienteId && tieneExpedientes && (
         <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
           <Label className="text-body font-medium">Expediente</Label>
@@ -154,7 +153,7 @@ export function BloqueVinculacion({
                     <Command>
                       <CommandInput placeholder="Buscar por expediente o BL…" />
                       <CommandList>
-                        <CommandEmpty>Sin expedientes abiertos para este cliente</CommandEmpty>
+                        <CommandEmpty>Ningún expediente coincide con la búsqueda</CommandEmpty>
                         <CommandGroup>
                           {expedientesCliente.map(exp => (
                             <CommandItem

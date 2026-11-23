@@ -9,10 +9,12 @@ import { DescargarTarifarioButton } from "./DescargarTarifarioButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { DataTable, defineColumns } from "@/components/shared/DataTable";
 import { costeo } from "../queryKeys";
 import { TarifaForm } from "@/features/costeo/components/TarifaForm";
 import { exportToCsv } from "@/generators/exportCsv";
+import { ENCABEZADOS_TARIFARIO } from "./encabezadosTarifario";
 import { formatCurrency, formatNumber } from "@/lib/formatters/numbers";
 import { formatDate } from "@/lib/formatters/dates";
 import { hoyMx } from "@/lib/date/mx";
@@ -23,15 +25,6 @@ function importe(t: TarifaTarifario | null) {
   return /^[A-Z]{3}$/.test(t.moneda) ? formatCurrency(t.flete_base, t.moneda) : formatNumber(t.flete_base);
 }
 const fecha = (d: string | null) => (d ? formatDate(d) : "—");
-
-const HEADERS = [
-  { key: "origen", label: "Origen" }, { key: "destino", label: "Destino" }, { key: "tipo", label: "Tipo de carga" },
-  { key: "agente", label: "Agente" }, { key: "naviera", label: "Naviera" },
-  { key: "t20", label: 'Tarifa 20"' }, { key: "moneda20", label: 'Moneda 20"' },
-  { key: "t40", label: 'Tarifa 40"' }, { key: "moneda40", label: 'Moneda 40"' },
-  { key: "desde", label: "Inicio de la vigencia" }, { key: "hasta", label: "Término de la vigencia" },
-  { key: "dias", label: "Días libres de demoras" }, { key: "obs", label: "Observaciones" },
-] as const;
 
 function aCsv(f: FilaTarifario) {
   return {
@@ -97,7 +90,7 @@ export function TarifasBaseTab({ puedeEditar }: { puedeEditar: boolean }) {
         </Select>
         <div className="ml-auto flex flex-wrap items-start gap-2">
           <DescargarTarifarioButton cargando={q.isFetching} error={q.isError} hayFilas={filas.length > 0}
-            onDownload={() => exportToCsv(`tarifario-${hoyMx()}.csv`, HEADERS, filas.map(aCsv))} />
+            onDownload={() => exportToCsv(`tarifario-${hoyMx()}.csv`, ENCABEZADOS_TARIFARIO, filas.map(aCsv))} />
           {puedeEditar && <Button variant="outline" onClick={() => setExtraer(true)}><Mail className="mr-1 size-4" /> Extraer de correo</Button>}
           {puedeEditar && <Button variant="outline" onClick={() => setImportar(true)}><Upload className="mr-1 size-4" /> Importar CSV/Excel</Button>}
           {puedeEditar && <Button onClick={() => setNueva(true)}><Plus className="mr-1 size-4" /> Nueva tarifa</Button>}
@@ -105,6 +98,8 @@ export function TarifasBaseTab({ puedeEditar }: { puedeEditar: boolean }) {
       </div>
       <DataTable columns={columns} data={filas} rowKey={(f) => f.clave} isLoading={q.isLoading}
         isError={q.isError} onRetry={() => { void q.refetch(); }}
+        emptyState={texto.trim() ? <EmptyStateInline message="Ninguna tarifa coincide con esta búsqueda."
+          action={{ label: "Limpiar búsqueda", onClick: () => setTexto("") }} /> : undefined}
         emptyMessage={filtro === "todas" ? "Sin tarifas capturadas." : `Sin tarifas ${etiquetaFiltro.toLowerCase()}.`} />
       <p className="text-caption text-muted-foreground">Para editar o duplicar una tarifa usa el catálogo de tarifas; la versión anterior se conserva como histórico.</p>
       {importar && <ImportarTarifasDialog open={importar} onOpenChange={setImportar} onDone={() => { void q.refetch(); }} />}

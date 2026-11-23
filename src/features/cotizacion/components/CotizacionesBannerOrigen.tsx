@@ -37,8 +37,8 @@ export function CotizacionesBannerOrigen({ hayAceptadas = true, onNuevaCotizacio
           </p>
         ) : (
           <p>
-            Los embarques se crean desde una cotización aceptada y ahora no hay ninguna
-            en ese estado. Captura una cotización, envíala al cliente y márcala como{" "}
+            Los embarques se crean desde una cotización aceptada. No hay cotizaciones elegibles
+            en este listado. Captura o revisa una cotización y márcala como{" "}
             <strong>Aceptada</strong>; entonces podrás generar el embarque.
           </p>
         )}

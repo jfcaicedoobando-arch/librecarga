@@ -107,7 +107,9 @@ export function ModoAltaTabs({ modo, onChange }: ModoTabsProps) {
 export function PrellenadoBadge() {
   return (
     <Badge variant="secondary" className="ml-2 text-3xs gap-0.5 px-1.5 py-0 h-4 font-medium">
-      <Sparkles className="h-2.5 w-2.5" /> CSF
+      <Sparkles aria-hidden="true" className="h-2.5 w-2.5" />
+      <span aria-hidden="true">CSF</span>
+      <span className="sr-only">Extraído de la CSF</span>
     </Badge>
   );
 }
@@ -156,6 +158,9 @@ export function ClienteField({
       </Label>
       <Input
         id={inputId}
+        type={field === "email" ? "email" : field === "telefono" ? "tel" : "text"}
+        inputMode={field === "cp" ? "numeric" : undefined}
+        autoComplete={field === "cp" ? "postal-code" : field === "email" ? "email" : field === "telefono" ? "tel" : undefined}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(field, e.target.value)}

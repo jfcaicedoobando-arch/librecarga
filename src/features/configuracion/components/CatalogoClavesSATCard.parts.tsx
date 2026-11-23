@@ -7,13 +7,14 @@
  * sólo se puede elegir cuando Contabilidad lo habilita por organización. Un
  * producto que YA estaba al 8% se sigue viendo y editando con su valor.
  */
-import { Check, X } from "lucide-react";
+import { useId, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TableCell } from "@/components/ui/table";
-import { DetailTableRow } from "@/components/shared/DetailTable";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
+import { DetailTableRow, DetailTableHead, DetailTableEmptyRow } from "@/components/shared/DetailTable";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Hint } from "@/components/shared/Hint";
 import { TIPO_IVA_AYUDA, TIPO_IVA_AYUDA_GENERAL } from "@/lib/financial/tipoIvaSat";
 import {
@@ -38,6 +39,7 @@ interface EditRowProps {
 }
 
 export function EditRow({ draft, setDraft, onCancel, onSave, busy, valid, tipoIvaOriginal }: EditRowProps) {
+  const ayudaId = useId();
   const fronteraHabilitada = useIvaFronteraHabilitada();
   const p = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
   const permitido = (tipo: TipoIva) =>
@@ -47,6 +49,11 @@ export function EditRow({ draft, setDraft, onCancel, onSave, busy, valid, tipoIv
     p({ tipo_iva: v as TipoIva });
   };
   const guardable = valid && permitido(draft.tipo_iva);
+  const pendiente = !draft.patron.trim() ? "Captura el nombre del producto."
+    : draft.clave_sat.trim().length < 6 ? "Completa la clave SAT con al menos 6 caracteres."
+    : !draft.clave_unidad_sat.trim() ? "Selecciona una unidad SAT."
+    : !permitido(draft.tipo_iva) ? AVISO_IVA_FRONTERA_DESHABILITADO
+    : undefined;
   return (
     <DetailTableRow className="bg-muted/30" hoverable={false}>
       <TableCell><Input aria-label="Patrón de descripción" value={draft.patron} onChange={(e) => p({ patron: e.target.value })} placeholder="Flete Marítimo" /></TableCell>
@@ -89,9 +96,61 @@ export function EditRow({ draft, setDraft, onCancel, onSave, busy, valid, tipoIv
       </TableCell>
       <TableCell><Switch checked={draft.activo} onCheckedChange={(v) => p({ activo: v })} aria-label="Producto activo" /></TableCell>
       <TableCell className="text-right">
-        <Button size="icon" variant="ghost" onClick={onCancel} disabled={busy} aria-label="Cancelar edición"><X className="h-4 w-4" /></Button>
-        <Button size="icon" onClick={onSave} disabled={busy || !guardable} aria-label="Guardar producto"><Check className="h-4 w-4" /></Button>
+        <div className="flex flex-wrap justify-end gap-1">
+          <Button size="sm" variant="ghost" onClick={onCancel} disabled={busy} aria-label="Cancelar edición">Cancelar</Button>
+          <Button size="sm" onClick={onSave} disabled={busy || !guardable}
+            aria-label="Guardar producto" aria-describedby={!guardable && pendiente ? ayudaId : undefined}>Guardar producto</Button>
+        </div>
+        {!guardable && pendiente && <p id={ayudaId} className="mt-1 text-label text-muted-foreground">{pendiente}</p>}
       </TableCell>
     </DetailTableRow>
+  );
+}
+
+interface Props {
+  estado: "cargando" | "vacio" | "sin-coincidencias" | "disponible";
+  ocultar: boolean;
+  children: ReactNode;
+}
+
+function MensajeTabla({ estado }: Pick<Props, "estado">) {
+  if (estado === "cargando") return (
+    <TableRow role="status" aria-busy="true">
+      <TableCell colSpan={6} className="py-4">
+        <span className="sr-only">Cargando…</span>
+        <Skeleton className="h-4 w-full" />
+      </TableCell>
+    </TableRow>
+  );
+  if (estado === "vacio") {
+    return <DetailTableEmptyRow colSpan={6} message="Aún no hay productos. Da de alta al menos uno para poder capturar cotizaciones." />;
+  }
+  if (estado === "sin-coincidencias") {
+    return <DetailTableEmptyRow colSpan={6} message="No hay productos que coincidan con la búsqueda." />;
+  }
+  return null;
+}
+
+export function CatalogoClavesSATTabla({ estado, ocultar, children }: Props) {
+  if (ocultar) return null;
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <DetailTableHead className="w-[28%]">Nombre</DetailTableHead>
+            <DetailTableHead className="w-[14%]">Clave SAT</DetailTableHead>
+            <DetailTableHead className="w-[14%]">Tipo IVA</DetailTableHead>
+            <DetailTableHead className="w-[14%]">Unidad SAT</DetailTableHead>
+            <DetailTableHead className="w-[10%]">Activo</DetailTableHead>
+            <DetailTableHead className="w-[12%] text-right">Acciones</DetailTableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <MensajeTabla estado={estado} />
+          {children}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

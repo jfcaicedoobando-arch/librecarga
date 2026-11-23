@@ -3,7 +3,8 @@
  * Se muestra al entrar a "Nueva cotización" si existe un borrador válido
  * (guardado hace <24 h) para el usuario actual.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 import { RotateCcw, X, FileClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatRelativo } from "@/lib/date/relativo";
@@ -12,9 +13,11 @@ interface Props {
   savedAt: number;
   onRestore: () => void;
   onDiscard: () => void;
+  tieneBorradorEnErp?: boolean;
 }
 
-export function DraftRestoreBanner({ savedAt, onRestore, onDiscard }: Props) {
+export function DraftRestoreBanner({ savedAt, onRestore, onDiscard, tieneBorradorEnErp }: Props) {
+  const [confirmarDescarte, setConfirmarDescarte] = useState(false);
   const relative = useMemo(() => formatRelativo(new Date(savedAt)), [savedAt]);
   return (
     <div
@@ -29,13 +32,25 @@ export function DraftRestoreBanner({ savedAt, onRestore, onDiscard }: Props) {
         </p>
       </div>
       <div className="flex gap-2 shrink-0">
-        <Button size="sm" variant="outline" onClick={onDiscard}>
+        <Button size="sm" variant="outline" onClick={() => setConfirmarDescarte(true)}>
           <X className="h-4 w-4 mr-1" /> Descartar
         </Button>
         <Button size="sm" onClick={onRestore}>
           <RotateCcw className="h-4 w-4 mr-1" /> Restaurar
         </Button>
       </div>
+      <ConfirmActionDialog
+        open={confirmarDescarte}
+        onOpenChange={setConfirmarDescarte}
+        title="¿Eliminar el borrador de este navegador?"
+        description={tieneBorradorEnErp
+          ? "Se perderá la captura local. El borrador que ya guardaste en LibreCarga seguirá en Cotizaciones."
+          : "Se perderá la captura local que aún no se ha guardado en LibreCarga."}
+        confirmLabel="Eliminar borrador local"
+        cancelLabel="Conservar borrador"
+        variant="destructive"
+        onConfirm={() => { setConfirmarDescarte(false); onDiscard(); }}
+      />
     </div>
   );
 }

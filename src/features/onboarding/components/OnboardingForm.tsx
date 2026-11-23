@@ -31,6 +31,7 @@ export interface OnboardingFormProps {
   moneda: string;
   onMonedaChange: (value: string) => void;
   error: string | null;
+  campoError?: "rfc" | "direccion" | "moneda";
   submitting: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onSkip: () => void;
@@ -44,6 +45,7 @@ export function OnboardingForm({
   moneda,
   onMonedaChange,
   error,
+  campoError,
   submitting,
   onSubmit,
   onSkip,
@@ -53,7 +55,7 @@ export function OnboardingForm({
       {error && (
         <Alert variant="destructive" role="alert">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription id="onb-error">{error}</AlertDescription>
         </Alert>
       )}
 
@@ -61,13 +63,15 @@ export function OnboardingForm({
         <Label htmlFor="onb-rfc">RFC de la organización</Label>
         <Input
           id="onb-rfc"
+          aria-invalid={campoError === "rfc" || undefined}
+          aria-describedby={campoError === "rfc" ? "onb-rfc-ayuda onb-error" : "onb-rfc-ayuda"}
           value={rfc}
           onChange={(e) => onRfcChange(e.target.value.toUpperCase())}
           placeholder="XAXX010101000"
           maxLength={13}
           autoComplete="off"
         />
-        <p className="text-xs text-muted-foreground">
+        <p id="onb-rfc-ayuda" className="text-xs text-muted-foreground">
           Para Guardar y continuar, captura el RFC: 12 caracteres para persona moral o 13 para persona física. Si prefieres hacerlo después, usa Configurar después.
         </p>
       </div>
@@ -78,6 +82,8 @@ export function OnboardingForm({
         </Label>
         <Textarea
           id="onb-direccion"
+          aria-invalid={campoError === "direccion" || undefined}
+          aria-describedby={campoError === "direccion" ? "onb-error" : undefined}
           value={direccion}
           onChange={(e) => onDireccionChange(e.target.value)}
           placeholder="Calle, número, colonia, ciudad, estado, código postal"
@@ -89,7 +95,8 @@ export function OnboardingForm({
       <div className="space-y-2">
         <Label htmlFor="onb-moneda">Moneda preferida</Label>
         <Select value={moneda} onValueChange={onMonedaChange}>
-          <SelectTrigger id="onb-moneda">
+          <SelectTrigger id="onb-moneda" aria-invalid={campoError === "moneda" || undefined}
+            aria-describedby={campoError === "moneda" ? "onb-error" : undefined}>
             <SelectValue placeholder="Selecciona una moneda" />
           </SelectTrigger>
           <SelectContent>

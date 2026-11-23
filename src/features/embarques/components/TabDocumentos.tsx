@@ -90,7 +90,7 @@ export function TabDocumentos({
             data={documentosVisibles}
             rowKey={(d) => d.id}
             emptyMessage={filtrarFaltantes
-              ? 'No hay documentos faltantes; todos tienen archivo cargado.'
+              ? (documentos.length ? 'Sin documentos pendientes.' : 'Aún no hay documentos registrados.')
               : (canEdit
                 ? 'Sin documentos registrados. Usa "Agregar documento" para crear el primero.'
                 : 'Sin documentos registrados')}

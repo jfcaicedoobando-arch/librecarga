@@ -54,6 +54,14 @@ function validarCategoria(form: NuevoProveedorForm): PayloadInvalido | null {
   return null;
 }
 
+export function hayDatosBancariosProveedor(form: NuevoProveedorForm): boolean {
+  return [
+    form.banco, form.clabe, form.swift_bic, form.iban, form.aba_routing,
+    form.banco_pais, form.banco_direccion, form.banco_intermediario,
+    form.banco_intermediario_swift, form.beneficiario, form.referencia_pago,
+  ].some((value) => Boolean(value.trim()));
+}
+
 export function preparePayload(form: NuevoProveedorForm): PayloadValidado | PayloadInvalido {
   const esExtranjero = form.origen_proveedor === "Extranjero";
   const clabeTrim = form.clabe.trim();

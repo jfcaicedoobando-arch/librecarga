@@ -1,5 +1,6 @@
 import type { CheckTimbrado } from "@/features/facturacion/utils/validarDatosTimbrado";
 import { Check, X } from "lucide-react";
+import { Link } from "react-router";
 import { UsoCfdiIngresoSelect } from "./UsoCfdiIngresoSelect";
 /**
  * Sub-vistas del modal de timbrado. Extraídas para respetar la regla
@@ -34,6 +35,7 @@ export function TimbrarCompacto({ usoCfdi, formaPago, metodoPago, ...emailProps 
 
 interface CompletoProps extends TimbradoEmailProps {
   checks: CheckTimbrado[];
+  clienteId?: string | null;
   receptor: { rfc: string; regimen: string };
   usoCfdi: string;
   setUsoCfdi: (v: string) => void;
@@ -42,6 +44,18 @@ interface CompletoProps extends TimbradoEmailProps {
   metodoPago: string;
   setMetodoPago: (v: string) => void;
   puedeTimbrar: boolean;
+}
+
+function DatosReceptorPendientes({ clienteId }: { clienteId?: string | null }) {
+  if (!clienteId) return <p>Pide a la persona que administra Clientes que revise los datos fiscales del receptor.</p>;
+  return (
+    <p>
+      <Link to={`/clientes/${clienteId}`} target="_blank" rel="noopener" className="font-medium underline">
+        Abrir datos fiscales del cliente en otra pestaña
+      </Link>
+      {" · Corrige los datos y vuelve a este borrador."}
+    </p>
+  );
 }
 
 export function TimbrarCompleto(props: CompletoProps) {
@@ -60,6 +74,7 @@ export function TimbrarCompleto(props: CompletoProps) {
         {checks.map((c, i) => (
           <li key={i} className={`flex items-center gap-1.5 ${c.ok ? "text-success" : "text-destructive"}`}>
             {c.ok ? <Check className="h-3.5 w-3.5" aria-hidden /> : <X className="h-3.5 w-3.5" aria-hidden />}
+            <span className="sr-only">{c.ok ? "Correcto: " : "Pendiente: "}</span>
             {c.label}
           </li>
         ))}
@@ -92,7 +107,7 @@ export function TimbrarCompleto(props: CompletoProps) {
       {!puedeTimbrar && (
         <Alert variant="destructive">
           <AlertDescription className="space-y-1">
-            {pendientes.has("receptor") && <p>Corrige los datos fiscales en el detalle del cliente.</p>}
+            {pendientes.has("receptor") && <DatosReceptorPendientes clienteId={props.clienteId} />}
             {pendientes.has("pago") && <p>Revisa los campos del CFDI en este formulario.</p>}
             {pendientes.has("factura") && <p>Corrige el tipo de cambio en el detalle de la factura.</p>}
           </AlertDescription>

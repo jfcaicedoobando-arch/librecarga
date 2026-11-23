@@ -25,7 +25,7 @@ export function ProveedoresImportDialog({ open, onOpenChange }: Props) {
       open={open}
       onOpenChange={onOpenChange}
       title="Importar proveedores desde CSV"
-      description="Carga un CSV con proveedores. Incluye la columna 'categoria' (Logistico o GastoOperativo) y, según el caso, 'tipo' o 'subtipo_gasto'."
+      description="Usa los valores exactos de la plantilla. Para una naviera, captura categoria=Logistico y tipo=Naviera, con subtipo_gasto vacío. Para renta, captura categoria=GastoOperativo y subtipo_gasto=Renta, con tipo vacío. Otros subtipos admitidos: Servicios, Papeleria, Software, Honorarios, Mantenimiento, Marketing, Viaticos y Otros."
       templateHeaders={PROVEEDOR_TEMPLATE_HEADERS}
       templateExampleRow={[
         "Maersk Line",

@@ -65,6 +65,7 @@ export default function SeccionConceptosVentaCotizacion({
             <AgregarConceptoInline
               monedaFija="USD"
               triggerLabel="Agregar"
+              requierePrecioPositivo
               onAgregar={agregarConceptoPrefill}
             />
           ) : (
@@ -118,6 +119,7 @@ export default function SeccionConceptosVentaCotizacion({
             <AgregarConceptoInline
               monedaFija="MXN"
               triggerLabel="Agregar"
+              requierePrecioPositivo
               onAgregar={agregarConceptoPrefill}
             />
           ) : (

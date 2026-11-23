@@ -43,6 +43,7 @@ export function FilaCostoLocalRow({ fila, gi, onUpdate, onRemove }: Props) {
 
   return (
     <div
+      data-costo-cotizacion
       className={cn(
         "border-b border-border last:border-b-0 py-2 px-3",
         conceptoFaltante && "bg-destructive/5",
@@ -56,6 +57,8 @@ export function FilaCostoLocalRow({ fila, gi, onUpdate, onRemove }: Props) {
             onSelect={handleProductoSelect}
             onConceptoLibre={handleConceptoLibre}
             placeholder="Selecciona concepto"
+            aria-invalid={conceptoFaltante || undefined}
+            aria-describedby={conceptoFaltante ? `costo-${gi}-concepto-error` : undefined}
           />
         </div>
 
@@ -66,6 +69,7 @@ export function FilaCostoLocalRow({ fila, gi, onUpdate, onRemove }: Props) {
             value={fila.proveedor}
             onChange={(e) => onUpdate(gi, "proveedor", e.target.value)}
             aria-invalid={proveedorFaltante}
+            aria-describedby={proveedorFaltante ? `costo-${gi}-proveedor-error` : undefined}
             className={cn(
               "h-9 text-body",
               COL_COSTO.proveedor,

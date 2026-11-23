@@ -27,8 +27,7 @@ interface Props {
  * - Azul + punto = sección actualmente visible en viewport.
  * - Gris + círculo = pendiente.
  *
- * Visible sólo en desktop (≥ lg); en mobile/tablet los checks por sección
- * ya cubren el feedback.
+ * En móvil se muestran los accesos a las secciones pendientes.
  */
 export default function Paso1ProgressSidebar({ esMaritimo }: Props) {
   const status = usePaso1SectionStatus();
@@ -68,13 +67,27 @@ export default function Paso1ProgressSidebar({ esMaritimo }: Props) {
   // (marítimo agrega Tarifa/Flete), así que el texto lo explicita.
   const modoLabel = esMaritimo ? (esLcl ? " (marítimo LCL)" : " (marítimo)") : " (terrestre/aéreo)";
   // VF-09/VF-19: el checklist dice qué falta y por qué cambia el denominador.
-  const faltantes = sections.filter((s) => !s.done).map((s) => s.label);
+  const faltantes = sections.filter((s) => !s.done);
 
   return (
-    // VIS-CE-251-03: la tarjeta se limita a la altura útil de la ventana con
-    // scroll propio, para que la sección «Cierre» sea alcanzable sin
-    // desplazar la página completa ni superponer la barra de acciones.
-    <aside
+    <>
+      <details className="rounded-lg border bg-card px-3 py-2 lg:hidden">
+        <summary className="cursor-pointer text-body font-medium">Qué falta ({faltantes.length})</summary>
+        {faltantes.length > 0 ? (
+          <ul className="mt-2 flex flex-wrap gap-1">
+            {faltantes.map((seccion) => (
+              <li key={seccion.id}>
+                <button type="button" className="rounded-md px-3 py-2 text-body-sm hover:bg-muted"
+                  onClick={() => navigateTo(seccion.id, true)}>
+                  {seccion.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="mt-2 text-body-sm text-muted-foreground">Todas las secciones están completas.</p>}
+      </details>
+      {/* El panel tiene scroll propio para mantener disponibles todas las secciones. */}
+      <aside
       ref={asideRef}
       className="hidden lg:block sticky top-4 self-start w-56 shrink-0"
       style={availableHeight ? { maxHeight: `${availableHeight}px` } : undefined}
@@ -91,7 +104,7 @@ export default function Paso1ProgressSidebar({ esMaritimo }: Props) {
           <Progress value={pct} className="h-1.5" />
           {faltantes.length > 0 && (
             <p className="text-body-sm text-muted-foreground">
-              Falta: {faltantes.join(", ")}
+              Falta: {faltantes.map((s) => s.label).join(", ")}
             </p>
           )}
           <p className="text-label text-muted-foreground">
@@ -132,6 +145,7 @@ export default function Paso1ProgressSidebar({ esMaritimo }: Props) {
           })}
         </nav>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

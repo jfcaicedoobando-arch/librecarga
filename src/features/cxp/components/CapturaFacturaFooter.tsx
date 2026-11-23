@@ -4,6 +4,7 @@
  * Los pendientes de otros pasos son botones que saltan al paso que los resuelve.
  */
 import { AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
+import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import type { CapturaPasos } from "@/features/cxp/hooks/useCapturaFacturaPasos";
 import { useFormDialogCerrar } from "@/components/shared/formDialogCloseContext";
@@ -12,17 +13,34 @@ interface Props {
   pasos: CapturaPasos;
   guardando: boolean;
   puedeGuardar: boolean;
+  facturaIdPendiente?: string | null;
   /** Fallback cuando el footer se usa fuera de un `FormDialogShell`. */
   onCancelar: () => void;
   onGuardar: () => void;
 }
 
 export function CapturaFacturaFooter({
-  pasos, guardando, puedeGuardar, onCancelar, onGuardar,
+  pasos, guardando, puedeGuardar, facturaIdPendiente, onCancelar, onGuardar,
 }: Props) {
   // v13.819.3 — "Cancelar" pasa por el cierre guardado del shell: con captura
   // real pide confirmación en vez de descartar en silencio.
   const cerrarGuardado = useFormDialogCerrar();
+  if (facturaIdPendiente) {
+    return (
+      <>
+        <p className="mr-auto text-body-sm" role="status">
+          La factura ya existe. Falta marcar el documento en el Buzón.{" "}
+          <Link className="font-medium underline" to={`/compras/facturas/${facturaIdPendiente}`} target="_blank" rel="noopener">
+            Ver factura en otra pestaña
+          </Link>
+        </p>
+        <Button type="button" variant="outline" onClick={cerrarGuardado ?? onCancelar} disabled={guardando}>Cancelar</Button>
+        <Button onClick={onGuardar} loading={guardando}>
+          {guardando ? "Marcando como capturada…" : "Reintentar marcar como capturada"}
+        </Button>
+      </>
+    );
+  }
   const delPaso = pasos.paso === 1
     ? pasos.pendientesPorPaso.documento
     : pasos.paso === 2

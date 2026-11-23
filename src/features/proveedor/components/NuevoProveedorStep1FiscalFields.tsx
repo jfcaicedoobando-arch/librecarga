@@ -12,10 +12,10 @@ import { DireccionFiscalFields } from "./DireccionFiscalFields";
 export function PaisAgenteSelect({ c }: { c: Controller }) {
   return (
     <div className="space-y-2">
-      <Label>País *</Label>
+      <Label htmlFor="nuevo-proveedor-pais">País <span aria-hidden="true">*</span></Label>
       {/* Elegir país NO borra el RFC/Tax ID: si vino de la CSF debe conservarse. */}
       <Select value={c.form.pais || ""} onValueChange={(v) => c.setField("pais", v)}>
-        <SelectTrigger><SelectValue placeholder="Selecciona un país" /></SelectTrigger>
+        <SelectTrigger id="nuevo-proveedor-pais" aria-required="true"><SelectValue placeholder="Selecciona un país" /></SelectTrigger>
         <SelectContent>
           {PAISES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
         </SelectContent>
@@ -31,18 +31,23 @@ export function RfcField({ c }: { c: Controller }) {
       <Input
         id="nuevo-proveedor-rfc"
         value={c.form.rfc}
+        aria-describedby="nuevo-proveedor-rfc-estado"
         onChange={(e) => c.setField("rfc", e.target.value)}
         placeholder={c.form.origen_proveedor === "Extranjero" ? "Ingresa el Tax ID" : "Ingresa el RFC"}
       />
-      {c.rfcDuplicado && (
-        <p className="text-body-sm text-warning">
+      <div id="nuevo-proveedor-rfc-estado" role="status">
+        {c.comprobandoDuplicado && <p className="text-body-sm text-muted-foreground">Comprobando duplicados…</p>}
+        {c.errorComprobandoDuplicado && !c.comprobandoDuplicado && <p className="text-body-sm text-muted-foreground">No pudimos comprobarlo aquí. Se volverá a validar al guardar.</p>}
+        {c.rfcDuplicado && (
+          <p className="text-body-sm text-warning">
           Ya existe un proveedor con este {c.rfcLabel}:{" "}
           <a href={`/proveedores/${c.rfcDuplicado.id}`} target="_blank" rel="noopener noreferrer" className="font-medium underline">
             {c.rfcDuplicado.nombre}
           </a>
           . No podrás guardar un duplicado.
-        </p>
-      )}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

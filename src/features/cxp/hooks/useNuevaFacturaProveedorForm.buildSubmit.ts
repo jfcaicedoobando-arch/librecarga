@@ -33,7 +33,7 @@ export interface BuildSubmitDeps {
   cuadreManual: ResultadoCuadre;
   manuales: ConceptosManualesApi;
   validate: () => boolean;
-  crearMutateAsync: (payload: ReturnType<typeof buildPayload> & { vinculosAtomicos?: VinculoFacturaAtomico[] }) => Promise<{ id?: string } | null | undefined>;
+  crearMutateAsync: (payload: ReturnType<typeof buildPayload> & { vinculosAtomicos?: VinculoFacturaAtomico[] }) => Promise<{ id?: string; estado_aprobacion?: string | null } | null | undefined>;
   setFolioError: () => void;
   onSuccess: (facturaId?: string | null) => void;
 }

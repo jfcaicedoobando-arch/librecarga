@@ -5,14 +5,16 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { usePrimerosPasos } from "@/features/dashboard/hooks/usePrimerosPasos";
 import type { ResultadoPrimerosPasos } from "@/features/dashboard/domain/primerosPasos";
+import { safeLocalStorage } from "@/lib/browserStorage";
 import { ContenidoPrimerosPasos } from "./ContenidoPrimerosPasos";
 
 interface Props {
   ubicacion?: "inicio" | "ayuda";
+  abrirEnPrimeraVisita?: boolean;
 }
 
-export function GuiaPrimerosPasos({ ubicacion = "inicio" }: Props) {
-  const { resultado, claveContexto, reintentar } = usePrimerosPasos();
+export function GuiaPrimerosPasos({ ubicacion = "inicio", abrirEnPrimeraVisita = false }: Props) {
+  const { resultado, claveContexto, clavePreferencia, reintentar } = usePrimerosPasos();
   const restaurarFoco = useRef(false);
   const registrarFocoPrevio = useCallback((dentro: boolean) => {
     restaurarFoco.current = dentro;
@@ -27,6 +29,7 @@ export function GuiaPrimerosPasos({ ubicacion = "inicio" }: Props) {
       key={claveContexto}
       resultado={resultado}
       ubicacion={ubicacion}
+      clavePreferencia={abrirEnPrimeraVisita ? clavePreferencia : undefined}
       onRetry={reintentar}
       registrarFocoPrevio={registrarFocoPrevio}
       consumirFocoPrevio={consumirFocoPrevio}
@@ -35,6 +38,7 @@ export function GuiaPrimerosPasos({ ubicacion = "inicio" }: Props) {
 }
 
 interface PanelProps extends Props {
+  clavePreferencia?: string;
   resultado: ResultadoPrimerosPasos;
   onRetry: () => Promise<void>;
   registrarFocoPrevio: (dentro: boolean) => void;
@@ -42,8 +46,12 @@ interface PanelProps extends Props {
 }
 
 /** La apertura y las tareas expandidas sólo viven mientras el contexto siga vigente. */
-export function PanelPrimerosPasos({ resultado, ubicacion, onRetry, registrarFocoPrevio, consumirFocoPrevio }: PanelProps) {
-  const [open, setOpen] = useState(false);
+export function PanelPrimerosPasos({ resultado, ubicacion, clavePreferencia, onRetry, registrarFocoPrevio, consumirFocoPrevio }: PanelProps) {
+  const [open, setOpen] = useState(() => Boolean(clavePreferencia && safeLocalStorage.getItem(clavePreferencia) !== "cerrada"));
+  const cambiarApertura = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (clavePreferencia) safeLocalStorage.setItem(clavePreferencia, nextOpen ? "abierta" : "cerrada");
+  };
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const tituloId = useId();
@@ -65,7 +73,7 @@ export function PanelPrimerosPasos({ resultado, ubicacion, onRetry, registrarFoc
 
   return (
     <Card ref={panelRef}>
-      <Collapsible open={open} onOpenChange={setOpen}>
+      <Collapsible open={open} onOpenChange={cambiarApertura}>
         <CardHeader className="p-4">
           <h2 id={tituloId}>
             <CollapsibleTrigger asChild>

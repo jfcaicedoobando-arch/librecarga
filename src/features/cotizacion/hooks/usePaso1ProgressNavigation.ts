@@ -90,10 +90,14 @@ export function usePaso1ProgressNavigation(sectionIds: string[]) {
     };
   }, [idsKey]);
 
-  const navigateTo = (id: string) => {
+  const navigateTo = (id: string, enfocar = false) => {
     const element = document.getElementById(id);
     if (!element) return;
     setActiveId(id);
+    if (enfocar) {
+      const primerControl = element.querySelector<HTMLElement>("input:not([disabled]):not([type=hidden]), button:not([disabled]), textarea:not([disabled])");
+      primerControl?.focus({ preventScroll: true });
+    }
     element.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 

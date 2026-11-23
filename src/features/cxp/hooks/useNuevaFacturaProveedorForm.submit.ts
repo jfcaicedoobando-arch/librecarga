@@ -24,11 +24,10 @@ import { prevalidarVinculosCosto } from "@/features/cxp/services/prevalidarVincu
 import type { VincularSafeResult } from "./useNuevaFacturaProveedorForm.sideEffects";
 import type { VinculoFacturaAtomico } from "@/features/cxp/services/proveedorFacturas.crud";
 
-/** Acción "Ver factura" del toast de CFDI duplicado (v13.368.0). */
-function accionVerFactura(f: FacturaExistentePorUuid) {
+function accionVerFactura(id: string, label = "Ver factura") {
   return {
-    label: "Ver factura",
-    onClick: () => { window.location.assign(`/compras/facturas/${f.id}`); },
+    label,
+    onClick: () => { window.location.assign(`/compras/facturas/${id}`); },
   };
 }
 
@@ -37,7 +36,7 @@ function notificarCfdiDuplicado(f: FacturaExistentePorUuid, method: string, sufi
     title: "Este CFDI ya está capturado",
     description: `Ya existe como ${describirFacturaExistente(f)}. ${sufijo}`,
     method,
-    action: accionVerFactura(f),
+    action: accionVerFactura(f.id),
   });
 }
 
@@ -82,6 +81,8 @@ export async function handleSubmitError(e: unknown, uuidFiscal?: string | null) 
   }
 }
 
+type FacturaCreada = { id?: string; estado_aprobacion?: string | null };
+
 interface RunSubmitParams {
   values: FacturaFormValues;
   total: number;
@@ -93,7 +94,7 @@ interface RunSubmitParams {
   embarqueAdHoc: EmbarqueSeleccionado | null;
   /** v13.820.5 — Embarque del documento del buzón CxP (herencia si no hay vínculos). */
   embarqueOrigenId?: string | null;
-  crearMutateAsync: (payload: ReturnType<typeof buildPayload> & { vinculosAtomicos?: VinculoFacturaAtomico[] }) => Promise<{ id?: string } | null | undefined>;
+  crearMutateAsync: (payload: ReturnType<typeof buildPayload> & { vinculosAtomicos?: VinculoFacturaAtomico[] }) => Promise<FacturaCreada | null | undefined>;
   setFolioError: () => void;
 }
 
@@ -103,7 +104,20 @@ export interface ResultadoSubmit {
   facturaId: string | null;
 }
 
-/** Devuelve `ok: true` y el id creado si la operación fue exitosa. */
+function notificarCaptura(created: FacturaCreada | null | undefined, sideResult: VincularSafeResult) {
+  if (sideResult.vinculoFallido) return;
+  const description = [
+    buildFacturaSuccessDescription(sideResult),
+    created?.estado_aprobacion === "pendiente" && "Pendiente de aprobación contable.",
+  ].filter(Boolean).join(" · ");
+  notifySuccess(undefined, {
+    title: "Factura de proveedor capturada",
+    description: description || undefined,
+    action: created?.id ? accionVerFactura(created.id, "Ver factura capturada") : undefined,
+  });
+}
+
+/** Devuelve el id creado si la operación fue exitosa. */
 export async function runSubmit(p: RunSubmitParams): Promise<ResultadoSubmit> {
   const conceptos = p.cfdiConceptos.map(normalizarConceptoPersistible);
   if (!puedePersistirFactura(p.values, conceptos)) return { ok: false, facturaId: null };
@@ -115,7 +129,7 @@ export async function runSubmit(p: RunSubmitParams): Promise<ResultadoSubmit> {
         title: "Factura duplicada",
         description: `Ya existe como ${describirFacturaExistente(dup)} con el folio ${p.values.folio.trim()} y fecha ${p.values.emision}. Si es un documento distinto, corrige el folio o la fecha de emisión.`,
         method: "FEATURES_CXP_HOOKS_USENUEVAFACTURAPROVEEDORFORM_DUP",
-        action: accionVerFactura(dup),
+        action: accionVerFactura(dup.id),
       });
       return { ok: false, facturaId: null };
     }
@@ -170,12 +184,7 @@ export async function runSubmit(p: RunSubmitParams): Promise<ResultadoSubmit> {
         organizationId: p.organizationId, userId: p.userId,
       });
     }
-    if (!sideResult.vinculoFallido) {
-      notifySuccess(undefined, {
-        title: "Factura de proveedor capturada",
-        description: buildFacturaSuccessDescription(sideResult),
-      });
-    }
+    notificarCaptura(created, sideResult);
     return { ok: true, facturaId: created?.id ?? null };
   } catch (e) {
     await handleSubmitError(e, p.pendingCfdi?.uuid);

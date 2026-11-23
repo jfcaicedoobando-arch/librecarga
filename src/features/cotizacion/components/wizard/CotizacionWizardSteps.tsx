@@ -33,9 +33,10 @@ interface Props {
   esMaritimo: boolean;
   sinDesgloseFlag: boolean;
   irACargarCostos: () => void;
+  bloqueado?: boolean;
 }
 
-export function CotizacionWizardSteps({ w, clientes, catalogoClientes, esMaritimo, sinDesgloseFlag, irACargarCostos }: Props) {
+export function CotizacionWizardSteps({ w, clientes, catalogoClientes, esMaritimo, sinDesgloseFlag, irACargarCostos, bloqueado }: Props) {
   const { form } = w;
   const costosAuto = useCostosAutoSync({
     filas: w.costosInternos,
@@ -167,6 +168,9 @@ export function CotizacionWizardSteps({ w, clientes, catalogoClientes, esMaritim
             totalUSD={w.totalUSD}
             totalMXN={w.totalMXN}
             esEdicion={w.isEditMode}
+            onEditarDatos={() => w.setCurrentStep(1)}
+            onEditarConceptos={() => w.setCurrentStep(3)}
+            edicionBloqueada={bloqueado}
             resumenFiscal={resumenFiscal}
             />}
           </VistaFiscalCotizacion>

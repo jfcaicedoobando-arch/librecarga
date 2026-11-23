@@ -116,10 +116,10 @@ export default function ResetPassword() {
               <AlertCircle className="mx-auto h-10 w-10 text-destructive" />
               <p className="text-sm font-medium text-foreground">Enlace no válido o expirado</p>
               <p className="text-xs text-muted-foreground">
-                Solicita un nuevo enlace desde la pantalla de inicio de sesión.
+                {copy.vencidoDetalle}
               </p>
-              <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
-                Volver al login
+              <Button variant="outline" className="w-full" onClick={() => navigate(copy.vencidoDestino)}>
+                {copy.vencidoAccion}
               </Button>
             </div>
           ) : (

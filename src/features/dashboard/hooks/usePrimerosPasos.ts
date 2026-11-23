@@ -43,6 +43,9 @@ export function usePrimerosPasos() {
     resultado,
     // Una identidad distinta no hereda la apertura ni la tarea expandida.
     claveContexto: identidad,
+    clavePreferencia: auth.user?.id && org.organizationId
+      ? `lc:guia-primeros-pasos:${auth.user.id}:${org.organizationId}`
+      : undefined,
     reintentar,
   };
 }

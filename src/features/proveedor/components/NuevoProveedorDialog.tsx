@@ -3,6 +3,7 @@
  * El render de cada paso vive en `NuevoProveedorStep1` / `NuevoProveedorStep2`
  * (mantenidos así para respetar el límite de 200 líneas Power-of-10).
  */
+import { useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Building2 } from "lucide-react";
 import type { TablesInsert } from "@/types/db";
 import { Button } from "@/components/ui/button";
@@ -13,18 +14,26 @@ import { useNuevoProveedorController } from "@/features/proveedor/hooks";
 import type { PrefillProveedor } from "@/features/proveedor/hooks/useNuevoProveedorController.prefill";
 import { NuevoProveedorStep1 } from "./NuevoProveedorStep1";
 import { NuevoProveedorStep2 } from "./NuevoProveedorStep2";
+import { hayDatosBancariosProveedor } from "@/features/proveedor/hooks/useNuevoProveedorController.helpers";
 import { FaltantesHint } from "@/features/facturacion/components/FaltantesHint";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: TablesInsert<"proveedores">) => void;
+  onSave: (data: TablesInsert<"proveedores">) => void | Promise<void>;
   /** Prellenado opcional (datos detectados en una factura de proveedor). */
   prefill?: PrefillProveedor;
 }
 
 export default function NuevoProveedorDialog({ open, onOpenChange, onSave, prefill }: Props) {
   const c = useNuevoProveedorController(onSave, () => onOpenChange(false), prefill);
+  const clabeRef = useRef<HTMLInputElement>(null);
+  const [intentoBancario, setIntentoBancario] = useState(false);
+  const guardar = () => c.handleSave(() => {
+    setIntentoBancario(true);
+    clabeRef.current?.focus();
+  });
+  const labelCrear = hayDatosBancariosProveedor(c.form) ? "Crear proveedor" : "Crear sin datos bancarios";
 
   const origen = c.form.origen_proveedor;
   const headerAside = origen ? (
@@ -36,6 +45,7 @@ export default function NuevoProveedorDialog({ open, onOpenChange, onSave, prefi
   return (
     <FormDialogShell
       open={open}
+      busy={c.saving}
       onOpenChange={(abierto) => { if (!abierto) c.resetAndClose(); else onOpenChange(abierto); }}
       icon={Building2}
       title="Nuevo proveedor"
@@ -64,14 +74,14 @@ export default function NuevoProveedorDialog({ open, onOpenChange, onSave, prefi
           <Button variant="outline" onClick={() => c.setStep(1)} disabled={c.saving}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Atrás
           </Button>
-          <Button onClick={c.handleSave} loading={c.saving}>
-            {c.saving ? "Guardando…" : "Crear proveedor"}
+          <Button onClick={guardar} loading={c.saving}>
+            {c.saving ? "Guardando…" : labelCrear}
           </Button>
         </>
       )}
     >
       {c.step === 1 && <NuevoProveedorStep1 c={c} />}
-      {c.step === 2 && <NuevoProveedorStep2 c={c} />}
+      {c.step === 2 && <NuevoProveedorStep2 c={c} clabeRef={clabeRef} mostrarErrorClabe={intentoBancario} />}
     </FormDialogShell>
   );
 }

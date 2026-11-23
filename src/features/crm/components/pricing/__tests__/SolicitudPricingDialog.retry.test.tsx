@@ -12,7 +12,7 @@ const services = vi.hoisted(() => ({
   listarBandejaPricing: vi.fn(), listarOpciones: vi.fn(), listarSolicitudesOportunidad: vi.fn(),
   listarUsuariosOrg: vi.fn(), obtenerSolicitud: vi.fn(), responderSolicitud: vi.fn(),
 }));
-const mocks = vi.hoisted(() => ({ subir: vi.fn(), success: vi.fn(), error: vi.fn(), cambio: vi.fn() }));
+const mocks = vi.hoisted(() => ({ subir: vi.fn(), success: vi.fn(), error: vi.fn(), cambio: vi.fn(), revisar: vi.fn() }));
 const contexto = vi.hoisted(() => ({ userId: "u1", organizationId: "org1" }));
 vi.mock("@/features/crm/services/pricing/pricingCrm", () => services);
 vi.mock("@/features/crm/services/pricing/tarifasParaPricing", () => ({ listarTarifasParaPricing: vi.fn() }));
@@ -57,7 +57,7 @@ function Harness({ clienteNombre = "Cliente" }: { clienteNombre?: string }) {
     <button onClick={() => { setSolicitud(null); setOpen(true); }}>Nueva solicitud</button>
     <button onClick={() => { setSolicitud(client.getQueryData<SolicitudPricingRow[]>(keys.oportunidad("o1"))?.[0] ?? null); setOpen(true); }}>Editar borrador</button>
     <SolicitudPricingDialog open={open} onOpenChange={(next) => { mocks.cambio(next); setOpen(next); }}
-      oportunidadId="o1" clienteNombre={clienteNombre} solicitud={solicitud} />
+      oportunidadId="o1" clienteNombre={clienteNombre} solicitud={solicitud} onRevisarTarifario={mocks.revisar} />
   </QueryClientProvider>;
 }
 function completar() {
@@ -94,10 +94,21 @@ beforeEach(() => {
 afterEach(() => { cleanup(); client.clear(); });
 
 describe("Revisar tarifario antes de enviar a Pricing", () => {
-  it("guarda el borrador sin enviarlo a Pricing y cierra", async () => {
+  it("guarda y abre el tarifario del borrador sin enviarlo a Pricing", async () => {
     render(<Harness />); completar(); enviar();
     await waitFor(() => expect(mocks.cambio).toHaveBeenCalledWith(false));
     expect(services.crearSolicitud).toHaveBeenCalledTimes(1);
+    expect(mocks.revisar).toHaveBeenCalledWith("s1");
+    expect(services.enviarSolicitud).not.toHaveBeenCalled();
+  });
+
+  it("guardar un borrador incompleto cierra sin abrir el tarifario", async () => {
+    render(<Harness />);
+    expect(screen.getByRole("button", { name: "Revisar tarifario" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent(/modo de transporte, origen.*destino/);
+    fireEvent.click(screen.getByRole("button", { name: "Guardar borrador" }));
+    await waitFor(() => expect(mocks.cambio).toHaveBeenCalledWith(false));
+    expect(mocks.revisar).not.toHaveBeenCalled();
     expect(services.enviarSolicitud).not.toHaveBeenCalled();
   });
   it("dos submits en el mismo turno hacen un solo INSERT", async () => {

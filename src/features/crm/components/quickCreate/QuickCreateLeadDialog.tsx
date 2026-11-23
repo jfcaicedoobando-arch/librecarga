@@ -26,7 +26,7 @@ import { FormDialogFooter } from "@/components/shared/FormDialogFooter";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useCrearLead } from "@/features/crm/hooks";
 import { LEAD_FUENTES, type CrmLeadFuente } from "@/features/crm/domain/leads/constants";
-import { leadQuickCreateInput } from "@/features/crm/domain/leads/quickCreateInput";
+import { esCorreoCapturado, leadQuickCreateInput } from "@/features/crm/domain/leads/quickCreateInput";
 
 /** Borrador mínimo que viaja de la alta express al formulario completo. */
 export interface LeadQuickDraft {
@@ -49,6 +49,7 @@ export default function QuickCreateLeadDialog({ open, onOpenChange, onCreated, o
   const crear = useCrearLead();
   const enviandoRef = useRef(false);
   const empresaRef = useRef<HTMLInputElement>(null);
+  const contactoRef = useRef<HTMLInputElement>(null);
   const [empresa, setEmpresa] = useState("");
   const [contacto, setContacto] = useState("");
   const [fuente, setFuente] = useState<CrmLeadFuente>("Prospección");
@@ -60,6 +61,7 @@ export default function QuickCreateLeadDialog({ open, onOpenChange, onCreated, o
   const [empresaInteractuada, setEmpresaInteractuada] = useState(false);
   const empresaVacia = empresa.trim() === "";
   const mostrarErrorEmpresa = empresaTouched && empresaVacia;
+  const correoIncompleto = contacto.includes("@") && !esCorreoCapturado(contacto);
 
   // Reset sólo en la transición real abierto -> cerrado: mientras el modal
   // sigue abierto (o mientras se muestra la confirmación de descarte, que vive
@@ -84,6 +86,10 @@ export default function QuickCreateLeadDialog({ open, onOpenChange, onCreated, o
       // error técnico (VIS-20260908-03/04).
       setEmpresaTouched(true);
       empresaRef.current?.focus();
+      return;
+    }
+    if (correoIncompleto) {
+      contactoRef.current?.focus();
       return;
     }
     enviandoRef.current = true;
@@ -126,7 +132,10 @@ export default function QuickCreateLeadDialog({ open, onOpenChange, onCreated, o
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => onMore({ empresa: empresa.trim(), contacto: contacto.trim(), fuente })}
+              onClick={() => {
+                if (correoIncompleto) { contactoRef.current?.focus(); return; }
+                onMore({ empresa: empresa.trim(), contacto: contacto.trim(), fuente });
+              }}
               disabled={crear.isPending}
               className="text-body-sm"
             >
@@ -162,10 +171,16 @@ export default function QuickCreateLeadDialog({ open, onOpenChange, onCreated, o
             <Label htmlFor="qc-lead-contacto">Correo o teléfono</Label>
             <Input
               id="qc-lead-contacto"
+              ref={contactoRef}
+              aria-invalid={correoIncompleto || undefined}
+              aria-describedby={correoIncompleto ? "qc-lead-contacto-error" : undefined}
               value={contacto}
               onChange={(e) => setContacto(e.target.value)}
               placeholder="ana@acme.com o 555…"
             />
+            {correoIncompleto && <p id="qc-lead-contacto-error" className={FIELD_ERROR_CLASS} role="alert">
+              Completa el correo, captura un teléfono o deja el campo vacío.
+            </p>}
           </div>
           <div className="space-y-1">
             <Label htmlFor="qc-lead-origen">Origen</Label>

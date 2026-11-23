@@ -39,6 +39,9 @@ export interface PagoProveedorFormBodyProps {
   bloqueadoPorTc: boolean;
   /** R6-N1: cuenta bancaria de donde sale el pago. */
   cuentas: CuentaBancaria[];
+  cuentasCargando: boolean;
+  cuentasError: boolean;
+  reintentarCuentas: () => void;
   cuentaId: string;
   setCuentaId: (v: string) => void;
   requiereCuenta: boolean;

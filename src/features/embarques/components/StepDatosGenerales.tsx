@@ -65,7 +65,8 @@ export function StepDatosGenerales({
 }: Props) {
   const { watch } = useFormContext<EmbarqueFormValues>();
   const clienteId = watch('clienteId');
-  const { data: expedientesCliente = [] } = useExpedientesCliente(clienteId || undefined);
+  const expedientes = useExpedientesCliente(clienteId || undefined);
+  const expedientesCliente = expedientes.data ?? [];
   const requiereCotizacion = true;
   const faltaCotizacion = !cotizacionVinculada;
 
@@ -94,6 +95,7 @@ export function StepDatosGenerales({
           onDesvincularCotizacion={onDesvincularCotizacion}
           clienteId={clienteId || ''}
           expedientesCliente={expedientesCliente}
+          sinExpedientes={expedientes.isSuccess && expedientesCliente.length === 0}
           modoExpediente={modoExpediente}
           onModoExpedienteChange={onModoExpedienteChange}
           expedienteSeleccionado={expedienteSeleccionado}

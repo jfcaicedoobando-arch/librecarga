@@ -2,7 +2,7 @@
  * Paso 1 del wizard FacturApi: elegir ambiente activo (sandbox vs producción).
  */
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import type { FacturapiAmbiente } from "@/features/configuracion/services/facturapiCredenciales";
@@ -26,20 +26,18 @@ export function PasoAmbiente({ ambiente, onChange }: Props) {
       </Alert>
 
       <div className="rounded border p-4 space-y-3">
-        <Label className="text-sm font-medium">Ambiente activo</Label>
-        <div className="flex items-center gap-3">
-          <span className={ambiente === "sandbox" ? "font-semibold" : "text-muted-foreground"}>
+        <p id="facturapi-ambiente-title" className="text-sm font-medium">Ambiente para timbrar</p>
+        <RadioGroup value={ambiente} aria-labelledby="facturapi-ambiente-title"
+          onValueChange={(value) => onChange(value === "live" ? "live" : "sandbox")}>
+          <Label htmlFor="facturapi-ambiente-sandbox" className="flex min-h-11 items-center gap-3 rounded-md border p-3">
+            <RadioGroupItem id="facturapi-ambiente-sandbox" value="sandbox" />
             Sandbox (pruebas)
-          </span>
-          <Switch
-            checked={ambiente === "live"}
-            onCheckedChange={(v) => onChange(v ? "live" : "sandbox")}
-            aria-label="Cambiar ambiente"
-          />
-          <span className={ambiente === "live" ? "font-semibold" : "text-muted-foreground"}>
-            Producción
-          </span>
-        </div>
+          </Label>
+          <Label htmlFor="facturapi-ambiente-live" className="flex min-h-11 items-center gap-3 rounded-md border p-3">
+            <RadioGroupItem id="facturapi-ambiente-live" value="live" />
+            Producción · emite CFDI reales
+          </Label>
+        </RadioGroup>
         <p className="text-label text-muted-foreground">
           Selección actual: <strong>{ambiente === "live" ? "Producción" : "Sandbox"}</strong>.
           Podrás cambiarlo después desde la tarjeta de FacturApi.

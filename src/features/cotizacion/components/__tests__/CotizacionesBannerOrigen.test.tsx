@@ -37,7 +37,7 @@ describe("CotizacionesBannerOrigen", () => {
   it("sin cotizaciones Aceptadas explica cómo llegar a ese estado y ofrece el alta", () => {
     const onNueva = vi.fn();
     renderEn("/cotizaciones", "nuevo-embarque", { hayAceptadas: false, onNuevaCotizacion: onNueva });
-    expect(screen.getByText(/ahora no hay ninguna/i)).toBeInTheDocument();
+    expect(screen.getByText(/no hay cotizaciones elegibles/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Nueva cotización" }));
     expect(onNueva).toHaveBeenCalled();
   });

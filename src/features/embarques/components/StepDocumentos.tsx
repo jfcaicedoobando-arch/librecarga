@@ -37,13 +37,16 @@ export function StepDocumentos({ documentos, onFileChange, errors = {} }: Props)
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between">
-          <span>Documentos Requeridos</span>
+          <span>Documentos del expediente</span>
           <span className="text-body-sm font-normal text-muted-foreground">
             {adjuntados} de {total} adjuntos
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        <p className="text-body-sm text-muted-foreground">
+          Puedes completar los adjuntos después de crear el borrador. Revisa los documentos requeridos antes de confirmar.
+        </p>
         {hasErrors && <ValidationAlert severity="error" errors={errors} />}
         {!hasErrors && pendientes > 0 && (
           <ValidationAlert
@@ -55,7 +58,7 @@ export function StepDocumentos({ documentos, onFileChange, errors = {} }: Props)
         <DocumentChecklist
           documentos={documentos}
           onFileChange={handleFileChange}
-          descripcion={`Adjunta los documentos requeridos para este embarque (opcional, podrás agregar más después). Tamaño máximo: ${MAX_FILE_SIZE_MB}MB. Formatos: PDF, JPG, PNG, XLSX, DOCX.`}
+          descripcion={`Tamaño máximo: ${MAX_FILE_SIZE_MB} MB. Formatos: PDF, JPG, PNG, XLSX, DOCX.`}
         />
       </CardContent>
     </Card>

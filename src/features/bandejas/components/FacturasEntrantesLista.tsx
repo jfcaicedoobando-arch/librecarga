@@ -3,6 +3,7 @@
  * v13.365.0
  */
 import { Inbox } from "lucide-react";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FacturaEntranteRow } from "@/features/bandejas/components/FacturaEntranteRow";
@@ -23,6 +24,7 @@ export interface AccionesEntrante {
 interface Props extends AccionesEntrante {
   rows: Fila[];
   isLoading: boolean;
+  errorHistorial?: { onRetry: () => void; retrying?: boolean };
   puedeProcesar: boolean;
   soloLectura?: boolean;
   tituloVacio: string;
@@ -32,6 +34,7 @@ interface Props extends AccionesEntrante {
 export function FacturasEntrantesLista({
   rows,
   isLoading,
+  errorHistorial,
   puedeProcesar,
   soloLectura = false,
   tituloVacio,
@@ -40,6 +43,10 @@ export function FacturasEntrantesLista({
 }: Props) {
   // v13.368.0 — Sólo interesa en la bandeja activa: marcar CFDI ya capturados.
   const facturaDeCfdi = useCfdisYaCapturados(soloLectura ? [] : rows);
+
+  if (errorHistorial) {
+    return <ErrorStateInline title="No se pudo consultar el historial" message="Reintenta la consulta de esta pestaña." {...errorHistorial} />;
+  }
 
   if (isLoading) {
     return (

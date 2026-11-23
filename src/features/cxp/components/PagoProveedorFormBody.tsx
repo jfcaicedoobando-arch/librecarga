@@ -55,6 +55,9 @@ export function PagoProveedorFormBody(p: Props) {
         </div>
         <PagoProveedorCuentaField
           cuentas={p.cuentas}
+          cuentasCargando={p.cuentasCargando}
+          cuentasError={p.cuentasError}
+          reintentarCuentas={p.reintentarCuentas}
           cuentaId={p.cuentaId}
           setCuentaId={p.setCuentaId}
           requiereCuenta={p.requiereCuenta}
