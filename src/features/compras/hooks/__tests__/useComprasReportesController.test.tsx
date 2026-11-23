@@ -3,19 +3,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createWrapper } from "@/test/utils/queryWrapper";
 import { useComprasReportesController } from "../useComprasReportesController";
 
-const mocks = vi.hoisted(() => ({ fetch: vi.fn(), descargar: vi.fn() }));
+const mocks = vi.hoisted(() => ({ fetch: vi.fn(), descargar: vi.fn(), rates: vi.fn() }));
 vi.mock("@/hooks/shared/useOrgFilter", () => ({
   useOrgFilter: () => ({ organizationId: "org-test", orgListo: true }),
 }));
 vi.mock("@/features/compras/services/reportesFetch", () => ({ fetchFacturasReporte: mocks.fetch }));
 vi.mock("@/features/catalogos/services", () => ({
-  fetchExchangeRates: async () => ({ usdMxn: 18.071, eurMxn: 30 }),
+  fetchExchangeRates: mocks.rates,
 }));
 vi.mock("@/lib/downloadBlob", () => ({ descargarBlob: mocks.descargar }));
 vi.mock("@/lib/ui/appFeedback", () => ({ notifySuccess: vi.fn(), notifyError: vi.fn() }));
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.rates.mockResolvedValue({ usdMxn: 18.071, eurMxn: 30 });
   mocks.fetch.mockResolvedValue([{
     id: "f1", fecha_emision: "2026-09-30", total: 700, moneda: "USD",
     proveedor_id: "p1", proveedor_nombre: "Agente", tipo_cambio_usd: 18.071,
@@ -33,8 +34,8 @@ describe("Compras reportes — rango y exportación", () => {
     const { result } = renderHook(useComprasReportesController, { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.numFacturas).toBe(2));
     expect(result.current.topProveedores).toEqual([
-      { nombre: "Local", mxn: 2100, usd: 0, eur: 0, count: 1, mxnEquiv: 2100 },
-      { nombre: "Europeo", mxn: 0, usd: 0, eur: 100, count: 1, mxnEquiv: 2000 },
+      { nombre: "Local", mxn: 2100, usd: 0, eur: 0, count: 1, mxnEquiv: 2100, sinTipoCambio: 0 },
+      { nombre: "Europeo", mxn: 0, usd: 0, eur: 100, count: 1, mxnEquiv: 2000, sinTipoCambio: 0 },
     ]);
 
     act(() => result.current.handleExport());
@@ -50,6 +51,29 @@ describe("Compras reportes — rango y exportación", () => {
       "proveedor,facturas,total_mxn,total_usd,total_eur,total_equivalente_mxn",
       "Local,1,2100,0,0,2100",
       "Europeo,1,0,0,100,2000",
+    ]);
+  });
+
+  it("conserva el importe nativo e identifica el equivalente incompleto en el CSV", async () => {
+    mocks.rates.mockResolvedValue({ usdMxn: 18.071 });
+    mocks.fetch.mockResolvedValue([{
+      id: "eur", fecha_emision: "2026-10-04", total: 100, moneda: "EUR",
+      proveedor_id: "eur", proveedor_nombre: "Europeo", tipo_cambio_usd: null,
+    }]);
+    const { result } = renderHook(useComprasReportesController, { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.facturasSinTipoCambio).toBe(1));
+    expect(result.current.topProveedores[0]).toMatchObject({ eur: 100, sinTipoCambio: 1 });
+    act(() => result.current.handleExport());
+    const blob: Blob = mocks.descargar.mock.calls[0][0];
+    const csv = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(blob);
+    });
+    expect(csv.split("\n")).toEqual([
+      "proveedor,facturas,total_mxn,total_usd,total_eur,total_equivalente_mxn,equivalente_parcial_mxn,facturas_sin_tipo_de_cambio,orden_parcial",
+      "Europeo,1,0,0,100,,0,1,Sí",
     ]);
   });
 

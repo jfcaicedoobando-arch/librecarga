@@ -73,9 +73,11 @@ export function useComprasReportesController() {
           total_usd: p.usd,
           total_eur: p.eur,
           total_equivalente_mxn: p.sinTipoCambio > 0 ? null : p.mxnEquiv,
-          equivalente_parcial_mxn: p.sinTipoCambio > 0 ? p.mxnEquiv : null,
-          facturas_sin_tipo_de_cambio: p.sinTipoCambio,
-          orden_parcial: facturasSinTipoCambio > 0 ? "Sí" : "No",
+          ...(facturasSinTipoCambio > 0 && {
+            equivalente_parcial_mxn: p.sinTipoCambio > 0 ? p.mxnEquiv : null,
+            facturas_sin_tipo_de_cambio: p.sinTipoCambio,
+            orden_parcial: "Sí",
+          }),
         })),
       );
       descargarBlob(
