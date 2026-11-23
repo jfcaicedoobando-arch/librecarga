@@ -15,6 +15,15 @@ export interface TarifaMultimodoForm {
   flete_base: number; minimo: number | null;
   vigente_desde: string; vigente_hasta: string; transit_time_dias: number | null;
   tramos: TramoPeso[];
+  /** Aéreo: aeropuertos IATA de conexión separados por coma; vacío = directo. */
+  escalas?: string;
+  /** Cuando la tarifa responde una solicitud de Pricing. */
+  solicitud_pricing_id?: string | null;
+}
+
+/** Escalas capturadas como "LAX, ANC" → ["LAX","ANC"]. */
+export function escalasLista(t: string | undefined): string[] {
+  return (t ?? "").split(/[\s,]+/).map((x) => x.trim().toUpperCase()).filter(Boolean);
 }
 
 const CP = /^\d{5}$/;
@@ -32,6 +41,8 @@ export function faltantesTarifaMultimodo(f: TarifaMultimodoForm): string[] {
     if (!IATA.test(f.origen)) out.push("Aeropuerto de origen (IATA)");
     if (!IATA.test(f.destino)) out.push("Aeropuerto de destino (IATA)");
     if (f.origen && f.origen === f.destino) out.push("Origen y destino distintos");
+    const esc = escalasLista(f.escalas);
+    if (esc.length > 3 || esc.some((e) => !IATA.test(e))) out.push("Escalas (hasta 3 códigos IATA)");
   } else {
     if (!f.submodalidad) out.push("Submodalidad");
     if (!f.origen.trim()) out.push("Origen (CP o ciudad)");
@@ -56,10 +67,12 @@ export function payloadTarifaMultimodo(f: TarifaMultimodoForm): Record<string, u
     modo: f.modo, agente_id: f.agente_id, moneda: f.moneda, flete_base: f.flete_base, minimo: f.minimo,
     vigente_desde: f.vigente_desde, vigente_hasta: f.vigente_hasta, transit_time_dias: f.transit_time_dias,
     tramos: usaTramos(f) ? f.tramos : [],
+    solicitud_pricing_id: f.solicitud_pricing_id || null,
   };
   if (f.modo === "Aéreo") {
     return { ...base, aeropuerto_origen: f.origen.toUpperCase(), aeropuerto_destino: f.destino.toUpperCase(),
-      aerolinea: f.aerolinea || null, unidad_flete: "kg" };
+      aerolinea: f.aerolinea || null, unidad_flete: "kg",
+      escalas: escalasLista(f.escalas).length ? escalasLista(f.escalas) : null };
   }
   const o = lugar(f.origen); const d = lugar(f.destino);
   return { ...base, submodalidad: f.submodalidad, tipo_unidad: f.tipo_unidad || null,

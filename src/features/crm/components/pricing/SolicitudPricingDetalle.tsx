@@ -87,7 +87,7 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
         <OpcionPricingEditor key={o.id} solicitudId={s.id} organizationId={s.organization_id}
           orden={o.orden} opcion={o} editable={false} />
       ))}
-      <TarifasRespuestaPricing solicitudId={s.id} hayOpcionesViejas={opciones.length > 0}
+      <TarifasRespuestaPricing solicitudId={s.id} aereo={s.servicio === "Aéreo" ? { pol: s.pol, pod: s.pod } : undefined} hayOpcionesViejas={opciones.length > 0}
         tarifas={tarifas} isLoading={tarifasRespuesta.isLoading}
         isError={tarifasRespuesta.isError} isFetching={tarifasRespuesta.isFetching} onSaved={() => { void tarifasRespuesta.refetch(); }}
         onCotizar={puedeCotizar && s.estado === "respondida" ? cotizarRespuesta : undefined}

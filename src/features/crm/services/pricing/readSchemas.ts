@@ -13,6 +13,8 @@ export const tarifasRespuestaDbSchema = z.array(
     transit_time_dias: z.number().finite().nullable(),
     vigente_hasta: z.string().nullable(),
     notas: z.string().nullable(),
+    aerolinea: z.string().nullable().optional(),
+    escalas: z.array(z.string()).nullable().optional(),
     agente: z.object({ nombre: z.string() }).passthrough().nullable(),
     naviera: z.object({ name: z.string() }).passthrough().nullable(),
     tipo: z.object({ code: z.string() }).passthrough().nullable(),

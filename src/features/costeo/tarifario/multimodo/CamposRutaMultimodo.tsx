@@ -18,6 +18,11 @@ export function CamposRutaMultimodo({ f, set }: Props) {
       {aereo ? (
         <div><Label htmlFor="mm-aerolinea">Aerolínea</Label>
           <Input id="mm-aerolinea" value={f.aerolinea} onChange={(e) => set({ aerolinea: e.target.value })} /></div>
+      ) : null}
+      {aereo ? (
+        <div><Label htmlFor="mm-escalas">Escalas (vacío = vuelo directo)</Label>
+          <Input id="mm-escalas" value={f.escalas ?? ""} placeholder="Ej. LAX o LAX, ANC"
+            onChange={(e) => set({ escalas: e.target.value.toUpperCase() })} /></div>
       ) : (
         <>
           <div><Label htmlFor="mm-sub">Submodalidad *</Label>

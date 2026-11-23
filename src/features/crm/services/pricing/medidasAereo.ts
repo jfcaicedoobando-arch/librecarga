@@ -34,3 +34,24 @@ export function pesoTasableSolicitud(peso: string | null | undefined, unidad: st
   const kg = pesoEnKg(peso, unidad);
   return kg == null || cbm == null ? null : pesoTasable(kg, cbm);
 }
+
+/** Varias líneas de bultos (carga mixta), guardadas en "Dimensiones" separadas por "; ". */
+export function volumenLineasM3(ls: MedidasBultos[]): number | null {
+  const vs = ls.map(volumenBultosM3);
+  if (ls.length === 0 || vs.some((v) => v == null)) return null;
+  return Math.round(vs.reduce<number>((a, v) => a + (v ?? 0), 0) * 1000) / 1000;
+}
+
+export function textoDimensionesLineas(ls: MedidasBultos[]): string | null {
+  return volumenLineasM3(ls) == null ? null : ls.map((l) => textoDimensiones(l)).join("; ");
+}
+
+export function totalBultos(ls: MedidasBultos[]): number | null {
+  return ls.every((l) => l.bultos != null) ? ls.reduce((a, l) => a + (l.bultos ?? 0), 0) : null;
+}
+
+/** Lee una o varias líneas; si no reconoce el texto devuelve una línea vacía. */
+export function leerDimensionesLineas(t: string | null | undefined): MedidasBultos[] {
+  const partes = (t ?? "").split("; ").map(leerDimensiones);
+  return partes.every((p) => p.bultos != null) ? partes : [leerDimensiones(null)];
+}

@@ -8,7 +8,7 @@ import { SectionHeading } from "@/components/shared/SectionHeading";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { formatDate } from "@/lib/formatters/dates";
 import { useTarifasAereasSugeridas } from "@/features/crm/hooks/useTarifasAereasSugeridas";
-import { iataDeEtiqueta } from "@/features/crm/services/pricing/tarifasAereasSugeridas";
+import { iataDeEtiqueta, textoEscalas } from "@/features/crm/services/pricing/tarifasAereasSugeridas";
 import type { SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
 
 export function OpcionesTarifarioAereo({ solicitud: s, puedeCotizar }: { solicitud: SolicitudPricingRow; puedeCotizar: boolean }) {
@@ -38,7 +38,9 @@ export function OpcionesTarifarioAereo({ solicitud: s, puedeCotizar }: { solicit
         <Card key={t.id}>
           <CardContent className="grid gap-2 p-4 text-body-sm md:grid-cols-4">
             <div><span className="text-muted-foreground">Ruta: </span>{t.origen} → {t.destino}<br />
-              <span className="text-muted-foreground">Aerolínea: </span>{t.aerolinea || "—"}</div>
+              <span className="text-muted-foreground">Aerolínea: </span>{t.aerolinea || "—"}<br />
+              <span className="text-muted-foreground">Vuelo: </span>{textoEscalas(t.escalas)}
+              {t.transit_time_dias != null && ` · ${t.transit_time_dias} días`}</div>
             <div><span className="text-muted-foreground">Precio por kg: </span>{formatCurrency(t.flete_base, t.moneda)}<br />
               <span className="text-muted-foreground">Mínimo: </span>{t.minimo == null ? "—" : formatCurrency(t.minimo, t.moneda)}</div>
             <div className="md:col-span-1"><span className="text-muted-foreground">Rangos: </span>

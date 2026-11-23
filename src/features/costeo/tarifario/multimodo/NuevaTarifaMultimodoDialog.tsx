@@ -26,10 +26,15 @@ const VACIO: TarifaMultimodoForm = {
   vigente_desde: "", vigente_hasta: "", transit_time_dias: null, tramos: [],
 };
 
-interface Props { open: boolean; onOpenChange: (o: boolean) => void }
+interface Props {
+  open: boolean; onOpenChange: (o: boolean) => void;
+  /** Valores iniciales (p. ej. respuesta aérea de una solicitud de Pricing). */
+  inicial?: Partial<TarifaMultimodoForm>; onSaved?: () => void;
+}
 
-export function NuevaTarifaMultimodoDialog({ open, onOpenChange }: Props) {
-  const [f, setF] = useState<TarifaMultimodoForm>(VACIO);
+export function NuevaTarifaMultimodoDialog({ open, onOpenChange, inicial, onSaved }: Props) {
+  const [base] = useState<TarifaMultimodoForm>(() => ({ ...VACIO, ...inicial }));
+  const [f, setF] = useState<TarifaMultimodoForm>(base);
   const [recargos, setRecargos] = useState<TarifaRecargoInput[]>([]);
   const set = (p: Partial<TarifaMultimodoForm>) => setF((prev) => ({ ...prev, ...p }));
   const { organizationId } = useOrganization();
@@ -42,7 +47,7 @@ export function NuevaTarifaMultimodoDialog({ open, onOpenChange }: Props) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.costeo.tarifas.all });
       toast({ title: "Tarifa guardada" });
-      setF(VACIO); setRecargos([]); onOpenChange(false);
+      onSaved?.(); setF(base); setRecargos([]); onOpenChange(false);
     },
     onError: (error: Error) => notifyError(undefined, {
       title: "No se pudo guardar", description: error.message, error, method: "crearTarifaMultimodo",
@@ -52,7 +57,7 @@ export function NuevaTarifaMultimodoDialog({ open, onOpenChange }: Props) {
   return (
     <FormDialogShell open={open} onOpenChange={onOpenChange} icon={Plane} size="lg"
       title="Nueva tarifa aérea o terrestre" description="Precio en USD o MXN; los recargos usan la misma moneda. Las tarifas marítimas se capturan en «Nueva tarifa»."
-      isDirty={f !== VACIO || recargos.length > 0} busy={m.isPending} formId="tarifa-multimodo"
+      isDirty={f !== base || recargos.length > 0} busy={m.isPending} formId="tarifa-multimodo"
       onSubmit={(e) => { e.preventDefault(); if (faltan.length === 0) m.mutate(); }}
       footer={<>
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
@@ -60,7 +65,7 @@ export function NuevaTarifaMultimodoDialog({ open, onOpenChange }: Props) {
       </>}>
       <FormDialogSection title="Ruta">
         <div><Label htmlFor="mm-modo">Modo *</Label>
-          <Select value={f.modo} onValueChange={(v) => { setRecargos([]); setF({ ...VACIO, agente_id: f.agente_id, moneda: f.moneda, modo: v as TarifaMultimodoForm["modo"] }); }}>
+          <Select value={f.modo} onValueChange={(v) => { setRecargos([]); setF({ ...base, agente_id: f.agente_id, moneda: f.moneda, modo: v as TarifaMultimodoForm["modo"] }); }}>
             <SelectTrigger id="mm-modo"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="Aéreo">Aéreo</SelectItem><SelectItem value="Terrestre">Terrestre</SelectItem></SelectContent>
           </Select></div>

@@ -8,6 +8,8 @@ import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TarifaForm } from "@/features/costeo";
+import { NuevaTarifaMultimodoDialog } from "@/features/costeo/tarifario/multimodo/NuevaTarifaMultimodoDialog";
+import { iataDeEtiqueta, textoEscalas } from "@/features/crm/services/pricing/tarifasAereasSugeridas";
 import type { TarifaRespuestaRow } from "@/features/crm/services/pricing/tarifasRespuesta";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { formatDate } from "@/lib/formatters/dates";
@@ -24,6 +26,8 @@ interface Props {
   isFetching?: boolean;
   onSaved: () => void;
   onCotizar?: (tarifaId: string) => void;
+  /** Solicitud aérea: "Agregar tarifa" abre el formulario aéreo con la ruta IATA. */
+  aereo?: { pol: string | null; pod: string | null };
 }
 
 const carta = (v: boolean | null) => (v === true ? "Sí" : v === false ? "No" : "—");
@@ -45,7 +49,8 @@ function FilaTarifa({ t, n, onCotizar }: { t: TarifaRespuestaRow; n: number; onC
       <CardContent className="grid grid-cols-2 gap-2 p-4 text-body-sm md:grid-cols-4">
         <div className="col-span-2 font-medium md:col-span-4">Opción {n}</div>
         <div><span className="text-muted-foreground">Agente: </span>{t.agente?.nombre ?? "—"}</div>
-        <div><span className="text-muted-foreground">Carrier: </span>{t.naviera?.name ?? "—"}</div>
+        <div><span className="text-muted-foreground">Carrier: </span>{t.naviera?.name ?? t.aerolinea ?? "—"}</div>
+        {t.unidad_flete === "kg" && <div><span className="text-muted-foreground">Vuelo: </span>{textoEscalas(t.escalas)}</div>}
         <div><span className="text-muted-foreground">Ruta: </span>{t.ruta?.origen?.name ?? "—"} → {t.ruta?.destino?.name ?? "—"}</div>
         <div><span className="text-muted-foreground">Contenedor: </span>{t.tipo?.code ?? "—"}</div>
         <div><span className="text-muted-foreground">Flete: </span>{moneda(t.flete_base, t.moneda)} {t.unidad_flete ?? ""}</div>
@@ -60,7 +65,7 @@ function FilaTarifa({ t, n, onCotizar }: { t: TarifaRespuestaRow; n: number; onC
   );
 }
 
-export function TarifasRespuestaPricing({ solicitudId, editable, hayOpcionesViejas, tarifas, isLoading, isError, isFetching, onSaved, onCotizar }: Props) {
+export function TarifasRespuestaPricing({ solicitudId, editable, hayOpcionesViejas, tarifas, isLoading, isError, isFetching, onSaved, onCotizar, aereo }: Props) {
   const [abierto, setAbierto] = useState(false);
 
   return (
@@ -77,7 +82,11 @@ export function TarifasRespuestaPricing({ solicitudId, editable, hayOpcionesViej
           <Plus className="mr-1 size-4" /> Agregar tarifa
         </Button>
       )}
-      {abierto && (
+      {abierto && aereo && (
+        <NuevaTarifaMultimodoDialog open={abierto} onOpenChange={setAbierto} onSaved={onSaved}
+          inicial={{ solicitud_pricing_id: solicitudId, origen: iataDeEtiqueta(aereo.pol) ?? "", destino: iataDeEtiqueta(aereo.pod) ?? "" }} />
+      )}
+      {abierto && !aereo && (
         <TarifaForm open={abierto} onOpenChange={setAbierto} onSaved={onSaved}
           initial={{ solicitud_pricing_id: solicitudId, carta_garantia: null, unidad_flete: null }} />
       )}
