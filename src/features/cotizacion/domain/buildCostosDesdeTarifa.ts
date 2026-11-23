@@ -5,7 +5,8 @@
  *  - Genera 1 fila por flete base (concepto "Flete marítimo").
  *  - Genera 1 fila por recargo (BAF, LSS, ISPS, Cargos en Origen/Destino, etc.).
  *  - Aplica un markup configurable a `precio_venta` (default 15%).
- *  - Moneda fija USD (las tarifas se cotizan en USD).
+ *  - Moneda del recargo (USD/MXN); otra moneda se rechaza en vez de etiquetarse USD.
+ *  - Recargo `por_embarque` va con cantidad 1; `por_unidad` × contenedores/m³.
  *
  * No hace I/O. Sólo transforma datos. El llamador decide si remplaza o
  * agrega a `costosInternos`.
@@ -35,6 +36,13 @@ const aplicarMarkup = (costo: number, markup: number): number => {
   return roundMoney(costo * factor);
 };
 
+/** Moneda real del recargo; los costos de cotización sólo admiten USD y MXN. */
+export function monedaRecargo(r: Pick<CosteoTarifaRecargo, "moneda" | "concepto">): "USD" | "MXN" {
+  const m = (r.moneda ?? "USD").toUpperCase();
+  if (m === "USD" || m === "MXN") return m;
+  throw new Error(`El recargo ${r.concepto} está en ${m}; las cotizaciones sólo manejan USD y MXN. Corrige la tarifa antes de cotizar.`);
+}
+
 /** Filas de costo derivadas de los recargos de la tarifa (B-073: con linkage). */
 function filasDesdeRecargos({
   recargos,
@@ -55,15 +63,17 @@ function filasDesdeRecargos({
   for (const r of recargos) {
     const monto = Number(r.monto ?? 0);
     if (monto <= 0) continue;
+    const moneda = monedaRecargo(r);
+    const porEmbarque = r.base === "por_embarque";
     const ladoTxt = r.lado ? ` (${r.lado})` : "";
     filas.push({
       concepto: `${r.concepto}${ladoTxt}`,
-      moneda: "USD",
+      moneda,
       proveedor,
-      cantidad: qty,
+      cantidad: porEmbarque ? 1 : qty,
       costo_unitario: monto,
       precio_venta: aplicarMarkup(monto, markup),
-      unidad_medida: unidad,
+      unidad_medida: porEmbarque ? "embarque" : unidad,
       aplica_iva: false,
       notas: NOTA_AUTO_TARIFA,
       // B-073: linkage tarifa + recargo (la RPC compara recargo por recargo).

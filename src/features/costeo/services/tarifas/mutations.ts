@@ -15,6 +15,7 @@ export interface TarifaRecargoInput {
   monto: number;
   moneda?: string;
   incluido_en_total?: boolean;
+  base?: "por_unidad" | "por_embarque";
 }
 
 export interface TarifaInput {
@@ -94,6 +95,7 @@ function recargosParaRpc(recargos: TarifaRecargoInput[]) {
       lado: r.lado ?? "origen",
       monto: Number(r.monto) || 0,
       incluido_en_total: r.incluido_en_total ?? true,
+      base: r.base === "por_embarque" ? "por_embarque" : "por_unidad",
     }));
 }
 

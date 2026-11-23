@@ -77,7 +77,11 @@ export interface CosteoTarifaRecargo {
   monto: number;
   moneda: string;
   incluido_en_total: boolean;
+  /** por_unidad: × contenedores/unidades; por_embarque: una sola vez. */
+  base?: BaseRecargo;
 }
+
+export type BaseRecargo = "por_unidad" | "por_embarque";
 
 /** Fila enriquecida usada en la tabla del editor de tarifas. */
 export interface CosteoTarifaRow extends CosteoTarifa {

@@ -74,3 +74,25 @@ describe("buildCostosDesdeTarifa", () => {
     expect(filas[0].unidad_medida).toBe("contenedor");
   });
 });
+
+describe("base y moneda de recargos", () => {
+  const tarifa = { id: "t1", flete_base: 1000, naviera_nombre: "N", tipo_contenedor_nombre: "40HC" };
+  const rec = (p: Partial<import("@/features/costeo/types").CosteoTarifaRecargo>) => ({
+    id: "r", tarifa_id: "t1", concepto: "BL", lado: "origen" as const, monto: 50, moneda: "USD", incluido_en_total: true, ...p,
+  });
+  it("un recargo por embarque no se multiplica por contenedores", () => {
+    const filas = buildCostosDesdeTarifa({ tarifa, recargos: [rec({ base: "por_embarque" })], markup: 0, cantidad: 3 });
+    const bl = filas.find((f) => f.concepto.startsWith("BL"));
+    expect(bl?.cantidad).toBe(1);
+    expect(bl?.unidad_medida).toBe("embarque");
+  });
+  it("un recargo por unidad sí se multiplica", () => {
+    const filas = buildCostosDesdeTarifa({ tarifa, recargos: [rec({ concepto: "BAF", base: "por_unidad" })], markup: 0, cantidad: 3 });
+    expect(filas.find((f) => f.concepto.startsWith("BAF"))?.cantidad).toBe(3);
+  });
+  it("conserva MXN y rechaza EUR", () => {
+    const filas = buildCostosDesdeTarifa({ tarifa, recargos: [rec({ moneda: "MXN" })], markup: 0 });
+    expect(filas.find((f) => f.concepto.startsWith("BL"))?.moneda).toBe("MXN");
+    expect(() => buildCostosDesdeTarifa({ tarifa, recargos: [rec({ moneda: "EUR" })], markup: 0 })).toThrow(/EUR/);
+  });
+});

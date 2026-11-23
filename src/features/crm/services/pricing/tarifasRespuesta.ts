@@ -19,10 +19,12 @@ export interface TarifaRespuestaRow {
   naviera: { name: string } | null;
   tipo: { code: string } | null;
   ruta: { origen: { name: string } | null; destino: { name: string } | null } | null;
+  recargos?: Array<{ id: string; concepto: string; lado: string; monto: number; moneda: string; base: string }>;
 }
 
 const COLS = [
   "id, flete_base, moneda, unidad_flete, carta_garantia, transit_time_dias, vigente_hasta, notas",
+  "recargos:costeo_tarifa_recargos(id, concepto, lado, monto, moneda, base)",
   "agente:costeo_agentes(nombre), naviera:navieras(name), tipo:tipos_contenedor(code)",
   "ruta:costeo_rutas(origen:puertos!costeo_rutas_puerto_origen_id_fkey(name), destino:puertos!costeo_rutas_puerto_destino_id_fkey(name))",
 ].join(", ");

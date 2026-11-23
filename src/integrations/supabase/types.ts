@@ -2378,6 +2378,7 @@ export type Database = {
       }
       costeo_tarifa_recargos: {
         Row: {
+          base: string
           concepto: string
           created_at: string
           id: string
@@ -2389,6 +2390,7 @@ export type Database = {
           tarifa_id: string
         }
         Insert: {
+          base?: string
           concepto: string
           created_at?: string
           id?: string
@@ -2400,6 +2402,7 @@ export type Database = {
           tarifa_id: string
         }
         Update: {
+          base?: string
           concepto?: string
           created_at?: string
           id?: string
