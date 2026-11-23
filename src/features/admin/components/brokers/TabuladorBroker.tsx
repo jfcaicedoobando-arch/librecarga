@@ -1,5 +1,6 @@
 /** Tabulador oficial de comisiones de brokers (sólo lectura). */
 import { DataTable, defineColumns } from "@/components/shared/DataTable";
+import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { RETENCION_USD_POR_OPERACION, TABULADOR_BROKER } from "@/features/portal-broker/domain/tabuladorBroker";
 
@@ -24,7 +25,7 @@ export function TabuladorBroker() {
         Por servicio: ganancia en USD menos {formatCurrency(RETENCION_USD_POR_OPERACION, "USD")} por operación,
         por el % indicado. Si resulta menor, se paga el mínimo por unidad (aunque la base sea cero).
       </p>
-      <DataTable columns={columns} data={reglas} rowKey={(regla) => regla.servicio} density="compact" />
+      <DataTable columns={columns} data={reglas} rowKey={(regla) => regla.servicio} density={TABLE_DENSITY.embebida} />
     </div>
   );
 }
