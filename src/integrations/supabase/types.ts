@@ -11155,6 +11155,10 @@ export type Database = {
         Returns: undefined
       }
       _crm_pricing_es_gerente_ops: { Args: { p_org: string }; Returns: boolean }
+      _crm_pricing_hay_tarifa_vigente: {
+        Args: { p_id: string }
+        Returns: boolean
+      }
       _crm_pricing_horas: { Args: { p_complejidad: string }; Returns: number }
       _crm_pricing_horas_modo: {
         Args: { p_complejidad: string; p_servicio: string }
