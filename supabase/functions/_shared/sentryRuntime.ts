@@ -37,6 +37,8 @@ export function loadSentryEdge(transport?: EdgeOptions["transport"]): Promise<Se
         defaultIntegrations: false,
         enableOpenTelemetrySetup: false,
         enableRuntimeChannelInjection: false,
+        // Deno SDK 11.16 enables discarded-event client reports by default.
+        sendClientReports: false,
         // Preserve v10 message privacy; real Error stacks still report normally.
         attachStacktrace: false,
         dataCollection: { userInfo: false, cookies: false, httpHeaders: false,
