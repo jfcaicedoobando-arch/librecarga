@@ -6,6 +6,7 @@ import { useParams } from "react-router";
 import { CheckCircle2, Clock, AlertTriangle, FileSpreadsheet } from "lucide-react";
 import { Seo } from "@/components/shared/Seo";
 import { DetailHeader } from "@/components/shared/DetailHeader";
+import { Button } from "@/components/ui/button";
 
 import { usePortalProforma } from "@/features/proformas/hooks/usePortalProforma";
 import { PortalProformaResumen } from "@/features/proformas/components/portal/PortalProformaResumen";
@@ -25,13 +26,13 @@ function fechaMx(iso: string | null | undefined): string {
 type PortalState = ReturnType<typeof usePortalProforma>;
 
 function ContenidoPortal({ state }: { state: PortalState }) {
-  const { loading, error, data, submitting, responder } = state;
+  const { loading, error, data, submitting, responder, recargar } = state;
 
   if (loading) {
     return <LoadingState label="Cargando proforma…" />;
   }
 
-  if (error || data?.estado_link === "token_invalido") {
+  if (data?.estado_link === "token_invalido") {
     return (
       <AvisoAccionable
         tono="error"
@@ -67,7 +68,7 @@ function ContenidoPortal({ state }: { state: PortalState }) {
 
   // RUX-10: estado no contemplado por la edge (data sin proforma, estado_link
   // desconocido) — nunca pantalla en blanco; patrón AvisoAccionable (v13.534).
-  if (!data?.proforma) {
+  if (error || !data?.proforma) {
     return (
       <AvisoAccionable
         tono="error"
@@ -75,6 +76,7 @@ function ContenidoPortal({ state }: { state: PortalState }) {
         titulo="No pudimos cargar esta proforma"
         descripcion={COPY_ENLACE.noDisponible}
         pasos={COPY_PASOS.servicioNoDisponible}
+        accion={<Button onClick={() => void recargar()}>Reintentar</Button>}
       />
     );
   }

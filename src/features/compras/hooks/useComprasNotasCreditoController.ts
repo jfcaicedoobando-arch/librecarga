@@ -16,6 +16,7 @@ import { todayLocalISO } from "@/lib/date/today";
 import { descargarBlob } from "@/lib/downloadBlob";
 import { toCSV } from "@/lib/io/csv";
 import { notifySuccess, notifyError } from "@/lib/ui/appFeedback";
+import { RANGO_INVERTIDO_MENSAJE } from "@/lib/ui/rangoFechasCopy";
 
 export const MONEDAS_FILTRO = ["todas", "MXN", "USD"] as const;
 export type MonedaFiltro = (typeof MONEDAS_FILTRO)[number];
@@ -34,6 +35,7 @@ export function useComprasNotasCreditoController() {
   const [estado, setEstado] = useFiltroUrl<EstadoFiltro>("estado", ESTADOS_FILTRO, "todos");
   const [search, setSearch] = useTextoUrl("q");
   const { organizationId, orgListo } = useOrgFilter();
+  const errorRango = desde && hasta && desde > hasta ? RANGO_INVERTIDO_MENSAJE : null;
 
   const { data: rows = [], isLoading, isError, refetch } = useQuery({
     queryKey: compras.notasCreditoGlobal({ desde, hasta, moneda, estado, search }, organizationId),
@@ -49,7 +51,7 @@ export function useComprasNotasCreditoController() {
         organizationId,
       ),
     // N-3: no consultar hasta que el contexto de organización resolvió.
-    enabled: orgListo,
+    enabled: orgListo && !errorRango,
   });
 
   const totalMxn = rows
@@ -60,7 +62,7 @@ export function useComprasNotasCreditoController() {
     .reduce((a, r) => a + r.monto, 0);
 
   const handleExport = () => {
-    if (isError || isLoading) return;
+    if (errorRango || isError || isLoading) return;
     try {
       const csv = toCSV(
         rows.map((r) => ({
@@ -98,7 +100,7 @@ export function useComprasNotasCreditoController() {
   };
 
   return {
-    desde, setDesde, hasta, setHasta,
+    desde, setDesde, hasta, setHasta, errorRango,
     moneda, setMoneda, estado, setEstado, search, setSearch,
     rows, isLoading, isError, refetch,
     totalMxn, totalUsd,

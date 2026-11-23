@@ -149,6 +149,7 @@ export function useNuevaCotizacionPageController() {
 
   return {
     w: { ...w, isPending: w.isPending || restaurando || Boolean(pendienteBorrador) || conflictoSello },
+    plantillaId: searchParams.get("plantilla"),
     clientes,
     organizationId,
     userId,

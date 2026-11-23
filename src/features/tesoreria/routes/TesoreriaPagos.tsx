@@ -78,12 +78,14 @@ export default function TesoreriaPagos() {
         onRangoChange={setRango}
       />
 
-      <LibroPagosKpis totales={totales} isLoading={isLoading} />
+      <LibroPagosKpis totales={totales} isLoading={isLoading} isError={isError} />
 
       <div className="space-y-1">
-        <p className="px-1 text-body-sm text-muted-foreground">
-          {visibles.length} de {pagos.length} pagos del periodo
-        </p>
+        {!isError && (
+          <p className="px-1 text-body-sm text-muted-foreground">
+            {visibles.length} de {pagos.length} pagos del periodo
+          </p>
+        )}
         <ResponsiveDataTable
           columns={columns}
           data={visibles}

@@ -17,29 +17,30 @@ interface FilaProps {
   label: string;
   icon: React.ReactNode;
   disponible: boolean;
-  onAbrir: () => void;
+  etiquetaAccion: string;
+  onAccion: () => void;
 }
 
-function DocumentoRow({ label, icon, disponible, onAbrir }: FilaProps) {
+function DocumentoRow({ label, icon, disponible, etiquetaAccion, onAccion }: FilaProps) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-bold text-primary">
+        <span className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-bold text-primary">
           {icon}
           {label}
         </span>
-        <span className="truncate text-body-sm text-muted-foreground">
+        <span className="text-body-sm text-muted-foreground">
           {disponible ? "Disponible" : "No disponible"}
         </span>
       </div>
       <Button
         variant="ghost"
         size="sm"
-        className="h-7 px-2"
+        className="h-7 shrink-0 px-2"
         disabled={!disponible}
-        onClick={onAbrir}
+        onClick={onAccion}
       >
-        Abrir
+        {etiquetaAccion}
       </Button>
     </div>
   );
@@ -74,20 +75,23 @@ export function FacturaDocumentosSection({ factura }: Props) {
             label="PDF"
             icon={<FileText className="h-4 w-4" />}
             disponible={timbrada}
-            onAbrir={() => void descargar(factura.factura_pdf_url ?? null, "pdf")}
+            etiquetaAccion="Abrir PDF"
+            onAccion={() => void descargar(factura.factura_pdf_url ?? null, "pdf")}
           />
           <DocumentoRow
             label="XML"
             icon={<FileCode2 className="h-4 w-4" />}
             disponible={timbrada}
-            onAbrir={() => void descargar(factura.factura_xml_url ?? null, "xml")}
+            etiquetaAccion="Abrir XML"
+            onAccion={() => void descargar(factura.factura_xml_url ?? null, "xml")}
           />
           {acuse ? (
             <DocumentoRow
               label="ACUSE"
               icon={<ShieldCheck className="h-4 w-4" />}
               disponible
-              onAbrir={() => descargarAcuse(acuse, factura.numero)}
+              etiquetaAccion="Descargar acuse"
+              onAccion={() => descargarAcuse(acuse, factura.numero)}
             />
           ) : null}
         </div>

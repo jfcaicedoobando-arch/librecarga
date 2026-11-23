@@ -1,6 +1,7 @@
 import { Bell, Check } from "lucide-react";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +19,7 @@ import {
 
 export function NotificacionesPopover() {
   const navigate = useNavigate();
-  const { notificaciones, noLeidas, marcarLeida, marcarTodasLeidas } =
+  const { notificaciones, isSuccess, isError, isFetching, refetch, noLeidas, marcarLeida, marcarTodasLeidas } =
     useNotificacionesInternas();
 
   const handleClick = (n: NotificacionInterna) => {
@@ -76,9 +77,21 @@ export function NotificacionesPopover() {
           </SectionHeading>
         </div>
         <div className="max-h-96 overflow-y-auto">
-          {notificaciones.length === 0 ? (
+          {isError && (
+            <ErrorStateInline
+              title="No pudimos cargar las notificaciones"
+              message="Reintenta para actualizar la bandeja."
+              onRetry={() => void refetch()}
+              retrying={isFetching}
+            />
+          )}
+          {!isSuccess && !isError && (
+            <div role="status"><EmptyStateInline loading message="Cargando notificaciones…" /></div>
+          )}
+          {isSuccess && notificaciones.length === 0 && (
             <EmptyStateInline icon={Bell} message="Sin notificaciones" className="py-8" />
-          ) : (
+          )}
+          {notificaciones.length > 0 && (
             <ul className="divide-y">
               {notificaciones.map((n) => (
                 <li key={n.id}>

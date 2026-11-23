@@ -9,7 +9,7 @@ import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { nombreDesdeEmail } from "@/lib/formatters";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import type { EmbarquesPorEstadoBucket, EstadoUiKey } from "@/features/operaciones/hooks";
-import { ESTADO_ICON } from "./desempenoVisuals";
+import { ESTADO_ICON, ESTADO_LABEL, ESTADO_TOOLTIP } from "./desempenoVisuals";
 import { EmbarqueEstadoListItem } from "./embarquesEstadoDialog/EmbarqueEstadoListItem";
 
 interface Props {
@@ -24,6 +24,8 @@ export function EmbarquesEstadoDialog({ open, onOpenChange, operador, estado, bu
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const Icon = ESTADO_ICON[estado];
+  const esFinalizado = estado === "Cerrado";
+  const destinoLabel = esFinalizado ? "Ver embarques del operador" : "Ver todos en Embarques";
 
   const items = useMemo(() => bucket?.items ?? [], [bucket?.items]);
   const total = bucket?.total ?? items.length;
@@ -42,14 +44,14 @@ export function EmbarquesEstadoDialog({ open, onOpenChange, operador, estado, bu
   const irAEmbarques = () => {
     const params = new URLSearchParams();
     params.set("operador", operador);
-    params.set("estado", estado);
+    if (!esFinalizado) params.set("estado", estado);
     navigate(`/embarques?${params.toString()}`);
     onOpenChange(false);
   };
 
   const footer = (
     <>
-      <Button variant="outline" onClick={irAEmbarques}>Ver todos en Embarques</Button>
+      <Button variant="outline" onClick={irAEmbarques}>{destinoLabel}</Button>
       <Button onClick={() => onOpenChange(false)}>Cerrar</Button>
     </>
   );
@@ -63,10 +65,10 @@ export function EmbarquesEstadoDialog({ open, onOpenChange, operador, estado, bu
         <span className="flex items-center gap-2">
           <span>{nombreDesdeEmail(operador)}</span>
           <span className="text-muted-foreground font-normal">·</span>
-          <span>{estado}</span>
+          <span>{ESTADO_LABEL[estado]}</span>
         </span>
       }
-      description="Consulta el historial de cambios de estado del embarque seleccionado."
+      description={ESTADO_TOOLTIP[estado] ?? "Consulta los embarques del operador en este estado."}
       headerAside={<Badge variant="secondary" className="tabular-nums">{total}</Badge>}
       size="3xl"
       footer={footer}
@@ -87,7 +89,9 @@ export function EmbarquesEstadoDialog({ open, onOpenChange, operador, estado, bu
         <div className="flex items-start gap-2 text-xs text-warning bg-warning/10 border border-warning/30 rounded-md p-2">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
           <span>
-            Mostrando los primeros {items.length} de {total}. Usa "Ver todos en Embarques" para la lista completa.
+            Mostrando los primeros {items.length} de {total}. {esFinalizado
+              ? "En Embarques podrás consultar todos los estados de este operador."
+              : `Usa “${destinoLabel}” para la lista completa.`}
           </span>
         </div>
       )}

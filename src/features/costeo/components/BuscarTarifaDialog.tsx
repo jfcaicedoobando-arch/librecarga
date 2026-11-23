@@ -40,7 +40,7 @@ export function BuscarTarifaDialog({
     fecha,
   });
 
-  const { diagnostico } = useDiagnosticoTarifas({
+  const { diagnostico, isFetching: consultandoDiagnostico } = useDiagnosticoTarifas({
     puertoOrigenId: origen,
     puertoDestinoId: mismoPuerto ? "" : destino,
     tipoContenedorIds,
@@ -103,6 +103,7 @@ export function BuscarTarifaDialog({
           onElegir={onElegir} onOpenChange={onOpenChange}
           selectLabel={selectLabel}
           diagnostico={diagnostico}
+          consultandoDiagnostico={consultandoDiagnostico}
         />
       )}
     </FormDialogShell>

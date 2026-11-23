@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EntrantesCardHeader } from "@/features/embarques/components/entrantes/EntrantesCardHeader";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Inbox } from "lucide-react";
 import { EntrantesConfirmDialogs } from "@/features/embarques/components/entrantes/EntrantesConfirmDialogs";
 import { useAuth } from "@/lib/contexts/AuthContext";
@@ -45,6 +46,28 @@ interface Props {
   cerrado?: boolean;
 }
 
+function EstadoConsultaBuzon({ consulta }: { consulta: ReturnType<typeof useFacturasEntrantes> }) {
+  if (consulta.isError) {
+    return (
+      <ErrorStateInline
+        title="No se pudo cargar el buzón de facturas"
+        message="Reintenta para consultar las facturas recibidas de este embarque."
+        onRetry={() => void consulta.refetch()}
+        retrying={consulta.isFetching}
+      />
+    );
+  }
+  if (consulta.isLoading) return <Skeleton className="h-24 w-full" />;
+  if (consulta.data?.length !== 0) return null;
+  return (
+    <EmptyStateInline
+      icon={Inbox}
+      message="Aún no hay facturas de proveedor en el buzón de este embarque."
+      className="py-6"
+    />
+  );
+}
+
 export function TabFacturasEntrantes({ embarqueId, canEdit: canEditRol, cerrado = false }: Props) {
   // Espejo UI de tg_bloquear_financiero_embarque_cerrado: no ofrecer acciones
   // que la base rechaza mientras el embarque siga cerrado.
@@ -52,7 +75,8 @@ export function TabFacturasEntrantes({ embarqueId, canEdit: canEditRol, cerrado 
   const { organizationId } = useOrgFilter();
   const { user } = useAuth();
   const { isAdmin, canSubirFacturaEntranteEmbarque, canAdjuntarXmlFacturaEntrante } = usePermissions();
-  const { data, isLoading } = useFacturasEntrantes(embarqueId);
+  const consulta = useFacturasEntrantes(embarqueId);
+  const { data, isError } = consulta;
   // v13.347.0 — deep-link desde el checklist de cierre (?tab=costos&focus=facturas-entrantes).
   const { registerRef } = useFocusSection();
   const eliminar = useEliminarFacturaEntrante();
@@ -65,8 +89,8 @@ export function TabFacturasEntrantes({ embarqueId, canEdit: canEditRol, cerrado 
   const [aCorregir, setACorregir] = useState<FacturaEntranteRow | null>(null);
 
 
-  const filas = data ?? [];
-  const resumen = resumirEntrantes(filas);
+  const filas = isError ? [] : data ?? [];
+  const resumen = isError || !data ? undefined : resumirEntrantes(filas);
   const sinXml = filas.filter((row) => faltaXmlFiscal({
     esNacional: (row.proveedores?.origen_proveedor ?? "Nacional") === "Nacional",
     tieneXml: chipsArchivosEntrante(row).includes("xml"),
@@ -109,15 +133,8 @@ export function TabFacturasEntrantes({ embarqueId, canEdit: canEditRol, cerrado 
           onSubir={() => setSubirOpen(true)}
         />
         <CardContent className="space-y-2">
-          {isLoading && <Skeleton className="h-24 w-full" />}
-          {!isLoading && filas.length === 0 && (
-            <EmptyStateInline
-              icon={Inbox}
-              message="Aún no hay facturas de proveedor en el buzón de este embarque."
-              className="py-6"
-            />
-          )}
-          {!isLoading && filas.length > 0 && (
+          <EstadoConsultaBuzon consulta={consulta} />
+          {filas.length > 0 && (
             <div className="hidden grid-cols-12 gap-4 border-b pb-2 text-label font-medium uppercase tracking-wide text-muted-foreground md:grid">
               <span className="col-span-4">Archivo y estado</span>
               <span className="col-span-3">Proveedor y folio</span>

@@ -39,6 +39,8 @@ interface Props {
 
 const FORM_ID = "form-subir-doc-expediente";
 const MAX_MB = 15;
+const MAX_BYTES = MAX_MB * 1024 * 1024;
+const ARCHIVO_GRANDE = `El archivo supera los ${MAX_MB} MB permitidos.`;
 
 export function SubirDocumentoDialog({
   open, onOpenChange, tipos, tiposConVencimiento, tipoSugerido,
@@ -50,6 +52,7 @@ export function SubirDocumentoDialog({
   const [fechaVencimiento, setFechaVencimiento] = useState("");
   const [notas, setNotas] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [errorArchivo, setErrorArchivo] = useState<string | null>(null);
 
   // Ola 12 · R3FE-06: el diálogo NO se desmonta entre aperturas — sin esto el
   // tipo sugerido sólo aplicaba en el primer montaje.
@@ -60,18 +63,34 @@ export function SubirDocumentoDialog({
   const cerrar = (v: boolean) => {
     if (!v) {
       setArchivo(null); setFechaDocumento(""); setFechaVencimiento("");
-      setNotas(""); setError(null);
+      setNotas(""); setError(null); setErrorArchivo(null);
       // La próxima apertura genérica no debe heredar el tipo anterior.
       setTipo(tipoSugerido ?? tipos[0]);
     }
     onOpenChange(v);
   };
 
+  const seleccionarArchivo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const seleccionado = e.currentTarget.files?.[0] ?? null;
+    if (seleccionado && seleccionado.size > MAX_BYTES) {
+      e.currentTarget.value = "";
+      setArchivo(null);
+      setErrorArchivo(ARCHIVO_GRANDE);
+      return;
+    }
+    setArchivo(seleccionado);
+    setErrorArchivo(null);
+  };
+
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!archivo) { setError("Selecciona un archivo (PDF, XML o imagen)."); return; }
-    if (archivo.size > MAX_MB * 1024 * 1024) {
-      setError(`El archivo supera los ${MAX_MB} MB permitidos.`); return;
+    if (!archivo) {
+      setErrorArchivo(errorArchivo ?? "Selecciona un archivo (PDF, XML o imagen).");
+      return;
+    }
+    if (archivo.size > MAX_BYTES) {
+      setErrorArchivo(ARCHIVO_GRANDE);
+      return;
     }
     const errorVigencia = validarVigencia(
       tipo, fechaDocumento || null, fechaVencimiento || null, tiposConVencimiento,
@@ -127,11 +146,14 @@ export function SubirDocumentoDialog({
               id="doc-archivo"
               type="file"
               accept=".pdf,.xml,.jpg,.jpeg,.png,.webp"
-              onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
+              aria-invalid={!!errorArchivo}
+              aria-describedby={errorArchivo ? "doc-archivo-ayuda doc-archivo-error" : "doc-archivo-ayuda"}
+              onChange={seleccionarArchivo}
             />
-            <p className="text-2xs text-muted-foreground">
+            <p id="doc-archivo-ayuda" className="text-2xs text-muted-foreground">
               PDF, XML o imagen, hasta {MAX_MB} MB.
             </p>
+            {errorArchivo && <p id="doc-archivo-error" role="alert" className="text-sm text-destructive">{errorArchivo}</p>}
           </div>
         </div>
       </FormDialogSection>

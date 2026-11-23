@@ -20,7 +20,11 @@ export function usePortalProforma(token: string | undefined) {
 
   const cargar = useCallback(async () => {
     if (!token) {
-      setState({ loading: false, error: "Enlace inválido", data: null });
+      setState({
+        loading: false,
+        error: null,
+        data: { estado_link: "token_invalido", proforma: null, conceptos: [] },
+      });
       return;
     }
     setState((s) => ({ ...s, loading: true, error: null }));

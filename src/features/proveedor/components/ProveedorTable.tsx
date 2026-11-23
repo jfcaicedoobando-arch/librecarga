@@ -8,6 +8,7 @@ import { toTitleCase } from "@/lib/formatters";
 import type { Enums } from "@/types/db";
 import { proveedorColumns } from "./proveedorTableColumns";
 import EmptyState from "@/components/empty/EmptyState";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Truck } from "lucide-react";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 
@@ -31,7 +32,7 @@ export function ProveedorTable({ tipo, search, origen, onSelect, onTotalChange, 
     resetPage();
   }, [debouncedSearch, origen, tipo, resetPage]);
 
-  const { data: resultado, isLoading } = useProveedoresPaginados({
+  const { data: resultado, isLoading, isError, isFetching, refetch } = useProveedoresPaginados({
     tipo,
     search: debouncedSearch,
     page,
@@ -44,8 +45,21 @@ export function ProveedorTable({ tipo, search, origen, onSelect, onTotalChange, 
   const totalPages = Math.ceil(totalCount / pageSize);
 
   useEffect(() => {
-    onTotalChange?.(totalCount);
-  }, [totalCount, onTotalChange]);
+    if (!isError) onTotalChange?.(totalCount);
+  }, [isError, totalCount, onTotalChange]);
+
+  if (isError) {
+    return (
+      <Card>
+        <ErrorStateInline
+          title="No se pudo cargar el directorio de proveedores"
+          message="Reintenta para consultar los proveedores con los filtros actuales."
+          onRetry={() => void refetch()}
+          retrying={isFetching}
+        />
+      </Card>
+    );
+  }
 
   return (
     <Card>

@@ -24,6 +24,11 @@ export type ClienteRow = {
   saldo_pendiente_mxn?: number | null;
 };
 
+export function creditoClienteExcedido(cliente: ClienteRow): boolean {
+  const limite = cliente.limite_credito_mxn;
+  return limite != null && limite > 0 && Number(cliente.saldo_pendiente_mxn ?? 0) > limite;
+}
+
 export function buildClientesColumns(): ColumnDef<ClienteRow, unknown>[] {
   return [
     {
@@ -35,9 +40,6 @@ export function buildClientesColumns(): ColumnDef<ClienteRow, unknown>[] {
       meta: { width: COL_W.texto, className: "font-medium", sticky: true },
       cell: ({ row }) => {
         const nombre = toTitleCase(row.original.nombre ?? "");
-        const limite = row.original.limite_credito_mxn ?? null;
-        const saldo = Number(row.original.saldo_pendiente_mxn ?? 0);
-        const excedido = limite != null && limite > 0 && saldo > limite;
         return (
           <div className="flex items-center gap-2 min-w-0">
             <Hint label={nombre}>
@@ -45,7 +47,7 @@ export function buildClientesColumns(): ColumnDef<ClienteRow, unknown>[] {
                 {nombre}
               </span>
             </Hint>
-            {excedido && (
+            {creditoClienteExcedido(row.original) && (
               <Badge variant="destructive" className="shrink-0 text-2xs px-1.5 py-0">
                 Crédito excedido
               </Badge>
@@ -91,7 +93,7 @@ export function buildClientesColumns(): ColumnDef<ClienteRow, unknown>[] {
       cell: ({ row }) => {
         const saldo = Number(row.original.saldo_pendiente_mxn ?? 0);
         const limite = row.original.limite_credito_mxn ?? null;
-        const excedido = limite != null && limite > 0 && saldo > limite;
+        const excedido = creditoClienteExcedido(row.original);
         if (saldo <= 0.01) return <span className="text-muted-foreground">—</span>;
         return (
           <Hint label={limite && limite > 0 ? `Límite de crédito: ${formatCurrency(limite, "MXN")}` : undefined}>
