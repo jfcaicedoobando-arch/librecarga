@@ -29,6 +29,12 @@ export default function PortalInviteDialog({
   const correoValido = correo !== "" && emailSchema.safeParse(correo).success;
   const errorVisible = mostrarError && !correoValido;
 
+  const cerrar = () => {
+    setEmail("");
+    setMostrarError(false);
+    onOpenChange(false);
+  };
+
   // 13.85.10 — Toasts viven en `useInviteClientUser`.
   const handleInvite = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -41,11 +47,7 @@ export default function PortalInviteDialog({
     inviteMutation.mutate(
       { email: correo, cliente_id: clienteId, organization_id: organizationId },
       {
-        onSuccess: () => {
-          onOpenChange(false);
-          setEmail("");
-          setMostrarError(false);
-        },
+        onSuccess: cerrar,
       },
     );
   };
@@ -53,7 +55,8 @@ export default function PortalInviteDialog({
   return (
     <FormDialogShell
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(next) => { if (!next) cerrar(); }}
+      busy={inviteMutation.isPending}
       icon={Send}
       title="Invitar cliente al portal"
       description="Envía una invitación al cliente para acceder al portal de seguimiento."
@@ -62,7 +65,7 @@ export default function PortalInviteDialog({
       onSubmit={handleInvite}
       footer={
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={cerrar} disabled={inviteMutation.isPending}>Cancelar</Button>
           <Button type="submit" form={id} loading={inviteMutation.isPending}>
             Enviar Invitación
           </Button>

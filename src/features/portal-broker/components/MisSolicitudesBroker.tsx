@@ -8,8 +8,7 @@ import { useMisSolicitudesBroker } from "../hooks/useBrokerPortal";
 const ETIQUETA: Record<string, string> = { pendiente: "Pendiente", autorizada: "Autorizada", rechazada: "Rechazada" };
 
 export default function MisSolicitudesBroker() {
-  const { data: filas = [], isError, isFetching, refetch } = useMisSolicitudesBroker();
-  if (filas.length === 0 && !isError) return null;
+  const { data: filas = [], isLoading, isError, isFetching, refetch } = useMisSolicitudesBroker();
   return (
     <section className="space-y-2">
       <h2 className="text-h4">Mis solicitudes</h2>
@@ -22,6 +21,10 @@ export default function MisSolicitudesBroker() {
               onRetry={() => void refetch()}
               retrying={isFetching}
             />
+          )}
+          {isLoading && <p role="status" className="p-3 text-body-sm text-muted-foreground">Cargando solicitudes…</p>}
+          {!isLoading && !isError && filas.length === 0 && (
+            <p className="p-3 text-body-sm text-muted-foreground">Todavía no has enviado solicitudes.</p>
           )}
           {filas.map((s) => (
             <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-body-sm">

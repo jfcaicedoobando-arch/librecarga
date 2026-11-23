@@ -2,7 +2,7 @@
  * Edición de opciones de una propiedad de lista. Renombrar conserva la
  * opción anterior archivada (los valores viejos siguen cuadrando).
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Archive, ArchiveRestore, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,15 +11,17 @@ import type { PropiedadCrm } from "@/features/crm/services/propiedadesCrm";
 
 export function OpcionesEditor({ prop }: { prop: PropiedadCrm }) {
   const accion = useOpcionPropiedad();
+  const altaPendiente = useRef(false);
   const [nueva, setNueva] = useState("");
   const [verArchivadas, setVerArchivadas] = useState(false);
   const visibles = prop.opciones.filter((o) => verArchivadas || !o.archivada);
   const siguienteOrden = Math.max(0, ...prop.opciones.map((o) => o.orden)) + 1;
 
   const agregar = () => {
-    if (!nueva.trim()) return;
+    if (!nueva.trim() || accion.isPending || altaPendiente.current) return;
+    altaPendiente.current = true;
     accion.mutate({ tipo: "crear", propiedadId: prop.id, etiqueta: nueva, orden: siguienteOrden },
-      { onSuccess: () => setNueva("") });
+      { onSuccess: () => setNueva(""), onSettled: () => { altaPendiente.current = false; } });
   };
 
   return (

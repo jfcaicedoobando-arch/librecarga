@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TarifaForm } from "@/features/costeo";
@@ -19,6 +20,7 @@ interface Props {
   tarifas: TarifaRespuestaRow[];
   isLoading: boolean;
   isError: boolean;
+  isFetching?: boolean;
   onSaved: () => void;
   onCotizar?: (tarifaId: string) => void;
 }
@@ -56,13 +58,15 @@ function FilaTarifa({ t, n, onCotizar }: { t: TarifaRespuestaRow; n: number; onC
   );
 }
 
-export function TarifasRespuestaPricing({ solicitudId, editable, hayOpcionesViejas, tarifas, isLoading, isError, onSaved, onCotizar }: Props) {
+export function TarifasRespuestaPricing({ solicitudId, editable, hayOpcionesViejas, tarifas, isLoading, isError, isFetching, onSaved, onCotizar }: Props) {
   const [abierto, setAbierto] = useState(false);
 
   return (
     <div className="space-y-3">
       {tarifas.map((t, i) => <FilaTarifa key={t.id} t={t} n={i + 1} onCotizar={onCotizar} />)}
-      {isError && <p className="text-body-sm text-destructive">No se pudieron cargar las tarifas de respuesta.</p>}
+      {isLoading && <p role="status" className="text-body-sm text-muted-foreground">Cargando tarifas de respuesta…</p>}
+      {isError && <ErrorStateInline title="No se pudieron cargar las tarifas de respuesta" message="Reintenta para ver las opciones de Pricing."
+        onRetry={onSaved} retrying={isFetching} />}
       {tarifas.length === 0 && !hayOpcionesViejas && !editable && !isLoading && !isError && (
         <p className="text-body-sm text-muted-foreground">Pricing aún no agrega tarifas.</p>
       )}

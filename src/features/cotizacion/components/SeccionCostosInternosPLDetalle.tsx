@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { DollarSign, Banknote, Save, Pencil, X } from "lucide-react";
 import { getErrorMessage } from "@/lib/errors";
 import { sumarSubtotales } from "@/lib/financial/financialUtils";
@@ -33,6 +34,42 @@ interface Props {
   estadoCotizacion: EstadoCotizacion;
 }
 
+function AccionesEditarCostos({ visible, enEdicion, guardando, puedeAbrir, onCancelar, onAbrir }: {
+  visible: boolean;
+  enEdicion: boolean;
+  guardando: boolean;
+  puedeAbrir: boolean;
+  onCancelar: () => void;
+  onAbrir: () => void;
+}) {
+  if (!visible) return null;
+  return (
+    <div className="flex justify-end">
+      {enEdicion ? (
+        <Button variant="outline" size="sm" disabled={guardando} onClick={onCancelar}>
+          <X className="h-4 w-4 mr-1" /> Cancelar edición
+        </Button>
+      ) : (
+        <Button variant="outline" size="sm" disabled={!puedeAbrir} onClick={onAbrir}>
+          <Pencil className="h-4 w-4 mr-1" /> Editar costos
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function AvisoCargaCostos({ mostrarDatosPrevios, reintentando, reintentar }: {
+  mostrarDatosPrevios: boolean;
+  reintentando: boolean;
+  reintentar: () => void;
+}) {
+  return (
+    <ErrorStateInline title="No se pudieron consultar los costos"
+      message={mostrarDatosPrevios ? "Mostramos la última consulta disponible." : "Reintenta antes de capturar el desglose."}
+      onRetry={reintentar} retrying={reintentando} />
+  );
+}
+
 /**
  * Modo "detalle": carga/persiste costos desde la BD para una cotización existente.
  * Usado en CotizacionDetalle.
@@ -42,7 +79,7 @@ export default function SeccionCostosInternosPLDetalle({
 }: Props) {
   const { canWriteCotizaciones, canEdit, motivoBloqueoEstado } =
     useGateEdicionCostos(estadoCotizacion);
-  const { data: snapshot, isLoading } = useCotizacionCostosSnapshot(cotizacionId);
+  const { data: snapshot, isLoading, isError, isFetching, refetch } = useCotizacionCostosSnapshot(cotizacionId);
   const upsert = useUpsertCotizacionCostos();
   const tasaIva = useTasaIVA();
   // B-081: venta ya persistida en `conceptos_venta`; si suma 0 y los costos sí
@@ -127,48 +164,30 @@ export default function SeccionCostosInternosPLDetalle({
   };
 
   if (isLoading) return null;
+  const avisoError = isError ? <AvisoCargaCostos mostrarDatosPrevios={Boolean(snapshot)}
+    reintentando={isFetching} reintentar={() => void refetch()} /> : null;
+  if (!snapshot) return avisoError;
 
   return (
     <div className="space-y-4">
+      {avisoError}
       <AvisoSincronizarConceptosVenta
         cotizacionId={cotizacionId}
-        costos={snapshot?.costos ?? []}
+        costos={snapshot.costos}
         tasaIva={tasaIva}
-        visible={requiereSincronizarVenta(snapshot?.costos ?? [], totalVentaGuardada)}
+        visible={requiereSincronizarVenta(snapshot.costos, totalVentaGuardada)}
         // v13.823.360 — finanzas lee el aviso sin botón (la RPC exige SALES).
-        puedeSincronizar={canWriteCotizaciones}
+        puedeSincronizar={canWriteCotizaciones && !isError}
         // v13.823.362 — en Aceptada/En operación el trigger rechaza el UPDATE.
         estadoCotizacion={estadoCotizacion}
       />
 
       <AvisoCostosBloqueados motivo={motivoBloqueoEstado} visible={filas.length > 0} />
 
-      {canEdit && filas.length > 0 && (
-        <div className="flex justify-end">
-          {editMode ? (
-            <Button
-              variant="outline" size="sm" disabled={upsert.isPending}
-              onClick={() => {
-                setFilas(filasConfirmadas);
-                setEditMode(false);
-              }}
-            >
-              <X className="h-4 w-4 mr-1" /> Cancelar edición
-            </Button>
-          ) : (
-            <Button
-              variant="outline" size="sm"
-              disabled={!selloConfirmado}
-              onClick={() => {
-                setFilas(filasConfirmadas);
-                setEditMode(true);
-              }}
-            >
-              <Pencil className="h-4 w-4 mr-1" /> Editar costos
-            </Button>
-          )}
-        </div>
-      )}
+      <AccionesEditarCostos visible={canEdit && filas.length > 0} enEdicion={editMode}
+        guardando={upsert.isPending} puedeAbrir={Boolean(selloConfirmado) && !isError}
+        onCancelar={() => { setFilas(filasConfirmadas); setEditMode(false); }}
+        onAbrir={() => { setFilas(filasConfirmadas); setEditMode(true); }} />
       <TablaCostosDetalle
         filas={filas} filasMoneda={filasUSD} moneda="USD"
         title="Costos en USD" icon={<DollarSign className="h-4 w-4 text-primary" />}
@@ -181,14 +200,14 @@ export default function SeccionCostosInternosPLDetalle({
       />
       <ResumenPL
         conceptosVenta={[...conceptosUSD, ...conceptosMXN]} conceptosDescartados={conceptosDescartados}
-        sinCostosRegistrados={!snapshot?.costos.length}
+        sinCostosRegistrados={!snapshot.costos.length}
         totalesUSD={totalesUSD} totalesMXN={totalesMXN}
         tieneUSD={filasUSD.length > 0} tieneMXN={filasMXN.length > 0}
         notaPie="El IVA no forma parte de la utilidad"
       />
       {canEdit && editMode && filas.length > 0 && (
         <div className="flex justify-end">
-          <Button onClick={handleGuardar} disabled={upsert.isPending}>
+          <Button onClick={handleGuardar} disabled={upsert.isPending || isError}>
             <Save className="h-4 w-4 mr-1" />
             {upsert.isPending ? "Guardando…" : "Guardar Costos"}
           </Button>

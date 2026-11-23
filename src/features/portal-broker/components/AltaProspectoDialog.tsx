@@ -17,12 +17,15 @@ interface Props {
 }
 
 export default function AltaProspectoDialog({ brokerId, open, nombreInicial, onClose }: Props) {
-  const [empresa, setEmpresa] = useState(() => ({ ...empresaVacia(), nombre: nombreInicial }));
+  const empresaInicial = { ...empresaVacia(), nombre: nombreInicial };
+  const [empresa, setEmpresa] = useState(empresaInicial);
   const [contactos, setContactos] = useState(() => [contactoVacio()]);
   const m = useAltaProspectoBroker(brokerId);
   const problema = validarAlta(empresa, contactos);
+  const hayCambios = JSON.stringify(empresa) !== JSON.stringify(empresaInicial)
+    || contactos.length !== 1 || Object.values(contactos[0] ?? {}).some(Boolean);
 
-  const cerrar = () => { setEmpresa(empresaVacia()); setContactos([contactoVacio()]); onClose(); };
+  const cerrar = () => { setEmpresa(empresaInicial); setContactos([contactoVacio()]); onClose(); };
   const guardar = async () => {
     if (problema) return;
     try {
@@ -41,7 +44,7 @@ export default function AltaProspectoDialog({ brokerId, open, nombreInicial, onC
       title="Registrar prospecto externo"
       description="La empresa queda como Prospecto externo con fuente Broker."
       size="lg"
-      isDirty
+      isDirty={hayCambios}
       busy={m.isPending}
       footer={
         <>

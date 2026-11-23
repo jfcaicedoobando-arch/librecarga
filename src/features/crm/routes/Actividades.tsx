@@ -8,7 +8,7 @@
  *     (pendientes + mías + `fecha_programada < now`), así que el contador y la
  *     paginación corresponden al conjunto vencido.
  */
-import { useSearchParams } from "react-router";
+import { useQueryState } from "nuqs";
 import { X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,8 +46,7 @@ export default function Actividades() {
   useDocumentTitle('Actividades CRM');
   const { canCrearActividad, canGestionarActividad } = usePermissions();
   const { user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const filtroParam = searchParams.get("filtro");
+  const [filtroParam, setFiltroParam] = useQueryState("filtro");
   const vencidasOnly = filtroParam === "vencidas";
 
   const list = useServerPagedList<CrmActividadRow, ActividadesFilters>({
@@ -82,7 +81,7 @@ export default function Actividades() {
   const chips = vencidasOnly
     ? list.activeChips.filter(({ key }) => key !== "filter:estado" && key !== "filter:responsable")
     : list.activeChips;
-  const activeCount = chips.length + Number(Boolean(list.search));
+  const activeCount = chips.length + Number(Boolean(list.search)) + Number(vencidasOnly);
 
   // P2-4: nunca exponer filas de la consulta anterior bajo filtros nuevos.
   const items = list.isStaleView ? [] : list.rows;
@@ -90,10 +89,10 @@ export default function Actividades() {
     ? [...baseActividadColumns, actividadActionColumn((a) => canGestionarActividad(a.responsable_id))]
     : baseActividadColumns;
 
-  const limpiarFiltro = () => {
-    const next = new URLSearchParams(searchParams);
-    next.delete("filtro");
-    setSearchParams(next);
+  const limpiarFiltro = () => { void setFiltroParam(null); };
+  const limpiarTodo = () => {
+    list.resetAll();
+    if (vencidasOnly) limpiarFiltro();
   };
 
   return (
@@ -117,7 +116,7 @@ export default function Actividades() {
         searchPlaceholder="Buscar por asunto…"
         chips={chips}
         activeCount={activeCount}
-        onClearAll={list.resetAll}
+        onClearAll={limpiarTodo}
         primary={
           <ActividadesFiltros filters={filtrosVisibles} onChange={list.setFilter} vencidasOnly={vencidasOnly} />
         }

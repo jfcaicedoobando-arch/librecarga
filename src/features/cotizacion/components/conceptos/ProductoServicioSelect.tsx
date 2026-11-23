@@ -22,6 +22,7 @@ import { Command, CommandEmpty, CommandInput, CommandList } from "@/components/u
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useProductosCatalogo, type ProductoCatalogo } from "@/features/cotizacion/hooks/useProductosCatalogo";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useOrgActiva } from "@/hooks/shared/useOrgActiva";
@@ -86,11 +87,39 @@ function PieAcciones({
   );
 }
 
+function OpcionesCatalogo({ productos, seleccionadoId, fronteraHabilitada, puedeCrearConcepto, onSelect }: {
+  productos: ProductoCatalogo[];
+  seleccionadoId?: string;
+  fronteraHabilitada: boolean;
+  puedeCrearConcepto: boolean;
+  onSelect: Props["onSelect"];
+}) {
+  if (productos.length === 0) {
+    return (
+      <EmptyStateInline
+        icon={Package}
+        message="No hay productos activos en el catálogo."
+        hint={puedeCrearConcepto ? "Da de alta productos en Configuración → Facturación, o usa el botón de abajo." : undefined}
+        density="compact"
+      />
+    );
+  }
+  return (
+    <>
+      <CommandEmpty className="p-0">
+        <div className="p-3 text-body text-muted-foreground">Sin coincidencias.</div>
+      </CommandEmpty>
+      <ProductoServicioOptions productos={productos} seleccionadoId={seleccionadoId}
+        fronteraHabilitada={fronteraHabilitada} onSelect={onSelect} />
+    </>
+  );
+}
+
 export function ProductoServicioSelect({ value, onSelect, placeholder = "Selecciona producto", disabled, onConceptoLibre }: Props) {
   const { role } = useAuth();
   const { organizationId } = useOrgActiva();
   const puedeCrearConcepto = !role || !ROLES_SIN_ALTA_CATALOGO.includes(role);
-  const { productos, isLoading, porNombre } = useProductosCatalogo(organizationId);
+  const { productos, isLoading, isError, isFetching, refetch, porNombre } = useProductosCatalogo(organizationId);
   const fronteraHabilitada = useIvaFronteraHabilitada();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -98,7 +127,6 @@ export function ProductoServicioSelect({ value, onSelect, placeholder = "Selecci
 
   const seleccionado = value ? porNombre.get(value.toLowerCase()) : undefined;
   const esLegacy = !!value && !seleccionado;
-  const vacio = !isLoading && productos.length === 0;
 
   const cerrarYResetear = () => {
     setOpen(false);
@@ -132,7 +160,10 @@ export function ProductoServicioSelect({ value, onSelect, placeholder = "Selecci
         </Button>
       </PopoverTrigger>
       <PopoverContent className="flex max-h-[var(--radix-popover-content-available-height)] w-[320px] max-w-[calc(100vw-1rem)] flex-col overflow-hidden p-0" align="start" collisionPadding={8}>
-        {creando && organizationId ? (
+        {isError ? (
+          <ErrorStateInline title="No se pudo consultar el catálogo" message="Reintenta para consultar los productos disponibles."
+            onRetry={() => void refetch()} retrying={isFetching} />
+        ) : creando && organizationId ? (
           <CrearConceptoInlineForm
             organizationId={organizationId}
             nombreInicial={search}
@@ -140,29 +171,12 @@ export function ProductoServicioSelect({ value, onSelect, placeholder = "Selecci
             onCreado={(p) => { onSelect(p); cerrarYResetear(); }}
           />
         ) : (
-          <Command shouldFilter={!vacio} className="min-h-0 flex-1">
+          <Command shouldFilter={productos.length > 0} className="min-h-0 flex-1">
             <CommandInput placeholder="Buscar producto…" value={search} onValueChange={setSearch} />
             <CommandList className="min-h-0 flex-1 overflow-y-auto">
-              {vacio ? (
-                <EmptyStateInline
-                  icon={Package}
-                  message="No hay productos activos en el catálogo."
-                  hint="Da de alta productos en Configuración → Facturación, o usa el botón de abajo."
-                  density="compact"
-                />
-              ) : (
-                <>
-                  <CommandEmpty className="p-0">
-                    <div className="p-3 text-body text-muted-foreground">Sin coincidencias.</div>
-                  </CommandEmpty>
-                  <ProductoServicioOptions
-                    productos={productos}
-                    seleccionadoId={seleccionado?.id}
-                    fronteraHabilitada={fronteraHabilitada}
-                    onSelect={(producto) => { onSelect(producto); cerrarYResetear(); }}
-                  />
-                </>
-              )}
+              <OpcionesCatalogo productos={productos} seleccionadoId={seleccionado?.id}
+                fronteraHabilitada={fronteraHabilitada} puedeCrearConcepto={puedeCrearConcepto}
+                onSelect={(producto) => { onSelect(producto); cerrarYResetear(); }} />
             </CommandList>
             <PieAcciones
               search={search}

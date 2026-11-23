@@ -54,7 +54,8 @@ export default function Comisiones() {
     setServer({ estado: value === "todos" ? null : value });
   const setPeriodo = (value: string) => setServer({ m: value || null });
 
-  const { data: vendedoras = [] } = useUsuariosVendedores();
+  const usuariosVendedores = useUsuariosVendedores();
+  const vendedoras = usuariosVendedores.data ?? [];
   const { data: comisiones = [], isLoading, isError, refetch, kpis, kpisLoading, kpisError, refetchKpis } = useComisionesDevengadas({
     vendedora_id: server.v as string | "todas",
     estado: server.estado as EstadoComision | "todos",
@@ -179,7 +180,12 @@ export default function Comisiones() {
         </TabsContent>
 
         <TabsContent value="config">
-          <TabVendedorasConfig vendedoras={vendedoras} />
+          <TabVendedorasConfig vendedoras={vendedoras} estadoUsuarios={{
+            cargando: usuariosVendedores.isLoading,
+            error: usuariosVendedores.isError,
+            consultando: usuariosVendedores.isFetching,
+            reintentar: () => void usuariosVendedores.refetch(),
+          }} />
         </TabsContent>
       </Tabs>
       </CargaGuard>

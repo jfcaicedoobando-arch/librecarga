@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Plus, CheckCircle2, Receipt, Ban } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { COL_W } from "@/components/shared/dataTable/columnWidths";
@@ -20,7 +21,7 @@ import type { UsuarioVendedor } from "../services/vendedoras";
 type VendedoraOpt = UsuarioVendedor;
 
 export function TabLiquidaciones({ vendedoras }: { vendedoras: VendedoraOpt[] }) {
-  const { data: liquidaciones = [], isLoading, isError } = useLiquidaciones();
+  const { data: liquidaciones = [], isLoading, isError, refetch, isFetching } = useLiquidaciones();
   const [genOpen, setGenOpen] = useState(false);
   const [pagoOpen, setPagoOpen] = useState<LiquidacionRow | null>(null);
   const [cancelOpen, setCancelOpen] = useState<LiquidacionRow | null>(null);
@@ -34,7 +35,9 @@ export function TabLiquidaciones({ vendedoras }: { vendedoras: VendedoraOpt[] })
     { id: "periodo", header: "Periodo", meta: { width: COL_W.folio, className: "font-mono text-body-sm" }, cell: ({ row }) => row.original.periodo },
     {
       id: "vendedora", header: "Vendedora", meta: { width: COL_W.nombre },
-      cell: ({ row }) => vendedoras.find((x) => x.id === row.original.vendedora_id)?.nombre ?? row.original.vendedora_id,
+      cell: ({ row }) => vendedoras.find((x) => x.id === row.original.vendedora_id)?.nombre || (
+        <span className="text-muted-foreground" title={row.original.vendedora_id}>Vendedora sin identificar</span>
+      ),
     },
     {
       id: "total", header: "Total MXN", meta: { width: COL_W.monto, align: "right", className: "font-semibold" },
@@ -85,9 +88,13 @@ export function TabLiquidaciones({ vendedoras }: { vendedoras: VendedoraOpt[] })
       )}
 
       {isError && (
-        <p role="alert" className="text-sm text-destructive">No se pudieron cargar las liquidaciones. Recarga la página.</p>
+        <ErrorStateInline
+          title="No se pudieron cargar las liquidaciones"
+          message={liquidaciones.length ? "Se muestra la última consulta disponible." : "Reintenta para consultar las liquidaciones."}
+          onRetry={() => void refetch()} retrying={isFetching}
+        />
       )}
-      <Card>
+      {(!isError || liquidaciones.length > 0) && <Card>
         <CardContent className="p-0">
           <DataTable
             columns={columns}
@@ -99,13 +106,14 @@ export function TabLiquidaciones({ vendedoras }: { vendedoras: VendedoraOpt[] })
             emptyMessage="Sin liquidaciones registradas."
           />
         </CardContent>
-      </Card>
+      </Card>}
 
       <DialogGenerarLiquidacion open={genOpen} onOpenChange={setGenOpen} vendedoras={vendedoras} />
       <DialogRegistrarPagoLiquidacion
         open={!!pagoOpen}
         onOpenChange={(o) => !o && setPagoOpen(null)}
         liq={pagoOpen}
+        vendedoraNombre={vendedoras.find((x) => x.id === pagoOpen?.vendedora_id)?.nombre}
       />
       <DialogCancelarLiquidacion
         open={!!cancelOpen}

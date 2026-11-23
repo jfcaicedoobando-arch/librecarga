@@ -14,15 +14,17 @@ import {
 import { MONEDAS_TARIFARIO, UNIDADES_MEDIDA_TARIFARIO } from "@/constants/cotizacionInformativa";
 import {
   nuevaTarifaInformativa,
+  validarFilaTarifaInformativa,
   type TarifaInformativa,
 } from "@/features/cotizacion/types";
 
 interface Props {
   tarifas: TarifaInformativa[];
+  validar?: boolean;
   onChange: (next: TarifaInformativa[]) => void;
 }
 
-export default function SeccionTarifasInformativas({ tarifas, onChange }: Props) {
+export default function SeccionTarifasInformativas({ tarifas, onChange, validar = false }: Props) {
   const update = (idx: number, patch: Partial<TarifaInformativa>) => {
     onChange(tarifas.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
   };
@@ -42,13 +44,21 @@ export default function SeccionTarifasInformativas({ tarifas, onChange }: Props)
         {tarifas.map((t, idx) => {
           const esTerrestre = t.modo === "Terrestre";
           const esPortaCont = esTerrestre && t.modalidad_equipo === "Porta Contenedor";
+          const errores = validar ? validarFilaTarifaInformativa(t) : undefined;
+          const errorId = `tarifa-${t.id}-error`;
+          const primerError = errores && Object.values(errores).find(Boolean);
+          const validarCampo = (campo: keyof ReturnType<typeof validarFilaTarifaInformativa>) => ({
+            "aria-invalid": !!errores?.[campo] || undefined,
+            "aria-describedby": primerError && errores?.[campo] === primerError ? errorId : undefined,
+          });
           return (
-            <div key={t.id} className="border rounded-md p-3 space-y-2 bg-muted/30">
+            <div key={t.id} role="group" aria-labelledby={`tarifa-${t.id}-titulo`} className="border rounded-md p-3 space-y-2 bg-muted/30">
+              <p id={`tarifa-${t.id}-titulo`} className="text-body-sm font-medium">Tarifa {idx + 1}</p>
               <div className="grid grid-cols-12 gap-2">
                 <div className="col-span-12 md:col-span-2">
                   <label className="text-body-sm text-muted-foreground">Modo</label>
                   <Select value={t.modo} onValueChange={(v) => update(idx, { modo: v })}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9" aria-label={`Modo de la tarifa ${idx + 1}`}><SelectValue /></SelectTrigger>
                     <SelectContent>{MODOS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
@@ -56,7 +66,7 @@ export default function SeccionTarifasInformativas({ tarifas, onChange }: Props)
                   <div className="col-span-12 md:col-span-3">
                     <label className="text-body-sm text-muted-foreground">Modalidad</label>
                     <Select value={t.modalidad_equipo || ""} onValueChange={(v) => update(idx, { modalidad_equipo: v })}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Seleccionar…" /></SelectTrigger>
+                      <SelectTrigger className="h-9" aria-label={`Modalidad de la tarifa ${idx + 1}`}><SelectValue placeholder="Seleccionar…" /></SelectTrigger>
                       <SelectContent>
                         {MODALIDADES_EQUIPO_TERRESTRE.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                       </SelectContent>
@@ -65,7 +75,7 @@ export default function SeccionTarifasInformativas({ tarifas, onChange }: Props)
                 )}
                 <div className="col-span-12 md:col-span-3">
                   <label className="text-body-sm text-muted-foreground">Origen</label>
-                  <Input value={t.origen} onChange={(e) => update(idx, { origen: e.target.value })} className="h-9" aria-label={`Origen de la tarifa ${idx + 1}`} />
+                  <Input {...validarCampo("origen")} value={t.origen} onChange={(e) => update(idx, { origen: e.target.value })} className="h-9" aria-label={`Origen de la tarifa ${idx + 1}`} />
                 </div>
                 {esPortaCont && (
                   <div className="col-span-12 md:col-span-2">
@@ -75,12 +85,12 @@ export default function SeccionTarifasInformativas({ tarifas, onChange }: Props)
                 )}
                 <div className="col-span-12 md:col-span-3">
                   <label className="text-body-sm text-muted-foreground">Destino</label>
-                  <Input value={t.destino} onChange={(e) => update(idx, { destino: e.target.value })} className="h-9" aria-label={`Destino de la tarifa ${idx + 1}`} />
+                  <Input {...validarCampo("destino")} value={t.destino} onChange={(e) => update(idx, { destino: e.target.value })} className="h-9" aria-label={`Destino de la tarifa ${idx + 1}`} />
                 </div>
                 <div className="col-span-6 md:col-span-2">
                   <label className="text-body-sm text-muted-foreground">Unidad</label>
                   <Select value={t.unidad_medida} onValueChange={(v) => update(idx, { unidad_medida: v })}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9" aria-label={`Unidad de la tarifa ${idx + 1}`}><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {UNIDADES_MEDIDA_TARIFARIO.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
                     </SelectContent>
@@ -88,12 +98,12 @@ export default function SeccionTarifasInformativas({ tarifas, onChange }: Props)
                 </div>
                 <div className="col-span-6 md:col-span-2">
                   <label className="text-body-sm text-muted-foreground">Precio</label>
-                  <Input type="number" min={0} step="0.01" value={t.precio} onChange={(e) => update(idx, { precio: parseFloat(e.target.value) || 0 })} className="h-9" aria-label={`Precio de la tarifa ${idx + 1}`} />
+                  <Input {...validarCampo("precio")} type="number" min={0} step="0.01" value={t.precio} onChange={(e) => update(idx, { precio: parseFloat(e.target.value) || 0 })} className="h-9" aria-label={`Precio de la tarifa ${idx + 1}`} />
                 </div>
                 <div className="col-span-6 md:col-span-2">
                   <label className="text-body-sm text-muted-foreground">Moneda</label>
                   <Select value={t.moneda} onValueChange={(v) => update(idx, { moneda: v })}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9" aria-label={`Moneda de la tarifa ${idx + 1}`} {...validarCampo("moneda")}><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {MONEDAS_TARIFARIO.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                     </SelectContent>
@@ -104,11 +114,12 @@ export default function SeccionTarifasInformativas({ tarifas, onChange }: Props)
                   <Input value={t.notas || ""} onChange={(e) => update(idx, { notas: e.target.value })} className="h-9" placeholder="Observaciones de esta tarifa" aria-label={`Notas de la tarifa ${idx + 1}`} />
                 </div>
                 <div className="col-span-12 md:col-span-1 flex md:items-end justify-end">
-                  <Button type="button" size="icon" variant="ghost" onClick={() => remove(idx)} disabled={tarifas.length <= 1} aria-label="Eliminar fila">
+                  <Button type="button" size="icon" variant="ghost" onClick={() => remove(idx)} disabled={tarifas.length <= 1} aria-label={`Eliminar tarifa ${idx + 1}`}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               </div>
+              {primerError && <p id={errorId} className="text-body-sm text-destructive">Tarifa {idx + 1}: {primerError}.</p>}
             </div>
           );
         })}

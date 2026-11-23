@@ -3,6 +3,7 @@
  * súper administrador) acciones de editar y eliminar.
  */
 import { Pencil, Trash2 } from "lucide-react";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useReporteDatos } from "@/features/crm/hooks/useReportesCrm";
@@ -17,7 +18,7 @@ interface Props {
 }
 
 export function TarjetaReporte({ reporte, canEdit, onEditar, onEliminar }: Props) {
-  const { data: datos = [], isLoading, isError } = useReporteDatos(reporte.id);
+  const { data: datos = [], isLoading, isError, isFetching, refetch } = useReporteDatos(reporte.id);
 
   return (
     <Card>
@@ -36,7 +37,8 @@ export function TarjetaReporte({ reporte, canEdit, onEditar, onEliminar }: Props
       </CardHeader>
       <CardContent>
         {isLoading && <p className="py-8 text-center text-body text-muted-foreground">Cargando…</p>}
-        {isError && <p className="py-8 text-center text-body text-destructive">No se pudieron cargar los datos.</p>}
+        {isError && <ErrorStateInline title="No se pudieron cargar los datos" message="Reintenta para consultar los datos de esta gráfica."
+          onRetry={() => void refetch()} retrying={isFetching} />}
         {!isLoading && !isError && <GraficaReporte tipo={reporte.tipo_grafica} datos={datos} medida={reporte.medida} />}
       </CardContent>
     </Card>

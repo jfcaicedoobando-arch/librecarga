@@ -38,13 +38,15 @@ export function AjustePlazoPricing({ solicitud: s }: { solicitud: SolicitudPrici
         </div>
         {ampliable && (
           <div className="space-y-1">
-            <Label htmlFor="aj-horas">Nuevo plazo (horas, mayor a 48)</Label>
-            <Input id="aj-horas" type="number" min={49} max={720} value={horas} onChange={(e) => setHoras(e.target.value)} />
+            <Label htmlFor="aj-horas">Nuevo plazo (horas)</Label>
+            <Input id="aj-horas" aria-describedby="aj-horas-ayuda" type="number" min={49} max={720} value={horas} onChange={(e) => setHoras(e.target.value)} />
+            <p id="aj-horas-ayuda" className="text-body-sm text-muted-foreground">De 49 a 720 horas.</p>
           </div>
         )}
         <div className="space-y-1 md:col-span-3">
           <Label htmlFor="aj-motivo">Justificación (obligatoria)</Label>
-          <Textarea id="aj-motivo" rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+          <Textarea id="aj-motivo" aria-describedby="aj-motivo-ayuda" rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+          <p id="aj-motivo-ayuda" className="text-body-sm text-muted-foreground">Mínimo 10 caracteres.</p>
         </div>
         <div className="flex flex-wrap gap-2 md:col-span-3">
           <Button size="sm" variant="outline" disabled={!motivoOk || complejidad === s.complejidad || m.isPending}
