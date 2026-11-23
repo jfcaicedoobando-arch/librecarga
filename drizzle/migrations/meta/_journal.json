@@ -736,6 +736,13 @@
       "when": 1795472049712,
       "tag": "0104_costeo_tarifa_tramos_tenant_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1795474092757,
+      "tag": "0105_pricing_complejidad_baja_tarifa_vigente",
+      "breakpoints": true
     }
   ]
 }
