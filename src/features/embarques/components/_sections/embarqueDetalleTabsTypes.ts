@@ -10,6 +10,7 @@
  * `TrackingProps`, `DocHandlers`, `Financials`).
  */
 import type { EmbarqueRow } from "@/features/embarques/types/embarque";
+import type { useBorradorNotaEmbarque } from "@/features/embarques/hooks/useBorradorNotaEmbarque";
 
 
 // v13.309.50 · PR-S2-B: unificamos con `EmbarqueRow` (Tables<"embarques">) —
@@ -24,6 +25,7 @@ export interface EmbarqueDetalleTabsProps {
   setActiveTab: (t: string) => void;
   estadoVisual: string;
   canEdit: boolean;
+  borradorNota: Pick<ReturnType<typeof useBorradorNotaEmbarque>, "texto" | "setTexto" | "enviarNota" | "enviando">;
 }
 
 export type PnlView = "global" | "contenedor";

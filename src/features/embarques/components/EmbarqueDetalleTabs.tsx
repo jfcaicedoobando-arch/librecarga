@@ -7,7 +7,6 @@ import { Separator } from "@/components/ui/separator";
 import { AlertaBorrador } from "@/features/embarques/components/_sections/AlertaBorrador";
 
 import { useEmbarqueDetalleTabsData } from "@/features/embarques/hooks/useEmbarqueDetalleTabsData";
-import { useEmbarqueInterno } from "@/features/embarques/hooks/useEmbarqueInterno";
 import { useContenedoresEmbarque } from "@/features/embarques/hooks/useContenedoresEmbarque";
 import {
   monedasExtranjerasActivas,
@@ -64,25 +63,20 @@ function useOpcionesContenedor(embarqueId: string, esMaritimo: boolean, activeTa
 }
 
 export function EmbarqueDetalleTabs({
-  embarque, embarqueId, activeTab, setActiveTab, estadoVisual, canEdit,
+  embarque, embarqueId, activeTab, setActiveTab, estadoVisual, canEdit, borradorNota,
 }: EmbarqueDetalleTabsProps) {
   const [pnlView, setPnlView] = useState<PnlView>("global");
   // B1 (v13.823.395): «Cargar costos» exige la capacidad estrecha, no el
   // `canEdit` genérico que también cubre documentos y tracking.
   const { canEditCostosEmbarque } = usePermissions();
   const esMaritimo = embarque.modo === "Marítimo";
-  const { conceptosVenta, conceptosCosto, documentos, notas, facturas, financials, query } =
+  const { conceptosVenta, conceptosCosto, documentos, facturas, financials, query } =
     useEmbarqueDetalleTabsData(embarque, activeTab);
   const { mostrarGarantias, permitePnlContenedor } = useOpcionesContenedor(embarqueId, esMaritimo, activeTab);
   const monedasExtranjeras = useMemo(
     () => monedasExtranjerasActivas(conceptosVenta, conceptosCosto),
     [conceptosVenta, conceptosCosto],
   );
-  // `created_by_email` no es legible en la tabla `embarques`: viene de la vista
-  // interna (staff), no de la fila de detalle.
-  const { data: interno } = useEmbarqueInterno(activeTab === "notas" ? embarqueId : undefined);
-
-
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       {/*
@@ -177,13 +171,7 @@ export function EmbarqueDetalleTabs({
         </TabsContent>
 
         <TabsContent value="notas">
-          <TabNotas
-            notas={notas}
-            embarqueId={embarqueId}
-            expediente={embarque.expediente}
-            creadoPor={interno?.created_by_email ?? null}
-            creadoEn={embarque.created_at}
-          />
+          <TabNotas embarqueId={embarqueId} {...borradorNota} />
         </TabsContent>
       </CargaDetalleTab>
     </Tabs>

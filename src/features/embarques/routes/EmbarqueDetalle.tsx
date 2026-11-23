@@ -22,6 +22,7 @@ import { useRegisterBreadcrumbLabel } from "@/lib/contexts/BreadcrumbContext";
 import { AprobacionMargenBorrador } from '../components/AprobacionMargenBorrador';
 import { useEtiquetasMargen } from '../hooks/useEtiquetasMargen';
 import { EtiquetaMargenBajo } from '../components/EtiquetaMargenBajo';
+import { useBorradorNotaEmbarque } from '../hooks/useBorradorNotaEmbarque';
 
 // v13.66.15: reordenadas por flujo (operación → finanzas → cierre → bitácora)
 // y fusionadas (P&L+P&L Contenedor, Garantías+Demoras).
@@ -52,10 +53,12 @@ export default function EmbarqueDetalle() {
   const { activeTab, setActiveTab } = useTabsParam(TABS_VALIDOS, "resumen", "tab", TABS_LEGACY);
 
   const { embarque, isLoading, error, refetch } = useEmbarqueResumen(id);
+  const expediente = embarque?.expediente;
+  const { guardDialog, confirmarSalida, ...borradorNota } = useBorradorNotaEmbarque(id, expediente);
   const etiquetas = useEtiquetasMargen(id ? [id] : []);
   useRegisterBreadcrumbLabel(id, embarque?.expediente);
   // UIA-12: la pestaña se distingue por folio (antes quedaba el título del landing).
-  useDocumentTitle(embarque?.expediente ? `Embarque ${embarque.expediente}` : "Embarque");
+  useDocumentTitle(expediente ? `Embarque ${expediente}` : "Embarque");
 
 
   const [dialogEliminarAbierto, setDialogEliminarAbierto] = useState(false);
@@ -73,6 +76,7 @@ export default function EmbarqueDetalle() {
 
   return (
     <PageContainer>
+      {guardDialog}
       <EnlaceTrackingCopiadoDialog aviso={avisoEnlace} onClose={cerrarAvisoEnlace} />
       <CargaGuard
         isLoading={isLoading}
@@ -95,9 +99,10 @@ export default function EmbarqueDetalle() {
               tieneLinkActivo={tieneLinkActivo}
               onCompartirTracking={handleCompartirTracking}
               onRevocarTracking={handleRevocarTracking}
-              onAbrirEliminar={() => setDialogEliminarAbierto(true)}
-              onAbrirDuplicar={() => setDialogDuplicarAbierto(true)}
+              onAbrirEliminar={() => confirmarSalida(() => setDialogEliminarAbierto(true))}
+              onAbrirDuplicar={() => confirmarSalida(() => setDialogDuplicarAbierto(true))}
               onNavigateTab={(tab) => setActiveTab(tab)}
+              confirmarSalida={confirmarSalida}
             />
 
             <AprobacionMargenBorrador id={embarque.id} estado={embarque.estado} canEdit={canEdit} />
@@ -113,6 +118,7 @@ export default function EmbarqueDetalle() {
               setActiveTab={setActiveTab}
               estadoVisual={estadoVisual}
               canEdit={canEdit}
+              borradorNota={borradorNota}
             />
           </>
         )}

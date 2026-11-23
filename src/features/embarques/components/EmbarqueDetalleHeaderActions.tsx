@@ -51,6 +51,7 @@ export interface AccionesEmbarqueCallbacks {
   onRevocarTracking: () => void;
   onAbrirEliminar: () => void;
   onAbrirDuplicar: () => void;
+  confirmarSalida?: (accion: () => void) => void;
   onReabrir: (motivo: string) => void;
   onIrACierre: () => void;
   onIrADocumentos: () => void;
@@ -91,7 +92,7 @@ export function EmbarqueDetalleHeaderActions({
   const { cierreEsSiguiente, rolPuedeCerrar, cierrePuedeAvanzar, cierreMotivoBloqueo } = cierre;
   const {
     onAvanzarEstado, onCompartirTracking, onRevocarTracking, onAbrirEliminar, onAbrirDuplicar,
-    onReabrir, onIrACierre, onIrADocumentos, onCancelar,
+    onReabrir, onIrACierre, onIrADocumentos, onCancelar, confirmarSalida,
   } = acciones;
   // B-058 (v13.320.39): en estados terminales/cerrados el borrado ya no aplica.
   const { esTerminal, puedeCancelar } = derivarEstadoAcciones(estadoVisual);
@@ -100,7 +101,11 @@ export function EmbarqueDetalleHeaderActions({
   const puedeEliminar = !esTerminal && !tieneDeudaPendiente && canEliminarEmbarque;
   const [cancelarOpen, setCancelarOpen] = useState(false);
   const navigate = useNavigate();
-  const goEditar = () => navigate(`/embarques/${embarqueId}/editar`);
+  const goEditar = () => {
+    const salir = () => navigate(`/embarques/${embarqueId}/editar`);
+    if (confirmarSalida) confirmarSalida(salir);
+    else salir();
+  };
 
   const ocultarAvance = cierreEsSiguiente && !rolPuedeCerrar;
   const cierreBloqueadoPorChecklist =
