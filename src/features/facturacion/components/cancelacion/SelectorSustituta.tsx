@@ -1,12 +1,12 @@
 import { ArrowRight, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import type { SustitutaCandidata } from "@/features/facturacion/services/sustitutasDeFactura";
 
 interface Props {
+  id?: string;
   isLoading: boolean;
   isError: boolean;
   retrying: boolean;
@@ -22,7 +22,7 @@ interface Props {
  * Extraído para respetar el límite de 200 líneas del dialog padre.
  */
 export function SelectorSustituta({
-  isLoading, isError, retrying, onRetry, sustitutasTimbradas, value, onChange, onAbrirSustituir,
+  id, isLoading, isError, retrying, onRetry, sustitutasTimbradas, value, onChange, onAbrirSustituir,
 }: Props) {
   if (isError) {
     return (
@@ -58,9 +58,8 @@ export function SelectorSustituta({
   }
   return (
     <>
-      <Label className="sr-only">Sustituta</Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger><SelectValue placeholder="Elige la sustituta" /></SelectTrigger>
+        <SelectTrigger id={id} aria-label={id ? undefined : "Factura sustituta timbrada"}><SelectValue placeholder="Elige la sustituta" /></SelectTrigger>
         <SelectContent>
           {sustitutasTimbradas.map((s) => {
             const label = s.numero ?? `${s.serie ?? ""}${s.folio_fiscal ?? ""}`;
@@ -74,7 +73,7 @@ export function SelectorSustituta({
         </SelectContent>
       </Select>
       <p className="text-body-sm text-muted-foreground">
-        Se enviará a FacturAPI el <code>facturapi_id</code> interno de la sustituta seleccionada
+        La factura sustituta debe tener relación 04. Se enviará a FacturAPI el <code>facturapi_id</code> interno de la sustituta seleccionada
         (parámetro <code>substitution</code>). El UUID SAT queda en bitácora para auditoría.
       </p>
     </>

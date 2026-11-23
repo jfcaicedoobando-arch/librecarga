@@ -3,6 +3,7 @@
  *
  * QW12 Tanda 3 — Quick Wins facturación.
  */
+import { z } from "zod";
 import { useMemo, useState } from "react";
 import { Mail } from "lucide-react";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
@@ -52,14 +53,16 @@ export function DialogEnviarEstadoCuenta({
     },
   });
 
-  const emailValido = email.trim() === "" || email.includes("@");
+  const correo = email.trim();
+  const emailValido = correo === "" || z.string().email().safeParse(correo).success;
   const puedeEnviar = !isPending && emailValido;
 
   const handleEnviar = () => {
+    if (!puedeEnviar) return;
     mutate({
       clienteId,
       periodo,
-      contactoEmail: email.trim() || undefined,
+      contactoEmail: correo || undefined,
       mensaje: mensaje.trim() || undefined,
       fechaDesde: desde,
       fechaHasta: hasta,
@@ -119,11 +122,19 @@ export function DialogEnviarEstadoCuenta({
             type="email"
             placeholder="contacto@cliente.com"
             value={email}
+            aria-invalid={!emailValido || undefined}
+            aria-describedby={emailValido ? "email-estado-cuenta-ayuda" : "email-estado-cuenta-error"}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <p className="text-xs text-muted-foreground">
-            Si lo dejas vacío, usamos el correo principal del cliente.
-          </p>
+          {emailValido ? (
+            <p id="email-estado-cuenta-ayuda" className="text-xs text-muted-foreground">
+              Si lo dejas vacío, usamos el correo principal del cliente.
+            </p>
+          ) : (
+            <p id="email-estado-cuenta-error" className="text-xs text-destructive">
+              Ingresa un correo válido, por ejemplo contacto@cliente.com.
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">

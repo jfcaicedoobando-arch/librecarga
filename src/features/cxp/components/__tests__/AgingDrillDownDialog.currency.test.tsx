@@ -52,6 +52,20 @@ describe("aging CxP: moneda y cubeta del detalle/CSV", () => {
     expect(csvRows.mock.lastCall?.[0]).toContain("USD-vigente");
   });
 
+  it("reintenta una lectura fallida sin cambiar la cubeta seleccionada", () => {
+    const refetch = vi.fn();
+    const props = { proveedor, open: true, onOpenChange: () => {}, cubetaInicial: "d_1_30" as const, fechaReferencia: "2026-10-03" };
+    fetchMock.mockReturnValue({ isError: true, refetch });
+    const { rerender } = render(<AgingDrillDownDialog {...props} />);
+    expect(screen.queryByText("0 facturas")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(refetch).toHaveBeenCalledOnce();
+    fetchMock.mockReturnValue({ data: [factura("USD-vencida", "USD", 700, 6), factura("USD-vigente", "USD", 95, 0)] });
+    rerender(<AgingDrillDownDialog {...props} />);
+    expect(screen.getByText("USD-vencida")).toBeInTheDocument();
+    expect(screen.queryByText("USD-vigente")).not.toBeInTheDocument();
+  });
+
   it("reclasifica y exporta a la fecha del reporte en vez de usar los días de hoy", () => {
     fetchMock.mockReturnValue({ data: [factura("USD-referencia", "USD", 95, 0)], isLoading: false });
     vi.stubGlobal("Blob", class { constructor(parts: unknown[]) { csvRows(parts[0]); } });

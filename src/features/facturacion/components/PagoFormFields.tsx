@@ -1,3 +1,4 @@
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Input } from "@/components/ui/input";
 import { NumericInput } from "@/components/shared/NumericInput";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
@@ -24,7 +25,7 @@ export interface PagoFormValues {
   tipoCambioManual?: string;
 }
 
-export interface CuentaCobro {
+interface CuentaCobro {
   id: string;
   alias: string;
   banco: string;
@@ -35,16 +36,45 @@ export interface CuentaCobro {
 interface Props {
   values: PagoFormValues;
   onChange: <K extends keyof PagoFormValues>(k: K, v: PagoFormValues[K]) => void;
-  cuentas?: CuentaCobro[];
+  consultaCuentas: ConsultaCuentas;
   tc?: Omit<CampoTcProps, "values" | "onChange">;
 }
 
 const SIN_CUENTA = "sin-cuenta";
 
-export function PagoFormFields({ values, onChange, cuentas = [], tc }: Props) {
+interface ConsultaCuentas {
+  data?: CuentaCobro[];
+  isLoading: boolean;
+  isError: boolean;
+  isFetching: boolean;
+  refetch: () => unknown;
+}
+
+function EstadoCuentas({ consulta, sinCuentas, moneda }: { consulta: ConsultaCuentas; sinCuentas: boolean; moneda: string }) {
+  return (
+    <>
+      {consulta.isLoading && <p role="status" className="text-label text-muted-foreground">Consultando cuentas bancarias…</p>}
+      {consulta.isError && (
+        <ErrorStateInline
+          title="No se pudieron consultar las cuentas bancarias"
+          message="Reintenta la consulta o registra el cobro sin cuenta para conciliarlo después."
+          onRetry={() => void consulta.refetch()}
+          retrying={consulta.isFetching}
+        />
+      )}
+      {!consulta.isLoading && !consulta.isError && sinCuentas && (
+        <p className="text-label text-warning">
+          No hay cuentas bancarias en {moneda}. Registra el cobro y concílialo después.
+        </p>
+      )}
+    </>
+  );
+}
+
+export function PagoFormFields({ values, onChange, consultaCuentas, tc }: Props) {
   // C4: sólo cuentas en la MISMA moneda del cobro. Antes se listaban todas y un
   // cobro en USD podía abonarse a una cuenta MXN con la cifra en dólares.
-  const cuentasCompatibles = cuentas.filter((c) => c.moneda === values.moneda);
+  const cuentasCompatibles = (consultaCuentas.data ?? []).filter((c) => c.moneda === values.moneda);
   const cuentaSel = cuentasCompatibles.find((c) => c.id === values.cuentaBancariaId) ?? null;
   const seleccionInvalida = Boolean(values.cuentaBancariaId) && !cuentaSel;
   return (
@@ -107,12 +137,12 @@ export function PagoFormFields({ values, onChange, cuentas = [], tc }: Props) {
             ))}
           </SelectContent>
         </Select>
-        {cuentasCompatibles.length === 0 && (
-          <p className="text-label text-warning">
-            No hay cuentas bancarias en {values.moneda}. Registra el cobro y concílialo después.
-          </p>
-        )}
-        {seleccionInvalida && (
+        <EstadoCuentas
+          consulta={consultaCuentas}
+          sinCuentas={cuentasCompatibles.length === 0}
+          moneda={values.moneda}
+        />
+        {!consultaCuentas.isLoading && !consultaCuentas.isError && seleccionInvalida && (
           <p className="text-label text-destructive">
             La cuenta elegida no es en {values.moneda}. Selecciona otra cuenta.
           </p>

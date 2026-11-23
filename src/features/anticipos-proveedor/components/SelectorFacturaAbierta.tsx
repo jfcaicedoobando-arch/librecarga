@@ -1,5 +1,5 @@
 /** Selector de facturas ABIERTAS (saldo > 0, no canceladas) de un proveedor. Usado por AplicarAnticipoDialog. */
-import { useMemo } from "react";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/formatters";
 import { useFacturasAbiertasProveedor } from "@/features/anticipos-proveedor/hooks/useFacturasAbiertasProveedor";
@@ -13,8 +13,7 @@ interface Props {
 }
 
 export function SelectorFacturaAbierta({ proveedorId, value, onChange }: Props) {
-  const { data: facturas = [], isLoading } = useFacturasAbiertasProveedor(proveedorId);
-  const options = useMemo(() => facturas, [facturas]);
+  const { data: options = [], isLoading, isError, isFetching, refetch } = useFacturasAbiertasProveedor(proveedorId);
 
   if (!proveedorId) {
     return (
@@ -22,6 +21,17 @@ export function SelectorFacturaAbierta({ proveedorId, value, onChange }: Props) 
         <SelectTrigger><SelectValue placeholder="Selecciona un proveedor primero" /></SelectTrigger>
         <SelectContent />
       </Select>
+    );
+  }
+
+  if (isError) {
+    return (
+      <ErrorStateInline
+        title="No se pudieron consultar las facturas abiertas"
+        message="Reintenta para elegir una factura del proveedor seleccionado."
+        onRetry={() => void refetch()}
+        retrying={isFetching}
+      />
     );
   }
 

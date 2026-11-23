@@ -20,7 +20,7 @@ export function AgingActionBar({
   onChange: (c: CubetaAging | "todas") => void;
   onExport: () => void;
   exportDisabled: boolean;
-  exportCount: number;
+  exportCount?: number;
 }) {
   const CUBETA_CHIPS: Array<{ value: CubetaAging | "todas"; label: string }> = [
     { value: "todas", label: "Todas" },
@@ -56,7 +56,7 @@ export function AgingActionBar({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
           <DropdownMenuItem onSelect={onExport} disabled={exportDisabled}>
-            <Download className="h-3.5 w-3.5 mr-2" /> Exportar CSV ({exportCount})
+            <Download className="h-3.5 w-3.5 mr-2" /> Exportar CSV{exportCount == null ? "" : ` (${exportCount})`}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

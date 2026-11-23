@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/formatters";
 import { formatDate } from "@/lib/formatters/dates";
 import { useAnticiposDisponibles } from "@/features/anticipos-proveedor/hooks/useAnticiposDisponibles";
 import { RegistrarAnticipoDialog } from "./RegistrarAnticipoDialog";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 
 interface Props {
@@ -17,7 +18,7 @@ interface Props {
 
 export function ProveedorAnticiposCard({ proveedorId, proveedorNombre, canEdit }: Props) {
   const [open, setOpen] = useState(false);
-  const { data: anticipos, porMoneda, isLoading } = useAnticiposDisponibles(proveedorId);
+  const { data: anticipos, porMoneda, isLoading, isError, isFetching, refetch } = useAnticiposDisponibles(proveedorId);
 
   return (
     <>
@@ -36,6 +37,13 @@ export function ProveedorAnticiposCard({ proveedorId, proveedorNombre, canEdit }
         <CardContent className="space-y-4">
           {isLoading ? (
             <EmptyStateInline loading message="Cargando anticipos…" className="py-2" />
+          ) : isError ? (
+            <ErrorStateInline
+              title="No se pudo consultar el saldo a favor"
+              message="Reintenta la consulta de los anticipos de este proveedor."
+              onRetry={() => void refetch()}
+              retrying={isFetching}
+            />
           ) : anticipos.length === 0 ? (
             <EmptyStateInline
               icon={HandCoins}

@@ -85,10 +85,34 @@ function BannerErrorKpis({ dashError, cobError, onRetry }: {
   );
 }
 
+function ListasProformasKpi() {
+  const consultaProformas = useProformasListasCount();
+  const proformasListas = consultaProformas.isError ? undefined : consultaProformas.data;
+  const listasVariant = (proformasListas ?? 0) > 0 ? "warning" : "default";
+  const listasValue = proformasListas == null ? "—" : proformasListas === 1 ? "1 proforma" : `${proformasListas} proformas`;
+  return (
+    <div className="space-y-2">
+      <KpiCard
+        label="Listas para facturar"
+        value={listasValue}
+        variant={listasVariant}
+        valueTooltip="Proformas aceptadas por el cliente y sin factura emitida — listas para timbrar. Se convierten desde la bandeja 'Proformas listas'."
+      />
+      {consultaProformas.isError && (
+        <ErrorStateInline
+          className="py-4"
+          message="No se pudo consultar el total de proformas listas para facturar."
+          onRetry={() => void consultaProformas.refetch()}
+          retrying={consultaProformas.isFetching}
+        />
+      )}
+    </div>
+  );
+}
+
 export function DashboardEjecutivoFacturacion() {
   const dash = useDashboardEjecutivoFacturacion();
   const cobranza = useCobranzaKpis();
-  const { data: proformasListas = 0 } = useProformasListasCount();
 
   /**
    * Fail-closed: un error de carga NO se pinta como "MXN 0". Se suprime el
@@ -111,8 +135,6 @@ export function DashboardEjecutivoFacturacion() {
   const mes = mesEnCurso();
   const facturado = buildFacturadoUi(dash.data?.facturas_sin_tc ?? 0, mes);
   const facturadoVariant = facturado.tone === "warn" ? "warning" : "default";
-  const listasVariant = proformasListas > 0 ? "warning" : "default";
-  const listasValue = proformasListas === 1 ? "1 proforma" : `${proformasListas} proformas`;
 
   return (
     <div className="space-y-2">
@@ -126,12 +148,7 @@ export function DashboardEjecutivoFacturacion() {
       />
       {/* 5 KPIs ejecutivos con la card canónica del UI kit. */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        <KpiCard
-          label="Listas para facturar"
-          value={listasValue}
-          variant={listasVariant}
-          valueTooltip="Proformas aceptadas por el cliente y sin factura emitida — listas para timbrar. Se convierten desde la bandeja 'Proformas listas'."
-        />
+        <ListasProformasKpi />
         {/* VF-05: montos completos con moneda en KPIs financieros; la
             abreviatura "MXN 48.7K" convivía con montos completos en la misma
             pantalla y se leía como inconsistencia de formato. */}

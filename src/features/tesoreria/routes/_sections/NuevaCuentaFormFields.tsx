@@ -56,9 +56,9 @@ export function NuevaCuentaFormFields({ form, setField, monedaBloqueada = false 
         )}
       </div>
       <div>
-        <Label>Moneda</Label>
+        <Label htmlFor="cuenta-moneda">Moneda</Label>
         <Select value={form.moneda} onValueChange={(v) => setField("moneda", v as Moneda)} disabled={monedaBloqueada}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectTrigger id="cuenta-moneda"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="MXN">MXN</SelectItem>
             <SelectItem value="USD">USD</SelectItem>
@@ -83,14 +83,16 @@ export function NuevaCuentaFormFields({ form, setField, monedaBloqueada = false 
       </div>
 
       <div>
-        <Label>Saldo inicial al día *</Label>
+        <Label htmlFor="cuenta-saldo-fecha">Saldo inicial al día *</Label>
         <DatePickerMx
+          id="cuenta-saldo-fecha"
+          aria-describedby="cuenta-saldo-corte"
           value={form.fechaSaldoInicial}
           onChange={(v) => setField("fechaSaldoInicial", v)}
           className="w-full"
         />
       </div>
-      <p className="sm:col-span-2 text-body-sm text-muted-foreground">
+      <p id="cuenta-saldo-corte" className="sm:col-span-2 text-body-sm text-muted-foreground">
         Los movimientos con fecha anterior a este día se guardan como historial, pero no
         afectan el saldo: ya vienen incluidos en el saldo inicial.
       </p>

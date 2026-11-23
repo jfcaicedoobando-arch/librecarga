@@ -24,6 +24,7 @@ export interface CuentaBancariaCardData {
 export interface CuentaBancariaCardProps {
   cuenta: CuentaBancariaCardData;
   saldoActual?: number;
+  cargandoSaldo?: boolean;
   canAdmin: boolean;
   onEditar?: (cuenta: CuentaBancariaCardData) => void;
   onEliminar: (id: string, alias: string) => void;
@@ -32,6 +33,7 @@ export interface CuentaBancariaCardProps {
 export function CuentaBancariaCard({
   cuenta: c,
   saldoActual,
+  cargandoSaldo,
   canAdmin,
   onEditar,
   onEliminar,
@@ -42,17 +44,17 @@ export function CuentaBancariaCard({
 
   return (
     <Card
-      role="button"
-      tabIndex={0}
-      aria-label={`Ver movimientos de la cuenta ${c.alias}, ${c.banco}`}
-      className={`transition-shadow hover:shadow-raised focus:outline-hidden focus:ring-2 focus:ring-ring cursor-pointer ${!c.activa ? "opacity-60" : ""}`}
-      onClick={irAConciliacion}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
+      role={c.activa ? "button" : undefined}
+      tabIndex={c.activa ? 0 : undefined}
+      aria-label={c.activa ? `Ver movimientos de la cuenta ${c.alias}, ${c.banco}` : undefined}
+      className={c.activa ? "transition-shadow hover:shadow-raised focus:outline-hidden focus:ring-2 focus:ring-ring cursor-pointer" : "opacity-60"}
+      onClick={c.activa ? irAConciliacion : undefined}
+      onKeyDown={c.activa ? (e) => {
+        if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
           irAConciliacion();
         }
-      }}
+      } : undefined}
     >
       <CardContent className="p-4 space-y-1">
         <div className="flex items-start justify-between">
@@ -86,14 +88,13 @@ export function CuentaBancariaCard({
         {saldoActual !== undefined ? (
           <p className="text-body pt-2">Saldo actual: <span className="tabular-nums font-medium">{formatCurrency(saldoActual, c.moneda)}</span></p>
         ) : (
-          <p className="text-body pt-2">Saldo inicial: <span className="tabular-nums font-medium">{formatCurrency(Number(c.saldo_inicial), c.moneda)}</span></p>
+          <p className="text-body pt-2">Saldo actual: {cargandoSaldo ? "Consultando…" : "No disponible"}</p>
         )}
         <p className="text-label text-muted-foreground">
           Saldo inicial {formatCurrency(Number(c.saldo_inicial), c.moneda)} al{" "}
           {formatDate(c.fecha_saldo_inicial)}
         </p>
-        {!c.activa && <p className="text-body-sm text-muted-foreground italic">Cuenta inactiva</p>}
-        <div className="pt-2">
+        {c.activa ? <div className="pt-2">
           <Button
             variant="link" size="sm" className="h-auto p-0 text-body-sm"
             onClick={(e) => {
@@ -103,7 +104,11 @@ export function CuentaBancariaCard({
           >
             Ver estado de cuenta
           </Button>
-        </div>
+        </div> : (
+          <p className="text-body-sm text-muted-foreground italic">
+            Cuenta inactiva. Conciliación y estado de cuenta están disponibles para cuentas activas.
+          </p>
+        )}
       </CardContent>
     </Card>
   );

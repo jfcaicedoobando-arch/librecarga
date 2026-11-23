@@ -35,7 +35,7 @@ export function FacturaProveedorTabs({
   factura: f, consultaPagos, canEdit, onEliminarPago,
 }: Props) {
   const [pagoEditar, setPagoEditar] = useState<PagoEditable | null>(null);
-  const { data: conceptos = [] } = useConceptosCfdiFactura(f.id);
+  const { data: conceptos = [], isLoading: cargandoConceptos, isError: errorConceptos } = useConceptosCfdiFactura(f.id);
   const consultaNotas = useNotasCreditoFactura(f.id);
   const { data: pagos = [], isLoading, isError, isFetching, refetch } = consultaPagos;
 
@@ -43,7 +43,7 @@ export function FacturaProveedorTabs({
     {
       id: "conceptos",
       label: "Conceptos",
-      count: conceptos.length,
+      count: cargandoConceptos || errorConceptos ? undefined : conceptos.length,
       content: (
         <ConceptosFacturaSection
           facturaId={f.id}

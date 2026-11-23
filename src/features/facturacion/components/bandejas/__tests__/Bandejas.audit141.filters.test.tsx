@@ -19,9 +19,9 @@ vi.mock("@/features/facturacion/hooks/useCobranza", () => ({ useCobranzaFilas: (
 vi.mock("../BandejaShell", () => ({ BandejaShell: ({ children, counter, search, onSearchChange }: {
   children: ReactNode; counter: ReactNode; search: string; onSearchChange: (value: string) => void;
 }) => <><div data-testid="counter">{counter}</div><input aria-label="Buscar" value={search} onChange={(e) => onSearchChange(e.target.value)} />{children}</> }));
-vi.mock("@/components/shared/dataTable/ResponsiveDataTable", () => ({ ResponsiveDataTable: ({ data, pagination }: {
-  data: typeof fixtures.rows; pagination: DataTablePagination;
-}) => <><ul>{data.map((r) => <li key={r.id}>{r.numero} {r.moneda}</li>)}</ul>
+vi.mock("@/components/shared/dataTable/ResponsiveDataTable", () => ({ ResponsiveDataTable: ({ data, pagination, emptyState }: {
+  data: typeof fixtures.rows; pagination: DataTablePagination; emptyState: ReactNode;
+}) => <>{data.length > 0 ? <ul>{data.map((r) => <li key={r.id}>{r.numero} {r.moneda}</li>)}</ul> : emptyState}
   <button onClick={() => pagination.onPageChange(1)}>Siguiente</button></> }));
 import { BandejaPorCobrar } from "../BandejaPorCobrar";
 import { BandejaVencidas } from "../BandejaVencidas";
@@ -53,4 +53,12 @@ describe.each([
     await waitFor(() => expect(screen.getByTestId("counter")).toHaveTextContent("0 de 22"));
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
   });
+});
+
+it("distingue una búsqueda sin coincidencias de una cartera al día", async () => {
+  render(<BandejaVencidas />, { wrapper: withNuqsTestingAdapter({ hasMemory: true, searchParams: { q: "No coincide" } }) });
+  expect(screen.getByText("Ninguna factura vencida coincide con los filtros.")).toBeInTheDocument();
+  expect(screen.queryByText(/todas las facturas están al día/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
+  await waitFor(() => expect(screen.getByTestId("counter")).toHaveTextContent("22 de 22"));
 });

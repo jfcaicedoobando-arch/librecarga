@@ -12,6 +12,7 @@ import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { ConfirmDeleteAlert } from "@/features/costeo/components/ConfirmDeleteAlert";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { useTesoreriaCuentasController } from "@/features/tesoreria/hooks/useTesoreriaCuentasController";
 import { useSaldosCuentas } from "@/features/tesoreria/hooks/useTesoreriaCuentas";
@@ -32,7 +33,7 @@ export default function TesoreriaCuentas() {
   // Sentry JAVASCRIPT-REACT-3S/3T: sólo administradores y tesorero pueden
   // escribir en `cuentas_bancarias` (RLS). El contador sólo consulta.
   const { canAdminCuentasBancarias, canCapturarMovimientoBancario } = usePermissions();
-  const { data: saldos = [] } = useSaldosCuentas();
+  const saldosQ = useSaldosCuentas();
   const [openTraspaso, setOpenTraspaso] = useState(false);
   const cuentasTraspaso = cuentasActivasParaTraspaso(cuentas);
   const traspasoProps = { cantidad: cuentasTraspaso.length, cargando: isLoading, error: isError,
@@ -83,18 +84,29 @@ export default function TesoreriaCuentas() {
           />
         </CardContent></Card>
       ) : (
+        <>
+        {saldosQ.isError && (
+          <ErrorStateInline
+            title="No se pudieron consultar los saldos actuales"
+            message="La información de las cuentas y sus saldos iniciales sigue disponible."
+            onRetry={() => void saldosQ.refetch()}
+            retrying={saldosQ.isFetching}
+          />
+        )}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
           {cuentas.map((c) => (
             <CuentaBancariaCard
               key={c.id}
               cuenta={c}
-              saldoActual={saldos.find((s) => s.id === c.id)?.saldo}
+              saldoActual={saldosQ.isError ? undefined : saldosQ.data?.find((s) => s.id === c.id)?.saldo}
+              cargandoSaldo={saldosQ.isLoading}
               canAdmin={canAdminCuentasBancarias}
               onEditar={canAdminCuentasBancarias ? solicitarEditar : undefined}
               onEliminar={solicitarEliminar}
             />
           ))}
         </div>
+        </>
       )}
 
       <FormDialogShell

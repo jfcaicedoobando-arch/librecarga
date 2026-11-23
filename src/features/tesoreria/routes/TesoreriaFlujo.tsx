@@ -26,6 +26,21 @@ const GraficoFlujoProyectado = lazy(() => import("@/features/tesoreria/component
 const TablaFlujoSemanal = lazy(() => import("@/features/tesoreria/components/TablaFlujoSemanal"));
 
 
+function SaldosProyectados({ data }: { data: NonNullable<ReturnType<typeof useFlujoProyectado>["data"]> }) {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <KpiCard label="Saldo hoy (MXN aprox)" value={data.saldo_inicial_disponible ? formatCurrency(data.saldo_inicial_mxn, "MXN") : "No disponible"} />
+      <KpiCard label="Entradas 90 días" value={formatCurrency(data.total_entradas_mxn, "MXN")} variant="success" />
+      <KpiCard label="Salidas 90 días" value={formatCurrency(data.total_salidas_mxn, "MXN")} variant="warning" />
+      <KpiCard
+        label={data.saldo_inicial_disponible && data.saldo_incompleto ? "Saldo final proyectado parcial" : "Saldo final proyectado"}
+        value={data.saldo_inicial_disponible ? formatCurrency(data.saldo_final_mxn, "MXN") : "No disponible"}
+        variant={!data.saldo_inicial_disponible ? "default" : data.saldo_final_mxn >= 0 ? "success" : "destructive"}
+      />
+    </div>
+  );
+}
+
 export default function TesoreriaFlujo() {
   useDocumentTitle("Flujo de caja proyectado");
   const { data, isLoading, error, refetch } = useFlujoProyectado(90);
@@ -91,16 +106,7 @@ export default function TesoreriaFlujo() {
 
           <AvisoVencidosFueraProyeccion resumen={data.vencidos_fuera_proyeccion} />
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <KpiCard label="Saldo hoy (MXN aprox)" value={data.saldo_inicial_disponible ? formatCurrency(data.saldo_inicial_mxn, "MXN") : "No disponible"} />
-            <KpiCard label="Entradas 90 días" value={formatCurrency(data.total_entradas_mxn, "MXN")} variant="success" />
-            <KpiCard label="Salidas 90 días" value={formatCurrency(data.total_salidas_mxn, "MXN")} variant="warning" />
-            <KpiCard
-              label="Saldo final proyectado"
-              value={data.saldo_inicial_disponible ? formatCurrency(data.saldo_final_mxn, "MXN") : "No disponible"}
-              variant={!data.saldo_inicial_disponible ? "default" : data.saldo_final_mxn >= 0 ? "success" : "destructive"}
-            />
-          </div>
+          <SaldosProyectados data={data} />
 
           {data.saldo_inicial_disponible && data.alertas_negativas > 0 && (
             <Card className="border-destructive/40 bg-destructive/5">

@@ -42,6 +42,7 @@ export default function CxpAging() {
   const [fecha, setFecha] = useState<string>(() => todayLocalISO());
   const aging = useCxpAging(fecha);
   const { rowsFiltradas, isLoading, totales, monedas, monedaActiva, setMoneda } = aging;
+  const reporteDisponible = !isLoading && !aging.error;
   const columns = useMemo(() => buildCxpAgingColumns(), []);
   const [drilldown, setDrilldown] = useState<{ prov: CxpAgingRow; cubeta: CubetaAging | "todas" } | null>(null);
 
@@ -90,8 +91,8 @@ export default function CxpAging() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => exportarCxpAgingCsv(paged.filteredRows, monedaActiva, fecha, { search: paged.search, cubeta: paged.filters.cubeta })}
-              disabled={paged.filteredCount === 0 || isLoading}
+              onClick={() => reporteDisponible && exportarCxpAgingCsv(paged.filteredRows, monedaActiva, fecha, { search: paged.search, cubeta: paged.filters.cubeta })}
+              disabled={paged.filteredCount === 0 || !reporteDisponible}
             >
               <Download className="h-4 w-4 mr-2" /> Exportar CSV
             </Button>
@@ -111,7 +112,7 @@ export default function CxpAging() {
 
       <p className="text-body-sm text-muted-foreground">{CXP_AGING_ALCANCE}</p>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+      {reporteDisponible && <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         {CUBETAS_AGING.map((b) => (
           <AgingKpiBucket
             key={b}
@@ -121,7 +122,7 @@ export default function CxpAging() {
             tone={totales[b] > 0 ? CUBETA_TONO_KPI[b] : "default"}
           />
         ))}
-      </div>
+      </div>}
 
       <UnifiedFiltersBar
         search={paged.search}
@@ -147,9 +148,9 @@ export default function CxpAging() {
         onClearAll={paged.resetAll}
       />
 
-      <p className="text-body-sm text-muted-foreground">
+      {reporteDisponible && <p className="text-body-sm text-muted-foreground">
         CSV: {paged.filteredCount} proveedores con los filtros actuales, en todas las páginas. Cada fila incluye el saldo de todas sus cubetas.
-      </p>
+      </p>}
       <Card>
         <CardContent className="p-0">
           <ResponsiveDataTable<CxpAgingRow>

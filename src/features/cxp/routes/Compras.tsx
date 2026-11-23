@@ -28,6 +28,15 @@ import { ComprasAgingChart } from "./_sections/ComprasAgingChart";
 import { ComprasCapturaTrend } from "./_sections/ComprasCapturaTrend";
 import { ROUTES } from "@/constants/routes";
 
+function rotulosPorAprobar(importes: Array<[number, string]>, pendientes: number) {
+  if (pendientes === 0) return { sub: "sin pendientes" };
+  const sub = importes.map(([monto, moneda]) => formatCurrencyCompact(monto, moneda)).join(" · ");
+  return {
+    sub: sub || "Importes no disponibles",
+    detalle: importes.map(([monto, moneda]) => formatCurrency(monto, moneda)).join(" · ") || undefined,
+  };
+}
+
 export default function Compras() {
   const { canCapturarFacturaProveedor } = usePermissions();
   const { data: cxp = [], kpis, isLoading, isError, refetch } = useFacturasCxP();
@@ -38,13 +47,18 @@ export default function Compras() {
 
   const metrics = useMemo(() => {
     const conSaldo = cxp.filter((f) => f.saldo > 0.01);
-    const porAprobarMonto = cxp
-      .filter((f) => f.estado_aprobacion === "pendiente")
-      .reduce((s, f) => s + Number(f.total), 0);
+    const porAprobarPorMoneda = new Map<string, number>();
+    for (const factura of cxp) {
+      if (factura.estado_aprobacion !== "pendiente") continue;
+      const moneda = factura.moneda.toUpperCase();
+      porAprobarPorMoneda.set(moneda, (porAprobarPorMoneda.get(moneda) ?? 0) + Number(factura.total));
+    }
+    const porAprobarImportes = [...porAprobarPorMoneda].sort(([a], [b]) => a.localeCompare(b))
+      .map(([moneda, monto]): [number, string] => [monto, moneda]);
     return {
       facturasConSaldo: conSaldo.length,
       embarquesPorCapturar: porCapturar.length,
-      porAprobarMonto,
+      porAprobarImportes,
     };
   }, [cxp, porCapturar]);
 
@@ -70,10 +84,14 @@ export default function Compras() {
   const importes7d: Array<[number, string]> = [
     [kpis.por_vencer_7d_mxn, "MXN"], [kpis.por_vencer_7d_usd, "USD"], [kpis.por_vencer_7d_eur, "EUR"],
   ];
-  const listar = (xs: Array<[number, string]>, compacto = true) =>
-    xs.filter(([m]) => m > 0.01)
+  const importesPorPagar: Array<[number, string]> = [
+    [kpis.por_pagar_mxn, "MXN"], [kpis.por_pagar_usd, "USD"], [kpis.por_pagar_eur, "EUR"],
+  ];
+  const listar = (xs: Array<[number, string]>, compacto = true, minimo = 0.01) =>
+    xs.filter(([m]) => m > minimo)
       .map(([m, cur]) => (compacto ? formatCurrencyCompact(m, cur) : formatCurrency(m, cur)))
       .join(" · ");
+  const importesAprobacion = rotulosPorAprobar(metrics.porAprobarImportes, pendientesAprob);
   const hayVencido = importesVencidos.some(([m]) => m > 0.01);
   const hayPorVencer7d = importes7d.some(([m]) => m > 0.01);
 
@@ -111,8 +129,8 @@ export default function Compras() {
         <KpiCard
           label="Por aprobar"
           value={pendientesAprob}
-          sub={pendientesAprob > 0 ? formatCurrencyCompact(metrics.porAprobarMonto, "MXN") : "sin pendientes"}
-          valueTooltip={pendientesAprob > 0 ? formatCurrency(metrics.porAprobarMonto, "MXN") : undefined}
+          sub={importesAprobacion.sub}
+          valueTooltip={importesAprobacion.detalle}
           to={ROUTES.COMPRAS_POR_APROBAR}
           icon={<ShieldCheck className="h-4 w-4" />}
           tone={pendientesAprob > 0 ? "warn" : "default"}
@@ -120,9 +138,9 @@ export default function Compras() {
         />
         <KpiCard
           label="Por pagar"
-          value={`${formatCurrencyCompact(kpis.por_pagar_mxn, "MXN")} · ${formatCurrencyCompact(kpis.por_pagar_usd, "USD")}`}
+          value={listar(importesPorPagar, true, 0) || formatCurrency(0, "MXN")}
           sub={hayPorVencer7d ? `${listar(importes7d)} vencen en 7 d` : `${metrics.facturasConSaldo} facturas con saldo`}
-          valueTooltip={`${formatCurrency(kpis.por_pagar_mxn, "MXN")} · ${formatCurrency(kpis.por_pagar_usd, "USD")}`}
+          valueTooltip={listar(importesPorPagar, false, 0) || undefined}
           to={ROUTES.COMPRAS_POR_PAGAR}
           icon={<Landmark className="h-4 w-4" />}
           tone={hayPorVencer7d ? "warn" : "default"}

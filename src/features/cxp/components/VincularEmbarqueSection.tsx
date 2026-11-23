@@ -6,6 +6,7 @@
  * visualmente por expediente. Al marcar un concepto se pre-llena el monto
  * con el del concepto_costo; el usuario puede editarlo.
  */
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { VincularEmbarqueHeader } from "./VincularEmbarqueHeader";
@@ -64,7 +65,7 @@ export function VincularEmbarqueSection({
   embarqueAdHoc, onEmbarqueAdHoc, tope,
   embarqueIdPrioritario, expedientePrioritario, fechaEmision,
 }: Props) {
-  const { data, isLoading } = useConceptosCostoAbiertos(proveedorId, organizationId);
+  const { data, isLoading, isError, isFetching, refetch } = useConceptosCostoAbiertos(proveedorId, organizationId);
   // Conciliación multi-moneda: el T/C DOF de la fecha de emisión convierte los
   // costos cotizados en otra moneda a la moneda de la factura.
   const { data: tcDof } = useTcDofPorFecha(fechaEmision ?? null, !!fechaEmision);
@@ -97,7 +98,7 @@ export function VincularEmbarqueSection({
     descripcion: facturaDescripcion,
     monto: facturaMonto,
     moneda: facturaMoneda,
-    totalCandidatos: data?.length ?? 0,
+    totalCandidatos: totalConceptos,
   });
 
   const handleSugerir = () => {
@@ -117,6 +118,26 @@ export function VincularEmbarqueSection({
     return (
       <div className="rounded-lg border bg-muted/30 px-4 py-3 flex items-center gap-2 text-body text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" /> Buscando costos pendientes de este proveedor…
+      </div>
+    );
+  }
+  if (isError) {
+    return (
+      <div className="space-y-3">
+        <ErrorStateInline
+          title="No se pudieron consultar los costos pendientes"
+          message="Vuelve a consultar los costos o vincula un embarque manualmente."
+          onRetry={() => void refetch()}
+          retrying={isFetching}
+        />
+        <SugerirEmbarqueBlock
+          soloBusqueda
+          proveedorId={proveedorId}
+          proveedorNombre={proveedorNombre}
+          organizationId={organizationId}
+          seleccionado={embarqueAdHoc}
+          onSeleccionar={onEmbarqueAdHoc}
+        />
       </div>
     );
   }

@@ -4,6 +4,7 @@ import { tieneSaldoMonetario } from "@/lib/financial/toleranciaPago";
  * Estados unificados vía `<BandejaShell />`.
  */
 import { useMemo } from "react";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlarmClock } from "lucide-react";
 import { defineColumns } from "@/components/shared/DataTable";
@@ -122,10 +123,14 @@ export function BandejaVencidas() {
             data={paged.rows}
             isLoading={paged.isLoading}
             emptyState={
-              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-body text-muted-foreground px-4">
-                <AlarmClock className="h-8 w-8 opacity-40" strokeWidth={1.5} />
-                <span>Sin cartera vencida — todas las facturas están al día.</span>
-              </div>
+              <EmptyStateInline
+                icon={AlarmClock}
+                message={paged.activeCount > 0
+                  ? "Ninguna factura vencida coincide con los filtros."
+                  : "Sin cartera vencida — todas las facturas están al día."}
+                action={paged.activeCount > 0 ? { label: "Limpiar filtros", onClick: paged.resetAll } : undefined}
+                className="py-12"
+              />
             }
             rowKey={(r) => r.id}
             getRowHref={(r) => `/facturacion/${r.id}`}

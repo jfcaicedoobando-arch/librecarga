@@ -7,6 +7,7 @@
  * v13.623.0 — formato invoice: columna Total por línea + caja de totales.
  */
 import { FileText } from "lucide-react";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentoSectionTitle } from "@/components/shared/documento/DocumentoSectionTitle";
 import { formatCurrency } from "@/lib/formatters";
@@ -46,15 +47,15 @@ interface Props {
 export function ConceptosFacturaSection({
   facturaId, moneda, iva, ieps, retenciones, total, edicion,
 }: Props) {
-  const { data: conceptos = [], isLoading } = useConceptosCfdiFactura(facturaId);
+  const { data: conceptos = [], isLoading, isError, isFetching, refetch } = useConceptosCfdiFactura(facturaId);
 
   return (
     <section className="space-y-3">
       <DocumentoSectionTitle
         title="Conceptos de la factura"
         icon={<FileText className="h-4 w-4" />}
-        count={conceptos.length}
-        actions={edicion ? (
+        count={isLoading || isError ? undefined : conceptos.length}
+        actions={edicion && !isLoading && !isError ? (
           <EditarConceptosButton
             facturaId={facturaId}
             moneda={moneda}
@@ -74,6 +75,13 @@ export function ConceptosFacturaSection({
 
       {isLoading ? (
         <Skeleton className="h-16 rounded-md" />
+      ) : isError ? (
+        <ErrorStateInline
+          title="No se pudieron consultar los conceptos"
+          message="Reintenta la consulta del desglose fiscal."
+          onRetry={() => void refetch()}
+          retrying={isFetching}
+        />
       ) : conceptos.length === 0 ? (
         <p className="text-body-sm text-muted-foreground rounded-md border bg-muted/20 px-3 py-3">
           Esta factura no tiene conceptos capturados del CFDI. Si el proveedor

@@ -11,6 +11,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -38,11 +39,12 @@ interface Props {
 
 function AgingDrillDownBody({ proveedor, open, onOpenChange, cubetaInicial = "todas", fechaReferencia = todayLocalISO() }: Props) {
   const [cubeta, setCubeta] = useState<CubetaAging | "todas">(cubetaInicial);
-  const { data: facturas = [], isLoading } = useFacturasCxP(
+  const { data: facturas = [], isLoading, isError, isFetching, refetch } = useFacturasCxP(
     proveedor ? { proveedor_id: proveedor.proveedor_id, moneda: proveedor.moneda } : {},
   );
 
-  const abiertas = useMemo(() => clasificarAFecha(facturas, fechaReferencia).filter((f) => f.saldo > 0.005 && f.moneda === proveedor?.moneda), [facturas, proveedor?.moneda, fechaReferencia]);
+  const moneda = proveedor?.moneda;
+  const abiertas = useMemo(() => clasificarAFecha(facturas, fechaReferencia).filter((f) => f.saldo > 0.005 && f.moneda === moneda), [facturas, moneda, fechaReferencia]);
   const filtradas = useMemo(() => {
     if (cubeta === "todas") return abiertas;
     return abiertas.filter((f) => bucketDeDias(f.dias_vencido) === cubeta);
@@ -82,8 +84,10 @@ function AgingDrillDownBody({ proveedor, open, onOpenChange, cubetaInicial = "to
     },
   ]), []);
 
+  const detalleDisponible = !isLoading && !isError;
+  const exportCount = detalleDisponible ? filtradas.length : undefined;
   const handleExport = () => {
-    if (filtradas.length === 0 || !proveedor) return;
+    if (!detalleDisponible || filtradas.length === 0 || !proveedor) return;
     const headers = ["Folio proveedor", "Emisión", "Vencimiento", "Días", "Cubeta", "Moneda", "Saldo", "Fecha para antigüedad", "Filtro de cubeta"];
     const lines = filtradas.map((f) => {
       const bucket = bucketDeDias(f.dias_vencido);
@@ -115,7 +119,7 @@ function AgingDrillDownBody({ proveedor, open, onOpenChange, cubetaInicial = "to
               <DialogTitle className="text-primary">
                 Facturas con saldo
               </DialogTitle>
-              {proveedor && (
+              {proveedor && detalleDisponible && (
                 <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground text-body-sm font-mono font-semibold uppercase tracking-wider border">
                   {filtradas.length} factura{filtradas.length === 1 ? "" : "s"}
                 </span>
@@ -135,8 +139,8 @@ function AgingDrillDownBody({ proveedor, open, onOpenChange, cubetaInicial = "to
               cubeta={cubeta}
               onChange={setCubeta}
               onExport={handleExport}
-              exportDisabled={filtradas.length === 0}
-              exportCount={filtradas.length}
+              exportDisabled={!exportCount}
+              exportCount={exportCount}
             />
           )}
 
@@ -148,6 +152,13 @@ function AgingDrillDownBody({ proveedor, open, onOpenChange, cubetaInicial = "to
                 <AlertTriangle className="h-4 w-4" />
                 Selecciona un proveedor.
               </div>
+            ) : isError ? (
+              <ErrorStateInline
+                title="No se pudieron consultar las facturas del proveedor"
+                message="Reintenta para actualizar la cubeta seleccionada."
+                onRetry={() => void refetch()}
+                retrying={isFetching}
+              />
             ) : (
               <DataTable<FacturaCxP>
                 columns={columns}
