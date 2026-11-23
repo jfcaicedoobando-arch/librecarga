@@ -34,7 +34,7 @@ export interface FacturasEmitidasFiltros {
 }
 
 /** Datos, estado de carga y paginación de la tabla. */
-export interface FacturasEmitidasTabla {
+interface FacturasEmitidasTabla {
   columns: ColumnDef<Factura, unknown>[];
   data: Factura[];
   facturasFiltradas: Factura[];
@@ -50,8 +50,14 @@ export interface FacturasEmitidasTabla {
 }
 
 /** Acciones que dispara el usuario desde la bandeja. */
-export interface FacturasEmitidasAcciones {
+interface FacturasEmitidasAcciones {
   exportarFacturasCsv: () => void;
   exportarLayoutContable: () => void;
   onCreateNew?: () => void;
+}
+
+export interface FacturasEmitidasProps {
+  filtros: FacturasEmitidasFiltros;
+  tabla: FacturasEmitidasTabla;
+  acciones: FacturasEmitidasAcciones;
 }

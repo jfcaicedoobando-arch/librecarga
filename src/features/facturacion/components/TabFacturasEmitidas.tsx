@@ -25,23 +25,14 @@ import { buildFacturasEmitidasChips } from "./facturasEmitidasChips";
 import type { Database } from "@/types/db";
 import { rangoLabel } from "@/lib/ui/rangoFechasCopy";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
+import type { FacturasEmitidasProps } from "./facturasEmitidasProps";
 
 type EstadoFactura = Database["public"]["Enums"]["estado_factura"];
 const ESTADOS_FACTURA: EstadoFactura[] = [
   "Borrador", "Por timbrar", "Emitida", "Parcialmente pagada", "Pagada", "Vencida", "Cancelada",
 ];
 
-import type {
-  FacturasEmitidasAcciones, FacturasEmitidasFiltros, FacturasEmitidasTabla,
-} from "@/features/facturacion/components/facturasEmitidasProps";
-
-interface Props {
-  filtros: FacturasEmitidasFiltros;
-  tabla: FacturasEmitidasTabla;
-  acciones: FacturasEmitidasAcciones;
-}
-
-export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Props) {
+export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: FacturasEmitidasProps) {
   const { canEmitirFactura } = usePermissions();
   const selection = useRowSelection();
   const [zipMesOpen, setZipMesOpen] = useState(false);
