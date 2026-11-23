@@ -23,7 +23,7 @@ export async function buscarGlobal(
     // El ámbito es el módulo; el error va como dato para que Sentry reciba su
     // mensaje y código reales (antes llegaba como `[object Object]`).
     logger.error("busqueda_global", error);
-    return [];
+    throw error;
   }
 
   return (data ?? []) as GlobalSearchRpcRow[];
