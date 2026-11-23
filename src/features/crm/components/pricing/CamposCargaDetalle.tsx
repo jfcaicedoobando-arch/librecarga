@@ -3,6 +3,7 @@
  * La base exige estos datos al enviar (`crm_enviar_solicitud_pricing`).
  */
 import { useEffect, useState } from "react";
+import { formatNumber } from "@/lib/formatters";
 import { aNumero } from "@/features/crm/services/pricing/tiposPricing";
 import { CLASES_IMO, faltantesCargaDetalle, normalizarNumeroUN, pesoMedidaWM } from "@/features/crm/services/pricing/modoPricing";
 import { CampoLista, CampoTexto } from "./CamposPricing";
@@ -35,7 +36,7 @@ export function CamposCargaDetalle({ datos, set, disabled }: Props) {
             value={datos.volumen_cbm}
             onChange={(v) => { const n = aNumero(v); set("volumen_cbm", n != null && n > 0 ? n : null); }} />
           <p className="self-end pb-2 text-body-sm text-muted-foreground">
-            Peso/medida (W/M): {wm == null ? "captura peso en kg, lb o t y CBM" : `${wm.toLocaleString("es-MX", { maximumFractionDigits: 3 })}`}
+            Peso/medida (W/M): {wm == null ? "captura peso en kg, lb o t y CBM" : formatNumber(wm, { maximumFractionDigits: 3 })}
           </p>
         </>
       )}

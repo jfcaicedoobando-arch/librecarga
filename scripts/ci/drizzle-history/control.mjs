@@ -88,6 +88,12 @@ export const HISTORY = [
   { file: '0092_auxiliares_seleccionados_acceso_protegido.sql', sha256: 'ad83fb3851f436fa2d4469126b386010eb3afed6699a83d16aa0c612921a8c79', eligibleName: '20261120010900_replay_auxiliares_seleccionados_acceso_protegido.sql' },
   { file: '0093_actividad_embarque_bitacora_misma_organizacion.sql', sha256: 'd52a1a33ce842b6eb7887747df3922476235fe718a652d4977690c478e7a6fff', eligibleName: '20261120011000_replay_actividad_embarque_bitacora_misma_organizacion.sql' },
   { file: '0094_autoridad_local_avisos_seleccionados.sql', sha256: '54b2177cafedd41c05dfb255336480896eb7bb586362d3fd7d0930be4f3a271b', eligibleName: '20261120011100_replay_autoridad_local_avisos_seleccionados.sql' },
+  { file: '0095_pricing_sla_horas_habiles.sql', sha256: '611bd54dbb6de477a293099f946d86bf94a5b1ff2fcab35d5bf73a319a951fc8', eligibleName: '20261123200000_replay_pricing_sla_horas_habiles.sql' },
+  { file: '0096_pricing_submodalidad_incoterms_modo.sql', sha256: '804a63bcdce6e9aac0c126303d7fe14c7371be7189b68ca109b555fa247ad192', eligibleName: '20261123200100_replay_pricing_submodalidad_incoterms_modo.sql' },
+  { file: '0097_pricing_plazos_por_modo.sql', sha256: '6320a8c282720b1ef4526c8f6bdee59f1b9e96a3e5d5db0ea799ab86fdb79d43', eligibleName: '20261123200200_replay_pricing_plazos_por_modo.sql' },
+  { file: '0098_pricing_lcl_imo_modalidad_negocio.sql', sha256: 'edbf9d524ee7317c0def6cdddd6c57f865a653978e33aacb025596f5651c9bb7', eligibleName: '20261123200300_replay_pricing_lcl_imo_modalidad_negocio.sql' },
+  { file: '0099_recargos_base_por_unidad_o_embarque.sql', sha256: '3ecec21d9118c5a056ba41b5fa3126984619d26706e1b2ab7ec0dabe712a4021', eligibleName: '20261123200400_replay_recargos_base_por_unidad_o_embarque.sql' },
+  { file: '0100_tarifario_aereo_terrestre_base.sql', sha256: '6d3af90a1789af2154a484f7c4b11b5fc0973cddb3fbcf9e7dc6ff00433b478e', eligibleName: '20261123200500_replay_tarifario_aereo_terrestre_base.sql' },
 ];
 const ARCHIVED_METADATA = [
   [`${ARCHIVE}/meta/0022_snapshot.json`, '002a1cff39197fe3431f23193a4229e1c845cbcd0ab5eaa074efded812b0081d'],

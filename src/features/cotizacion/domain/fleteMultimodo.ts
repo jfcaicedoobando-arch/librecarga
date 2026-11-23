@@ -6,6 +6,7 @@
  * Aéreo usa peso tasable (real vs volumétrico 1:6000); terrestre, peso real.
  */
 import { fletePorPeso, pesoTasable, precioPorTramo, type TramoPeso } from "@/features/costeo/domain/tarifaPorPeso";
+import { subtotalLinea } from "@/lib/financial/financialUtils";
 
 export interface TarifaMultimodoCosteo {
   id: string;
@@ -32,7 +33,7 @@ export function fleteMultimodo(
   if (!(kg > 0)) return null;
   const precio = precioPorTramo(tarifa.tramos, kg, tarifa.flete_base);
   const importe = fletePorPeso(tarifa.tramos, kg, tarifa.flete_base, tarifa.minimo);
-  if (tarifa.minimo != null && importe === tarifa.minimo && importe > Math.round(precio * kg * 100) / 100) {
+  if (tarifa.minimo != null && importe === tarifa.minimo && importe > subtotalLinea(kg, precio)) {
     return { cantidad: 1, costo_unitario: tarifa.minimo, unidad: "embarque" };
   }
   if (!(precio > 0)) return null;

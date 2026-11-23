@@ -1,5 +1,11 @@
 # Changelog
 
+## [13.824.105] - 2026-11-23
+
+- **Facturación y Embarques.** Las bandejas aclaran qué queda seleccionado al cambiar los filtros y mantienen visible la revisión de documentos faltantes.
+- **Clientes, CRM y Configuración.** Los formularios protegen la captura en curso. El asistente de Facturapi mantiene la comprobación asociada a la organización y el ambiente elegidos.
+- **Pricing.** El cálculo W/M usa el formato numérico compartido y la revisión de migraciones reproduce el historial del tarifario en la base de pruebas.
+
 ## [13.824.104] - 2026-11-23
 
 - **Primer acceso y configuración.** La guía inicial orienta según el rol. La captura fiscal y la configuración de Empresa piden confirmación antes de descartar cambios.

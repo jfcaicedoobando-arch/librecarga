@@ -17,6 +17,11 @@ describe("fleteMultimodo", () => {
   it("aplica el mínimo por embarque", () => {
     expect(fleteMultimodo(aereo, { pesoKg: 20, volumenM3: 0, viajes: 1 })).toEqual({ cantidad: 1, costo_unitario: 150, unidad: "embarque" });
   });
+  it("conserva el cobro por kg si el subtotal redondeado empata el mínimo", () => {
+    const tarifa = { ...aereo, flete_base: 10.075, minimo: 10.08, tramos: [] };
+    const resultado = fleteMultimodo(tarifa, { pesoKg: 1, volumenM3: 0, viajes: 1 });
+    expect(resultado).toEqual({ cantidad: 1, costo_unitario: 10.075, unidad: "kg" });
+  });
   it("terrestre por viaje multiplica por viajes", () => {
     const ftl = { ...aereo, modo: "Terrestre" as const, unidad_flete: "viaje", flete_base: 18000, tramos: [] };
     expect(fleteMultimodo(ftl, { pesoKg: 0, volumenM3: 0, viajes: 2 })).toEqual({ cantidad: 2, costo_unitario: 18000, unidad: "viaje" });

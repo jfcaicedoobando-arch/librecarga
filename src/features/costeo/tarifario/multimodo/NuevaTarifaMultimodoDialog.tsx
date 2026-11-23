@@ -11,6 +11,7 @@ import { FormDialogSection } from "@/components/shared/FormDialogSection";
 import { useOrganization } from "@/lib/contexts/OrganizationContext";
 import { useToast } from "@/hooks/shared";
 import { queryKeys } from "@/lib/query";
+import { notifyError } from "@/lib/ui/appFeedback";
 import { useCosteoAgentes } from "@/features/costeo/hooks/useCosteoAgentes";
 import { crearTarifaMultimodo } from "@/features/costeo/services/tarifas/crearMultimodo";
 import { faltantesTarifaMultimodo, usaTramos, type TarifaMultimodoForm } from "@/features/costeo/domain/tarifaMultimodo";
@@ -43,7 +44,9 @@ export function NuevaTarifaMultimodoDialog({ open, onOpenChange }: Props) {
       toast({ title: "Tarifa guardada" });
       setF(VACIO); setRecargos([]); onOpenChange(false);
     },
-    onError: (e: Error) => toast({ title: "No se pudo guardar", description: e.message, variant: "destructive" }),
+    onError: (error: Error) => notifyError(undefined, {
+      title: "No se pudo guardar", description: error.message, error, method: "crearTarifaMultimodo",
+    }),
   });
   const porKg = usaTramos(f);
   return (

@@ -104,8 +104,14 @@ describe("isolated Drizzle history is not deployment-eligible", () => {
       "0092_auxiliares_seleccionados_acceso_protegido.sql",
       "0093_actividad_embarque_bitacora_misma_organizacion.sql",
       "0094_autoridad_local_avisos_seleccionados.sql",
+      "0095_pricing_sla_horas_habiles.sql",
+      "0096_pricing_submodalidad_incoterms_modo.sql",
+      "0097_pricing_plazos_por_modo.sql",
+      "0098_pricing_lcl_imo_modalidad_negocio.sql",
+      "0099_recargos_base_por_unidad_o_embarque.sql",
+      "0100_tarifario_aereo_terrestre_base.sql",
     ]);
-    expect(readIsolatedDrizzleReplay().size).toBe(72);
+    expect(readIsolatedDrizzleReplay().size).toBe(78);
     const archive = paths[1].replace("0022_refacturar_proforma_abre_edicion.sql", "meta/_journal.json");
     expect(JSON.parse(read(archive)).entries[22]).toMatchObject({ idx: 22, when: 1792518064767, tag: "0022_refacturar_proforma_abre_edicion" });
     expect(JSON.parse(read("drizzle/migrations/meta/_journal.json")).entries[22].tag).toBe("0022_cotizacion_comercial");
