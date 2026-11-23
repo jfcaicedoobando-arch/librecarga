@@ -1,0 +1,65 @@
+import type { TramoPeso } from "./tarifaPorPeso";
+
+export type ModoNoMaritimo = "Aéreo" | "Terrestre";
+export const SUBMODALIDADES_TERRESTRE = ["FTL", "LTL", "Arrastre"] as const;
+export const TIPOS_UNIDAD = ["Caja seca 53'", "Thorton", "Rabón", "Plataforma", "Refrigerada"] as const;
+export const TRAMOS_AEREOS_SUGERIDOS = [45, 100, 300, 500, 1000];
+
+export interface TarifaMultimodoForm {
+  modo: ModoNoMaritimo; agente_id: string; moneda: "USD";
+  origen: string; destino: string; aerolinea: string;
+  submodalidad: string; tipo_unidad: string;
+  flete_base: number; minimo: number | null;
+  vigente_desde: string; vigente_hasta: string; transit_time_dias: number | null;
+  tramos: TramoPeso[];
+}
+
+const CP = /^\d{5}$/;
+const IATA = /^[A-Z0-9]{3}$/;
+
+/** Usa tramos de peso: aéreo y terrestre LTL. */
+export function usaTramos(f: Pick<TarifaMultimodoForm, "modo" | "submodalidad">): boolean {
+  return f.modo === "Aéreo" || f.submodalidad === "LTL";
+}
+
+export function faltantesTarifaMultimodo(f: TarifaMultimodoForm): string[] {
+  const out: string[] = [];
+  if (!f.agente_id) out.push("Agente");
+  if (f.modo === "Aéreo") {
+    if (!IATA.test(f.origen)) out.push("Aeropuerto de origen (IATA)");
+    if (!IATA.test(f.destino)) out.push("Aeropuerto de destino (IATA)");
+    if (f.origen && f.origen === f.destino) out.push("Origen y destino distintos");
+  } else {
+    if (!f.submodalidad) out.push("Submodalidad");
+    if (!f.origen.trim()) out.push("Origen (CP o ciudad)");
+    if (!f.destino.trim()) out.push("Destino (CP o ciudad)");
+  }
+  if (!(f.flete_base >= 0)) out.push("Flete base");
+  if (!f.vigente_desde || !f.vigente_hasta || f.vigente_hasta < f.vigente_desde) out.push("Vigencia");
+  const desdes = f.tramos.map((t) => t.desde_kg);
+  if (new Set(desdes).size !== desdes.length) out.push("Rangos de peso repetidos");
+  if (f.tramos.some((t) => t.desde_kg < 0 || t.precio < 0)) out.push("Rangos con valores negativos");
+  return out;
+}
+
+function lugar(valor: string): { cp: string | null; ciudad: string | null } {
+  const v = valor.trim();
+  return CP.test(v) ? { cp: v, ciudad: null } : { cp: null, ciudad: v || null };
+}
+
+/** Payload para `crear_tarifa_con_recargos_rpc`. */
+export function payloadTarifaMultimodo(f: TarifaMultimodoForm): Record<string, unknown> {
+  const base = {
+    modo: f.modo, agente_id: f.agente_id, flete_base: f.flete_base, minimo: f.minimo,
+    vigente_desde: f.vigente_desde, vigente_hasta: f.vigente_hasta, transit_time_dias: f.transit_time_dias,
+    tramos: usaTramos(f) ? f.tramos : [],
+  };
+  if (f.modo === "Aéreo") {
+    return { ...base, aeropuerto_origen: f.origen.toUpperCase(), aeropuerto_destino: f.destino.toUpperCase(),
+      aerolinea: f.aerolinea || null, unidad_flete: "kg" };
+  }
+  const o = lugar(f.origen); const d = lugar(f.destino);
+  return { ...base, submodalidad: f.submodalidad, tipo_unidad: f.tipo_unidad || null,
+    origen_cp: o.cp, origen_ciudad: o.ciudad, destino_cp: d.cp, destino_ciudad: d.ciudad,
+    unidad_flete: f.submodalidad === "LTL" ? "kg" : "viaje" };
+}

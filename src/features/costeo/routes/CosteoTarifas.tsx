@@ -7,7 +7,9 @@
 import { useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus } from "lucide-react";
+import { Plus, Plane } from "lucide-react";
+import { useState } from "react";
+import { NuevaTarifaMultimodoDialog } from "@/features/costeo/tarifario/multimodo/NuevaTarifaMultimodoDialog";
 import { useCosteoAgentes } from "@/features/costeo/hooks/useCosteoAgentes";
 import { useCosteoRutas } from "@/features/costeo/hooks/useCosteoRutas";
 import { useTiposContenedor } from "@/features/catalogos/hooks";
@@ -39,6 +41,7 @@ export default function CosteoTarifas() {
     setParams(n, { replace: true });
   };
   const s = useCosteoTarifasPageState();
+  const [multimodo, setMultimodo] = useState(false);
   const { data: agentes = [] } = useCosteoAgentes();
   const { data: tipos = [] } = useTiposContenedor();
 
@@ -62,12 +65,17 @@ export default function CosteoTarifas() {
               title="Tarifas de costeo"
               description="Respuestas de pricing: tarifas por agente, naviera, ruta y contenedor. Moneda base: USD."
               actions={
+                <>
+                <Button variant="outline" onClick={() => setMultimodo(true)}>
+                  <Plane className="size-4 mr-2" />Aérea o terrestre
+                </Button>
                 <Button
                   onClick={s.nuevo}
                   title="Puedes capturar una tarifa o seleccionar varias rutas para crearlas en lote."
                 >
                   <Plus className="size-4 mr-2" />Nueva tarifa
                 </Button>
+                </>
               }
             />
 
@@ -161,6 +169,7 @@ export default function CosteoTarifas() {
           </div>
         </TabsContent>
       </Tabs>
+      <NuevaTarifaMultimodoDialog open={multimodo} onOpenChange={setMultimodo} />
     </PageContainer>
   );
 }
