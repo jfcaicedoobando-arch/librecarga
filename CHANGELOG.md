@@ -1,5 +1,10 @@
 # Changelog
 
+## [13.824.98] - 2026-11-22
+- **Captura y cobranza:** Demoras bloquea la edición hasta cargar el tabulador, Presupuesto guarda el cero explícito y el correo de estado de cuenta desglosa los saldos por moneda.
+- **Operación diaria:** Embarques, Proveedores y Notificaciones distinguen entre una consulta fallida y una lista vacía. Expediente permite renovar documentos y avisa al elegir un archivo de más de 15 MB.
+- **Compras, Tesorería y portales:** los rangos invertidos detienen la consulta y el CSV, el Libro de pagos muestra sus filtros activos en móvil y el portal distingue el saldo confirmado de un fallo de consulta.
+
 ## [13.824.97] - 2026-11-22
 - **Operación diaria:** Conciliación limpia el movimiento al cambiar de cuenta, Cotizaciones permite reintentar la carga de costos y Proformas sincroniza su estado con la URL.
 - **Pagos y portal:** los ajustes no monetarios se distinguen en Pagos a proveedores y su CSV. El portal distingue saldos pendientes de consulta y conserva el último saldo disponible.
