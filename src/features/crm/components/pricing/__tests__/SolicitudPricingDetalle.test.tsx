@@ -36,7 +36,7 @@ const solicitud: SolicitudPricingRow = {
   cantidad: 1, cliente: null, commodity: null, container_size: null, deleted_at: null, delivery: null,
   destino: "Manzanillo", dimensiones: null, enviada_at: null, estibable: null, fecha_tentativa_carga: null,
   imo: null, incoterm: "FAS", notas: null, origen: "Ningbo", peso: null, pod: null, pol: null,
-  respondida_at: null, submodalidad: null, volumen_cbm: null, imo_clase: null, imo_un: null, modalidad_negocio: null, baterias_litio: null, known_shipper: null, tipo_aeronave: null, servicio: "Marítimo", tipo_carga: "40' High Cube", unidad_medida: null, tipo_operacion: null, sector_economico: null, tipo_solicitud: null, complejidad_motivo: null, plazo_motivo: null,
+  respondida_at: null, submodalidad: null, volumen_cbm: null, imo_clase: null, imo_un: null, modalidad_negocio: null, baterias_litio: null, known_shipper: null, tipo_aeronave: null, origen_cp: null, destino_cp: null, paradas: null, cruce_fronterizo: null, in_bond: null, tipo_unidad: null, tarimas: null, arrastre_puerto: null, retorno_vacio: null, sobrepeso: null, servicio: "Marítimo", tipo_carga: "40' High Cube", unidad_medida: null, tipo_operacion: null, sector_economico: null, tipo_solicitud: null, complejidad_motivo: null, plazo_motivo: null,
   vence_at: null, tarifa_tarifario_id: null,
 };
 const tarifa: TarifaRespuestaRow = {

@@ -1,4 +1,4 @@
-/** Aplica una sola vez la tarifa aérea elegida en Pricing con el peso real y volumen de la solicitud. */
+/** Aplica una sola vez la tarifa aérea o terrestre elegida en Pricing con el peso real y volumen de la solicitud. */
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { UseFormReturn } from "react-hook-form";
@@ -24,14 +24,16 @@ export function usePrefillTarifaAerea(
     if (!activo || hecho.current) return;
     if (q.isError) {
       hecho.current = true;
-      notifyError(undefined, { title: "No se pudo abrir la tarifa aérea", error: q.error, method: "COTIZACION_PREFILL_TARIFA_AEREA" });
+      notifyError(undefined, { title: "No se pudo abrir la tarifa", error: q.error, method: "COTIZACION_PREFILL_TARIFA_AEREA" });
       return;
     }
     const p = q.data;
     if (!p) return;
     hecho.current = true;
     if (form.getValues("tarifaId")) return; // nunca pisa una tarifa ya elegida
-    form.setValue("modo", "Aéreo", OPTS);
+    form.setValue("modo", p.modo, OPTS);
+    if (p.tipoUnidad && !form.getValues("tipoUnidad")) form.setValue("tipoUnidad", p.tipoUnidad, OPTS);
+    if (p.puntoIntermedio && !form.getValues("puntoIntermedio")) form.setValue("puntoIntermedio", p.puntoIntermedio, OPTS);
     form.setValue("monedaTarifa", p.moneda, OPTS);
     form.setValue("origen", p.origen, OPTS);
     form.setValue("destino", p.destino, OPTS);
@@ -43,7 +45,7 @@ export function usePrefillTarifaAerea(
     const hasta = new Date(y, m - 1, d, 23, 59, 59, 999);
     const validez = form.getValues("validezPropuesta");
     if (validez && validez > hasta) form.setValue("validezPropuesta", hasta, OPTS);
-    form.setValue("banderasAereas", p.banderasAereas, OPTS);
+    if (p.modo === "Aéreo") form.setValue("banderasAereas", p.banderasAereas, OPTS);
     form.setValue("tarifaId", p.tarifaId, OPTS); // al final: dispara la carga automática de costos
   }, [activo, q.data, q.isError, q.error, form]);
 }

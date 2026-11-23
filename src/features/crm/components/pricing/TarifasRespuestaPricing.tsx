@@ -28,6 +28,8 @@ interface Props {
   onCotizar?: (tarifaId: string) => void;
   /** Solicitud aérea: "Agregar tarifa" abre el formulario aéreo con la ruta IATA. */
   aereo?: { pol: string | null; pod: string | null };
+  /** Terrestre: abre el formulario terrestre con la ruta de la solicitud. */
+  terrestre?: { submodalidad: string | null; origen: string | null; destino: string | null; tipoUnidad: string | null };
 }
 
 const carta = (v: boolean | null) => (v === true ? "Sí" : v === false ? "No" : "—");
@@ -65,7 +67,7 @@ function FilaTarifa({ t, n, onCotizar }: { t: TarifaRespuestaRow; n: number; onC
   );
 }
 
-export function TarifasRespuestaPricing({ solicitudId, editable, hayOpcionesViejas, tarifas, isLoading, isError, isFetching, onSaved, onCotizar, aereo }: Props) {
+export function TarifasRespuestaPricing({ solicitudId, editable, hayOpcionesViejas, tarifas, isLoading, isError, isFetching, onSaved, onCotizar, aereo, terrestre }: Props) {
   const [abierto, setAbierto] = useState(false);
 
   return (
@@ -86,7 +88,12 @@ export function TarifasRespuestaPricing({ solicitudId, editable, hayOpcionesViej
         <NuevaTarifaMultimodoDialog open={abierto} onOpenChange={setAbierto} onSaved={onSaved}
           inicial={{ solicitud_pricing_id: solicitudId, origen: iataDeEtiqueta(aereo.pol) ?? "", destino: iataDeEtiqueta(aereo.pod) ?? "" }} />
       )}
-      {abierto && !aereo && (
+      {abierto && !aereo && terrestre && (
+        <NuevaTarifaMultimodoDialog open={abierto} onOpenChange={setAbierto} onSaved={onSaved}
+          inicial={{ modo: "Terrestre", solicitud_pricing_id: solicitudId, submodalidad: terrestre.submodalidad ?? "",
+            origen: terrestre.origen ?? "", destino: terrestre.destino ?? "", tipo_unidad: terrestre.tipoUnidad ?? "" }} />
+      )}
+      {abierto && !aereo && !terrestre && (
         <TarifaForm open={abierto} onOpenChange={setAbierto} onSaved={onSaved}
           initial={{ solicitud_pricing_id: solicitudId, carta_garantia: null, unidad_flete: null }} />
       )}

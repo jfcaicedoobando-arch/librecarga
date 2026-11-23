@@ -18,6 +18,9 @@ import { CamposCargaDetalle } from "./CamposCargaDetalle";
 import { CamposMedidasAereo } from "./CamposMedidasAereo";
 import { RutaAerea } from "./RutaAerea";
 import { CamposBanderasAereo } from "./CamposBanderasAereo";
+import { CamposTerrestre } from "./CamposTerrestre";
+import { RutaTerrestre } from "./RutaTerrestre";
+import { TERRESTRE_VACIO } from "@/features/crm/services/pricing/terrestrePricing";
 import { TIPOS } from "@/constants/wizardConstants";
 import { SECTORES } from "@/constants/cotizacionMercancia";
 
@@ -54,8 +57,10 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
     if (!submodalidadesDe(v).includes(datos.submodalidad ?? "")) set("submodalidad", null);
     if (datos.incoterm && !incotermsDe(v).includes(datos.incoterm)) set("incoterm", null);
     if (v !== "Aéreo") { set("baterias_litio", null); set("known_shipper", null); set("tipo_aeronave", null); }
+    if (v !== "Terrestre") for (const k of Object.keys(TERRESTRE_VACIO) as (keyof typeof TERRESTRE_VACIO)[]) set(k, null);
   };
   const aereo = datos.servicio === "Aéreo";
+  const terrestre = datos.servicio === "Terrestre";
   return (
     <>
       <FormDialogSection title="Datos generales">
@@ -93,10 +98,12 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
         {aereo ? <CamposMedidasAereo datos={datos} set={set} disabled={disabled} />
           : <CampoTexto id="pr-dim" label="Dimensions" {...d} value={datos.dimensiones} onChange={txt("dimensiones")} />}
         {aereo && <CamposBanderasAereo datos={datos} set={set} disabled={disabled} />}
+        {terrestre && <CamposTerrestre datos={datos} set={set} disabled={disabled} />}
         <CamposCargaDetalle datos={datos} set={set} disabled={disabled} />
       </FormDialogSection>
       <FormDialogSection title="Ruta">
-        {aereo ? <RutaAerea datos={datos} set={set} disabled={disabled} /> : (<>
+        {aereo ? <RutaAerea datos={datos} set={set} disabled={disabled} />
+          : terrestre ? <RutaTerrestre datos={datos} set={set} paises={paises} disabled={disabled} /> : (<>
         <fieldset className="col-span-full grid min-w-0 gap-3 rounded-md border p-3 sm:grid-cols-2">
           <legend className="px-1 text-body-sm font-medium">Origen (país o puerto)</legend>
           <CampoLista id="pr-origen" label="País de origen" {...d} value={datos.origen}

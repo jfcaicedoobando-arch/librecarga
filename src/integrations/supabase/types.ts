@@ -5190,6 +5190,7 @@ export type Database = {
       }
       crm_solicitudes_pricing: {
         Row: {
+          arrastre_puerto: string | null
           baterias_litio: boolean | null
           cantidad: number | null
           cliente: string | null
@@ -5199,9 +5200,11 @@ export type Database = {
           container_size: string | null
           created_at: string
           created_by: string | null
+          cruce_fronterizo: boolean | null
           deleted_at: string | null
           delivery: string | null
           destino: string | null
+          destino_cp: string | null
           dimensiones: string | null
           enviada_at: string | null
           estado: string
@@ -5213,6 +5216,7 @@ export type Database = {
           imo: boolean | null
           imo_clase: string | null
           imo_un: string | null
+          in_bond: boolean | null
           incoterm: string | null
           known_shipper: boolean | null
           modalidad_negocio: string | null
@@ -5220,26 +5224,33 @@ export type Database = {
           oportunidad_id: string
           organization_id: string
           origen: string | null
+          origen_cp: string | null
+          paradas: string[] | null
           peso: string | null
           plazo_motivo: string | null
           pod: string | null
           pol: string | null
           respondida_at: string | null
+          retorno_vacio: boolean | null
           sector_economico: string | null
           servicio: string | null
+          sobrepeso: boolean | null
           solicitante_id: string
           submodalidad: string | null
           tarifa_tarifario_id: string | null
+          tarimas: number | null
           tipo_aeronave: string | null
           tipo_carga: string | null
           tipo_operacion: string | null
           tipo_solicitud: string | null
+          tipo_unidad: string | null
           unidad_medida: string | null
           updated_at: string
           vence_at: string | null
           volumen_cbm: number | null
         }
         Insert: {
+          arrastre_puerto?: string | null
           baterias_litio?: boolean | null
           cantidad?: number | null
           cliente?: string | null
@@ -5249,9 +5260,11 @@ export type Database = {
           container_size?: string | null
           created_at?: string
           created_by?: string | null
+          cruce_fronterizo?: boolean | null
           deleted_at?: string | null
           delivery?: string | null
           destino?: string | null
+          destino_cp?: string | null
           dimensiones?: string | null
           enviada_at?: string | null
           estado?: string
@@ -5263,6 +5276,7 @@ export type Database = {
           imo?: boolean | null
           imo_clase?: string | null
           imo_un?: string | null
+          in_bond?: boolean | null
           incoterm?: string | null
           known_shipper?: boolean | null
           modalidad_negocio?: string | null
@@ -5270,26 +5284,33 @@ export type Database = {
           oportunidad_id: string
           organization_id: string
           origen?: string | null
+          origen_cp?: string | null
+          paradas?: string[] | null
           peso?: string | null
           plazo_motivo?: string | null
           pod?: string | null
           pol?: string | null
           respondida_at?: string | null
+          retorno_vacio?: boolean | null
           sector_economico?: string | null
           servicio?: string | null
+          sobrepeso?: boolean | null
           solicitante_id: string
           submodalidad?: string | null
           tarifa_tarifario_id?: string | null
+          tarimas?: number | null
           tipo_aeronave?: string | null
           tipo_carga?: string | null
           tipo_operacion?: string | null
           tipo_solicitud?: string | null
+          tipo_unidad?: string | null
           unidad_medida?: string | null
           updated_at?: string
           vence_at?: string | null
           volumen_cbm?: number | null
         }
         Update: {
+          arrastre_puerto?: string | null
           baterias_litio?: boolean | null
           cantidad?: number | null
           cliente?: string | null
@@ -5299,9 +5320,11 @@ export type Database = {
           container_size?: string | null
           created_at?: string
           created_by?: string | null
+          cruce_fronterizo?: boolean | null
           deleted_at?: string | null
           delivery?: string | null
           destino?: string | null
+          destino_cp?: string | null
           dimensiones?: string | null
           enviada_at?: string | null
           estado?: string
@@ -5313,6 +5336,7 @@ export type Database = {
           imo?: boolean | null
           imo_clase?: string | null
           imo_un?: string | null
+          in_bond?: boolean | null
           incoterm?: string | null
           known_shipper?: boolean | null
           modalidad_negocio?: string | null
@@ -5320,20 +5344,26 @@ export type Database = {
           oportunidad_id?: string
           organization_id?: string
           origen?: string | null
+          origen_cp?: string | null
+          paradas?: string[] | null
           peso?: string | null
           plazo_motivo?: string | null
           pod?: string | null
           pol?: string | null
           respondida_at?: string | null
+          retorno_vacio?: boolean | null
           sector_economico?: string | null
           servicio?: string | null
+          sobrepeso?: boolean | null
           solicitante_id?: string
           submodalidad?: string | null
           tarifa_tarifario_id?: string | null
+          tarimas?: number | null
           tipo_aeronave?: string | null
           tipo_carga?: string | null
           tipo_operacion?: string | null
           tipo_solicitud?: string | null
+          tipo_unidad?: string | null
           unidad_medida?: string | null
           updated_at?: string
           vence_at?: string | null

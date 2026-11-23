@@ -15,6 +15,13 @@ function etiquetaPlazo(s: SolicitudPricingRow): string {
   return h == null ? base : `${base} (${h} h hábiles)`;
 }
 
+function itemsTerrestre(s: SolicitudPricingRow): Array<[string, string | number | null]> {
+  return [["CP de origen", s.origen_cp], ["CP de destino", s.destino_cp], ["Paradas", s.paradas?.join(", ") ?? null],
+    ["Cruce fronterizo", siNo(s.cruce_fronterizo)], ["In-bond", siNo(s.in_bond)], ["Tipo de unidad", s.tipo_unidad],
+    ["Tarimas", s.tarimas], ["Puerto (arrastre)", s.arrastre_puerto], ["Retorno de vacío", siNo(s.retorno_vacio)],
+    ["Sobrepeso", siNo(s.sobrepeso)]];
+}
+
 export function ResumenSolicitudPricing({ solicitud: s }: { solicitud: SolicitudPricingRow }) {
   const { data: usuarios = [] } = useUsuariosOrgCrm();
   const solicitante = usuarios.find((u) => u.user_id === s.solicitante_id)?.nombre ?? null;
@@ -28,7 +35,9 @@ export function ResumenSolicitudPricing({ solicitud: s }: { solicitud: Solicitud
     ["Estibable", siNo(s.estibable)], ["Weight", s.peso],
     ["Units of measurement", UNIDADES_MEDIDA_PRICING.find((u) => u.value === s.unidad_medida)?.label ?? s.unidad_medida ?? null],
     ["Dimensions", s.dimensiones],
-    ["País de origen", s.origen], ["Puerto de origen", s.pol], ["País de destino", s.destino], ["Puerto de destino", s.pod],
+    ["País de origen", s.origen], [s.servicio === "Terrestre" ? "Ciudad de origen" : "Puerto de origen", s.pol],
+    ["País de destino", s.destino], [s.servicio === "Terrestre" ? "Ciudad de destino" : "Puerto de destino", s.pod],
+    ...(s.servicio === "Terrestre" ? itemsTerrestre(s) : []),
     ["Fecha tentativa de carga", formatFechaDia(s.fecha_tentativa_carga)], ["Delivery", s.delivery],
   ];
   return (

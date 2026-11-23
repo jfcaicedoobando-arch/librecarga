@@ -4,11 +4,12 @@
  */
 import type { SolicitudPricingRow } from "./tiposPricing";
 import { faltantesCargaDetalle, requiereSubmodalidad } from "./modoPricing";
+import { faltantesTerrestre } from "./terrestrePricing";
 
 type Datos = Partial<Pick<SolicitudPricingRow,
   "solicitante_id" | "fecha" | "cliente" | "servicio" | "submodalidad" | "tipo_operacion" | "incoterm" | "sector_economico" | "imo"
   | "commodity" | "tipo_carga" | "cantidad" | "estibable" | "peso" | "unidad_medida" | "dimensiones"
-  | "origen" | "pol" | "destino" | "pod" | "volumen_cbm" | "imo_clase" | "imo_un">>;
+  | "origen" | "pol" | "destino" | "pod" | "volumen_cbm" | "imo_clase" | "imo_un" | "tipo_unidad" | "tarimas">>;
 
 const OBLIGATORIOS: Array<[keyof Datos, string]> = [
   ["solicitante_id", "Solicitante"], ["fecha", "Fecha"], ["cliente", "Cliente"], ["servicio", "Modo de transporte"],
@@ -23,7 +24,9 @@ export function camposFaltantesSolicitud(d: Datos): string[] {
     if (k === "tipo_carga" && d.submodalidad !== "FCL" && d.submodalidad !== "Arrastre") return false;
     const v = d[k];
     return v == null || (typeof v === "string" && v.trim() === "");
-  }).map(([, etiqueta]) => etiqueta)
+  }).map(([k, etiqueta]) => (d.servicio === "Terrestre" && (k === "pol" || k === "pod")
+    ? (k === "pol" ? "Ciudad de origen" : "Ciudad de destino") : etiqueta))
     .concat(requiereSubmodalidad(d.servicio) && !d.submodalidad ? ["Submodalidad"] : [])
-    .concat(faltantesCargaDetalle(d));
+    .concat(faltantesCargaDetalle(d))
+    .concat(faltantesTerrestre(d));
 }

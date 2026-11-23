@@ -20,6 +20,7 @@ import { EnviarSolicitudFinal } from "./EnviarSolicitudFinal";
 import { ResumenSolicitudPricing } from "./ResumenSolicitudPricing";
 import { OpcionesTarifario } from "./OpcionesTarifario";
 import { OpcionesTarifarioAereo } from "./OpcionesTarifarioAereo";
+import { OpcionesTarifarioTerrestre } from "./OpcionesTarifarioTerrestre";
 import { SolicitudPricingDialog } from "./SolicitudPricingDialog";
 import { TarifasRespuestaPricing } from "./TarifasRespuestaPricing";
 
@@ -78,7 +79,8 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
       {esGerenteOps(effectiveRole) && <AjustePlazoPricing solicitud={s} />}
       <AdjuntosSolicitudPricing organizationId={s.organization_id} solicitudId={s.id}
         puedeAdjuntar={s.estado !== "cancelada"} />
-      {s.servicio === "Aéreo" ? <OpcionesTarifarioAereo solicitud={s} puedeCotizar={puedeCotizar} /> : (
+      {s.servicio === "Aéreo" ? <OpcionesTarifarioAereo solicitud={s} puedeCotizar={puedeCotizar} />
+        : s.servicio === "Terrestre" ? <OpcionesTarifarioTerrestre solicitud={s} puedeCotizar={puedeCotizar} /> : (
         <OpcionesTarifario solicitud={s} puedeElegir={puedeElegir} puedeCotizar={puedeCotizar}
           tarifasRespondidas={tarifasRespondidas} />
       )}
@@ -87,7 +89,8 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
         <OpcionPricingEditor key={o.id} solicitudId={s.id} organizationId={s.organization_id}
           orden={o.orden} opcion={o} editable={false} />
       ))}
-      <TarifasRespuestaPricing solicitudId={s.id} aereo={s.servicio === "Aéreo" ? { pol: s.pol, pod: s.pod } : undefined} hayOpcionesViejas={opciones.length > 0}
+      <TarifasRespuestaPricing solicitudId={s.id} aereo={s.servicio === "Aéreo" ? { pol: s.pol, pod: s.pod } : undefined}
+        terrestre={s.servicio === "Terrestre" ? { submodalidad: s.submodalidad, origen: s.origen_cp ?? s.pol, destino: s.destino_cp ?? s.pod, tipoUnidad: s.tipo_unidad } : undefined} hayOpcionesViejas={opciones.length > 0}
         tarifas={tarifas} isLoading={tarifasRespuesta.isLoading}
         isError={tarifasRespuesta.isError} isFetching={tarifasRespuesta.isFetching} onSaved={() => { void tarifasRespuesta.refetch(); }}
         onCotizar={puedeCotizar && s.estado === "respondida" ? cotizarRespuesta : undefined}

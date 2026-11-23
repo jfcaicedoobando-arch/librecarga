@@ -750,6 +750,13 @@
       "when": 1795474812257,
       "tag": "0106_recargo_minimo_proveedor",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1795475267843,
+      "tag": "0107_pricing_solicitud_terrestre",
+      "breakpoints": true
     }
   ]
 }
