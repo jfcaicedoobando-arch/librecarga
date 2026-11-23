@@ -37,11 +37,13 @@ interface ClienteTabsData {
 
 interface Props {
   cliente: ClienteTabsData;
-  contactos: ContactoCliente[];
-  loadingContactos: boolean;
-  errorContactos: Error | null;
-  refetchContactos: () => void;
-  fetchingContactos: boolean;
+  consultaContactos: {
+    contactos: ContactoCliente[];
+    isLoading: boolean;
+    error: Error | null;
+    onRetry: () => void;
+    isFetching: boolean;
+  };
   canEdit: boolean;
   embarquesCliente: EmbarqueCliente[];
   loadingEmbarques: boolean;
@@ -61,9 +63,7 @@ interface Props {
 
 export function ClienteDetalleTabs({
   cliente,
-  contactos,
-  loadingContactos,
-  errorContactos, refetchContactos, fetchingContactos,
+  consultaContactos,
   canEdit,
   embarquesCliente,
   loadingEmbarques,
@@ -113,11 +113,7 @@ export function ClienteDetalleTabs({
         </div>
 
         <TablaContactos
-          contactos={contactos}
-          isLoading={loadingContactos}
-          error={errorContactos}
-          onRetry={refetchContactos}
-          isFetching={fetchingContactos}
+          {...consultaContactos}
           canEdit={canEdit}
           onAdd={openNewContact}
           onEdit={openEditContact}

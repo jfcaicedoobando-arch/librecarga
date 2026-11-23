@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { listarEntidadesCargo, guardarCargo, type CargoTarifario, type TipoCargo } from "./cargosService";
 import { ConceptoNavieraSelect } from "./ConceptoNavieraSelect";
@@ -131,14 +132,17 @@ function EstadoCatalogoCargo({ tipo, cargando, error, sinOpciones, reintentando,
   reintentando: boolean;
   onRetry: () => void;
 }) {
-  if (cargando) return <p role="status" className="text-body-sm text-muted-foreground">Cargando opciones del catálogo…</p>;
+  if (cargando) {
+    return <div role="status"><EmptyStateInline loading density="compact" message="Cargando opciones del catálogo…" /></div>;
+  }
   if (error) {
     return <ErrorStateInline message="No se pudo consultar el catálogo del cargo." onRetry={onRetry} retrying={reintentando} />;
   }
   if (!sinOpciones) return null;
 
-  return <p className="text-body-sm text-muted-foreground">
-    {tipo === "fob" ? "No hay agentes activos. Da de alta un agente en Costeo › Agentes."
-      : "No hay navieras activas. Da de alta una naviera en Costeo › Condiciones por naviera."}
-  </p>;
+  const esFob = tipo === "fob";
+  return <EmptyStateInline density="compact"
+    message={esFob ? "No hay agentes activos." : "No hay navieras activas."}
+    hint={esFob ? "Da de alta un agente en Costeo › Agentes." : "Da de alta una naviera en Costeo › Condiciones por naviera."}
+  />;
 }

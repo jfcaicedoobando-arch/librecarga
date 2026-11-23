@@ -19,6 +19,7 @@ import { FormField } from "@/components/shared/FormField";
 import { WizardSection } from "@/components/shared/WizardSection";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { useProveedoresLite } from "@/features/proveedor/hooks/useProveedores";
 import { formatCurrency, formatNumber } from "@/lib/formatters/numbers";
 import { useConfigValue } from "@/features/configuracion/hooks/useConfiguracion";
@@ -46,7 +47,7 @@ function SelectorConsolidadorLcl({ valor, onChange }: { valor: string; onChange:
           </SelectContent>
         </Select>
       </FormField>
-      {isLoading && <p role="status" className="text-body-sm text-muted-foreground">Cargando proveedores…</p>}
+      {isLoading && <div role="status"><EmptyStateInline loading density="compact" message="Cargando proveedores…" /></div>}
       {isError && (
         <ErrorStateInline
           title="No pudimos consultar los proveedores"
@@ -56,7 +57,7 @@ function SelectorConsolidadorLcl({ valor, onChange }: { valor: string; onChange:
         />
       )}
       {!isLoading && !isError && proveedores.length === 0 && (
-        <p className="text-body-sm text-muted-foreground">No hay proveedores disponibles.</p>
+        <EmptyStateInline density="compact" message="No hay proveedores disponibles." />
       )}
     </div>
   );

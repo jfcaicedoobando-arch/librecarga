@@ -55,18 +55,14 @@ export async function fetchProveedoresPaginados(
   params: FetchProveedoresParams,
 ): Promise<{ data: ProveedorListItem[]; count: number }> {
   const { tipo, search, page, pageSize, organizationId, origen } = params;
-  const offset = page * pageSize;
-  const { data, error } = await supabase.rpc("proveedores_listado", {
+  const data = await unwrap(supabase.rpc("proveedores_listado", {
     p_organization_id: organizationId ?? undefined,
     p_tipo: tipo || undefined,
     p_search: search || undefined,
-    p_offset: offset,
+    p_offset: page * pageSize,
     p_limit: pageSize,
     p_origen: origen && origen !== "todos" ? origen : undefined,
-  });
-
-  if (error) throw error;
-
+  }));
   const rows = (data ?? []) as Array<{
     id: string;
     nombre: string;

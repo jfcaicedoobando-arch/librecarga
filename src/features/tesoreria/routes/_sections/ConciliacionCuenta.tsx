@@ -32,11 +32,10 @@ export function ConciliacionCuenta({ cuentaId: cuentaSolicitada, cambiarCuenta }
   cambiarCuenta: (id: string) => void;
 }) {
   const consultaCuentas = useCuentasBancarias();
-  const { cuentas, cuentaId, moneda, alias, mensajeSinCuenta, cuentasOcupadas } =
-    resolverCuenta(consultaCuentas, cuentaSolicitada);
+  const { cuenta, movimientoSeleccionado, panelKey, seleccionarMovimiento, cerrarMovimiento, refPago, setRefPago } =
+    useCuentaConciliacion(consultaCuentas, cuentaSolicitada);
+  const { cuentas, cuentaId, moneda, alias, mensajeSinCuenta, cuentasOcupadas } = cuenta;
   const { canCapturarMovimientoBancario } = usePermissions();
-  const { movimientoSeleccionado, panelKey, seleccionarMovimiento, cerrarMovimiento, refPago, setRefPago } =
-    useCuentaConciliacion(cuentaId);
   // M8 (Ola 8): el estado del movimiento también viaja en la URL.
   const [estado, setEstado] = useFiltroUrl<"Pendiente" | "Conciliado" | "Ignorado" | "todos">(
     "estado",
@@ -189,19 +188,4 @@ export function ConciliacionCuenta({ cuentaId: cuentaSolicitada, cambiarCuenta }
       ) : null}
     </PageContainer>
   );
-}
-
-function resolverCuenta(consulta: ReturnType<typeof useCuentasBancarias>, solicitada: string) {
-  const cuentas = consulta.data ?? [];
-  const cuentasOcupadas = consulta.isLoading || consulta.isError;
-  const activa = cuentasOcupadas ? undefined : cuentas.find((cuenta) => cuenta.id === solicitada);
-  return {
-    cuentas,
-    cuentasOcupadas,
-    cuentaId: activa?.id ?? "",
-    moneda: activa?.moneda ?? "MXN",
-    alias: activa?.alias,
-    mensajeSinCuenta: solicitada ? "Esta cuenta ya no está disponible. Selecciona otra."
-      : "Selecciona una cuenta para empezar a conciliar.",
-  };
 }

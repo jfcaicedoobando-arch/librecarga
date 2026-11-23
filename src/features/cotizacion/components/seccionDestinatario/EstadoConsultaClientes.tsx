@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { usePermissions } from "@/hooks/shared/usePermissions";
 
 export interface EstadoCatalogoClientes {
@@ -16,7 +17,7 @@ export function EstadoConsultaClientes({ consulta, hayClientes }: {
 }) {
   const { canAltaCliente } = usePermissions();
   if (consulta.isLoading && !hayClientes) {
-    return <p role="status" className="text-body-sm text-muted-foreground">Cargando clientes…</p>;
+    return <div role="status"><EmptyStateInline loading density="compact" message="Cargando clientes…" /></div>;
   }
   if (consulta.isError) {
     return (
@@ -30,13 +31,12 @@ export function EstadoConsultaClientes({ consulta, hayClientes }: {
   }
   if (hayClientes) return null;
   return (
-    <div className="flex flex-wrap items-center gap-2 text-body-sm text-muted-foreground">
-      No hay clientes disponibles.
+    <EmptyStateInline density="compact" message="No hay clientes disponibles.">
       {canAltaCliente && (
         <Button size="sm" variant="outline" asChild>
           <Link to="/clientes?nuevo=1" target="_blank" rel="noopener">Crear cliente en otra pestaña</Link>
         </Button>
       )}
-    </div>
+    </EmptyStateInline>
   );
 }
