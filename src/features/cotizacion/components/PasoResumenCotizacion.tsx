@@ -35,7 +35,7 @@ interface Props {
   accionesEdicion?: {
     editarDatos: () => void;
     editarConceptos: () => void;
-    bloqueado: boolean;
+    bloqueado?: boolean;
   };
   /** Sólo cambia el texto del aviso final (crear borrador vs. guardar cambios). */
   esEdicion?: boolean;
