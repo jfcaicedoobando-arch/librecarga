@@ -5,7 +5,7 @@ import { mapearSolicitudACotizacion } from "@/features/cotizacion/domain/mapeoSo
 import { aplicarTarifaAlForm } from "./aplicarTarifaAlForm";
 
 import type { MetadataRespuestaPricing } from "@/features/cotizacion/domain/respuestaPricing";
-import { cantidadContenedoresPricing, validarIncotermRespuestaPricing } from "@/features/cotizacion/domain/respuestaPricing";
+import { modoDesdeSolicitudPricing, cantidadContenedoresPricing, validarIncotermRespuestaPricing } from "@/features/cotizacion/domain/respuestaPricing";
 
 export function aplicarRespuestaPricing(form: UseFormReturn<CotizacionFormValues>, tarifa: TopTarifaRow, metadata?: MetadataRespuestaPricing | null) {
   const incoterm = validarIncotermRespuestaPricing(metadata);
@@ -21,7 +21,7 @@ export function aplicarRespuestaPricing(form: UseFormReturn<CotizacionFormValues
       if (actual === "" || actual == null || actual === 0) form.setValue(campo, valor as never, opts);
     }
   }
-  form.setValue("modo", "Marítimo", opts);
+  form.setValue("modo", modoDesdeSolicitudPricing(metadata), opts);
   // El autosync del Paso 2 es la única vía de generación de costos.
   aplicarTarifaAlForm(form.setValue, form.trigger, tarifa, form.getValues("validezPropuesta"));
 }

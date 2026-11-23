@@ -16,6 +16,14 @@ export interface MetadataRespuestaPricing {
   sector_economico?: string | null;
 }
 
+const MODOS_COTIZACION = ["Marítimo", "Aéreo", "Terrestre"] as const;
+
+/** El modo de la cotización sale de la solicitud; sin dato válido se conserva Marítimo. */
+export function modoDesdeSolicitudPricing(metadata?: MetadataRespuestaPricing | null): string {
+  const valor = metadata?.servicio?.trim();
+  return MODOS_COTIZACION.find((m) => m === valor) ?? "Marítimo";
+}
+
 /** Rechaza una respuesta no representable antes de cambiar la captura. */
 export function validarIncotermRespuestaPricing(metadata?: MetadataRespuestaPricing | null) {
   const valor = metadata?.incoterm?.trim().toUpperCase();
