@@ -11,7 +11,7 @@
 import { useState } from "react";
 import { Filter, X } from "lucide-react";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter,
+  Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -128,7 +128,9 @@ export default function ProformasFiltros(props: Props) {
             >
               <X className="h-4 w-4" /> Limpiar
             </Button>
-            <Button onClick={() => setSheetOpen(false)}>Aplicar</Button>
+            <SheetClose asChild>
+              <Button aria-label="Cerrar filtros">Cerrar</Button>
+            </SheetClose>
           </SheetFooter>
         </SheetContent>
       </Sheet>
