@@ -5067,7 +5067,10 @@ export type Database = {
           folio: string
           id: string
           imo: boolean | null
+          imo_clase: string | null
+          imo_un: string | null
           incoterm: string | null
+          modalidad_negocio: string | null
           notas: string | null
           oportunidad_id: string
           organization_id: string
@@ -5080,6 +5083,7 @@ export type Database = {
           sector_economico: string | null
           servicio: string | null
           solicitante_id: string
+          submodalidad: string | null
           tarifa_tarifario_id: string | null
           tipo_carga: string | null
           tipo_operacion: string | null
@@ -5087,6 +5091,7 @@ export type Database = {
           unidad_medida: string | null
           updated_at: string
           vence_at: string | null
+          volumen_cbm: number | null
         }
         Insert: {
           cantidad?: number | null
@@ -5109,7 +5114,10 @@ export type Database = {
           folio: string
           id?: string
           imo?: boolean | null
+          imo_clase?: string | null
+          imo_un?: string | null
           incoterm?: string | null
+          modalidad_negocio?: string | null
           notas?: string | null
           oportunidad_id: string
           organization_id: string
@@ -5122,6 +5130,7 @@ export type Database = {
           sector_economico?: string | null
           servicio?: string | null
           solicitante_id: string
+          submodalidad?: string | null
           tarifa_tarifario_id?: string | null
           tipo_carga?: string | null
           tipo_operacion?: string | null
@@ -5129,6 +5138,7 @@ export type Database = {
           unidad_medida?: string | null
           updated_at?: string
           vence_at?: string | null
+          volumen_cbm?: number | null
         }
         Update: {
           cantidad?: number | null
@@ -5151,7 +5161,10 @@ export type Database = {
           folio?: string
           id?: string
           imo?: boolean | null
+          imo_clase?: string | null
+          imo_un?: string | null
           incoterm?: string | null
+          modalidad_negocio?: string | null
           notas?: string | null
           oportunidad_id?: string
           organization_id?: string
@@ -5164,6 +5177,7 @@ export type Database = {
           sector_economico?: string | null
           servicio?: string | null
           solicitante_id?: string
+          submodalidad?: string | null
           tarifa_tarifario_id?: string | null
           tipo_carga?: string | null
           tipo_operacion?: string | null
@@ -5171,6 +5185,7 @@ export type Database = {
           unidad_medida?: string | null
           updated_at?: string
           vence_at?: string | null
+          volumen_cbm?: number | null
         }
         Relationships: [
           {
@@ -10995,6 +11010,14 @@ export type Database = {
       }
       _crm_pricing_es_gerente_ops: { Args: { p_org: string }; Returns: boolean }
       _crm_pricing_horas: { Args: { p_complejidad: string }; Returns: number }
+      _crm_pricing_horas_modo: {
+        Args: { p_complejidad: string; p_servicio: string }
+        Returns: number
+      }
+      _crm_pricing_sumar_horas_habiles: {
+        Args: { p_horas: number; p_inicio: string }
+        Returns: string
+      }
       _crm_vincular_cotizacion_core: {
         Args: {
           p_actor_email?: string

@@ -9,10 +9,12 @@ import { useUsuariosOrgCrm } from "@/features/crm/hooks/usePricingCrm";
 import { paisesDePuertos, puertoTrasCambioPais } from "@/features/crm/services/pricing/puertosPorPais";
 import { CampoPuerto } from "./CampoPuerto";
 import {
-  INCOTERMS_PRICING, SERVICIOS_PRICING, type SolicitudPricingInsert,
+  SERVICIOS_PRICING, type SolicitudPricingInsert,
   aNumero, unidadesMedidaCaptura,
 } from "@/features/crm/services/pricing/tiposPricing";
+import { MODALIDADES_NEGOCIO, incotermsDe, submodalidadesDe } from "@/features/crm/services/pricing/modoPricing";
 import { CampoLista, CampoSiNo, CampoTexto } from "./CamposPricing";
+import { CamposCargaDetalle } from "./CamposCargaDetalle";
 import { TIPOS } from "@/constants/wizardConstants";
 import { SECTORES } from "@/constants/cotizacionMercancia";
 
@@ -43,6 +45,12 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
     const puerto = puertoTrasCambioPais(puertos, v, datos[campoPuerto]);
     if (puerto !== datos[campoPuerto]) set(campoPuerto, puerto);
   };
+  /** Cambio de modo: limpia submodalidad e Incoterm que ya no aplican. */
+  const cambiarModo = (v: string | null) => {
+    set("servicio", v);
+    if (!submodalidadesDe(v).includes(datos.submodalidad ?? "")) set("submodalidad", null);
+    if (datos.incoterm && !incotermsDe(v).includes(datos.incoterm)) set("incoterm", null);
+  };
   return (
     <>
       <FormDialogSection title="Datos generales">
@@ -52,9 +60,15 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
         <CampoTexto id="pr-fecha" label="Fecha" type="date" {...d} value={datos.fecha} onChange={txt("fecha")} />
         <CampoTexto id="pr-cliente" label="Cliente" {...d} value={datos.cliente} onChange={txt("cliente")} />
         <CampoLista id="pr-servicio" label="Modo de transporte" required {...d} value={datos.servicio}
-          opciones={SERVICIOS_PRICING} onChange={(v) => set("servicio", v)} />
+          opciones={SERVICIOS_PRICING} onChange={cambiarModo} />
+        {submodalidadesDe(datos.servicio).length > 0 && (
+          <CampoLista id="pr-submodalidad" label="Submodalidad" required {...d} value={datos.submodalidad ?? null}
+            opciones={submodalidadesDe(datos.servicio)} onChange={(v) => set("submodalidad", v)} />
+        )}
+        <CampoLista id="pr-modalidad-negocio" label="Tipo de negocio" {...d} value={datos.modalidad_negocio ?? null}
+          opciones={MODALIDADES_NEGOCIO} onChange={(v) => set("modalidad_negocio", v)} />
         <CampoLista id="pr-incoterm" label="Incoterm" {...d} value={datos.incoterm}
-          opciones={INCOTERMS_PRICING} onChange={(v) => set("incoterm", v)} />
+          opciones={incotermsDe(datos.servicio)} onChange={(v) => set("incoterm", v)} />
         <CampoLista id="pr-tipo-operacion" label="Tipo de operación" {...d} value={datos.tipo_operacion ?? null}
           opciones={TIPOS} onChange={(v) => set("tipo_operacion", v)} />
         <CampoLista id="pr-sector" label="Sector económico" {...d} value={datos.sector_economico ?? null}
@@ -72,6 +86,7 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
         <CampoLista id="pr-unidad-medida" label="Units of measurement" {...d} value={datos.unidad_medida}
           opciones={unidadesMedidaCaptura(datos.unidad_medida)} onChange={(v) => set("unidad_medida", v)} />
         <CampoTexto id="pr-dim" label="Dimensions" {...d} value={datos.dimensiones} onChange={txt("dimensiones")} />
+        <CamposCargaDetalle datos={datos} set={set} disabled={disabled} />
       </FormDialogSection>
       <FormDialogSection title="Ruta">
         <fieldset className="col-span-full grid min-w-0 gap-3 rounded-md border p-3 sm:grid-cols-2">

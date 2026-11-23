@@ -13,7 +13,8 @@ import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useBandejaPricing, useSolicitudPricing } from "@/features/crm/hooks/usePricingCrm";
 import { PAGINA_PRICING } from "@/features/crm/services/pricing/pricingCrm";
-import { ETIQUETA_COMPLEJIDAD, ETIQUETA_ESTADO_PRICING, type SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
+import { DESCRIPCION_PLAZOS_MODO } from "@/features/crm/services/pricing/modoPricing";
+import { ETIQUETA_ESTADO_PRICING, type SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
 import { RelojPricing } from "@/features/crm/components/pricing/RelojPricing";
 import { SolicitudPricingDetalle } from "@/features/crm/components/pricing/SolicitudPricingDetalle";
 
@@ -21,7 +22,6 @@ const ESTADOS = [
   { value: "enviada", label: "Por responder" }, { value: "respondida", label: "Respondidas" },
   { value: "cancelada", label: "Canceladas" }, { value: "todos", label: "Todas" },
 ];
-const DESCRIPCION_PLAZOS = Object.values(ETIQUETA_COMPLEJIDAD).join(" · ");
 const MENSAJES_VACIOS: Record<string, string> = {
   enviada: "No hay solicitudes por responder.",
   respondida: "No hay solicitudes respondidas.",
@@ -151,7 +151,7 @@ export function BandejaPricingPanel() {
 
   return (
     <>
-      <PageHeader title="Bandeja de pricing" description={DESCRIPCION_PLAZOS} />
+      <PageHeader title="Bandeja de pricing" description={DESCRIPCION_PLAZOS_MODO} />
       <Select value={estado} onValueChange={(v) => cambiar("estado", v)}>
         <SelectTrigger className="w-48" aria-label="Estado de la solicitud"><SelectValue /></SelectTrigger>
         <SelectContent>{ESTADOS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}</SelectContent>
