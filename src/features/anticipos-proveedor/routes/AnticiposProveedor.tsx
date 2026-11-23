@@ -5,13 +5,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAnticiposProveedor, type AnticipoProveedorRow } from "../hooks/useAnticiposProveedor";
 import { RegistrarAnticipoDialog } from "../components/RegistrarAnticipoDialog";
 import { AplicarAnticipoDialog } from "../components/AplicarAnticipoDialog";

@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
-import { DollarSign, Banknote, Save, Pencil, X } from "lucide-react";
+import { DollarSign, Banknote, Save } from "lucide-react";
 import { getErrorMessage } from "@/lib/errors";
 import { sumarSubtotales } from "@/lib/financial/financialUtils";
 import { useCotizacionCostosSnapshot, useUpsertCotizacionCostos } from "@/features/cotizacion/hooks";
@@ -9,6 +8,7 @@ import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 import type { ConceptoVentaCotizacion } from "@/features/cotizacion/hooks";
 import ResumenPL from "./ResumenPL";
 import TablaCostosDetalle from "./TablaCostosDetalle";
+import { AccionesEditarCostos, AvisoCargaCostos } from "./AccionesCostosDetalle";
 import { calcTotalsPL, type FilaCostoDetalle } from "./costosPLTypes";
 import {
   mapearCostosAFilas, mapearConceptosAFilas, mapearFilasACostos,
@@ -32,42 +32,6 @@ interface Props {
   cotizacionUpdatedAt?: string | null;
   /** v13.823.362 — El aviso de sincronización respeta estados inmutables. */
   estadoCotizacion: EstadoCotizacion;
-}
-
-function AccionesEditarCostos({ visible, enEdicion, guardando, puedeAbrir, onCancelar, onAbrir }: {
-  visible: boolean;
-  enEdicion: boolean;
-  guardando: boolean;
-  puedeAbrir: boolean;
-  onCancelar: () => void;
-  onAbrir: () => void;
-}) {
-  if (!visible) return null;
-  return (
-    <div className="flex justify-end">
-      {enEdicion ? (
-        <Button variant="outline" size="sm" disabled={guardando} onClick={onCancelar}>
-          <X className="h-4 w-4 mr-1" /> Cancelar edición
-        </Button>
-      ) : (
-        <Button variant="outline" size="sm" disabled={!puedeAbrir} onClick={onAbrir}>
-          <Pencil className="h-4 w-4 mr-1" /> Editar costos
-        </Button>
-      )}
-    </div>
-  );
-}
-
-function AvisoCargaCostos({ mostrarDatosPrevios, reintentando, reintentar }: {
-  mostrarDatosPrevios: boolean;
-  reintentando: boolean;
-  reintentar: () => void;
-}) {
-  return (
-    <ErrorStateInline title="No se pudieron consultar los costos"
-      message={mostrarDatosPrevios ? "Mostramos la última consulta disponible." : "Reintenta antes de capturar el desglose."}
-      onRetry={reintentar} retrying={reintentando} />
-  );
 }
 
 /**

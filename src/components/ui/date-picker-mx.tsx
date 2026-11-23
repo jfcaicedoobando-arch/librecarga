@@ -30,6 +30,9 @@ interface DatePickerMxProps {
   readOnly?: boolean;
   min?: string;
   max?: string;
+  /** Límites del calendario cuando el formulario valida por separado las fechas tecleadas. */
+  calendarMin?: string;
+  calendarMax?: string;
   errorText?: string | null;
   id?: string;
   name?: string;
@@ -55,7 +58,7 @@ interface DatePickerMxProps {
  */
 export function DatePickerMx({
   value, onChange, placeholder = PLACEHOLDER_FECHA, className, title, calendarLabel,
-  disabled = false, readOnly = false, min, max, errorText, id, name,
+  disabled = false, readOnly = false, min, max, calendarMin, calendarMax, errorText, id, name,
   autoFocus = false, avisarInhabil = false, "aria-label": ariaLabel, "aria-describedby": ariaDescribedBy,
 }: DatePickerMxProps) {
 
@@ -148,8 +151,8 @@ export function DatePickerMx({
           ariaLabel={calendarLabel}
           value={value}
           marcarInhabiles={avisarInhabil}
-          min={min}
-          max={max}
+          min={calendarMin ?? min}
+          max={calendarMax ?? max}
           open={open}
           disabled={disabled}
           setOpen={setOpen}

@@ -10,15 +10,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import type { TarifaInput } from "@/features/costeo/services/tarifas";
-import { MultiRutaSelect } from "./MultiRutaSelect";
-
-interface CatalogosRow { id: string; name?: string; nombre?: string; activo?: boolean; activa?: boolean }
-
+import { MultiRutaSelect, type RutaOption } from "./MultiRutaSelect";
 import { NavieraQuickCreate } from "./NavieraQuickCreate";
 import { AgenteProvisionalDialog } from "./AgenteProvisionalDialog";
 import { RutaQuickCreate } from "./RutaQuickCreate";
 import { destinoDe, etiquetaRutaCompleta, origenDe } from "@/features/costeo/utils/puertoLabel";
-import type { RutaOption } from "./MultiRutaSelect";
+
+interface CatalogosRow { id: string; name?: string; nombre?: string; activo?: boolean; activa?: boolean }
 
 interface EntidadesProps {
   form: TarifaInput;
@@ -34,7 +32,6 @@ interface EntidadesProps {
 
 const invalidCls = (invalid?: boolean) =>
   invalid ? "border-destructive focus-visible:ring-destructive" : undefined;
-
 
 export function EntidadesFields({ form, setForm, agentes, navieras, errores, agenteIdFijo, agenteNombreFijo }: EntidadesProps) {
   const agenteBloqueado = Boolean(agenteIdFijo);
@@ -124,49 +121,49 @@ function RutaFields({
     else setForm({ ...form, ruta_id: id });
   };
   return (
-      <div>
-        <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="tarifa-ruta">{multiple ? "Rutas *" : "Ruta *"}</Label>
-          {multiple && (rutaIds?.length ?? 0) > 1 && (
-            <Badge variant="secondary" className="text-label">
-              Se crearán {rutaIds?.length} tarifas
-            </Badge>
-          )}
-        </div>
-        {avisoRutas}
-        {!avisoRutas && (multiple ? (
-          <>
-            <MultiRutaSelect
-              id="tarifa-ruta"
-              rutas={rutas}
-              value={rutaIds ?? []}
-              onChange={(ids) => onRutaIdsChange?.(ids)}
-              invalid={errores?.ruta_id}
-            />
-            <p className="mt-1 text-body-sm text-muted-foreground">
-              Tip: selecciona varias rutas para crear una tarifa en cada una con los mismos datos.
-            </p>
-          </>
-        ) : (
-          <Select value={form.ruta_id} onValueChange={(v) => setForm({ ...form, ruta_id: v })}>
-            <SelectTrigger
-              id="tarifa-ruta"
-              aria-invalid={errores?.ruta_id || undefined}
-              className={invalidCls(errores?.ruta_id)}
-            >
-              <SelectValue placeholder="Selecciona ruta" />
-            </SelectTrigger>
-            <SelectContent>
-              {rutas.filter((r) => r.activa).map((r) => (
-                <SelectItem key={r.id} value={r.id}>
-                  {etiquetaRutaCompleta(origenDe(r), destinoDe(r))}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ))}
-        {!avisoRutas && <RutaQuickCreate rutas={rutas} onCreada={elegirRutaNueva} />}
+    <div>
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor="tarifa-ruta">{multiple ? "Rutas *" : "Ruta *"}</Label>
+        {multiple && (rutaIds?.length ?? 0) > 1 && (
+          <Badge variant="secondary" className="text-label">
+            Se crearán {rutaIds?.length} tarifas
+          </Badge>
+        )}
       </div>
+      {avisoRutas}
+      {!avisoRutas && (multiple ? (
+        <>
+          <MultiRutaSelect
+            id="tarifa-ruta"
+            rutas={rutas}
+            value={rutaIds ?? []}
+            onChange={(ids) => onRutaIdsChange?.(ids)}
+            invalid={errores?.ruta_id}
+          />
+          <p className="mt-1 text-body-sm text-muted-foreground">
+            Tip: selecciona varias rutas para crear una tarifa en cada una con los mismos datos.
+          </p>
+        </>
+      ) : (
+        <Select value={form.ruta_id} onValueChange={(v) => setForm({ ...form, ruta_id: v })}>
+          <SelectTrigger
+            id="tarifa-ruta"
+            aria-invalid={errores?.ruta_id || undefined}
+            className={invalidCls(errores?.ruta_id)}
+          >
+            <SelectValue placeholder="Selecciona ruta" />
+          </SelectTrigger>
+          <SelectContent>
+            {rutas.filter((r) => r.activa).map((r) => (
+              <SelectItem key={r.id} value={r.id}>
+                {etiquetaRutaCompleta(origenDe(r), destinoDe(r))}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ))}
+      {!avisoRutas && <RutaQuickCreate rutas={rutas} onCreada={elegirRutaNueva} />}
+    </div>
   );
 }
 
@@ -196,7 +193,5 @@ export function RutaTipoFields({ tipos, ...props }: RutaTipoProps) {
   );
 }
 
-// `NumerosFields` y `VigenciaFields` viven en archivo aparte para mantener
-// este módulo ≤200 líneas (Power-of-10). Re-exportamos para compatibilidad
-// con importadores existentes (`TarifaForm.tsx`).
+// Re-exportación para los importadores existentes de campos de la tarifa.
 export { NumerosFields, VigenciaFields } from "./TarifaNumerosVigenciaFields";

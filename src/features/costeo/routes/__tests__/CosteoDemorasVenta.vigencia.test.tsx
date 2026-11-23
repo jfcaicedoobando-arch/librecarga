@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import CosteoDemorasVenta from "../CosteoDemorasVenta";
 
@@ -42,7 +42,16 @@ describe("Vigencia de tarifa de venta de demoras", () => {
     fireEvent.submit(hasta.closest("form")!);
     expect(crear).not.toHaveBeenCalled();
 
+    act(() => hasta.focus());
+    fireEvent.keyDown(hasta, { key: "F4" });
+    const calendario = within(await screen.findByRole("grid", { name: "marzo 2026" }));
+    expect(calendario.getByRole("button", { name: /19 de marzo de 2026/ })).toBeDisabled();
+    const mismoDia = calendario.getByRole("button", { name: /20 de marzo de 2026/ });
+    expect(mismoDia).toBeEnabled();
+    fireEvent.keyDown(hasta, { key: "F4" });
     fireEvent.change(hasta, { target: { value: "20/03/2026" } });
+    fireEvent.keyDown(hasta, { key: "Enter" });
+    expect(hasta).toHaveValue("20/03/2026");
     expect(hasta).not.toHaveAttribute("aria-invalid");
     expect(guardar).toBeEnabled();
     fireEvent.click(guardar);

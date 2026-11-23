@@ -94,6 +94,9 @@ describe("detalle de proveedor provisional desde su proyección real", () => {
     renderHeader(await cargarProveedor());
     expect(screen.getByText(/Provisional.*pendiente de Contabilidad/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Aprobar como proveedor" }));
+    expect(screen.getByRole("alertdialog", { name: "¿Aprobar a Agente nuevo?" })).toBeInTheDocument();
+    expect(mocks.state.mutate).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar aprobación" }));
     expect(mocks.state.aprobar).toHaveBeenCalledWith("proveedor-provisional");
     expect(mocks.state.mutate).toHaveBeenCalledTimes(1);
   });

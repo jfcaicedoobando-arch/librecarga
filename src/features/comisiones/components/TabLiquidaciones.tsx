@@ -6,6 +6,7 @@ import { Plus, CheckCircle2, Receipt, Ban } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { Hint } from "@/components/shared/Hint";
 import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { COL_W } from "@/components/shared/dataTable/columnWidths";
@@ -36,7 +37,12 @@ export function TabLiquidaciones({ vendedoras }: { vendedoras: VendedoraOpt[] })
     {
       id: "vendedora", header: "Vendedora", meta: { width: COL_W.nombre },
       cell: ({ row }) => vendedoras.find((x) => x.id === row.original.vendedora_id)?.nombre || (
-        <span className="text-muted-foreground" title={row.original.vendedora_id}>Vendedora sin identificar</span>
+        <Hint label={`Referencia de la vendedora: ${row.original.vendedora_id}`}>
+          <span tabIndex={0} className="text-muted-foreground"
+            aria-label={`Vendedora sin identificar. Referencia: ${row.original.vendedora_id}`}>
+            Vendedora sin identificar
+          </span>
+        </Hint>
       ),
     },
     {

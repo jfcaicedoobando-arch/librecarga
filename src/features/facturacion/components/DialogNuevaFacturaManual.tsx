@@ -1,5 +1,6 @@
 /** Wizard de factura manual (sin embarque/proforma). v13.315.2: rediseño UI. */
 import { FilePlus2 } from "lucide-react";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -52,7 +53,7 @@ function ClienteFacturaManualFields({ clientes, consultaClientes, cliente, clien
             retrying={consultaClientes.isFetching}
           />
         ) : !consultaClientes.isLoading && clientes.length === 0 ? (
-          <p className="text-body-sm text-muted-foreground">No hay clientes disponibles.</p>
+          <EmptyStateInline message="No hay clientes disponibles." density="compact" />
         ) : null}
         {clienteIncompleto && (
           <Alert variant="destructive">
