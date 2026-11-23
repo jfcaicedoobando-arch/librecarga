@@ -36,13 +36,17 @@ describe('search/index', () => {
     expect(mockRef.current!.rpcCalls.length).toBe(0);
   });
 
-  it('buscarGlobal devuelve [] en error de RPC y loggea', async () => {
-    mockRef.current!.setRpcResult('busqueda_global', { data: null, error: new Error('RPC fail') });
-    const result = await buscarGlobal('query');
-    expect(result).toEqual([]);
-    // El diagnóstico esperado sigue registrándose con ámbito y error reales.
-    expect(loggerMock.error).toHaveBeenCalledTimes(1);
-    expect(loggerMock.error.mock.calls[0][0]).toBe('busqueda_global');
-    expect((loggerMock.error.mock.calls[0][1] as Error).message).toBe('RPC fail');
+  it('distingue una búsqueda sin coincidencias de una consulta fallida', async () => {
+    mockRef.current!.setRpcResult('busqueda_global', { data: [], error: null });
+    await expect(buscarGlobal('query')).resolves.toEqual([]);
+    expect(loggerMock.error).not.toHaveBeenCalled();
+  });
+
+  it('registra y propaga el error devuelto por el RPC', async () => {
+    const error = { message: 'Falla de lectura', code: 'PGRST000', details: '', hint: '' };
+    mockRef.current!.setRpcResult('busqueda_global', { data: null, error });
+
+    await expect(buscarGlobal('query')).rejects.toBe(error);
+    expect(loggerMock.error).toHaveBeenCalledExactlyOnceWith('busqueda_global', error);
   });
 });
