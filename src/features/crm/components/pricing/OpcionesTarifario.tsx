@@ -14,9 +14,14 @@ import type { CargoTarifario, TarifaTarifario } from "@/features/costeo";
 import { useOpcionesTarifario } from "@/features/crm/hooks/useOpcionesTarifario";
 import type { SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
 
-interface Props { solicitud: SolicitudPricingRow; puedeElegir: boolean }
+interface Props {
+  solicitud: SolicitudPricingRow;
+  puedeElegir: boolean;
+  puedeCotizar: boolean;
+  tarifasRespondidas?: ReadonlySet<string>;
+}
 
-export function OpcionesTarifario({ solicitud: s, puedeElegir }: Props) {
+export function OpcionesTarifario({ solicitud: s, puedeElegir, puedeCotizar, tarifasRespondidas }: Props) {
   const { opciones, elegida, esFob, cargosFob, cargosLocales, isLoading, busy, elegir } = useOpcionesTarifario(s);
   const navigate = useNavigate();
   const irACotizar = (tarifaId: string) => {
@@ -41,7 +46,8 @@ export function OpcionesTarifario({ solicitud: s, puedeElegir }: Props) {
         <OpcionTarifarioCard key={t.id} tarifa={t}
           cargosFob={esFob ? cargosFob : []} cargosLocales={cargosLocales}
           puedeElegir={!elegida && !respondida && puedeElegir} busy={busy !== null} elegir={elegir}
-          puedeCotizar={puedeElegir && (!elegida || elegida === t.id)} cotizar={cotizar} />
+          puedeCotizar={puedeCotizar && (!elegida || elegida === t.id) && !tarifasRespondidas?.has(t.id)}
+          cotizar={cotizar} />
       ))}
     </div>
   );

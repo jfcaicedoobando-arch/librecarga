@@ -70,7 +70,7 @@ function Flujo() {
   return <>
     <SolicitudPricingCampos datos={datos} set={(campo, valor) => setDatos((prev) => ({ ...prev, [campo]: valor }))} />
     <button onClick={() => void guardar()}>Guardar borrador de prueba</button>
-    {solicitud && <OpcionesTarifario solicitud={solicitud} puedeElegir />}
+    {solicitud && <OpcionesTarifario solicitud={solicitud} puedeElegir puedeCotizar />}
   </>;
 }
 const wrapper = ({ children }: { children: React.ReactNode }) =>
