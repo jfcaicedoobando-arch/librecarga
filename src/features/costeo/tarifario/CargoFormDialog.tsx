@@ -1,5 +1,5 @@
 /** Alta/edición de un cargo FOB de agente o cargo local de naviera. */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Receipt } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
@@ -39,12 +39,19 @@ export function CargoFormDialog({ tipo, orgId, cargo, onClose, onSaved }: Props)
   const [entidad, setEntidad] = useState(ini.entidad);
   const [concepto, setConcepto] = useState(ini.concepto);
   const [monto, setMonto] = useState(ini.monto);
+  const [montoVacio, setMontoVacio] = useState(false);
+  const montoRef = useRef<HTMLInputElement>(null);
   const [moneda, setMoneda] = useState(ini.moneda);
   const [unidad, setUnidad] = useState(ini.unidad);
   const [aplicaIva, setAplicaIva] = useState(ini.aplicaIva);
   const [busy, setBusy] = useState(false);
 
   const guardar = async () => {
+    if (!monto.trim()) {
+      setMontoVacio(true);
+      montoRef.current?.focus();
+      return;
+    }
     const n = Number(monto);
     if (!entidad || !concepto.trim() || !Number.isFinite(n) || n < 0) {
       notifyError(undefined, { title: "Revisa el cargo", description: "Completa el " + (tipo === "fob" ? "agente" : "naviera") + ", concepto y un monto válido.", method: "CargoFormDialog.validar" });
@@ -70,7 +77,7 @@ export function CargoFormDialog({ tipo, orgId, cargo, onClose, onSaved }: Props)
       <div className="grid gap-3 md:grid-cols-2">
         <div className="space-y-1 md:col-span-2">
           <Label>{tipo === "fob" ? "Agente" : "Naviera"}</Label>
-          <Select value={entidad || undefined} onValueChange={setEntidad}>
+          <Select value={entidad} onValueChange={setEntidad}>
             <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
             <SelectContent>{entidades.map((e) => <SelectItem key={e.id} value={e.id}>{e.nombre}</SelectItem>)}</SelectContent>
           </Select>
@@ -78,7 +85,22 @@ export function CargoFormDialog({ tipo, orgId, cargo, onClose, onSaved }: Props)
         {tipo === "fob"
           ? <div className="space-y-1 md:col-span-2"><Label htmlFor="cargo-concepto">Concepto</Label><Input id="cargo-concepto" value={concepto} onChange={(e) => setConcepto(e.target.value)} /></div>
           : <div className="md:col-span-2"><ConceptoNavieraSelect value={concepto} onChange={setConcepto} /></div>}
-        <div className="space-y-1"><Label htmlFor="cargo-monto">Monto</Label><Input id="cargo-monto" inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value)} /></div>
+        <div className="space-y-1">
+          <Label htmlFor="cargo-monto">Monto</Label>
+          <Input
+            id="cargo-monto"
+            ref={montoRef}
+            inputMode="decimal"
+            value={monto}
+            required
+            aria-invalid={montoVacio || undefined}
+            aria-describedby={montoVacio ? "cargo-monto-error" : undefined}
+            onChange={(e) => { setMonto(e.target.value); setMontoVacio(false); }}
+          />
+          {montoVacio && <p id="cargo-monto-error" role="alert" className="text-body-sm text-destructive">
+            Captura el monto. Escribe 0 si el cargo no tiene costo.
+          </p>}
+        </div>
         <div className="space-y-1">
           <Label>Currency</Label>
           <Select value={moneda} onValueChange={setMoneda}>

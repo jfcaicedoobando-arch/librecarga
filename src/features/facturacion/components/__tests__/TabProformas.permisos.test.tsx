@@ -60,6 +60,8 @@ const controller = {
   isConvertible: () => true,
   selectedProformas: [proforma],
   clearSelected: vi.fn(),
+  seleccionFueraDeFiltros: 0,
+  quitarSeleccionFueraDeFiltros: vi.fn(),
   fusionInfo: { sameCliente: true, clienteNombre: "ACME", organizationId: "o1", diasCredito: 30, sameTipo: true, sameDiasCredito: true },
   page: 0,
   totalPages: 1,
@@ -80,6 +82,8 @@ describe("TabProformas — selección según permiso de emisión", () => {
     permisos.canEmitirFactura = true;
     permisos.canEditarProforma = false;
     controller.selectedProformas = [proforma];
+    controller.seleccionFueraDeFiltros = 0;
+    controller.quitarSeleccionFueraDeFiltros.mockClear();
     consolidar.mockClear();
   });
 
@@ -91,10 +95,21 @@ describe("TabProformas — selección según permiso de emisión", () => {
 
   it("vendedor / gerente comercial: sin casilla de selección ni acción de convertir", () => {
     permisos.canEmitirFactura = false;
+    controller.seleccionFueraDeFiltros = 1;
     render(<TabProformas />);
     expect(buildColumnsSpy.mock.calls[0][0]).not.toHaveProperty("selection");
     expect(screen.queryByRole("button", { name: /convertir a factura/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /fusionar/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Quitar selección oculta" })).toBeNull();
+  });
+
+  it("explica el alcance del lote y permite quitar las proformas que quedaron fuera de la búsqueda", () => {
+    controller.seleccionFueraDeFiltros = 1;
+    render(<TabProformas />);
+    expect(screen.getByRole("status")).toHaveTextContent("Una proforma seleccionada queda fuera de los filtros.");
+    fireEvent.click(screen.getByRole("button", { name: "Quitar selección oculta" }));
+    expect(controller.quitarSeleccionFueraDeFiltros).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: /convertir a factura/i })).toBeEnabled();
   });
 
   it("operaciones consolida proformas fiscales pendientes y abre el nuevo detalle", async () => {

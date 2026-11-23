@@ -5,6 +5,7 @@ import { Download, Pencil, Plus, Trash2 } from "lucide-react";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 import { costeo } from "../queryKeys";
 import { Button } from "@/components/ui/button";
+import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 import { DataTable, defineColumns } from "@/components/shared/DataTable";
 import { exportToCsv } from "@/generators/exportCsv";
 import { formatCurrency } from "@/lib/formatters/numbers";
@@ -18,6 +19,8 @@ interface Props { tipo: TipoCargo; orgId: string | null; puedeEditar: boolean }
 export function CargosTab({ tipo, orgId, puedeEditar }: Props) {
   const q = useQuery({ queryKey: costeo.tarifario.cargos(tipo), queryFn: () => listarCargos(tipo) });
   const [editando, setEditando] = useState<CargoTarifario | null | "nuevo">(null);
+  const [cargoARetirar, setCargoARetirar] = useState<CargoTarifario | null>(null);
+  const [retirando, setRetirando] = useState(false);
   const tasaIva = useTasaIVA();
   const etiqueta = tipo === "fob" ? "Agente" : "Naviera";
   const filas = q.data ?? [];
@@ -26,9 +29,19 @@ export function CargosTab({ tipo, orgId, puedeEditar }: Props) {
     [{ key: "e", label: etiqueta }, { key: "c", label: "Concepto" }, { key: "m", label: "Monto" }, { key: "cur", label: "Currency" }, { key: "u", label: "Unidad" }, { key: "iva", label: "Aplica IVA" }, { key: "t", label: "Monto con IVA" }],
     filas.map((c) => ({ e: c.entidad?.nombre ?? "", c: c.concepto, m: c.monto, cur: c.moneda, u: c.unidad ?? "", iva: c.aplica_iva ? "Sí" : "No", t: montoConIva(c.monto, c.aplica_iva, tasaIva) })));
 
-  const archivar = async (c: CargoTarifario) => {
-    try { await archivarCargo(tipo, c.id); notifySuccess(undefined, { title: "Cargo retirado" }); void q.refetch(); }
-    catch (error) { notifyError(undefined, { title: "No se pudo retirar el cargo.", error, method: "archivarCargo" }); }
+  const archivar = async () => {
+    if (!puedeEditar || !cargoARetirar || retirando) return;
+    setRetirando(true);
+    try {
+      await archivarCargo(tipo, cargoARetirar.id);
+      notifySuccess(undefined, { title: "Cargo retirado" });
+      setCargoARetirar(null);
+      void q.refetch();
+    } catch (error) {
+      notifyError(undefined, { title: "No se pudo retirar el cargo.", error, method: "archivarCargo" });
+    } finally {
+      setRetirando(false);
+    }
   };
 
   const columns = defineColumns<CargoTarifario>([
@@ -41,7 +54,7 @@ export function CargosTab({ tipo, orgId, puedeEditar }: Props) {
     { id: "unidad", header: "Unidad", accessorFn: (c) => c.unidad ?? "—" },
     ...(puedeEditar ? [{ id: "acciones", header: "Acciones", cell: ({ row }: { row: { original: CargoTarifario } }) => <>
       <Button size="icon" variant="ghost" aria-label="Editar" onClick={() => setEditando(row.original)}><Pencil className="size-4" /></Button>
-      <Button size="icon" variant="ghost" aria-label="Retirar" onClick={() => void archivar(row.original)}><Trash2 className="size-4" /></Button>
+      <Button size="icon" variant="ghost" aria-label="Retirar" onClick={() => setCargoARetirar(row.original)}><Trash2 className="size-4" /></Button>
     </> }] : []),
   ]);
 
@@ -53,6 +66,18 @@ export function CargosTab({ tipo, orgId, puedeEditar }: Props) {
       </div>
       <DataTable columns={columns} data={filas} rowKey={(c) => c.id} isLoading={q.isLoading}
         isError={q.isError} onRetry={() => { void q.refetch(); }} emptyMessage="Sin cargos capturados." />
+      {puedeEditar && cargoARetirar && (
+        <ConfirmActionDialog
+          open
+          onOpenChange={(open) => { if (!open && !retirando) setCargoARetirar(null); }}
+          title="¿Retirar este cargo del tarifario?"
+          description={`El cargo «${cargoARetirar.concepto}» dejará de aparecer en el tarifario. ${etiqueta}: ${cargoARetirar.entidad?.nombre ?? "sin nombre registrado"}.`}
+          confirmLabel="Retirar cargo"
+          variant="destructive"
+          isPending={retirando}
+          onConfirm={archivar}
+        />
+      )}
       {editando && orgId && (
         <CargoFormDialog tipo={tipo} orgId={orgId} cargo={editando === "nuevo" ? null : editando}
           onClose={() => setEditando(null)} onSaved={() => { void q.refetch(); }} />

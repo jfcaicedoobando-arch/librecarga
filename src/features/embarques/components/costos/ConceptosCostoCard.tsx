@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { FileText, X } from "lucide-react";
 import EmptyState from "@/components/empty/EmptyState";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useFocusSection } from "@/features/embarques/hooks/useFocusSection";
 import type { FilaReconciliacion } from "@/features/embarques/services/reconciliacionCostos";
 import type { ConceptoCostoRow } from "@/features/embarques/hooks";
@@ -26,6 +27,7 @@ interface Props {
    * Sin esto la tarjeta afirmaba "Sin costos directos" antes de tener datos.
    */
   isLoading?: boolean;
+  falloConsulta?: { reintentando: boolean; reintentar: () => void };
   /** Costos crudos para resolver contenedor_id, estado_liquidacion base, etc. */
   conceptosCosto: ConceptoCostoRow[];
   showContenedorCol?: boolean;
@@ -36,6 +38,7 @@ interface Props {
 export function ConceptosCostoCard({
   filas,
   isLoading = false,
+  falloConsulta,
   conceptosCosto,
   showContenedorCol,
   renderContenedor,
@@ -117,7 +120,14 @@ export function ConceptosCostoCard({
         )}
       </CardHeader>
       <CardContent className="p-3 space-y-3">
-        {isLoading ? (
+        {falloConsulta ? (
+          <ErrorStateInline
+            title="No se pudieron consultar los costos directos"
+            message="Reintenta la consulta para ver los costos registrados en este embarque."
+            onRetry={falloConsulta.reintentar}
+            retrying={falloConsulta.reintentando}
+          />
+        ) : isLoading ? (
           <div className="space-y-2 p-4" data-testid="costos-cargando">
             <p className="text-body-sm text-muted-foreground">Cargando costos…</p>
             <Skeleton className="h-6 w-full" />

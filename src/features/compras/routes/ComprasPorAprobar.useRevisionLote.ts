@@ -14,6 +14,7 @@ export function useRevisionLote(
   const abrir = () => {
     if (seleccion.filas.length === 0) return;
     setRevisionLote(seleccion);
+    setJustificacionLote("");
     setConfirmOpen(true);
   };
   const confirmar = async () => {

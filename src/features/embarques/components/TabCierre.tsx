@@ -46,7 +46,7 @@ interface Props {
 
 // eslint-disable-next-line complexity
 export function TabCierre({ embarqueId, estatus, modo, expediente, docsRequeridos }: Props) {
-  const { data: validacion, isLoading } = useValidacionCierre(embarqueId);
+  const validacion = useValidacionCierre(embarqueId);
   const { data: log = [] } = useCierreLog(embarqueId);
   const cerrarMut = useCerrarEmbarque(embarqueId);
   const reabrirMut = useReabrirEmbarque(embarqueId);
@@ -61,8 +61,10 @@ export function TabCierre({ embarqueId, estatus, modo, expediente, docsRequerido
   const dlg = useCierreDialog();
 
   const esCerrado = estatusNormalizado === "cerrado";
-  const checks = validacion?.checks ?? [];
-  const todoOk = validacion?.puede_cerrar === true;
+  const validando = validacion.isLoading || validacion.isFetching;
+  const resultadoVigente = validando || validacion.isError ? undefined : validacion.data;
+  const checks = resultadoVigente?.checks ?? [];
+  const cierreDisponible = !esCerrado && puedeCerrar && resultadoVigente?.puede_cerrar === true;
 
   return (
     <div className="space-y-6">
@@ -89,11 +91,23 @@ export function TabCierre({ embarqueId, estatus, modo, expediente, docsRequerido
         </Alert>
       ) : null}
 
-      <CierreChecklistCard isLoading={isLoading} checks={checks} embarqueId={embarqueId} expediente={expediente} informativo={esCerrado} sinComision={comisionEstado?.efectivo ?? false} sinRequisitosDocumentales={docsRequeridos === 0} />
+      <CierreChecklistCard
+        isLoading={validando}
+        falloConsulta={validacion.isError ? {
+          reintentando: validacion.isFetching,
+          reintentar: () => void validacion.refetch(),
+        } : undefined}
+        checks={checks}
+        embarqueId={embarqueId}
+        expediente={expediente}
+        informativo={esCerrado}
+        sinComision={comisionEstado?.efectivo ?? false}
+        sinRequisitosDocumentales={docsRequeridos === 0}
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         {!esCerrado && canCerrarEmbarque && (() => {
-          const disabled = !puedeCerrar || !todoOk || cerrarMut.isPending;
+          const disabled = !cierreDisponible || cerrarMut.isPending;
           const pendientes = checks.filter((c) => !c.ok).length;
           const motivo = !listoParaCierre
             ? (modo?.toLowerCase() === "marítimo"
@@ -142,9 +156,9 @@ export function TabCierre({ embarqueId, estatus, modo, expediente, docsRequerido
         onOpenChange={dlg.setOpenCerrar}
         confirmText={dlg.confirmText}
         onConfirmTextChange={dlg.setConfirmText}
-        puedeConfirmar={dlg.puedeConfirmarCerrar}
+        puedeConfirmar={dlg.puedeConfirmarCerrar && cierreDisponible}
         isPending={cerrarMut.isPending}
-        onConfirm={() => cerrarMut.mutate(undefined, { onSuccess: dlg.resetCerrar })}
+        onConfirm={() => { if (cierreDisponible) cerrarMut.mutate(undefined, { onSuccess: dlg.resetCerrar }); }}
       />
 
       <ReabrirEmbarqueDialog

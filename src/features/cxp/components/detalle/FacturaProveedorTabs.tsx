@@ -19,23 +19,25 @@ import { AnticipoDisponibleAviso } from "@/features/anticipos-proveedor/componen
 import { PagosTable } from "@/features/cxp/components/DialogDetallePagosProveedor.sections";
 import { useConceptosCfdiFactura } from "@/features/cxp/hooks/useConceptosCfdiFactura";
 import { useNotasCreditoFactura } from "@/features/cxp/hooks/useNotasCreditoProveedor";
-type PagoRow = Parameters<typeof PagosTable>[0]["pagos"][number];
+import type { usePagosProveedor } from "@/features/cxp/hooks/usePagosProveedor";
 import type { FacturaCxP } from "@/features/cxp/services";
+
+type PagoRow = Parameters<typeof PagosTable>[0]["pagos"][number];
 
 interface Props {
   factura: FacturaCxP;
-  pagos: PagoRow[];
-  pagosLoading: boolean;
+  consultaPagos: Pick<ReturnType<typeof usePagosProveedor>, "data" | "isLoading" | "isError" | "isFetching" | "refetch">;
   canEdit: boolean;
   onEliminarPago: (id: string) => void;
 }
 
 export function FacturaProveedorTabs({
-  factura: f, pagos, pagosLoading, canEdit, onEliminarPago,
+  factura: f, consultaPagos, canEdit, onEliminarPago,
 }: Props) {
   const [pagoEditar, setPagoEditar] = useState<PagoEditable | null>(null);
   const { data: conceptos = [] } = useConceptosCfdiFactura(f.id);
   const { data: notasCredito = [] } = useNotasCreditoFactura(f.id);
+  const { data: pagos = [], isLoading, isError, isFetching, refetch } = consultaPagos;
 
   const tabs: DocumentoTabItem[] = [
     {
@@ -69,12 +71,15 @@ export function FacturaProveedorTabs({
     {
       id: "pagos",
       label: "Pagos",
-      count: pagos.length,
+      count: isLoading || isError ? undefined : pagos.length,
       content: (
         <>
           <PagosTable
             pagos={pagos}
-            isLoading={pagosLoading}
+            isLoading={isLoading}
+            isError={isError}
+            retrying={isFetching}
+            onRetry={() => void refetch()}
             canEdit={canEdit}
             onEliminarPago={onEliminarPago}
             onEditarPago={canEdit ? (p) => setPagoEditar(aPagoEditable(p)) : undefined}
