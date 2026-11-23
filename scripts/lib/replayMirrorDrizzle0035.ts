@@ -126,6 +126,7 @@ const REVIEWED_FORWARD_FIXES: ReadonlyArray<readonly [string, string]> = [
   ["0098_pricing_lcl_imo_modalidad_negocio.sql", "edbf9d524ee7317c0def6cdddd6c57f865a653978e33aacb025596f5651c9bb7"],
   ["0099_recargos_base_por_unidad_o_embarque.sql", "3ecec21d9118c5a056ba41b5fa3126984619d26706e1b2ab7ec0dabe712a4021"],
   ["0100_tarifario_aereo_terrestre_base.sql", "6d3af90a1789af2154a484f7c4b11b5fc0973cddb3fbcf9e7dc6ff00433b478e"],
+  ["0101_tarifa_multimodo_moneda.sql", "543986869b63ec4fa25ec34426b808e73398fdf7233ae1dcf7b9df97205c02ef"],
 ];
 
 function verificarOrdenJournal(sources: ReadonlyMap<string, string>, journal: JournalEntry[]): void {

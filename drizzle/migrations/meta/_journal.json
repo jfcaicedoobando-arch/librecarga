@@ -708,6 +708,13 @@
       "when": 1795466544824,
       "tag": "0100_tarifario_aereo_terrestre_base",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1795470091998,
+      "tag": "0101_tarifa_multimodo_moneda",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,6 @@
 -- Verifica la definición efectiva tras aplicar 0095–0098 en el replay aislado.
-BEGIN READ ONLY;
+BEGIN;
+SET TRANSACTION READ ONLY;
 
 DO $$
 DECLARE

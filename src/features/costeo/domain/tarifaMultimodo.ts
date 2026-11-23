@@ -3,10 +3,13 @@ import type { TramoPeso } from "./tarifaPorPeso";
 export type ModoNoMaritimo = "Aéreo" | "Terrestre";
 export const SUBMODALIDADES_TERRESTRE = ["FTL", "LTL", "Arrastre"] as const;
 export const TIPOS_UNIDAD = ["Caja seca 53'", "Thorton", "Rabón", "Plataforma", "Refrigerada"] as const;
+/** Monedas que la cotización sabe convertir con el TC DOF. */
+export const MONEDAS_TARIFA_MULTIMODO = ["USD", "MXN"] as const;
+export type MonedaTarifaMultimodo = (typeof MONEDAS_TARIFA_MULTIMODO)[number];
 export const TRAMOS_AEREOS_SUGERIDOS = [45, 100, 300, 500, 1000];
 
 export interface TarifaMultimodoForm {
-  modo: ModoNoMaritimo; agente_id: string; moneda: "USD";
+  modo: ModoNoMaritimo; agente_id: string; moneda: MonedaTarifaMultimodo;
   origen: string; destino: string; aerolinea: string;
   submodalidad: string; tipo_unidad: string;
   flete_base: number; minimo: number | null;
@@ -50,7 +53,7 @@ function lugar(valor: string): { cp: string | null; ciudad: string | null } {
 /** Payload para `crear_tarifa_con_recargos_rpc`. */
 export function payloadTarifaMultimodo(f: TarifaMultimodoForm): Record<string, unknown> {
   const base = {
-    modo: f.modo, agente_id: f.agente_id, flete_base: f.flete_base, minimo: f.minimo,
+    modo: f.modo, agente_id: f.agente_id, moneda: f.moneda, flete_base: f.flete_base, minimo: f.minimo,
     vigente_desde: f.vigente_desde, vigente_hasta: f.vigente_hasta, transit_time_dias: f.transit_time_dias,
     tramos: usaTramos(f) ? f.tramos : [],
   };

@@ -5,7 +5,15 @@ CREATE OR REPLACE FUNCTION public.crear_tarifa_con_recargos_rpc(p_organization_i
 AS $function$
 DECLARE
   v_row public.costeo_tarifas;
+  v_modo text := COALESCE(NULLIF(p_tarifa->>'modo', ''), 'Marítimo');
+  v_moneda text := upper(COALESCE(NULLIF(btrim(p_tarifa->>'moneda'), ''), 'USD'));
 BEGIN
+  IF v_modo = 'Marítimo' THEN
+    v_moneda := 'USD';
+  ELSIF v_moneda NOT IN ('USD', 'MXN') THEN
+    RAISE EXCEPTION 'Moneda no soportada para tarifa %: %', v_modo, v_moneda USING ERRCODE = '22023';
+  END IF;
+
   INSERT INTO public.costeo_tarifas (
     organization_id, agente_id, naviera_id, ruta_id, tipo_contenedor_id,
     flete_base, dias_libres_demoras, vigente_desde, vigente_hasta,
@@ -25,12 +33,12 @@ BEGIN
     NULLIF(p_tarifa->>'vigente_hasta', '')::date,
     NULLIF(p_tarifa->>'transit_time_dias', '')::integer,
     NULLIF(p_tarifa->>'notas', ''),
-    'USD',
+    v_moneda,
     'vigente',
     NULLIF(p_tarifa->>'solicitud_pricing_id', '')::uuid,
     NULLIF(p_tarifa->>'carta_garantia', '')::boolean,
     NULLIF(btrim(COALESCE(p_tarifa->>'unidad_flete', '')), ''),
-    COALESCE(NULLIF(p_tarifa->>'modo', ''), 'Marítimo'),
+    v_modo,
     NULLIF(upper(btrim(COALESCE(p_tarifa->>'aeropuerto_origen', ''))), ''),
     NULLIF(upper(btrim(COALESCE(p_tarifa->>'aeropuerto_destino', ''))), ''),
     NULLIF(btrim(COALESCE(p_tarifa->>'aerolinea', '')), ''),
@@ -50,7 +58,7 @@ BEGIN
   SELECT
     v_row.id, v_row.organization_id, btrim(r->>'concepto'),
     COALESCE(NULLIF(r->>'lado', ''), 'origen'),
-    (r->>'monto')::numeric, 'USD',
+    (r->>'monto')::numeric, v_moneda,
     CASE WHEN NULLIF(r->>'base', '') = 'por_embarque' THEN 'por_embarque' ELSE 'por_unidad' END,
     COALESCE((r->>'incluido_en_total')::boolean, true)
   FROM jsonb_array_elements(COALESCE(p_recargos, '[]'::jsonb)) AS r

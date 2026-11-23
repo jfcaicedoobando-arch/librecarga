@@ -24,3 +24,13 @@ describe("tarifa aérea/terrestre", () => {
     expect(usaTramos({ modo: "Terrestre", submodalidad: "FTL" })).toBe(false);
   });
 });
+
+describe("moneda de tarifa aérea/terrestre", () => {
+  it("envía la moneda elegida (MXN) al servidor", async () => {
+    const { payloadTarifaMultimodo: p } = await import("../tarifaMultimodo");
+    const out = p({ modo: "Aéreo", agente_id: "a", moneda: "MXN", origen: "PVG", destino: "MEX", aerolinea: "",
+      submodalidad: "", tipo_unidad: "", flete_base: 100, minimo: null, vigente_desde: "2026-11-01",
+      vigente_hasta: "2026-12-01", transit_time_dias: null, tramos: [] });
+    expect(out.moneda).toBe("MXN");
+  });
+});

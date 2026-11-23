@@ -94,6 +94,7 @@ export const HISTORY = [
   { file: '0098_pricing_lcl_imo_modalidad_negocio.sql', sha256: 'edbf9d524ee7317c0def6cdddd6c57f865a653978e33aacb025596f5651c9bb7', eligibleName: '20261123200300_replay_pricing_lcl_imo_modalidad_negocio.sql' },
   { file: '0099_recargos_base_por_unidad_o_embarque.sql', sha256: '3ecec21d9118c5a056ba41b5fa3126984619d26706e1b2ab7ec0dabe712a4021', eligibleName: '20261123200400_replay_recargos_base_por_unidad_o_embarque.sql' },
   { file: '0100_tarifario_aereo_terrestre_base.sql', sha256: '6d3af90a1789af2154a484f7c4b11b5fc0973cddb3fbcf9e7dc6ff00433b478e', eligibleName: '20261123200500_replay_tarifario_aereo_terrestre_base.sql' },
+  { file: '0101_tarifa_multimodo_moneda.sql', sha256: '543986869b63ec4fa25ec34426b808e73398fdf7233ae1dcf7b9df97205c02ef', eligibleName: '20261123200600_replay_tarifa_multimodo_moneda.sql' },
 ];
 const ARCHIVED_METADATA = [
   [`${ARCHIVE}/meta/0022_snapshot.json`, '002a1cff39197fe3431f23193a4229e1c845cbcd0ab5eaa074efded812b0081d'],

@@ -792,5 +792,13 @@
       "0100_tarifario_aereo_terrestre_base.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0101_tarifa_multimodo_moneda.sql",
+    "sha256": "543986869b63ec4fa25ec34426b808e73398fdf7233ae1dcf7b9df97205c02ef",
+    "replays": [
+      "0101_tarifa_multimodo_moneda.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]
