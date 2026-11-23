@@ -34,12 +34,14 @@ function firmaTarifa(captura: readonly unknown[], markup: number): string {
   return JSON.stringify([...captura, markup]);
 }
 
+const MODOS_CON_TARIFA = new Set<unknown>(["Marítimo", "Aéreo", "Terrestre"]);
+
 function capturarCosteoTarifa(getValues: Args["getValues"], seleccionada?: TopTarifaRow) {
   const valores = getValues(CAMPOS_COSTO_TARIFA);
   const [tarifaId, modo, incoterm, tipoEmbarque, numContenedores] = valores;
-  if (!tarifaId || modo !== "Marítimo" || esIncotermSinFleteVenta(incoterm, modo)) return null;
+  if (!tarifaId || !MODOS_CON_TARIFA.has(modo) || esIncotermSinFleteVenta(incoterm, modo)) return null;
   if (seleccionada && seleccionada.id !== tarifaId) return null;
-  return { valores, tarifaId, tipoEmbarque, cantidad: Math.max(1, Number(numContenedores) || 1) };
+  return { valores, tarifaId, modo, tipoEmbarque, cantidad: Math.max(1, Number(numContenedores) || 1) };
 }
 
 /** Una instancia por wizard para selección, precarga y recálculo. */
@@ -61,7 +63,7 @@ export function useCargaCostosTarifa({ getValues, captura, markup, setFilas }: A
   const cargar = useCallback(async ({ seleccionada, soloSiVacio = false }: SolicitudCarga = {}) => {
     const seleccion = capturarCosteoTarifa(getValues, seleccionada);
     if (!seleccion) return;
-    const { valores, tarifaId, tipoEmbarque, cantidad } = seleccion;
+    const { valores, tarifaId, modo, tipoEmbarque, cantidad } = seleccion;
     const markupCapturado = markupVigente.current;
     const solicitud = { firma: firmaTarifa(valores, markupCapturado) };
     if (soloSiVacio && solicitudVigente.current?.firma === solicitud.firma) return;
@@ -78,7 +80,7 @@ export function useCargaCostosTarifa({ getValues, captura, markup, setFilas }: A
       const recargos = await fetchRecargosDeTarifa(tarifaId);
       if (!vigente()) return;
       const nuevas = buildCostosDesdeTarifa({
-        tarifa, recargos, markup: markupCapturado, cantidad, tipoEmbarque,
+        tarifa, recargos, markup: markupCapturado, cantidad, tipoEmbarque, modo,
       });
       if (nuevas.length > 0) {
         setFilas(prev => vigente() && (!soloSiVacio || prev.length === 0)

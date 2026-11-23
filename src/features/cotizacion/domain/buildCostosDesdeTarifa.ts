@@ -15,6 +15,7 @@ import type { FilaCostoLocal } from "@/features/cotizacion/types";
 import type { TopTarifaRow, CosteoTarifaRecargo } from "@/features/costeo/types";
 import { roundMoney } from "@/lib/financial/financialUtils";
 import { NOTA_AUTO_TARIFA } from "./costosAutoGenerados";
+import { fleteSegunModo } from "./fleteSegunModo";
 
 export interface BuildCostosDesdeTarifaArgs {
   tarifa: Pick<
@@ -28,6 +29,8 @@ export interface BuildCostosDesdeTarifaArgs {
   cantidad?: number;
   /** Tipo de embarque de la cotización (FCL/LCL). Cambia unidad de medida y label del flete. */
   tipoEmbarque?: "FCL" | "LCL" | string | null;
+  /** Modo de la cotización; decide nombre y unidad del flete (default Marítimo). */
+  modo?: string | null;
 }
 
 const aplicarMarkup = (costo: number, markup: number): number => {
@@ -90,12 +93,12 @@ export function buildCostosDesdeTarifa({
   markup,
   cantidad = 1,
   tipoEmbarque,
+  modo = "Marítimo",
 }: BuildCostosDesdeTarifaArgs): FilaCostoLocal[] {
   const filas: FilaCostoLocal[] = [];
   const proveedor = tarifa.naviera_nombre ?? "";
-  const esLcl = tipoEmbarque === "LCL";
-  // LCL cotiza por volumen (m³ o W/M). FCL por contenedor. Blindaje AUD-LCL-1.
-  const unidad = esLcl ? "m³" : "contenedor";
+  // LCL por m³, FCL por contenedor (AUD-LCL-1); Aéreo por kg; Terrestre por viaje.
+  const { concepto: conceptoFlete, unidad } = fleteSegunModo(modo, tipoEmbarque, tarifa.tipo_contenedor_nombre);
 
   // 13.142.8: la BD tiene un check `cotizacion_costos_cantidad_pos` que exige
   // `cantidad > 0`. Cuando el wizard aún no captura contenedores llega 0 y la
@@ -104,11 +107,6 @@ export function buildCostosDesdeTarifa({
 
   const fleteBase = Number(tarifa.flete_base ?? 0);
   if (fleteBase > 0) {
-    // En LCL evitamos filtrar el nombre del contenedor (la tarifa hoy está
-    // modelada para FCL y trae, p. ej., "20DRY", que confunde en un embarque LCL).
-    const conceptoFlete = esLcl
-      ? "Flete marítimo LCL"
-      : `Flete marítimo (${tarifa.tipo_contenedor_nombre ?? ""})`.trim();
     filas.push({
       concepto: conceptoFlete,
       moneda: "USD",
