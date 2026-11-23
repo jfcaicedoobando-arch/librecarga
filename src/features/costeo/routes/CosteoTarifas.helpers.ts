@@ -79,6 +79,8 @@ type TarifaRow = {
     moneda: string | null;
     incluido_en_total: boolean | null;
     base?: string | null;
+    minimo?: number | string | null;
+    proveedor?: string | null;
   }>;
 };
 
