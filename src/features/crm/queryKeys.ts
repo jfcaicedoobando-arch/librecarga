@@ -5,6 +5,8 @@ export const crm = {
   },
   resumenPricing: (organizationId: string | null, userId?: string) => ["crm", "pricing", "resumen", organizationId, userId] as const,
   buscarAeropuertos: (termino: string) => ["aeropuertos", "buscar", termino] as const,
+  tarifasAereasSugeridas: (organizationId: string, origen: string | null, destino: string | null, hoy: string) =>
+    ["pricing", "tarifas-aereas", organizationId, origen, destino, hoy] as const,
   origenEmpresa: (id: string) => ["crm", "origen-empresa", id] as const,
   adjuntoUrl: (path: string) => ["crm", "pricing", "adjunto-url", path] as const,
   adjuntos: (id: string) => ["crm", "pricing", "adjuntos", id] as const,

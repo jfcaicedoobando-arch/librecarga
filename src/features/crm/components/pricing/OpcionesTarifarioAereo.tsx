@@ -1,5 +1,4 @@
 /** Tarifas aéreas guardadas que coinciden con la ruta IATA de la solicitud (sólo consulta). */
-import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,8 +7,8 @@ import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { formatDate } from "@/lib/formatters/dates";
-import { hoyMx } from "@/lib/date/mx";
-import { iataDeEtiqueta, listarTarifasAereasSugeridas } from "@/features/crm/services/pricing/tarifasAereasSugeridas";
+import { useTarifasAereasSugeridas } from "@/features/crm/hooks/useTarifasAereasSugeridas";
+import { iataDeEtiqueta } from "@/features/crm/services/pricing/tarifasAereasSugeridas";
 import type { SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
 
 export function OpcionesTarifarioAereo({ solicitud: s, puedeCotizar }: { solicitud: SolicitudPricingRow; puedeCotizar: boolean }) {
@@ -21,12 +20,7 @@ export function OpcionesTarifarioAereo({ solicitud: s, puedeCotizar }: { solicit
   };
   const origen = iataDeEtiqueta(s.pol);
   const destino = iataDeEtiqueta(s.pod);
-  const hoy = hoyMx();
-  const q = useQuery({
-    queryKey: ["pricing", "tarifas-aereas", s.organization_id, origen, destino, hoy],
-    queryFn: () => listarTarifasAereasSugeridas(s.organization_id, origen!, destino!, hoy),
-    enabled: !!origen && !!destino,
-  });
+  const q = useTarifasAereasSugeridas(s.organization_id, origen, destino);
   if (s.estado === "cancelada") return null;
   return (
     <div className="space-y-2">
