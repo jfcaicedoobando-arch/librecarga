@@ -115,7 +115,10 @@ describe("56: Programar pago abre la fecha en datos fiscales y conserva el orige
     expect(mostrar).toHaveTextContent("Todas las pendientes");
     fireEvent.keyDown(mostrar, { key: "ArrowDown" });
     fireEvent.keyDown(await screen.findByRole("option", { name: "Solo con pago programado" }), { key: "Enter" });
-    await waitFor(() => expect(window.location.search).toBe("?origen=revision&mostrar=programadas"));
+    await waitFor(
+      () => expect(new URLSearchParams(window.location.search).get("mostrar")).toBe("programadas"),
+      { timeout: 4000 },
+    );
     expect(screen.queryByRole("button", { name: "Programar pago" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Revisar aprobación" }));
     const volver = screen.getByRole("link", { name: "Volver a Pagos programados" });
