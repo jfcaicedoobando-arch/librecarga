@@ -20,7 +20,7 @@ export function OpcionesTarifarioAereo({ solicitud: s, puedeCotizar }: { solicit
   };
   const origen = iataDeEtiqueta(s.pol);
   const destino = iataDeEtiqueta(s.pod);
-  const q = useTarifasAereasSugeridas(s.organization_id, origen, destino);
+  const q = useTarifasAereasSugeridas(s.organization_id, origen, destino, s.fecha_tentativa_carga);
   if (s.estado === "cancelada") return null;
   return (
     <div className="space-y-2">

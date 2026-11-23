@@ -6,12 +6,16 @@ import {
   aplicarTarifaTarifario, costeoQueryKeys, listarCargos,
   listarTarifasTarifario, tarifasCoincidentes,
 } from "@/features/costeo";
+import { fechaVigenciaSolicitud } from "../services/pricing/fechaVigenciaSolicitud";
 import type { SolicitudPricingRow } from "../services/pricing/tiposPricing";
 
 export function useOpcionesTarifario(s: SolicitudPricingRow) {
   const qc = useQueryClient();
-  const hoy = hoyMx();
-  const tarifas = useQuery({ queryKey: costeoQueryKeys.tarifario.tarifas("vigentes"), queryFn: () => listarTarifasTarifario("vigentes", hoy) });
+  // Vigencia al día de la carga, no al de hoy.
+  const hoyReal = hoyMx();
+  const hoy = fechaVigenciaSolicitud(s.fecha_tentativa_carga, hoyReal);
+  const base = costeoQueryKeys.tarifario.tarifas("vigentes");
+  const tarifas = useQuery({ queryKey: hoy === hoyReal ? base : [...base, hoy], queryFn: () => listarTarifasTarifario("vigentes", hoy) });
   const esFob = (s.incoterm ?? "").toUpperCase() === "FOB";
   const fob = useQuery({ queryKey: costeoQueryKeys.tarifario.cargos("fob"), queryFn: () => listarCargos("fob"), enabled: esFob });
   const locales = useQuery({ queryKey: costeoQueryKeys.tarifario.cargos("locales"), queryFn: () => listarCargos("locales") });
