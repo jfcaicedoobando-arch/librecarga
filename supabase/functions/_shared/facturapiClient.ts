@@ -1,8 +1,8 @@
 /**
  * facturapiClient — Devuelve una instancia del SDK oficial `facturapi`
- * (v6.0.0) ya configurada para la organización dada.
+ * (v6.1.0) ya configurada para la organización dada.
  *
- * Carga el SDK vía import ESTÁTICO `npm:facturapi@6.0.0` y cachea el cliente
+ * Carga el SDK vía import estático y cachea el cliente
  * por API key para evitar reinstanciar en invocaciones encadenadas dentro de
  * la misma instancia del runtime.
  *
@@ -31,19 +31,19 @@
  *   import por defecto conserva el interop `default.default`.
  *
  * NOTA: antes usábamos `import()` dinámico con la spec en variable
- * (`const sdkSpec = "npm:facturapi@6.0.0"; import(sdkSpec)`). Deno Edge
+ * (`import(sdkSpec)`). Deno Edge
  * Runtime construye el grafo de paquetes npm SOLO a partir de imports
  * estáticos: al ser dinámico, el paquete no quedaba registrado y el boot
  * fallaba con `Could not find constraint 'facturapi@<versión>' in the list of
  * packages.`, tirando todo request con "Edge Function returned a non-2xx".
  */
-// P2-C: el paquete `facturapi` SÍ publica typings (v6.0.0, `dist/*.d.ts`),
+// P2-C: el paquete `facturapi` SÍ publica typings (`dist/*.d.ts`),
 // pero están declarados para resolución de bundler/Node y el typecheck de Deno
 // no los alcanza desde el especificador `npm:`. De ahí el `@ts-ignore` y el
 // modelado como objeto opaco: la superficie tipada que usa el ERP vive en
 // `_shared/facturapiSdk.ts` (un solo lugar con los casts del SDK).
 // @ts-ignore -- typings del paquete no resolubles desde el especificador `npm:` en Deno.
-import FacturapiDefault from "npm:facturapi@6.0.0";
+import FacturapiDefault from "npm:facturapi@6.1.0";
 import {
   resolveFacturapiKey, facturapiResolverClient, type FacturapiAmbiente, type FacturapiResolveResult,
 } from "./facturapiAuth.ts";
