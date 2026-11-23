@@ -33,20 +33,24 @@ describe("Consultas de la ficha de cliente", () => {
 
   it("no presenta cero accesos si falló la lectura del portal y recupera los estados de invitación", () => {
     mocks.portal.mockReturnValue({ isError: true, refetch: mocks.reintentar });
-    const vista = (
+    const vista = () => (
       <MemoryRouter><TabPortalCliente clienteId="cliente-demo" organizationId="org-demo" canEdit={false} /></MemoryRouter>
     );
-    const { rerender } = render(vista);
+    const { rerender } = render(vista());
     expect(screen.getByRole("alert")).toHaveTextContent("No pudimos consultar los accesos al portal");
     expect(screen.queryByText("Sin acceso")).not.toBeInTheDocument();
     expect(screen.queryByText(/No hay usuarios con acceso/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
     expect(mocks.reintentar).toHaveBeenCalledOnce();
     mocks.portal.mockReturnValue({
-      data: [{ id: "acceso-demo", email: "contacto@ejemplo.test", email_confirmed_at: null, last_sign_in_at: null }],
+      data: [
+        { id: "invitado", email: "contacto@ejemplo.test", email_confirmed_at: null, last_sign_in_at: null },
+        { id: "confirmado", email: "confirmado@ejemplo.test", email_confirmed_at: "2026-11-20", last_sign_in_at: null },
+      ],
     });
-    rerender(<MemoryRouter><TabPortalCliente clienteId="cliente-demo" organizationId="org-demo" canEdit={false} /></MemoryRouter>);
-    expect(screen.getByText("1 usuario con acceso")).toBeVisible();
-    expect(screen.getByText("Pendiente")).toBeVisible();
+    rerender(vista());
+    expect(screen.getByText("2 usuarios con acceso")).toBeVisible();
+    expect(screen.getByText("Invitación sin confirmar")).toBeVisible();
+    expect(screen.getByText("Correo confirmado · sin primer ingreso")).toBeVisible();
   });
 });

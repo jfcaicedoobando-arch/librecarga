@@ -34,8 +34,8 @@ describe("Portal Embarques sin expediente", () => {
     usePortalClientUsers.mockReturnValue({ data: [{ cliente_id: "cliente-1" }] });
     render(<MemoryRouter initialEntries={["/portal/embarques"]}><PortalEmbarques /></MemoryRouter>);
 
-    expect(screen.getByRole("button", { name: /EXP-123.*2 contenedores/ })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /contenedores/ })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /EXP-123.*2 embarques/ })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /\b\d+ embarques\b/ })).toHaveLength(1);
     for (const embarque of embarques.slice(0, 3)) {
       const tarjeta = screen.getByRole("link", { name: `Ver embarque Sin folio (${embarque.id})` });
       expect(within(tarjeta).getByText(`${embarque.puerto_origen} → ${embarque.puerto_destino}`)).toBeInTheDocument();

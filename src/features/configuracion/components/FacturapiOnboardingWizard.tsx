@@ -21,7 +21,7 @@ import type { FacturapiAmbiente } from "@/features/configuracion/services/factur
 import { PasoAmbiente } from "./wizard/PasoAmbiente";
 import { PasoApiKeys } from "./wizard/PasoApiKeys";
 import { PasoProbar } from "./wizard/PasoProbar";
-import { usePruebaFacturapiAmbiente } from "./wizard/usePruebaFacturapiAmbiente";
+import { usePruebaFacturapiAmbiente } from "../hooks/usePruebaFacturapiAmbiente";
 
 const PASOS = ["Ambiente", "API keys", "Probar"] as const;
 

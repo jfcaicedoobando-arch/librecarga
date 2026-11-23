@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useProbarFacturapiConexion } from "@/features/configuracion/hooks/useFacturapiCredenciales";
+import { useProbarFacturapiConexion } from "./useFacturapiCredenciales";
 import type { FacturapiAmbiente, ProbarConexionResult } from "@/features/configuracion/services/facturapiCredenciales";
 
 export function usePruebaFacturapiAmbiente(

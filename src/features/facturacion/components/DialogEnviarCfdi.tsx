@@ -3,7 +3,7 @@
  * al cliente vía FacturApi. Permite ver y elegir entre los contactos del
  * cliente antes de enviar para evitar mandarlo al destinatario equivocado.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Mail, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,6 @@ import { enviarCfdiFactura, enviarCfdiRep, enviarCfdiNotaCredito } from "@/featu
 import { facturas as facturasKeys } from "@/features/facturacion/queryKeys";
 import { useContactosClienteParaEnvio } from "@/features/facturacion/hooks/useContactosClienteParaEnvio";
 import { ContactosClienteList } from "@/features/facturacion/components/ContactosClienteList";
-import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { notifyError } from "@/lib/ui/appFeedback";
 import { getErrorMessage } from "@/lib/errors/index";
 
@@ -74,7 +73,6 @@ export function DialogEnviarCfdi({
   const valido = esValido(email);
   const emailSugerido = datosCliente?.emailSugerido ?? null;
   const esOverride = valido && emailSugerido !== null && email.trim().toLowerCase() !== emailSugerido.toLowerCase();
-  const contactos = useMemo(() => datosCliente?.contactos ?? [], [datosCliente]);
 
   const pickEmail = (nuevo: string) => { setEmail(nuevo); setTocado(true); };
 
@@ -145,19 +143,15 @@ export function DialogEnviarCfdi({
             <Label size="sm" className="uppercase tracking-wide text-muted-foreground">
               Contactos del cliente
             </Label>
-            {isError ? (
-              <ErrorStateInline title="No pudimos consultar los contactos"
-                message="Reintenta la consulta para volver a ver los correos del cliente."
-                onRetry={() => void refetch()} retrying={isFetching} />
-            ) : (
-              <ContactosClienteList
-                cargando={cargandoContactos}
-                contactos={contactos}
-                emailCliente={datosCliente?.emailCliente}
-                emailSeleccionado={email}
-                onPick={pickEmail}
-              />
-            )}
+            <ContactosClienteList
+              cargando={cargandoContactos}
+              datos={datosCliente}
+              error={isError}
+              reintentando={isFetching}
+              onRetry={() => void refetch()}
+              emailSeleccionado={email}
+              onPick={pickEmail}
+            />
           </div>
         )}
       </div>
