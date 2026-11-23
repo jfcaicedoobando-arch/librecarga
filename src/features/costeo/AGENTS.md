@@ -1,0 +1,1 @@
+- Tarifas multimodo: `costeo_tarifas.modo` con CHECK `costeo_tarifas_campos_por_modo` (Marítimo exige naviera/ruta/contenedor; Aéreo aeropuertos IATA; Terrestre submodalidad + CP/ciudad); tramos de peso en `costeo_tarifa_tramos`, cálculo puro en `domain/tarifaPorPeso.ts`. Why: tarifas aéreas/terrestres sin tocar las marítimas.

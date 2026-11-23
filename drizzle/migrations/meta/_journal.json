@@ -701,6 +701,13 @@
       "when": 1795464741596,
       "tag": "0099_recargos_base_por_unidad_o_embarque",
       "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1795466544824,
+      "tag": "0100_tarifario_aereo_terrestre_base",
+      "breakpoints": true
     }
   ]
 }
