@@ -46,6 +46,7 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
   const navigate = useNavigate();
   const userId = user?.id;
   const [editando, setEditando] = useState(false);
+  const [duplicando, setDuplicando] = useState(false);
   const esPricing = esRolPricing(effectiveRole);
   const opcionesRespuesta = useOpcionesPricing(s.id);
   const opciones = opcionesRespuesta.data ?? [];
@@ -69,11 +70,13 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
   return (
     <div className="space-y-4">
       <AccionesSolicitudPricing solicitud={s} puedeCancelar={puedeCancelar} puedeResponder={editable}
-        puedeEditar={puedeEditar} puedeCopiar={puedeElegir} onEditar={() => setEditando(true)}
+        puedeEditar={puedeEditar} puedeCopiar={puedeElegir} onEditar={() => setEditando(true)} onDuplicar={() => setDuplicando(true)}
         numOpciones={opciones.length + tarifas.length}
         consultaRespuesta={estadoConsultaRespuesta(opcionesRespuesta, tarifasRespuesta)} />
       <SolicitudPricingDialog open={editando} onOpenChange={setEditando}
         oportunidadId={s.oportunidad_id ?? ""} solicitud={s} />
+      <SolicitudPricingDialog open={duplicando} onOpenChange={setDuplicando}
+        oportunidadId={s.oportunidad_id ?? ""} copiaDe={s} />
       <ResumenSolicitudPricing solicitud={s} />
       {esGerenteOps(effectiveRole) && <AjustePlazoPricing solicitud={s} />}
       <AdjuntosSolicitudPricing organizationId={s.organization_id} solicitudId={s.id}

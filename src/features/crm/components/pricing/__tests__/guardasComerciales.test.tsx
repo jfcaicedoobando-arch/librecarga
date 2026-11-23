@@ -38,7 +38,7 @@ describe("Guardas comerciales", () => {
       id: "solicitud-1", folio: "PRI-01", oportunidad_id: "o-1", estado: "enviada",
     } as SolicitudPricingRow;
     render(<AccionesSolicitudPricing solicitud={solicitud} puedeCancelar puedeResponder={false}
-      puedeEditar={false} puedeCopiar={false} onEditar={vi.fn()} numOpciones={0} />);
+      puedeEditar={false} puedeCopiar={false} onEditar={vi.fn()} onDuplicar={vi.fn()} numOpciones={0} />);
 
     const abrir = () => fireEvent.click(screen.getByRole("button", { name: "Cancelar solicitud" }));
     abrir();

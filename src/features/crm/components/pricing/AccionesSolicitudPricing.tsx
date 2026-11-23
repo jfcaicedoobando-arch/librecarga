@@ -20,6 +20,7 @@ interface Props {
   puedeEditar: boolean;
   puedeCopiar: boolean;
   onEditar: () => void;
+  onDuplicar: () => void;
   numOpciones: number;
   consultaRespuesta?: ConsultaRespuesta;
 }
@@ -49,7 +50,7 @@ function EstadoConsultaRespuesta({ consulta }: { consulta?: ConsultaRespuesta })
   return null;
 }
 
-export function AccionesSolicitudPricing({ solicitud: s, puedeCancelar, puedeResponder, puedeEditar, puedeCopiar, onEditar, numOpciones, consultaRespuesta }: Props) {
+export function AccionesSolicitudPricing({ solicitud: s, puedeCancelar, puedeResponder, puedeEditar, puedeCopiar, onEditar, onDuplicar, numOpciones, consultaRespuesta }: Props) {
   const accion = useAccionSolicitud();
   const copiar = useGuardarSolicitud();
   const [idPorCancelar, setIdPorCancelar] = useState<string | null>(null);
@@ -66,6 +67,9 @@ export function AccionesSolicitudPricing({ solicitud: s, puedeCancelar, puedeRes
           {puedeCopiar && (
             <Button variant="outline" size="sm" disabled={copiar.isPending}
               onClick={() => copiar.mutate({ datos: datosCopiaSolicitud(s), enviar: true })}>Copiar y enviar</Button>
+          )}
+          {puedeCopiar && (
+            <Button variant="outline" size="sm" onClick={onDuplicar}>Duplicar y editar</Button>
           )}
           {puedeEditar && (
             <Button variant="outline" size="sm" onClick={onEditar}>Editar</Button>

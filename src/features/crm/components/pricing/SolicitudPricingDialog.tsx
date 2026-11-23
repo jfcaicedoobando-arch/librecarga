@@ -13,6 +13,7 @@ import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
 import { getSessionCacheGeneration, subscribeSessionCacheGeneration } from "@/lib/auth/sessionCacheRegistry";
 import { ErrorEnvioSolicitudPricing, useGuardarSolicitud } from "@/features/crm/hooks/usePricingCrm";
 import { camposFaltantesSolicitud, type SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
+import { datosCopiaSolicitud } from "@/features/crm/services/pricing/copiaSolicitud";
 import { subirAdjunto } from "@/features/crm/services/pricing/adjuntosPricing";
 import { notifyError } from "@/lib/ui/appFeedback";
 import { SolicitudPricingCampos, type DatosSolicitud } from "./SolicitudPricingCampos";
@@ -25,12 +26,19 @@ interface Props {
   oportunidadId: string;
   clienteNombre?: string | null;
   solicitud?: SolicitudPricingRow | null;
+  /** Abre una solicitud nueva precargada con los datos de otra (p. ej. para cambiar el modo). */
+  copiaDe?: SolicitudPricingRow | null;
   onRevisarTarifario?: (solicitudId: string) => void;
 }
 
 const FORM_ID = "solicitud-pricing";
 
-function inicial(userId: string, cliente: string | null | undefined, s?: SolicitudPricingRow | null): DatosSolicitud {
+function inicial(userId: string, cliente: string | null | undefined, s?: SolicitudPricingRow | null,
+  copiaDe?: SolicitudPricingRow | null): DatosSolicitud {
+  if (!s && copiaDe) {
+    const { folio: _f, organization_id: _o, oportunidad_id: _p, ...resto } = datosCopiaSolicitud(copiaDe);
+    return { ...resto, solicitante_id: userId, fecha: hoyMx() };
+  }
   if (s) {
     const { folio: _f, organization_id: _o, oportunidad_id: _p, ...resto } = s;
     return resto;
@@ -44,16 +52,17 @@ export function SolicitudPricingDialog(props: Props) {
   const authGeneration = useSyncExternalStore(subscribeSessionCacheGeneration, getSessionCacheGeneration, getSessionCacheGeneration);
   const solicitud = props.solicitud?.oportunidad_id === props.oportunidadId
     && props.solicitud.organization_id === organizationId ? props.solicitud : null;
-  const identidad = JSON.stringify([props.solicitud?.id, props.oportunidadId, organizationId, user?.id, authGeneration]);
+  const copiaDe = !solicitud && props.copiaDe?.organization_id === organizationId ? props.copiaDe : null;
+  const identidad = JSON.stringify([props.solicitud?.id, copiaDe?.id, props.oportunidadId, organizationId, user?.id, authGeneration]);
   // Cambiar identidad o cerrar desmonta la captura y revoca sus continuaciones.
-  return props.open ? <SesionSolicitudPricing key={identidad} {...props} solicitud={solicitud}
+  return props.open ? <SesionSolicitudPricing key={identidad} {...props} solicitud={solicitud} copiaDe={copiaDe}
     organizationId={organizationId} userId={user?.id} /> : null;
 }
 
-function SesionSolicitudPricing({ open, onOpenChange, oportunidadId, clienteNombre, solicitud, organizationId, userId, onRevisarTarifario }:
+function SesionSolicitudPricing({ open, onOpenChange, oportunidadId, clienteNombre, solicitud, copiaDe, organizationId, userId, onRevisarTarifario }:
   Props & { organizationId?: string | null; userId?: string }) {
   const guardar = useGuardarSolicitud();
-  const [datos, setDatos] = useState<DatosSolicitud>(() => inicial(userId ?? "", clienteNombre, solicitud));
+  const [datos, setDatos] = useState<DatosSolicitud>(() => inicial(userId ?? "", clienteNombre, solicitud, copiaDe));
   const [sucio, setSucio] = useState(false);
   const [pendientes, setPendientes] = useState<File[]>([]);
   const idGuardado = useRef(solicitud?.id);
@@ -134,7 +143,7 @@ function SesionSolicitudPricing({ open, onOpenChange, oportunidadId, clienteNomb
       open={open}
       onOpenChange={onOpenChange}
       icon={Calculator}
-      title={solicitud ? `Solicitud ${solicitud.folio}` : "Nueva solicitud a Pricing"}
+      title={solicitud ? `Solicitud ${solicitud.folio}` : copiaDe ? `Nueva solicitud (copia de ${copiaDe.folio})` : "Nueva solicitud a Pricing"}
       description="El folio se asigna solo al guardar."
       size="lg"
       formId={FORM_ID}
