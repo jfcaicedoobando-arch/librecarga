@@ -17,6 +17,7 @@ import { CampoLista, CampoSiNo, CampoTexto } from "./CamposPricing";
 import { CamposCargaDetalle } from "./CamposCargaDetalle";
 import { CamposMedidasAereo } from "./CamposMedidasAereo";
 import { RutaAerea } from "./RutaAerea";
+import { CamposBanderasAereo } from "./CamposBanderasAereo";
 import { TIPOS } from "@/constants/wizardConstants";
 import { SECTORES } from "@/constants/cotizacionMercancia";
 
@@ -52,6 +53,7 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
     set("servicio", v);
     if (!submodalidadesDe(v).includes(datos.submodalidad ?? "")) set("submodalidad", null);
     if (datos.incoterm && !incotermsDe(v).includes(datos.incoterm)) set("incoterm", null);
+    if (v !== "Aéreo") { set("baterias_litio", null); set("known_shipper", null); set("tipo_aeronave", null); }
   };
   const aereo = datos.servicio === "Aéreo";
   return (
@@ -90,6 +92,7 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
           opciones={unidadesMedidaCaptura(datos.unidad_medida)} onChange={(v) => set("unidad_medida", v)} />
         {aereo ? <CamposMedidasAereo datos={datos} set={set} disabled={disabled} />
           : <CampoTexto id="pr-dim" label="Dimensions" {...d} value={datos.dimensiones} onChange={txt("dimensiones")} />}
+        {aereo && <CamposBanderasAereo datos={datos} set={set} disabled={disabled} />}
         <CamposCargaDetalle datos={datos} set={set} disabled={disabled} />
       </FormDialogSection>
       <FormDialogSection title="Ruta">

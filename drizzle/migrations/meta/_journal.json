@@ -715,6 +715,13 @@
       "when": 1795470091998,
       "tag": "0101_tarifa_multimodo_moneda",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1795471596948,
+      "tag": "0102_pricing_banderas_aereas",
+      "breakpoints": true
     }
   ]
 }
