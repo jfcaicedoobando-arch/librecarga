@@ -3,10 +3,8 @@
  * Permite agregar/quitar tramos (desde_dia, hasta_dia, monto/día) y guardar.
  */
 import { useEffect, useMemo, useState } from "react";
-import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 import { MoneyInput } from "@/components/shared/MoneyInput";
-import { LoadingState } from "@/components/shared/states/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,8 +23,8 @@ import {
 } from "@/features/costeo/hooks/useNavieraCondiciones";
 import { encontrarSolapeTramos, tramosSucios, mezclaMonedasTramos, MENSAJE_MONEDAS_DEMORAS } from "@/features/costeo/utils/demorasTramos";
 import { notifyError } from "@/lib/ui/appFeedback";
-import type { DemorasTramoInput } from "@/features/costeo/types/navieraCondicion";
-import { nuevoTramo, tramosEditablesDeTipo, type TramoEditable } from "./demorasTarifaEditor.helpers";
+import { DemorasTarifaEstadoConsulta } from "./DemorasTarifaEstadoConsulta";
+import { nuevoTramo, serializarTramos, tramosEditablesDeTipo, type TramoEditable } from "./demorasTarifaEditor.helpers";
 
 interface Props {
   navieraCondicionId: string;
@@ -35,7 +33,8 @@ interface Props {
 export function DemorasTarifaEditor({ navieraCondicionId }: Props) {
   const { data: tipos = [] } = useTiposContenedorDemoras();
   const [tipoSel, setTipoSel] = useState<string>("");
-  const { data: tramos, isError, isFetching, refetch } = useDemorasTramos(navieraCondicionId);
+  const consultaTramos = useDemorasTramos(navieraCondicionId);
+  const { data: tramos, isError } = consultaTramos;
   const reemplazar = useReemplazarTramos();
   const listo = tramos !== undefined && !isError;
   const editable = listo && !!tipoSel;
@@ -78,17 +77,10 @@ export function DemorasTarifaEditor({ navieraCondicionId }: Props) {
       });
       return;
     }
-    const payload: DemorasTramoInput[] = rows.map((r) => ({
-      tipo_contenedor_id: tipoSel,
-      desde_dia: Number(r.desde_dia) || 1,
-      hasta_dia: r.hasta_dia === null ? null : Number(r.hasta_dia),
-      monto_por_dia: Number(r.monto_por_dia) || 0,
-      moneda: r.moneda || "USD",
-    }));
     await reemplazar.mutateAsync({
       navieraCondicionId,
       tipoContenedorId: tipoSel,
-      tramos: payload,
+      tramos: serializarTramos(rows, tipoSel),
     });
   };
 
@@ -139,16 +131,7 @@ export function DemorasTarifaEditor({ navieraCondicionId }: Props) {
         <TableBody>
           {!listo && (
             <TableRow>
-              <TableCell colSpan={5}>
-                {isError ? (
-                  <ErrorStateInline
-                    title="No se pudo cargar el tabulador"
-                    message="Reintenta para consultar los tramos antes de editar o guardar."
-                    onRetry={() => void refetch()}
-                    retrying={isFetching}
-                  />
-                ) : <LoadingState label="Cargando tabulador de demoras…" minHeight="min-h-24" />}
-              </TableCell>
+              <TableCell colSpan={5}><DemorasTarifaEstadoConsulta consulta={consultaTramos} /></TableCell>
             </TableRow>
           )}
           {listo && rows.length === 0 && (

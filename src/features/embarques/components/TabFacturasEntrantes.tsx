@@ -8,11 +8,8 @@
  */
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { EntrantesCardHeader } from "@/features/embarques/components/entrantes/EntrantesCardHeader";
-import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
-import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
-import { Inbox } from "lucide-react";
+import { EntrantesEstadoConsulta } from "@/features/embarques/components/entrantes/EntrantesEstadoConsulta";
 import { EntrantesConfirmDialogs } from "@/features/embarques/components/entrantes/EntrantesConfirmDialogs";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { usePermissions } from "@/hooks/shared/usePermissions";
@@ -44,28 +41,6 @@ interface Props {
   canEdit: boolean;
   /** Embarque Cerrado: la base rechaza altas/bajas del buzón (LC_EMBARQUE_CERRADO). */
   cerrado?: boolean;
-}
-
-function EstadoConsultaBuzon({ consulta }: { consulta: ReturnType<typeof useFacturasEntrantes> }) {
-  if (consulta.isError) {
-    return (
-      <ErrorStateInline
-        title="No se pudo cargar el buzón de facturas"
-        message="Reintenta para consultar las facturas recibidas de este embarque."
-        onRetry={() => void consulta.refetch()}
-        retrying={consulta.isFetching}
-      />
-    );
-  }
-  if (consulta.isLoading) return <Skeleton className="h-24 w-full" />;
-  if (consulta.data?.length !== 0) return null;
-  return (
-    <EmptyStateInline
-      icon={Inbox}
-      message="Aún no hay facturas de proveedor en el buzón de este embarque."
-      className="py-6"
-    />
-  );
 }
 
 export function TabFacturasEntrantes({ embarqueId, canEdit: canEditRol, cerrado = false }: Props) {
@@ -133,7 +108,7 @@ export function TabFacturasEntrantes({ embarqueId, canEdit: canEditRol, cerrado 
           onSubir={() => setSubirOpen(true)}
         />
         <CardContent className="space-y-2">
-          <EstadoConsultaBuzon consulta={consulta} />
+          <EntrantesEstadoConsulta consulta={consulta} />
           {filas.length > 0 && (
             <div className="hidden grid-cols-12 gap-4 border-b pb-2 text-label font-medium uppercase tracking-wide text-muted-foreground md:grid">
               <span className="col-span-4">Archivo y estado</span>
