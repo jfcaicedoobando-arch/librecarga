@@ -1,5 +1,10 @@
 # Changelog
 
+## [13.824.97] - 2026-11-22
+- **Operación diaria:** Conciliación limpia el movimiento al cambiar de cuenta, Cotizaciones permite reintentar la carga de costos y Proformas sincroniza su estado con la URL.
+- **Pagos y portal:** los ajustes no monetarios se distinguen en Pagos a proveedores y su CSV. El portal distingue saldos pendientes de consulta y conserva el último saldo disponible.
+- **Pricing y validación:** elimina acciones duplicadas al cotizar y respeta el permiso de escritura. Completa el replay aislado de Drizzle 0083–0094.
+
 ## [13.824.96] - 2026-11-20
 - **Permisos efectivos en la empresa:** cinco ajustes seleccionados protegen costos de cotizaciones, vinculación comercial, duplicación de embarques, creación de proformas y eliminación de pagos. Conservan cálculos, históricos y reintentos autorizados; sin cambios en envíos de correo.
 
