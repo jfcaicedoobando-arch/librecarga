@@ -18,14 +18,13 @@ interface Props {
   tipo?: TipoProveedor | null;
   search: string;
   origen?: "Nacional" | "Extranjero" | "todos";
-  onSelect: (id: string) => void;
   onTotalChange?: (total: number) => void;
   onLimpiarFiltros: () => void;
   canCreate?: boolean;
   onCreateNew?: () => void;
 }
 
-export function ProveedorTable({ tipo, search, origen, onSelect, onTotalChange, onLimpiarFiltros, canCreate, onCreateNew }: Props) {
+export function ProveedorTable({ tipo, search, origen, onTotalChange, onLimpiarFiltros, canCreate, onCreateNew }: Props) {
   const { page, setPage, pageSize, setPageSize, resetPage } = useListPageState({}, 100, [50, 100, 200, 500]);
   const debouncedSearch = useDebounce(search, 300);
 
@@ -44,7 +43,7 @@ export function ProveedorTable({ tipo, search, origen, onSelect, onTotalChange, 
   const proveedores = resultado?.data ?? [];
   const totalCount = resultado?.count ?? 0;
   const totalPages = Math.ceil(totalCount / pageSize);
-  const hayFiltros = Boolean(search.trim() || tipo || (origen && origen !== "todos"));
+  const hayFiltros = [search.trim(), tipo, origen === "todos" ? null : origen].some(Boolean);
 
   useEffect(() => {
     if (!isError) onTotalChange?.(totalCount);
@@ -82,7 +81,7 @@ export function ProveedorTable({ tipo, search, origen, onSelect, onTotalChange, 
               secondaryAction={hayFiltros ? { label: "Limpiar filtros", onClick: onLimpiarFiltros } : undefined}
             />
           }
-          onRowClick={(p) => onSelect(p.id)}
+          getRowHref={(p) => `/proveedores/${p.id}`}
           rowKey={(p) => p.id}
           density={TABLE_DENSITY.listado}
           className="pb-24 sm:pb-0"

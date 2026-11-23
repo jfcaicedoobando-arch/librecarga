@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { createWrapper } from "@/test/utils/queryWrapper";
 import { ProveedorTable } from "../ProveedorTable";
@@ -15,7 +15,7 @@ describe("ProveedorTable", () => {
     consulta.useProveedoresPaginados.mockReturnValue({ isError: true, refetch });
     const vista = () => (
       <MemoryRouter>
-        <ProveedorTable origen="Nacional" search="" onSelect={vi.fn()} onTotalChange={onTotalChange}
+        <ProveedorTable origen="Nacional" search="" onTotalChange={onTotalChange}
           onLimpiarFiltros={limpiar} canCreate onCreateNew={vi.fn()} />
       </MemoryRouter>
     );
@@ -42,7 +42,7 @@ describe("ProveedorTable", () => {
     consulta.useProveedoresPaginados.mockReturnValue({ data: { data: [], count: 0 } });
     render(
       <MemoryRouter>
-        <ProveedorTable origen="todos" search="" onSelect={vi.fn()} onLimpiarFiltros={vi.fn()} canCreate onCreateNew={crear} />
+        <ProveedorTable origen="todos" search="" onLimpiarFiltros={vi.fn()} canCreate onCreateNew={crear} />
       </MemoryRouter>,
       { wrapper: createWrapper() },
     );
@@ -50,5 +50,30 @@ describe("ProveedorTable", () => {
     expect(screen.queryByRole("button", { name: "Limpiar filtros" })).toBeNull();
     fireEvent.click(screen.getByText("Crear proveedor", { selector: "button" }));
     expect(crear).toHaveBeenCalledOnce();
+  });
+
+  it("anuncia cada fila como enlace, admite clic central y navega con Enter", async () => {
+    consulta.useProveedoresPaginados.mockReturnValue({
+      data: { data: [{ id: "proveedor-qa", nombre: "Proveedor sintético", rfc: "XAXX010101000" }], count: 1 },
+    });
+    render(
+      <MemoryRouter initialEntries={["/proveedores"]}>
+        <Routes>
+          <Route path="/proveedores" element={<ProveedorTable search="" onLimpiarFiltros={vi.fn()} />} />
+          <Route path="/proveedores/proveedor-qa" element={<p>Ficha del proveedor</p>} />
+        </Routes>
+      </MemoryRouter>,
+      { wrapper: createWrapper() },
+    );
+    const enlace = screen.getByRole("link", { name: /Proveedor sintético/i });
+    const abrir = vi.spyOn(window, "open").mockReturnValue(null);
+    try {
+      fireEvent(enlace, new MouseEvent("auxclick", { bubbles: true, button: 1 }));
+      expect(abrir).toHaveBeenCalledExactlyOnceWith("/proveedores/proveedor-qa", "_blank", "noopener,noreferrer");
+    } finally {
+      abrir.mockRestore();
+    }
+    fireEvent.keyDown(enlace, { key: "Enter" });
+    expect(await screen.findByText("Ficha del proveedor")).toBeVisible();
   });
 });
