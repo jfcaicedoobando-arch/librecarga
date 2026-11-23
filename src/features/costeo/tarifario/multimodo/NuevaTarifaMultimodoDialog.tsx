@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/shared";
 import { queryKeys } from "@/lib/query";
 import { useCosteoAgentes } from "@/features/costeo/hooks/useCosteoAgentes";
 import { crearTarifaMultimodo } from "@/features/costeo/services/tarifas/crearMultimodo";
-import { faltantesTarifaMultimodo, usaTramos, type TarifaMultimodoForm } from "@/features/costeo/domain/tarifaMultimodo";
+import { MONEDAS_TARIFA_MULTIMODO, faltantesTarifaMultimodo, usaTramos, type TarifaMultimodoForm } from "@/features/costeo/domain/tarifaMultimodo";
 import { CamposRutaMultimodo } from "./CamposRutaMultimodo";
 import { TramosPesoEditor } from "./TramosPesoEditor";
 import { TarifaRecargosEditor } from "@/features/costeo/components/TarifaRecargosEditor";
@@ -48,7 +48,7 @@ export function NuevaTarifaMultimodoDialog({ open, onOpenChange }: Props) {
   const porKg = usaTramos(f);
   return (
     <FormDialogShell open={open} onOpenChange={onOpenChange} icon={Plane} size="lg"
-      title="Nueva tarifa aérea o terrestre" description="Precio en USD. Las tarifas marítimas se capturan en «Nueva tarifa»."
+      title="Nueva tarifa aérea o terrestre" description="Precio en USD o MXN; los recargos usan la misma moneda. Las tarifas marítimas se capturan en «Nueva tarifa»."
       isDirty={f !== VACIO || recargos.length > 0} busy={m.isPending} formId="tarifa-multimodo"
       onSubmit={(e) => { e.preventDefault(); if (faltan.length === 0) m.mutate(); }}
       footer={<>
@@ -57,7 +57,7 @@ export function NuevaTarifaMultimodoDialog({ open, onOpenChange }: Props) {
       </>}>
       <FormDialogSection title="Ruta">
         <div><Label htmlFor="mm-modo">Modo *</Label>
-          <Select value={f.modo} onValueChange={(v) => { setRecargos([]); setF({ ...VACIO, agente_id: f.agente_id, modo: v as TarifaMultimodoForm["modo"] }); }}>
+          <Select value={f.modo} onValueChange={(v) => { setRecargos([]); setF({ ...VACIO, agente_id: f.agente_id, moneda: f.moneda, modo: v as TarifaMultimodoForm["modo"] }); }}>
             <SelectTrigger id="mm-modo"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="Aéreo">Aéreo</SelectItem><SelectItem value="Terrestre">Terrestre</SelectItem></SelectContent>
           </Select></div>
@@ -69,9 +69,14 @@ export function NuevaTarifaMultimodoDialog({ open, onOpenChange }: Props) {
         <CamposRutaMultimodo f={f} set={set} />
       </FormDialogSection>
       <FormDialogSection title="Precio">
-        <div><Label htmlFor="mm-flete">{porKg ? "Precio base por kg (USD) *" : "Precio por viaje (USD) *"}</Label>
+        <div><Label htmlFor="mm-moneda">Moneda *</Label>
+          <Select value={f.moneda} onValueChange={(v) => set({ moneda: v as TarifaMultimodoForm["moneda"] })}>
+            <SelectTrigger id="mm-moneda"><SelectValue /></SelectTrigger>
+            <SelectContent>{MONEDAS_TARIFA_MULTIMODO.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+          </Select></div>
+        <div><Label htmlFor="mm-flete">{porKg ? `Precio base por kg (${f.moneda}) *` : `Precio por viaje (${f.moneda}) *`}</Label>
           <Input id="mm-flete" type="number" min={0} step="0.01" value={f.flete_base} onChange={(e) => set({ flete_base: Number(e.target.value) })} /></div>
-        <div><Label htmlFor="mm-min">Mínimo por embarque (USD)</Label>
+        <div><Label htmlFor="mm-min">Mínimo por embarque ({f.moneda})</Label>
           <Input id="mm-min" type="number" min={0} step="0.01" value={f.minimo ?? ""} onChange={(e) => set({ minimo: e.target.value === "" ? null : Number(e.target.value) })} /></div>
         <div><Label>Vigente desde *</Label><DatePickerMx value={f.vigente_desde} onChange={(v) => set({ vigente_desde: v ?? "" })} /></div>
         <div><Label>Vigente hasta *</Label><DatePickerMx value={f.vigente_hasta} onChange={(v) => set({ vigente_hasta: v ?? "" })} /></div>
@@ -80,11 +85,11 @@ export function NuevaTarifaMultimodoDialog({ open, onOpenChange }: Props) {
       </FormDialogSection>
       {porKg && (
         <FormDialogSection title="Precios por rango de peso" description="Se aplica el rango más alto que no exceda el peso tasable." cols={1}>
-          <TramosPesoEditor tramos={f.tramos} onChange={(tramos) => set({ tramos })} />
+          <TramosPesoEditor moneda={f.moneda} tramos={f.tramos} onChange={(tramos) => set({ tramos })} />
         </FormDialogSection>
       )}
       <FormDialogSection title="Recargos" description="Se suman al flete en el desglose de la cotización." cols={1}>
-        <TarifaRecargosEditor value={recargos} onChange={setRecargos} modo={f.modo} />
+        <TarifaRecargosEditor value={recargos} onChange={(r) => setRecargos(r.map((x) => ({ ...x, moneda: f.moneda })))} modo={f.modo} />
       </FormDialogSection>
       {faltan.length > 0 && <p className="text-body-sm text-muted-foreground">Falta: {faltan.join(", ")}</p>}
     </FormDialogShell>

@@ -4,9 +4,9 @@ import { Plus, Trash2 } from "lucide-react";
 import type { TramoPeso } from "@/features/costeo/domain/tarifaPorPeso";
 import { TRAMOS_AEREOS_SUGERIDOS } from "@/features/costeo/domain/tarifaMultimodo";
 
-interface Props { tramos: TramoPeso[]; onChange: (t: TramoPeso[]) => void }
+interface Props { moneda?: string; tramos: TramoPeso[]; onChange: (t: TramoPeso[]) => void }
 
-export function TramosPesoEditor({ tramos, onChange }: Props) {
+export function TramosPesoEditor({ moneda = "USD", tramos, onChange }: Props) {
   const set = (i: number, k: keyof TramoPeso, v: string) =>
     onChange(tramos.map((t, j) => (j === i ? { ...t, [k]: Number(v) || 0 } : t)));
   return (
@@ -22,7 +22,7 @@ export function TramosPesoEditor({ tramos, onChange }: Props) {
           <Input type="number" min={0} aria-label={`Desde kg, rango ${i + 1}`} value={t.desde_kg}
             onChange={(e) => set(i, "desde_kg", e.target.value)} placeholder="Desde (kg)" />
           <Input type="number" min={0} step="0.01" aria-label={`Precio por kg, rango ${i + 1}`} value={t.precio}
-            onChange={(e) => set(i, "precio", e.target.value)} placeholder="USD por kg" />
+            onChange={(e) => set(i, "precio", e.target.value)} placeholder={`${moneda} por kg`} />
           <Button type="button" variant="ghost" size="icon" aria-label="Quitar rango"
             onClick={() => onChange(tramos.filter((_, j) => j !== i))}><Trash2 className="size-4" /></Button>
         </div>
