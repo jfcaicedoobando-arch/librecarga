@@ -47,3 +47,14 @@ describe("recargos por kilo con mínimo aplicado", () => {
     expect(f[2]).toMatchObject({ cantidad: 1, unidad_medida: "embarque" });
   });
 });
+
+describe("aéreo: escalón más barato", () => {
+  it("95 kg se cobran como 100 kg a 5.00 y los recargos usan 95 kg reales", () => {
+    const r = fleteMultimodo(
+      { id: "a", modo: "Aéreo", flete_base: 7, minimo: 150, unidad_flete: "kg", moneda: "USD", proveedor: "X",
+        tramos: [{ desde_kg: 45, precio: 6 }, { desde_kg: 100, precio: 5 }] },
+      { pesoKg: 95, volumenM3: 0, viajes: 1 },
+    );
+    expect(r).toMatchObject({ cantidad: 100, costo_unitario: 5, cantidadRecargos: 95 });
+  });
+});

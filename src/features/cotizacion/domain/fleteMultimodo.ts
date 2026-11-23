@@ -1,7 +1,8 @@
 /**
  * Flete real de una tarifa aérea o terrestre (no marítima).
  *  - Por kg (Aéreo y LTL): precio del rango de peso × kilos; si no alcanza el
- *    mínimo por embarque, se cobra el mínimo como 1 embarque.
+ *    mínimo por embarque, se cobra el mínimo como 1 embarque. En Aéreo, si el
+ *    inicio de un tramo superior sale más barato, se cobra ese peso (IATA).
  *  - Por viaje (FTL/Arrastre): flete base × número de viajes.
  * Aéreo usa peso tasable (real vs volumétrico 1:6000); terrestre, peso real.
  */
@@ -41,6 +42,6 @@ export function fleteMultimodo(
   if (tarifa.minimo != null && importe === tarifa.minimo && importe > subtotalLinea(kg, precio)) {
     return { cantidad: 1, costo_unitario: tarifa.minimo, unidad: "embarque", cantidadRecargos: kg, unidadRecargos: "kg" };
   }
-  if (!(precio > 0)) return null;
-  return { cantidad: kg, costo_unitario: precio, unidad: "kg", cantidadRecargos: kg, unidadRecargos: "kg" };
+  if (!(cobro.precio > 0)) return null;
+  return { cantidad: cobro.kgCobrados, costo_unitario: cobro.precio, unidad: "kg", cantidadRecargos: kg, unidadRecargos: "kg" };
 }

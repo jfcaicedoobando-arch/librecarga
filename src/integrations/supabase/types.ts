@@ -2527,6 +2527,7 @@ export type Database = {
           destino_cp: string | null
           dias_libres_almacenaje_lcl: number | null
           dias_libres_demoras: number
+          escalas: string[] | null
           estado: string
           estado_aprobacion: string
           flete_base: number
@@ -2567,6 +2568,7 @@ export type Database = {
           destino_cp?: string | null
           dias_libres_almacenaje_lcl?: number | null
           dias_libres_demoras?: number
+          escalas?: string[] | null
           estado?: string
           estado_aprobacion?: string
           flete_base: number
@@ -2607,6 +2609,7 @@ export type Database = {
           destino_cp?: string | null
           dias_libres_almacenaje_lcl?: number | null
           dias_libres_demoras?: number
+          escalas?: string[] | null
           estado?: string
           estado_aprobacion?: string
           flete_base?: number
@@ -12842,6 +12845,7 @@ export type Database = {
           destino_cp: string | null
           dias_libres_almacenaje_lcl: number | null
           dias_libres_demoras: number
+          escalas: string[] | null
           estado: string
           estado_aprobacion: string
           flete_base: number

@@ -21,6 +21,23 @@ export function precioPorTramo(tramos: TramoPeso[], pesoKg: number, fleteBase: n
   return aplicable ? aplicable.precio : fleteBase;
 }
 
+export interface CobroPeso { kgCobrados: number; precio: number }
+
+/**
+ * Regla "as higher weight" (IATA): si cobrar el inicio de un tramo superior
+ * sale más barato que el tramo real, se cobra ese peso a ese precio.
+ */
+export function escalonMasBarato(tramos: TramoPeso[], pesoKg: number, fleteBase: number): CobroPeso {
+  let mejor: CobroPeso = { kgCobrados: pesoKg, precio: precioPorTramo(tramos, pesoKg, fleteBase) };
+  const costo = (c: CobroPeso) => Math.round(c.precio * c.kgCobrados * 100) / 100;
+  for (const t of tramos) {
+    if (!(t.desde_kg > pesoKg) || !(t.precio > 0)) continue;
+    const cand = { kgCobrados: t.desde_kg, precio: t.precio };
+    if (costo(cand) < costo(mejor)) mejor = cand;
+  }
+  return mejor;
+}
+
 /** Importe del flete por peso respetando el mínimo por embarque. */
 export function fletePorPeso(tramos: TramoPeso[], pesoKg: number, fleteBase: number, minimo: number | null): number {
   const importe = subtotalLinea(pesoKg, precioPorTramo(tramos, pesoKg, fleteBase));
