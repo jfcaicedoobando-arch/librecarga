@@ -1,6 +1,6 @@
 import { consultarPerfilProveedor } from "./facturapiPerfilProveedor.ts";
 import type { DocumentoFacturapiIsr, PrevalidacionTimbradoIsr } from "./conciliarCfdiIsr.ts";
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import { getFacturapiClient, withFacturapiTimeout } from "./facturapiClient.ts";
 import { asFacturapiApi, exigirOperacion } from "./facturapiSdk.ts";
 import { conciliarYRegistrarIsr, obtenerIntentoIsr, type EmisionIsr } from "./registrarEmisionIsr.ts";

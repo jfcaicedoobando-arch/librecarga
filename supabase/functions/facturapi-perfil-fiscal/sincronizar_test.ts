@@ -1,5 +1,5 @@
 import { assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.119.0";
+import { createClient } from "npm:@supabase/supabase-js@2.119.2";
 import { sincronizarPerfil } from "./sincronizar.ts";
 import { PerfilFiscalError } from "../_shared/facturapiPerfilProveedor.ts";
 

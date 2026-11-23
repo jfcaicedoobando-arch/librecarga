@@ -1,5 +1,5 @@
 import { assertEquals, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.119.0";
+import { createClient } from "npm:@supabase/supabase-js@2.119.2";
 import { crearHandler, parseBody } from "./handler.ts";
 import { PerfilFiscalError } from "../_shared/facturapiPerfilProveedor.ts";
 const orgId = "00000000-0000-4000-8000-000000000001";

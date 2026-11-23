@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import type { DocumentoFacturapiIsr } from "./conciliarCfdiIsr.ts";
 import type { PrevalidacionRepIsr } from "./conciliarRepIsr.ts";
 import { obtenerEvidenciaRepIsr } from "./evidenciaRepIsr.ts";

@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.119.0';
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.119.2';
 import { wrapEdgeHandler, captureEdgeException } from '../_shared/sentry.ts';
 import { buildCors, handlePreflightStrict } from '../_shared/cors.ts';
 import { enviarEmailPlantilla } from '../_shared/enviarEmailPlantilla.ts';

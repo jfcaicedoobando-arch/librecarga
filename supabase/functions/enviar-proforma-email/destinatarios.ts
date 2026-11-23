@@ -3,7 +3,7 @@
  * correo del cliente). Sólo responde para miembros de la organización; si no,
  * deja que la reserva rechace el acceso sin revelar datos.
  */
-import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.119.0';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.119.2';
 import { DESTINATARIO_NO_PERMITIDO, emailsPermitidosCliente } from '../_shared/destinatarioCliente.ts';
 
 export async function destinatariosAjenos(

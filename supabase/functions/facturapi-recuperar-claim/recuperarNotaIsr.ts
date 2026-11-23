@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import { consultarCfdiRemoto, resolverLlaveRecuperacionIsr } from "../_shared/recuperarEmisionIsr.ts";
 import { conciliarNotaCreditoIsr, obtenerIntentoNotaIsr } from "../_shared/registrarNotaCreditoIsr.ts";
 import { jsonResponse } from "../_shared/response.ts";

@@ -1,4 +1,4 @@
-import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.119.0';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.119.2';
 import { RevisionDestinatarioError, type DestinatarioConfirmado, type FacturaDestinatario } from '../_shared/recordatorioDestinatario.ts';
 
 interface Dependencies {

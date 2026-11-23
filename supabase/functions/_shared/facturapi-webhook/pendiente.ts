@@ -13,7 +13,7 @@
  * una recaptura concurrente.
  */
 import { uuidFiscalValido } from "../timbradoPendiente.ts";
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import type { FacturapiWebhookEvent } from "./helpers.ts";
 
 export interface ColsPendiente {

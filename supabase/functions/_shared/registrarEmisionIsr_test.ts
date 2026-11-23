@@ -1,5 +1,5 @@
 import { assertEquals, assertMatch } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import { conciliarYRegistrarIsr, obtenerIntentoIsr } from "./registrarEmisionIsr.ts";
 
 const uuid = "2D4D13C5-7DE2-42F1-A9A7-F824D50CDF88";

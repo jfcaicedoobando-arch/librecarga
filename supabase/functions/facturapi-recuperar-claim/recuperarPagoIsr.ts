@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import { obtenerIntentoRepIsr } from "../_shared/registrarRepIsr.ts";
 import { recuperarRepConLlaveIsr, resolverLlaveRepIsr } from "../_shared/recuperarRepIsr.ts";
 import { jsonResponse } from "../_shared/response.ts";

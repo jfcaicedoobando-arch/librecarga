@@ -3,7 +3,7 @@
  * Un broker puede trabajar con varias organizaciones; cada una guarda su
  * propio renglón en `crm_brokers` con su % de comisión.
  */
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.0";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import type { HandlerCtx, AdminAccess } from "./handlers.ts";
 import { resolveRedirectTo } from "./clientHandlers.ts";
