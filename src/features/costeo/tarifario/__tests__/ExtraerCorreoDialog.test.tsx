@@ -95,6 +95,24 @@ describe("ExtraerCorreoDialog", () => {
     expect(screen.queryByRole("button", { name: /Cargar/ })).not.toBeInTheDocument();
   });
 
+  it.each([
+    [{ data: { correos: [] }, error: null }, "No se encontraron tarifas para preparar en el correo."],
+    [{ data: null, error: new Error("buzón no disponible") }, "No se pudieron leer los correos: buzón no disponible"],
+  ] as const)("permite volver a leer el mismo buzón sin importar automáticamente", async (respuesta, mensaje) => {
+    mocks.invoke.mockResolvedValueOnce(respuesta);
+    render(<ExtraerCorreoDialog {...props()} />);
+    buscar();
+    expect(await screen.findByText(mensaje)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Cargar/ })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Volver a buscar" }));
+    await waitFor(() => expect(cargar(1)).toBeEnabled());
+    const lectura = ["extraer-tarifas-correo", { body: { organizationId: "org-a" } }];
+    expect(mocks.invoke.mock.calls).toEqual([lectura, lectura]);
+    expect(mocks.insertarTarifa).not.toHaveBeenCalled();
+    expect(mocks.insertarRuta).not.toHaveBeenCalled();
+  });
+
   it("muestra respuesta inválida y no la interpreta como cero correos", async () => {
     mocks.invoke.mockResolvedValue({ data: { correos: [correo, { ...correo, proveedor: "otro" }] }, error: null });
     render(<ExtraerCorreoDialog {...props()} />);

@@ -16,7 +16,6 @@ type LlegadaInput = z.input<typeof llegadaSchema>;
 type LlegadaForm = z.output<typeof llegadaSchema>;
 
 interface Props {
-  fechaLlegadaActual: string | null;
   destinoDefault: string;
   isPending: boolean;
   onSubmit: (v: LlegadaForm) => void | Promise<void>;
@@ -24,7 +23,6 @@ interface Props {
 }
 
 export function MarcarLlegadaForm({
-  fechaLlegadaActual,
   destinoDefault,
   isPending,
   onSubmit,
@@ -34,7 +32,7 @@ export function MarcarLlegadaForm({
   const { control, handleSubmit, formState: { errors, isValid } } = useForm<LlegadaInput, unknown, LlegadaForm>({
     resolver: zodResolver(llegadaSchema),
     defaultValues: {
-      fecha: (fechaLlegadaActual ?? "").slice(0, 10) || hoy,
+      fecha: hoy,
       ubicacion: destinoDefault,
     },
     mode: "onChange",

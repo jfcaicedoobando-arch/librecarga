@@ -147,7 +147,7 @@ export function TabProformas({ isInRange, estadoInicial, estadoControlado }: {
             isLoading={c.isLoading}
             emptyMessage={mensajeVacioProformas(c.search, c.filtroEstado)}
             emptyState={
-              c.counts.todas > 0 && c.filtered.length === 0 ? (
+              c.proformas.length > 0 && c.filtered.length === 0 ? (
                 <ProformasEmptyState
                   search={c.search}
                   filtroEstado={c.filtroEstado}

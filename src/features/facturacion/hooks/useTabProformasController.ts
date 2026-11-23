@@ -11,6 +11,7 @@ import { useProformas, type ProformaConFactura, type ProformaRow } from "@/featu
 import { useDescargarProformaPdf } from "@/features/embarques/hooks/useDescargarProformaPdf";
 import { useTabProformasState, type EstadoProformaControlado, type FiltroEstadoProforma } from "./useTabProformasState";
 import { totalesListadoProforma } from "@/features/proformas/domain";
+import { etiquetaEstadoProformaListado } from "@/lib/domain/estadoUnificado";
 
 function isConvertible(p: ProformaConFactura): boolean {
   if ((p.estado_proforma ?? "pendiente") === "facturada") return false;
@@ -124,7 +125,7 @@ export function useTabProformasController(opts?: {
     numero: p.numero, expediente: p.expediente, cliente: p.cliente_nombre,
     operador: p.operador ?? "", dias_credito: p.dias_credito ?? "",
     ...totalesListadoProforma(p),
-    fecha: p.fecha_emision, estado: p.estado_proforma ?? "pendiente",
+    fecha: p.fecha_emision, estado: etiquetaEstadoProformaListado(p),
     folio_factura: p.folio_factura_externa ?? "", fecha_facturacion: p.fecha_facturacion ?? "",
   }));
 

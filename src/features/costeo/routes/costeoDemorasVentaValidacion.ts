@@ -17,6 +17,12 @@ export function camposRequeridosDemoraValidos(form: DemoraVentaTarifaInput): boo
     && form.monto_por_dia_usd >= 0;
 }
 
+export function campoVigenciaDemoraInvalido(form: DemoraVentaTarifaInput): "desde" | "hasta" | null {
+  if (!form.vigente_desde) return "desde";
+  if (form.vigente_hasta && form.vigente_hasta < form.vigente_desde) return "hasta";
+  return null;
+}
+
 /** EC-20: valida que el tramo de días sea coherente (enteros, desde <= hasta). */
 export function validarTramoDias(form: DemoraVentaTarifaInput): boolean {
   if (!Number.isInteger(form.desde_dia) || form.desde_dia < 1) {

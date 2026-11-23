@@ -60,7 +60,19 @@ describe("useTabProformasController", () => {
     const rows = result.current.csvRows();
     expect(rows[0].numero).toBe("P-001");
     expect(rows[0].cliente).toBe("ACME");
-    expect(rows[0].estado).toBe("pendiente");
+    expect(rows[0].estado).toBe("Pendiente cliente");
+  });
+
+  it("exporta los estados de aprobación, rechazo y conversión que muestra la bandeja", () => {
+    mockUseProformas.mockReturnValue({ data: [
+      proforma({ id: "p1", estado_cliente: "aceptada" }),
+      proforma({ id: "p2", estado_cliente: "rechazada" }),
+      proforma({ id: "p3", factura_id: "f1", facturas_asociadas: [{ estado: "Borrador" }] }),
+    ], isLoading: false } as never);
+    const { result } = renderHook(() => useTabProformasController(), { wrapper: makeWrapper() });
+    expect(result.current.csvRows().map(({ estado }) => estado)).toEqual([
+      "Aceptada", "Rechazada", "Convertida a borrador",
+    ]);
   });
 
   it("38: CSV exporta BL-12 y preserva contexto en lugar de los campos crudos", () => {

@@ -36,7 +36,7 @@ export interface ListarNotasFiltros {
   hasta?: string;
   proveedorId?: string;
   estado?: NotaCreditoRow["estado"];
-  moneda?: "MXN" | "USD";
+  moneda?: NotaCreditoRow["moneda"];
   search?: string;
 }
 

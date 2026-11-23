@@ -21,7 +21,7 @@ import { crearColumnasDemorasVenta } from "./CosteoDemorasVentaColumns";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { Timer } from "lucide-react";
 import {
-  camposRequeridosDemoraValidos, validarTramoDias, validarSinSolape,
+  camposRequeridosDemoraValidos, campoVigenciaDemoraInvalido, validarTramoDias, validarSinSolape,
 } from "./costeoDemorasVentaValidacion";
 
 const today = () => todayLocalISO();
@@ -45,11 +45,13 @@ export default function CosteoDemorasVenta() {
   const [intentoEnvio, setIntentoEnvio] = useState(false);
 
   const tipoMap = useMemo(() => new Map(tipos.map((t) => [t.id, t.code || t.name])), [tipos]);
+  const vigenciaInvalida = campoVigenciaDemoraInvalido(form);
+  const canSubmit = camposRequeridosDemoraValidos(form) && !vigenciaInvalida;
 
   const handleGuardar = async (e: React.FormEvent) => {
     e.preventDefault();
     setIntentoEnvio(true);
-    if (!camposRequeridosDemoraValidos(form)) return;
+    if (!canSubmit) return;
     if (!validarTramoDias(form)) return;
     if (!validarSinSolape(tarifas, form)) return;
     await crear.mutateAsync(form);
@@ -59,7 +61,6 @@ export default function CosteoDemorasVenta() {
   };
 
   const tipoInvalido = intentoEnvio && !form.tipo_contenedor_id;
-  const canSubmit = camposRequeridosDemoraValidos(form);
 
   const columns = useMemo(
     () => crearColumnasDemorasVenta(tipoMap, (id) => setAEliminar(id)),
@@ -104,6 +105,7 @@ export default function CosteoDemorasVenta() {
         isPending={crear.isPending}
         canSubmit={canSubmit}
         tipoInvalido={tipoInvalido}
+        vigenciaInvalida={vigenciaInvalida}
         onSubmit={handleGuardar}
       />
 

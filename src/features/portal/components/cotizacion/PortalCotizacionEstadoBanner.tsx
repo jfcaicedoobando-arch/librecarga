@@ -11,6 +11,7 @@ interface PortalCotizacionEstadoBannerProps {
   embarqueExpediente?: string | null;
   fechaAceptacion?: string | null;
   fechaRechazo?: string | null;
+  fechaVencida?: string;
 }
 
 function FechaRespuesta({ label, fecha }: { label: string; fecha: string }) {
@@ -33,8 +34,20 @@ export default function PortalCotizacionEstadoBanner({
   embarqueExpediente,
   fechaAceptacion,
   fechaRechazo,
+  fechaVencida,
 }: PortalCotizacionEstadoBannerProps) {
   const navigate = useNavigate();
+
+  if (estado === "Enviada" && fechaVencida) {
+    return (
+      <Alert variant="warning">
+        <Info className="size-4" aria-hidden />
+        <AlertDescription>
+          Esta cotización venció el {formatDate(fechaVencida)}. Solicita una actualización al equipo que te la envió.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   // Si la cotización ya tiene un embarque vinculado (independiente del estado),
   // mostramos el banner de operación con acceso directo al embarque.

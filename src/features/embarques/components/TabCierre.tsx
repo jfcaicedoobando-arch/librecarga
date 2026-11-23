@@ -47,7 +47,7 @@ interface Props {
 // eslint-disable-next-line complexity
 export function TabCierre({ embarqueId, estatus, modo, expediente, docsRequeridos }: Props) {
   const validacion = useValidacionCierre(embarqueId);
-  const { data: log = [] } = useCierreLog(embarqueId);
+  const historial = useCierreLog(embarqueId);
   const cerrarMut = useCerrarEmbarque(embarqueId);
   const reabrirMut = useReabrirEmbarque(embarqueId);
   const { canCerrarEmbarque, isAdmin, isSuperAdmin } = usePermissions();
@@ -149,7 +149,13 @@ export function TabCierre({ embarqueId, estatus, modo, expediente, docsRequerido
         )}
       </div>
 
-      <CierreHistorialCard log={log} />
+      <CierreHistorialCard
+        log={historial.data ?? []}
+        isLoading={historial.isLoading}
+        falloConsulta={historial.isError ? {
+          reintentando: historial.isFetching, reintentar: () => void historial.refetch(),
+        } : undefined}
+      />
 
       <CerrarEmbarqueDialog
         open={dlg.openCerrar}

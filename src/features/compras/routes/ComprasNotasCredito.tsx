@@ -5,7 +5,7 @@
  * `useComprasNotasCreditoController`.
  */
 import { useMemo } from "react";
-import { ReceiptText, Download, Banknote, Coins, ListFilter } from "lucide-react";
+import { ReceiptText, Download, Banknote, Coins, Euro, ListFilter } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,7 @@ import { ErrorState } from "@/components/shared/states/ErrorState";
 import {
   useComprasNotasCreditoController,
   ESTADOS_FILTRO,
+  MONEDAS_FILTRO,
   type EstadoFiltro,
   type MonedaFiltro,
 } from "../hooks/useComprasNotasCreditoController";
@@ -33,7 +34,7 @@ export default function ComprasNotasCredito() {
     desde, setDesde, hasta, setHasta, errorRango,
     moneda, setMoneda, estado, setEstado, search, setSearch,
     rows, isLoading, isError, refetch,
-    totalMxn, totalUsd, handleExport,
+    totalMxn, totalUsd, totalEur, handleExport,
   } = useComprasNotasCreditoController();
 
   const columns = useMemo(() => buildNotasCreditoColumns(), []);
@@ -52,10 +53,11 @@ export default function ComprasNotasCredito() {
       />
 
       {!errorRango && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           <KpiCard label="NC en el período" value={isError ? "No disponible" : String(rows.length)} loading={isLoading} icon={ListFilter} />
           <KpiCard label="Aplicadas MXN" value={isError ? "No disponible" : formatCurrency(totalMxn, "MXN")} loading={isLoading} icon={Banknote} variant="success" />
           <KpiCard label="Aplicadas USD" value={isError ? "No disponible" : formatCurrency(totalUsd, "USD")} loading={isLoading} icon={Coins} variant="success" />
+          <KpiCard label="Aplicadas EUR" value={isError ? "No disponible" : formatCurrency(totalEur, "EUR")} loading={isLoading} icon={Euro} variant="success" />
         </div>
       )}
 
@@ -70,13 +72,13 @@ export default function ComprasNotasCredito() {
             <DatePickerMx id="nc-hasta" value={hasta} onChange={setHasta} errorText={errorRango} />
           </div>
           <div className="space-y-1">
-            <Label>Moneda</Label>
+            <Label htmlFor="nc-moneda">Moneda</Label>
             <Select value={moneda} onValueChange={(v) => setMoneda(v as MonedaFiltro)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="nc-moneda"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="todas">Todas</SelectItem>
-                <SelectItem value="MXN">MXN</SelectItem>
-                <SelectItem value="USD">USD</SelectItem>
+                {MONEDAS_FILTRO.map((opcion) => (
+                  <SelectItem key={opcion} value={opcion}>{opcion === "todas" ? "Todas" : opcion}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

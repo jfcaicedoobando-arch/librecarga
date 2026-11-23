@@ -1,12 +1,4 @@
-/**
- * Cartera — facturas emitidas con saldo pendiente.
- *
- * v13.173.0 (Ola 1 · Filtros globales): migrada al primitivo unificado
- * `useClientPagedList` — search, filtros (moneda / vencidas), rango de fechas
- * de vencimiento, orden y paginación sincronizados con la URL vía `nuqs`, y
- * barra `<UnifiedFiltersBar />` compartida con Facturación/Embarques.
- * v13.313.1: agregado diálogo de recordatorio de cobranza.
- */
+/** Facturas emitidas con saldo pendiente. */
 import { errorCobroPuePrevio } from "@/features/facturacion/domain/pueCobroPrevio";
 import { useMemo, useState } from "react";
 import type { RowSelectionState } from "@/components/shared/dataTable/tanstackTypes";
@@ -34,7 +26,6 @@ import { usePermissions } from "@/hooks/shared/usePermissions";
 import { useDocumentTitle } from "@/hooks/shared";
 import { FILTRO_ANCHO } from "@/lib/ui/filterWidths";
 import { carteraEmptyState } from "./_sections/carteraEmptyState";
-
 
 export default function Cartera() {
   useDocumentTitle("Cobranza");
@@ -96,8 +87,6 @@ export default function Cartera() {
         eqTotal={eqTotal}
         eqVencido={eqVencido}
       />
-
-
       <UnifiedFiltersBar
         search={paged.search}
         onSearchChange={paged.setSearch}
@@ -145,9 +134,6 @@ export default function Cartera() {
         onClearAll={paged.resetAll}
       />
 
-      {/* v13.823.25: ResponsiveDataTable unifica desktop y móvil (antes:
-          DataTable + CarteraMobileList duplicados) y evita el desbordamiento
-          horizontal en plegables (~692px). */}
       <Card>
         <CardContent className="p-0">
           <ResponsiveDataTable
@@ -169,7 +155,21 @@ export default function Cartera() {
             enableRowSelection={(row) => canRegistrarCobro && puedeSeleccionarCobro(row.original)}
             rowSelection={canRegistrarCobro ? rowSelection : undefined}
             onRowSelectionChange={canRegistrarCobro ? setRowSelection : undefined}
-            mobileCard={(r) => <CarteraMobileCard row={r} />}
+            mobileCard={(r) => (
+              <CarteraMobileCard
+                row={r}
+                selection={canRegistrarCobro ? {
+                  checked: !!rowSelection[r.factura_id],
+                  disabled: !puedeSeleccionarCobro(r),
+                  onChange: (checked) => setRowSelection((prev) => {
+                    const next = { ...prev };
+                    if (checked) next[r.factura_id] = true;
+                    else delete next[r.factura_id];
+                    return next;
+                  }),
+                } : undefined}
+              />
+            )}
           />
         </CardContent>
       </Card>
@@ -191,7 +191,6 @@ export default function Cartera() {
         onOpenChange={(open) => !open && setRecordatorio(null)}
         factura={recordatorio}
       />
-
     </PageContainer>
   );
 }

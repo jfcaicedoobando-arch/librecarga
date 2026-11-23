@@ -3,12 +3,12 @@
  *
  * Muestra todos los pagos aplicados, con filtros por rango de fechas,
  * método de pago, moneda y búsqueda por folio/proveedor/referencia.
- * KPIs de total pagado (MXN, USD) y conteo. Exporta a CSV.
+ * KPIs de total pagado por moneda y conteo. Exporta a CSV.
  *
  * P1-B: datos/estado/exportación viven en `useComprasPagosController`.
  */
 import { useMemo } from "react";
-import { Landmark, Download, Banknote, Coins, ListFilter } from "lucide-react";
+import { Landmark, Download, Banknote, Coins, Euro, ListFilter } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,7 @@ import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { ErrorState } from "@/components/shared/states/ErrorState";
 import {
   useComprasPagosController,
+  MONEDAS_FILTRO,
   type MonedaFiltro,
 } from "../hooks/useComprasPagosController";
 
@@ -34,10 +35,11 @@ export default function ComprasPagos() {
     desde, setDesde, hasta, setHasta, errorRango,
     moneda, setMoneda, metodoPago, setMetodoPago, search, setSearch,
     rows, isLoading, isError, refetch,
-    metodosDisponibles, totalMxn, totalUsd, handleExport,
+    metodosDisponibles, totalMxn, totalUsd, totalEur, handleExport,
   } = useComprasPagosController();
 
   const columns = useMemo(() => buildPagosColumns(), []);
+  const valorKpi = (valor: number | string) => isError ? "No disponible" : valor;
 
   return (
     <PageContainer width="wide">
@@ -53,10 +55,11 @@ export default function ComprasPagos() {
       />
 
       {!errorRango && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <KpiCard label="Registros en el período" value={String(rows.length)} icon={ListFilter} />
-          <KpiCard label="Total pagado MXN" value={formatCurrency(totalMxn, "MXN")} icon={Banknote} />
-          <KpiCard label="Total pagado USD" value={formatCurrency(totalUsd, "USD")} icon={Coins} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <KpiCard label="Registros en el período" value={valorKpi(rows.length)} loading={isLoading} icon={ListFilter} />
+          <KpiCard label="Total pagado MXN" value={valorKpi(formatCurrency(totalMxn, "MXN"))} loading={isLoading} icon={Banknote} />
+          <KpiCard label="Total pagado USD" value={valorKpi(formatCurrency(totalUsd, "USD"))} loading={isLoading} icon={Coins} />
+          <KpiCard label="Total pagado EUR" value={valorKpi(formatCurrency(totalEur, "EUR"))} loading={isLoading} icon={Euro} />
         </div>
       )}
 
@@ -71,20 +74,20 @@ export default function ComprasPagos() {
             <DatePickerMx id="p-hasta" value={hasta} onChange={setHasta} errorText={errorRango} />
           </div>
           <div className="space-y-1">
-            <Label>Moneda</Label>
+            <Label htmlFor="p-moneda">Moneda</Label>
             <Select value={moneda} onValueChange={(v) => setMoneda(v as MonedaFiltro)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="p-moneda"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="todas">Todas</SelectItem>
-                <SelectItem value="MXN">MXN</SelectItem>
-                <SelectItem value="USD">USD</SelectItem>
+                {MONEDAS_FILTRO.map((opcion) => (
+                  <SelectItem key={opcion} value={opcion}>{opcion === "todas" ? "Todas" : opcion}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <Label>Método de pago</Label>
+            <Label htmlFor="p-metodo">Método de pago</Label>
             <Select value={metodoPago} onValueChange={setMetodoPago}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="p-metodo"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
                 {metodosDisponibles.map((m) => (

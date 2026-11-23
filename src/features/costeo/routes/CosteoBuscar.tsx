@@ -94,8 +94,9 @@ export default function CosteoBuscar() {
             <TipoContenedorSelect id="buscar-tipo" value={tipo} onChange={setTipo} />
           </div>
           <div>
-            <Label htmlFor="buscar-fecha">Fecha</Label>
-            <DatePickerMx value={fecha} onChange={setFecha} className="w-full" />
+            <Label htmlFor="buscar-fecha">Fecha de vigencia</Label>
+            <DatePickerMx id="buscar-fecha" value={fecha} onChange={setFecha} className="w-full" aria-describedby="buscar-fecha-ayuda" />
+            <p id="buscar-fecha-ayuda" className="mt-1 text-label text-muted-foreground">Si se deja vacía, se consulta la fecha de hoy.</p>
           </div>
         </div>
       </Card>

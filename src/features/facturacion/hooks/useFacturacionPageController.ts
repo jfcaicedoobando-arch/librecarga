@@ -39,6 +39,7 @@ export function useFacturacionPageController(opts?: {
   // El id real de la bandeja de emitidas es "emitidas": con "facturas" el
   // guard nunca coincidía y la query pesada quedaba habilitada en todos los tabs.
   const facturasEnabled = activeTab === undefined || activeTab === "emitidas";
+  const rangoInvertido = !!opts?.fechaDesde && !!opts.fechaHasta && opts.fechaDesde > opts.fechaHasta;
 
   const { data: listado, isLoading: loadingFacturas, isError: errorFacturas, refetch: refetchFacturas } = useFacturasListado({
     page,
@@ -48,7 +49,7 @@ export function useFacturacionPageController(opts?: {
     clienteNombre: filterCliente === "todos" ? undefined : filterCliente,
     fechaDesde: opts?.fechaDesde || undefined,
     fechaHasta: opts?.fechaHasta || undefined,
-    enabled: facturasEnabled,
+    enabled: facturasEnabled && !rangoInvertido,
   });
   const facturas = useMemo(() => listado?.data ?? [], [listado]);
   const totalCount = listado?.count ?? 0;
@@ -64,6 +65,7 @@ export function useFacturacionPageController(opts?: {
 
 
   const exportarFacturasCsv = useCallback(() => {
+    if (rangoInvertido) return;
     exportToCsv(
       `facturas_${todayLocalISO()}.csv`,
       [
@@ -87,9 +89,10 @@ export function useFacturacionPageController(opts?: {
         estado: f.estado,
       })),
     );
-  }, [filtered]);
+  }, [filtered, rangoInvertido]);
 
   const exportarLayoutContableHandler = useCallback(async () => {
+    if (rangoInvertido) return;
     try {
       await exportarLayoutContable(filtered);
       registrarActividad.mutate({
@@ -103,7 +106,7 @@ export function useFacturacionPageController(opts?: {
       notifyError(undefined, { title: "Error al generar layout contable", error,
         method: "FACTURACION_EXPORTAR_LAYOUT_CONTABLE", context: { cantidadFacturas: filtered.length } });
     }
-  }, [filtered, registrarActividad]);
+  }, [filtered, rangoInvertido, registrarActividad]);
 
   return {
     // estado
@@ -117,6 +120,7 @@ export function useFacturacionPageController(opts?: {
     paginatedFacturas,
     totalPages,
     totalCount,
+    rangoInvertido,
     clientesDisponibles,
     loadingClientes: clientesQuery.isLoading,
     errorClientes: clientesQuery.isError,

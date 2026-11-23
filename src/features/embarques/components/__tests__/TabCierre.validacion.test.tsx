@@ -4,11 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TabCierre } from "../TabCierre";
 
 const mocks = vi.hoisted(() => ({
-  consulta: vi.fn(), cerrar: vi.fn(), reintentar: vi.fn(),
+  consulta: vi.fn(), historial: vi.fn(), cerrar: vi.fn(), reintentar: vi.fn(), reintentarHistorial: vi.fn(),
 }));
 vi.mock("@/features/embarques/hooks/useCierreEmbarque", () => ({
   useValidacionCierre: mocks.consulta,
-  useCierreLog: () => ({ data: [] }),
+  useCierreLog: mocks.historial,
   useCerrarEmbarque: () => ({ mutate: mocks.cerrar }),
   useReabrirEmbarque: () => ({}),
 }));
@@ -25,6 +25,7 @@ const vista = () => <MemoryRouter><TabCierre embarqueId="emb-1" estatus="Entrega
 describe("validación vigente para cerrar el embarque", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mocks.historial.mockReturnValue({ data: [] });
   });
 
   it("distingue un error inicial, ofrece reintentar y habilita al obtener un resultado válido", () => {
@@ -60,5 +61,39 @@ describe("validación vigente para cerrar el embarque", () => {
     fireEvent.click(dialogo.getByRole("button", { name: "Cancelar" }));
     expect(screen.getByRole("alert")).toHaveTextContent("No se pudo verificar el checklist de cierre");
     expect(screen.getByRole("button", { name: "Cerrar embarque" })).toBeDisabled();
+  });
+
+  it("distingue carga, error y vacío del historial y reintenta sólo esa consulta", () => {
+    mocks.consulta.mockReturnValue({ data: resultadoOk, refetch: mocks.reintentar });
+    mocks.historial.mockReturnValue({ isLoading: true });
+    const { rerender } = render(vista());
+    expect(screen.getByRole("status")).toHaveTextContent("Cargando historial de cierres");
+    expect(screen.queryByText("Sin movimientos.")).not.toBeInTheDocument();
+
+    mocks.historial.mockReturnValue({ isError: true, refetch: mocks.reintentarHistorial });
+    rerender(vista());
+    expect(screen.getByRole("alert")).toHaveTextContent("No se pudo cargar el historial de cierres");
+    expect(screen.queryByText("Sin movimientos.")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(mocks.reintentarHistorial).toHaveBeenCalledOnce();
+    expect(mocks.reintentar).not.toHaveBeenCalled();
+
+    mocks.historial.mockReturnValue({ data: [] });
+    rerender(vista());
+    expect(screen.getByText("Sin movimientos.")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("conserva los movimientos existentes cuando falla el refresco del historial", () => {
+    mocks.consulta.mockReturnValue({ data: resultadoOk });
+    mocks.historial.mockReturnValue({
+      data: [{ id: "log-1", accion: "reabrir", created_at: "2026-10-06T12:00:00Z", motivo: "Revisión de prueba" }],
+      isError: true, isFetching: true, refetch: mocks.reintentarHistorial,
+    });
+    render(vista());
+    expect(screen.getByRole("alert")).toHaveTextContent("Se muestran los movimientos de la última consulta exitosa.");
+    expect(screen.getByText("Revisión de prueba")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reintentando…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cerrar embarque" })).toBeEnabled();
   });
 });

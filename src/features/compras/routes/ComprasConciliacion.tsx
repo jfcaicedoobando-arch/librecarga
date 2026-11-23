@@ -39,6 +39,7 @@ export default function ComprasConciliacion() {
 
   const columns = useMemo(() => buildConciliacionColumns(), []);
   const hayFiltros = estado !== "todos" || moneda !== "todas" || Boolean(search.trim());
+  const valorKpi = (valor: number | string) => isError ? "No disponible" : valor;
 
   const limpiarFiltros = () => {
     setEstado("todos");
@@ -55,13 +56,13 @@ export default function ComprasConciliacion() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <KpiCard label="Sin facturar" value={kpis.sinFacturar} icon={AlertTriangle} variant="destructive" />
-        <KpiCard label="Parciales" value={kpis.parcial} icon={Clock} variant="warning" />
-        <KpiCard label="Conciliadas" value={kpis.completa} icon={CheckCircle2} variant="success" />
-        <KpiCard label="Pendiente de TC" value={kpis.pendienteTc} icon={AlertTriangle} variant="warning" />
-        <KpiCard label="Por facturar MXN (comparable)" value={formatCurrency(kpis.pendienteMxn, "MXN")} />
-        <KpiCard label="Por facturar USD (comparable)" value={formatCurrency(kpis.pendienteUsd, "USD")} />
-        <KpiCard label="Por facturar EUR (comparable)" value={formatCurrency(kpis.pendienteEur, "EUR")} />
+        <KpiCard label="Sin facturar" value={valorKpi(kpis.sinFacturar)} loading={isLoading} icon={AlertTriangle} variant="destructive" />
+        <KpiCard label="Parciales" value={valorKpi(kpis.parcial)} loading={isLoading} icon={Clock} variant="warning" />
+        <KpiCard label="Conciliadas" value={valorKpi(kpis.completa)} loading={isLoading} icon={CheckCircle2} variant="success" />
+        <KpiCard label="Pendiente de TC" value={valorKpi(kpis.pendienteTc)} loading={isLoading} icon={AlertTriangle} variant="warning" />
+        <KpiCard label="Por facturar MXN (comparable)" value={valorKpi(formatCurrency(kpis.pendienteMxn, "MXN"))} loading={isLoading} />
+        <KpiCard label="Por facturar USD (comparable)" value={valorKpi(formatCurrency(kpis.pendienteUsd, "USD"))} loading={isLoading} />
+        <KpiCard label="Por facturar EUR (comparable)" value={valorKpi(formatCurrency(kpis.pendienteEur, "EUR"))} loading={isLoading} />
 
       </div>
 

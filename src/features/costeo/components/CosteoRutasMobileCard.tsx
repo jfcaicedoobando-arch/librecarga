@@ -1,6 +1,7 @@
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Trash2 } from "lucide-react";
+import { formatFechaDia } from "@/lib/formatters/dates";
 import { destinoDe, etiquetaPuertoCompleta, origenDe } from "@/features/costeo/utils/puertoLabel";
 import type { FilaRuta } from "./CosteoRutasTable";
 
@@ -20,6 +21,11 @@ export function CosteoRutasMobileCard({ fila, onVer, onEliminar }: Props) {
         </div>
         <StatusBadge domain="ruta_maritima" status={fila.meta.label} />
       </div>
+      {fila.ruta.proxima_expiracion && (
+        <p className="text-body-sm text-muted-foreground">
+          Próxima a vencer · <time dateTime={fila.ruta.proxima_expiracion}>{formatFechaDia(fila.ruta.proxima_expiracion)}</time>
+        </p>
+      )}
       <div className="flex items-center justify-between gap-2 border-t pt-2">
         <span className="text-body-sm text-muted-foreground">
           {fila.ruta.tarifas_vigentes_count ?? 0} tarifas vigentes

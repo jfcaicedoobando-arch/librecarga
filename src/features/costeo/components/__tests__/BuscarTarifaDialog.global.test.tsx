@@ -34,6 +34,14 @@ beforeEach(() => {
 });
 
 describe("BuscarTarifaDialog — puertos globales", () => {
+  it("asocia la fecha del diálogo a la etiqueta y explica el valor de respaldo", () => {
+    render(<BuscarTarifaDialog open onOpenChange={() => {}} />, { wrapper: createWrapper() });
+    const fecha = screen.getByRole("textbox", { name: "Fecha de vigencia" });
+    expect(fecha).toHaveAccessibleDescription("Si se deja vacía, se consulta la fecha de hoy.");
+    fireEvent.change(fecha, { target: { value: "" } });
+    expect(useTopTarifasMock).toHaveBeenLastCalledWith(expect.objectContaining({ fecha: "" }));
+  });
+
   it("conserva los valores iniciales de ruta y contenedor", () => {
     render(
       <BuscarTarifaDialog

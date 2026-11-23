@@ -26,6 +26,9 @@ export async function portalResponderCotizacion(
     // FIX-R2-03: centralizamos la traducción de tokens LC_* en el catálogo
     // `lcCodeMessages`. Si no matchea ningún código, relanzamos el error crudo.
     const raw = typeof error.message === "string" ? error.message : "";
+    if (/\bLC_COTIZACION_VENCIDA\b/.test(raw)) {
+      throw new Error("La cotización venció. Solicita una actualización al equipo que te la envió.");
+    }
     const friendly = translateLcCode(raw);
     if (friendly && friendly !== raw) {
       throw new Error(friendly);

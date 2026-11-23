@@ -39,6 +39,7 @@ interface DatePickerMxProps {
    */
   avisarInhabil?: boolean;
   "aria-label"?: string;
+  "aria-describedby"?: string;
 }
 
 
@@ -53,7 +54,7 @@ interface DatePickerMxProps {
 export function DatePickerMx({
   value, onChange, placeholder = PLACEHOLDER_FECHA, className, title,
   disabled = false, readOnly = false, min, max, errorText, id, name,
-  autoFocus = false, avisarInhabil = false, "aria-label": ariaLabel,
+  autoFocus = false, avisarInhabil = false, "aria-label": ariaLabel, "aria-describedby": ariaDescribedBy,
 }: DatePickerMxProps) {
 
   const autoErrorId = useId();
@@ -67,7 +68,7 @@ export function DatePickerMx({
 
   const showError = invalid || !!errorText;
   const aviso = !showError && avisarInhabil && value ? motivoInhabilMx(value) : null;
-  const describedBy = [showError ? errorId : null, aviso ? avisoId : null]
+  const describedBy = [showError ? errorId : null, aviso ? avisoId : null, ariaDescribedBy]
     .filter(Boolean).join(" ") || undefined;
 
   return (

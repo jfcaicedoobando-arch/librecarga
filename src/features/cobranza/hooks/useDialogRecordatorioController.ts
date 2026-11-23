@@ -13,7 +13,11 @@ function puedeConfirmar({ open, pending, consulting, queryError, review, email }
 
 export function useDialogRecordatorioController(facturaId: string | undefined,
   open: boolean, onOpenChange: (value: boolean) => void) {
-  const [nota, setNota] = useState("");
+  const [borrador, setBorrador] = useState({ facturaId, open, nota: "" });
+  const mismaApertura = borrador.facturaId === facturaId && borrador.open === open;
+  if (!mismaApertura) setBorrador({ facturaId, open, nota: "" });
+  const nota = mismaApertura ? borrador.nota : "";
+  const setNota = (nota: string) => setBorrador({ facturaId, open, nota });
   const destinatario = useDestinatarioRecordatorio(facturaId, open);
   const dialogScope = useRecordatorioDialogScope(facturaId, open);
   const envio = useRecordatorioCobranza();

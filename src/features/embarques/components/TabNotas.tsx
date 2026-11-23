@@ -36,11 +36,12 @@ export function TabNotas({ embarqueId, expediente }: Props) {
     useActividadEmbarque(embarqueId);
 
   const handleSubmit = async () => {
-    if (!texto.trim() || !embarqueId) return;
+    const contenido = texto.trim();
+    if (!contenido || !embarqueId) return;
     try {
       const notaId = await crearNota.mutateAsync({
         embarqueId,
-        contenido: texto.trim(),
+        contenido,
         usuario: user?.email ?? "",
       });
       registrarActividad.mutate({
@@ -48,9 +49,9 @@ export function TabNotas({ embarqueId, expediente }: Props) {
         modulo: "embarques",
         entidad_id: embarqueId,
         entidad_nombre: expediente ?? "",
-        detalles: { nota: texto.trim(), notaId },
+        detalles: { nota: contenido, notaId },
       });
-      setTexto("");
+      setTexto((actual) => actual === texto ? "" : actual);
       refetch();
       notifySuccess(undefined, { title: "Nota agregada" });
     } catch (err: unknown) {

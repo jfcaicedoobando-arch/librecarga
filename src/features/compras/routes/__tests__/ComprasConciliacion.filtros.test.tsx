@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
+import { formatCurrency } from "@/lib/formatters";
 import { createWrapper } from "@/test/utils/queryWrapper";
 import type { EmbarqueConciliacion } from "@/features/compras/services/conciliacionEmbarques";
 import ComprasConciliacion from "../ComprasConciliacion";
@@ -64,5 +65,16 @@ describe("estado sin resultados de Conciliación con embarques", () => {
     mostrarConsulta("");
     expect(await screen.findByText("No hay embarques con conceptos de costo para conciliar.")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Limpiar filtros" })).not.toBeInTheDocument();
+  });
+
+  it("los indicadores distinguen carga, error y cero confirmado", async () => {
+    listar.mockRejectedValueOnce(new Error("error de lectura")).mockResolvedValueOnce([]);
+    mostrarConsulta("");
+    expect(screen.getByText("Por facturar EUR (comparable)")).toBeVisible();
+    expect(screen.queryByText(formatCurrency(0, "EUR"))).not.toBeInTheDocument();
+    const retry = await screen.findByRole("button", { name: "Reintentar" });
+    expect(screen.getAllByText("No disponible")).toHaveLength(7);
+    fireEvent.click(retry);
+    expect(await screen.findByText(formatCurrency(0, "EUR"))).toBeVisible();
   });
 });

@@ -10,9 +10,13 @@ export function ThSort({ label, active, dir, onClick, align = "left" }: {
 }) {
   const Icon = active ? (dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
   return (
-    <DetailTableHead className={`px-3 py-2 ${align === "right" ? "text-right" : "text-left"}`}>
+    <DetailTableHead
+      scope="col"
+      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : undefined}
+      className={`px-3 py-2 ${align === "right" ? "text-right" : "text-left"}`}
+    >
       <button type="button" onClick={onClick} className="inline-flex items-center gap-1 hover:text-foreground">
-        {label} <Icon className="h-3 w-3" />
+        {label} <Icon className="h-3 w-3" aria-hidden />
       </button>
     </DetailTableHead>
   );

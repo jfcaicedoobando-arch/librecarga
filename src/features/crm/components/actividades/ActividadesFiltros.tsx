@@ -7,9 +7,10 @@ import { ACTIVIDAD_TIPO_LABEL } from "@/features/crm/domain/actividadLabels";
 interface Props {
   filters: { tipo: string; estado: string; responsable: string };
   onChange: (key: "tipo" | "estado" | "responsable", value: string) => void;
+  vencidasOnly?: boolean;
 }
 
-export function ActividadesFiltros({ filters, onChange }: Props) {
+export function ActividadesFiltros({ filters, onChange, vencidasOnly = false }: Props) {
   const id = useId();
   return <>
     <div className="space-y-1">
@@ -24,7 +25,7 @@ export function ActividadesFiltros({ filters, onChange }: Props) {
     </div>
     <div className="space-y-1">
       <Label htmlFor={`${id}-estado`}>Estado</Label>
-      <Select value={filters.estado} onValueChange={v => onChange("estado", v)}>
+      <Select value={filters.estado} onValueChange={v => onChange("estado", v)} disabled={vencidasOnly}>
         <SelectTrigger id={`${id}-estado`} className="h-9 w-full md:w-[150px]"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="pendientes">Pendientes</SelectItem>
@@ -35,7 +36,7 @@ export function ActividadesFiltros({ filters, onChange }: Props) {
     </div>
     <div className="space-y-1">
       <Label htmlFor={`${id}-responsable`}>Responsable</Label>
-      <Select value={filters.responsable} onValueChange={v => onChange("responsable", v)}>
+      <Select value={filters.responsable} onValueChange={v => onChange("responsable", v)} disabled={vencidasOnly}>
         <SelectTrigger id={`${id}-responsable`} className="h-9 w-full md:w-[220px]"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="todos">Todos los responsables</SelectItem>

@@ -1,5 +1,11 @@
 # Changelog
 
+## [13.824.100] - 2026-11-22
+- **Captura y cobranza:** cada recordatorio y re-cotización abre con sus campos limpios. El margen comercial exige un valor explícito, las demoras validan la vigencia y las notas conservan el siguiente borrador mientras se envía el anterior.
+- **Operaciones y portales:** Embarques identifica pólizas futuras y llegadas registradas, ofrece el filtro «En Proceso» y permite reintentar el historial de cierre. El portal separa embarques sin expediente y explica cuándo vence una cotización.
+- **Finanzas y reportes:** Facturación explica rangos invertidos y Proformas comparte el estado visible con su CSV. Compras incorpora EUR, Tesorería conserva el filtro de pagos programados y el PDF del Libro de pagos identifica las filas incluidas.
+- **Accesibilidad y navegación:** Cobranza admite selección móvil, Costeo identifica la fecha de vigencia y Presupuesto anuncia la dirección de orden. Los reportes de CRM y el historial de cotizaciones ofrecen reintentos cuando falla la consulta.
+
 ## [13.824.99] - 2026-11-22
 - **Confirmaciones y captura:** Proformas identifica las selecciones fuera de los filtros, Compras empieza cada lote con la justificación vacía y Tarifario exige un monto explícito y confirma el retiro de cargos.
 - **Operación y finanzas:** Embarques, Facturación y Compras explican los fallos de consulta y permiten reintentar. El PDF de Presupuesto vs. Real incluye los avisos de datos parciales y gastos sin tipo de cambio.
