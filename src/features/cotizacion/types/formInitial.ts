@@ -35,6 +35,9 @@ export interface CotizacionInitialData {
   dimensiones_aereas: DimensionAerea[];
   peso_kg: number;
   peso_fisico_kg?: number | null;
+  baterias_litio?: boolean | null;
+  known_shipper?: boolean | null;
+  tipo_aeronave?: string | null;
   volumen_m3: number;
   piezas: number;
   tipo_unidad: string | null;

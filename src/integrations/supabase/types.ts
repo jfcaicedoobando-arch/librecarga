@@ -3161,6 +3161,7 @@ export type Database = {
           autorizacion_solicitada_at: string | null
           autorizada_at: string | null
           autorizada_por: string | null
+          baterias_litio: boolean | null
           carta_garantia: boolean
           cliente_id: string | null
           cliente_nombre: string
@@ -3194,6 +3195,7 @@ export type Database = {
           frecuencia: string
           id: string
           incoterm: Database["public"]["Enums"]["incoterm"]
+          known_shipper: boolean | null
           lcl_consolidador_id: string | null
           lcl_dias_libres_almacenaje: number | null
           lcl_minimo_flete: number | null
@@ -3235,6 +3237,7 @@ export type Database = {
           tarifas_informativas: Json
           tiempo_transito_dias: number | null
           tipo: Database["public"]["Enums"]["tipo_operacion"]
+          tipo_aeronave: string | null
           tipo_cambio_usd: number | null
           tipo_carga: string
           tipo_contenedor: string | null
@@ -3263,6 +3266,7 @@ export type Database = {
           autorizacion_solicitada_at?: string | null
           autorizada_at?: string | null
           autorizada_por?: string | null
+          baterias_litio?: boolean | null
           carta_garantia?: boolean
           cliente_id?: string | null
           cliente_nombre?: string
@@ -3296,6 +3300,7 @@ export type Database = {
           frecuencia?: string
           id?: string
           incoterm?: Database["public"]["Enums"]["incoterm"]
+          known_shipper?: boolean | null
           lcl_consolidador_id?: string | null
           lcl_dias_libres_almacenaje?: number | null
           lcl_minimo_flete?: number | null
@@ -3337,6 +3342,7 @@ export type Database = {
           tarifas_informativas?: Json
           tiempo_transito_dias?: number | null
           tipo: Database["public"]["Enums"]["tipo_operacion"]
+          tipo_aeronave?: string | null
           tipo_cambio_usd?: number | null
           tipo_carga?: string
           tipo_contenedor?: string | null
@@ -3365,6 +3371,7 @@ export type Database = {
           autorizacion_solicitada_at?: string | null
           autorizada_at?: string | null
           autorizada_por?: string | null
+          baterias_litio?: boolean | null
           carta_garantia?: boolean
           cliente_id?: string | null
           cliente_nombre?: string
@@ -3398,6 +3405,7 @@ export type Database = {
           frecuencia?: string
           id?: string
           incoterm?: Database["public"]["Enums"]["incoterm"]
+          known_shipper?: boolean | null
           lcl_consolidador_id?: string | null
           lcl_dias_libres_almacenaje?: number | null
           lcl_minimo_flete?: number | null
@@ -3439,6 +3447,7 @@ export type Database = {
           tarifas_informativas?: Json
           tiempo_transito_dias?: number | null
           tipo?: Database["public"]["Enums"]["tipo_operacion"]
+          tipo_aeronave?: string | null
           tipo_cambio_usd?: number | null
           tipo_carga?: string
           tipo_contenedor?: string | null

@@ -80,6 +80,7 @@ function partesMercanciaMedidas(d: CotizacionInitialData) {
     volumenM3: d.volumen_m3 ?? 0,
     piezas: d.piezas ?? 0,
     tipoUnidad: d.tipo_unidad ?? "",
+    banderasAereas: { baterias_litio: d.baterias_litio ?? null, known_shipper: d.known_shipper ?? null, tipo_aeronave: d.tipo_aeronave ?? null },
   };
 }
 
