@@ -27,7 +27,8 @@ export function useAsignarResponsableController({
   onClose,
 }: Args) {
   const { user } = useAuth();
-  const { data: asignables = [], isLoading: loadingUsers } = useOrgMembersAsignables();
+  const { data: asignables = [], isLoading: loadingUsers, isError: errorUsers,
+    isFetching: fetchingUsers, refetch: refetchUsers } = useOrgMembersAsignables();
   const asignar = useAsignarResponsable();
 
   const [responsableId, setResponsableId] = useState<string>(SIN_RESPONSABLE);
@@ -43,25 +44,18 @@ export function useAsignarResponsableController({
     );
   }, [open, revisionExistente]);
 
-  const optEmail = (id: string) =>
-    asignables.find((a) => a.id === id)?.email ?? "";
+  const seleccionDisponible = !loadingUsers && !errorUsers;
+  const seleccionado = responsableId === SIN_RESPONSABLE ? null : responsableId;
+  const emailSeleccionado = seleccionado
+    ? asignables.find((miembro) => miembro.id === seleccionado)?.email || revisionExistente?.responsable_email || ""
+    : "";
 
   const submit = async (tomar = false) => {
-    if (!hallazgo) return;
-    const id = tomar
-      ? user?.id ?? null
-      : responsableId === SIN_RESPONSABLE
-        ? null
-        : responsableId;
-    const email = tomar
-      ? user?.email ?? ""
-      : id
-        ? optEmail(id) || revisionExistente?.responsable_email || ""
-        : "";
+    if (!hallazgo || (!tomar && !seleccionDisponible)) return;
     await asignar.mutateAsync({
       hallazgo,
-      responsableId: id,
-      responsableEmail: email,
+      responsableId: tomar ? user?.id ?? null : seleccionado,
+      responsableEmail: tomar ? user?.email ?? "" : emailSeleccionado,
       fechaLimite: fechaLimite ? format(fechaLimite, "yyyy-MM-dd") : null,
       tomar,
     });
@@ -71,7 +65,7 @@ export function useAsignarResponsableController({
   return {
     user,
     asignables,
-    loadingUsers,
+    loadingUsers, errorUsers, fetchingUsers, refetchUsers,
     responsableId,
     setResponsableId,
     fechaLimite,

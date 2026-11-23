@@ -8,21 +8,15 @@ import { formatCurrency } from "@/lib/formatters";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { useExchangeRates } from "@/features/catalogos/hooks";
 
-export interface TopProveedorRow {
-  nombre: string;
-  mxn: number;
-  usd: number;
-  eur: number;
-  count: number;
-  mxnEquiv: number;
-}
+import type { TopProveedorAgregado } from "../../services/reportesAgregados";
 
 interface Props {
   isLoading: boolean;
-  rows: TopProveedorRow[];
+  rows: TopProveedorAgregado[];
+  facturasSinTipoCambio: number;
 }
 
-export function TopProveedoresCard({ isLoading, rows }: Props) {
+export function TopProveedoresCard({ isLoading, rows, facturasSinTipoCambio }: Props) {
   // EC-10: el ranking ordena por equivalente en MXN; si el T/C es de respaldo
   // (17.25 operativo, no fiscal) el orden es estimado y hay que decirlo.
   const { data: rates } = useExchangeRates();
@@ -37,6 +31,11 @@ export function TopProveedoresCard({ isLoading, rows }: Props) {
         <p className="text-body-sm text-muted-foreground">
           Sin IVA y antes de notas de crédito. Ordenados por equivalente en MXN.
         </p>
+        {facturasSinTipoCambio > 0 && (
+          <p className="text-body-sm text-warning" role="status">
+            Orden parcial · Falta tipo de cambio en {facturasSinTipoCambio} {facturasSinTipoCambio === 1 ? "factura" : "facturas"}.
+          </p>
+        )}
         {tcEstimado ? (
           <p className="text-xs text-warning">
             Orden calculado con tipo de cambio estimado (no oficial): úsalo sólo como referencia.
@@ -59,6 +58,7 @@ export function TopProveedoresCard({ isLoading, rows }: Props) {
                   <span className="truncate font-medium">{p.nombre}</span>
                   <span className="text-xs text-muted-foreground">
                     ({p.count} {p.count === 1 ? "factura" : "facturas"})
+                    {p.sinTipoCambio > 0 && <span className="ml-2 text-warning">Equivalente parcial</span>}
                   </span>
                 </div>
                 <div className="flex gap-4 tabular-nums text-xs">

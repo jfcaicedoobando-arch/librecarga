@@ -128,7 +128,8 @@ export default function Bitacora() {
         rangoFiltro={rangoFiltro}
         mostrarLogins={mostrarLogins}
         mostrarSwitchLogins={!esAuth}
-        total={total}
+        total={isLoading || isError ? undefined : total}
+        isLoading={isLoading}
         onModuloChange={resetPagina(setModuloFiltro)}
         onAccionChange={resetPagina(setAccionFiltro)}
         onRangoChange={resetPagina(setRangoFiltro)}

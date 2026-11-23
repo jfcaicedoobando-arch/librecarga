@@ -9,6 +9,7 @@ import { FormField } from "@/components/shared/FormField";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
 import { useNuevaOrganizacionUsuarios } from "@/features/admin/hooks/useNuevaOrganizacionUsuarios";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 
 interface Props {
   open: boolean;
@@ -27,7 +28,7 @@ export function NuevaOrganizacionDialog({
   open, onOpenChange, nombre, onNombreChange, rfc, onRfcChange,
   ownerUserId, onOwnerUserIdChange, onCreate, isPending,
 }: Props) {
-  const { data: users = [], isLoading } = useNuevaOrganizacionUsuarios(open);
+  const { data: users = [], isLoading, isError, isFetching, refetch } = useNuevaOrganizacionUsuarios(open);
 
   const [query, setQuery] = useState("");
   useEffect(() => { if (!open) setQuery(""); }, [open]);
@@ -36,7 +37,7 @@ export function NuevaOrganizacionDialog({
     query.trim() === "" || u.email.toLowerCase().includes(query.trim().toLowerCase()),
   );
 
-  const canSubmit = nombre.trim().length > 0 && ownerUserId.length > 0 && !isPending;
+  const canSubmit = nombre.trim().length > 0 && ownerUserId.length > 0 && !isPending && !isLoading && !isError;
 
   return (
     <FormDialogShell
@@ -75,13 +76,13 @@ export function NuevaOrganizacionDialog({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar por correo…"
-              disabled={isLoading}
+              disabled={isLoading || isError}
             />
           </FormField>
           <Select
             value={ownerUserId || undefined}
             onValueChange={onOwnerUserIdChange}
-            disabled={isLoading}
+            disabled={isLoading || isError}
           >
             <SelectTrigger id="nueva-org-owner">
               <SelectValue placeholder={isLoading ? "Cargando usuarios…" : "Selecciona un usuario"} />
@@ -99,6 +100,8 @@ export function NuevaOrganizacionDialog({
               )}
             </SelectContent>
           </Select>
+          {isError && <ErrorStateInline title="No se pudieron consultar los administradores disponibles"
+            message="Reintenta para recuperar el selector y continuar con el alta." onRetry={() => void refetch()} retrying={isFetching} />}
           <p className="text-body-sm text-muted-foreground">
             Se le asignará el rol <b>admin</b> en la nueva organización.
           </p>

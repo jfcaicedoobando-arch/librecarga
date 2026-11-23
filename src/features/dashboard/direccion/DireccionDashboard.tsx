@@ -22,7 +22,7 @@ import { useDocumentTitle } from "@/hooks/shared";
 export default function DireccionDashboard() {
   useDocumentTitle("Panel");
   const { data, isLoading, error, refetch } = useDireccionKpis();
-  const { data: totales, isLoading: totalesLoading, desdeIso } = useDireccionTotales();
+  const totales = useDireccionTotales();
 
   return (
     <PageContainer>
@@ -62,7 +62,9 @@ export default function DireccionDashboard() {
       ) : (
         <>
           <HeroCards hero={data.hero} />
-          <TotalesPeriodoCard totales={totales} desdeIso={desdeIso} isLoading={totalesLoading} />
+          <TotalesPeriodoCard totales={totales.data} desdeIso={totales.desdeIso}
+            isLoading={totales.isLoading} isError={totales.isError} isFetching={totales.isFetching}
+            onRetry={() => void totales.refetch()} />
 
           <section className="space-y-2">
             <SectionHeading variant="overline">Rentabilidad</SectionHeading>

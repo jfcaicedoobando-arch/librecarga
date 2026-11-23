@@ -1,3 +1,4 @@
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { CatalogQueryError } from "@/components/shared/CatalogQueryError";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -104,6 +105,9 @@ export default function TabTiposContenedor() {
             isError={isError}
             errorState={<CatalogQueryError error={error} onRetry={() => void refetch()} retrying={isFetching} />}
             emptyMessage="No se encontraron tipos de contenedor"
+            emptyState={tipos.length > 0 && busqueda.trim() ? (
+              <EmptyStateInline message="Sin coincidencias" action={{ label: "Limpiar búsqueda", onClick: () => setBusqueda("") }} />
+            ) : undefined}
             rowKey={(t) => t.id}
             rowClassName={(t) => !visibleOrg(t) ? "opacity-50" : ""}
             density={TABLE_DENSITY.embebida}

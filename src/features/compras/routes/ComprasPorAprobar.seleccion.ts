@@ -1,14 +1,13 @@
 import { useMemo } from "react";
 import { esValidableEnSat } from "@/features/cxp";
 import type { FacturaCxP } from "@/features/cxp/services";
-import { sumaMxn, sumaUsd } from "./ComprasPorAprobar.helpers";
+import { sumarFacturasPorMoneda } from "./ComprasPorAprobar.helpers";
 
 export function resumirSeleccionEfectiva(filas: FacturaCxP[]) {
   return {
     filas,
     ids: filas.map((row) => row.id),
-    totalMxn: sumaMxn(filas),
-    totalUsd: sumaUsd(filas),
+    totales: sumarFacturasPorMoneda(filas),
     validablesSat: filas.filter(esValidableEnSat).map((row) => row.id),
     idsSinEmbarque: new Set(filas.filter((row) => !row.embarque_id).map((row) => row.id)),
   };

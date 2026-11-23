@@ -34,7 +34,7 @@ export default function ComprasReportes() {
     desde, setDesde, hasta, setHasta, errorRango,
     isLoading, isError, refetch,
     numFacturas, totalMxn, totalUsd, totalEur,
-    topProveedores, evolucion, handleExport,
+    topProveedores, facturasSinTipoCambio, evolucion, handleExport,
   } = useComprasReportesController();
 
   return (
@@ -45,7 +45,7 @@ export default function ComprasReportes() {
         description="Importe facturado bruto, sin IVA y antes de notas de crédito. Por proveedor y período de emisión de la factura."
         actions={
           <Button variant="outline" size="sm" onClick={handleExport} disabled={!!errorRango || isLoading || isError || topProveedores.length === 0}>
-            <Download className="h-4 w-4 mr-1.5" /> Exportar CSV
+            <Download className="h-4 w-4 mr-1.5" /> Exportar CSV Top 10 proveedores
           </Button>
         }
       />
@@ -83,7 +83,7 @@ export default function ComprasReportes() {
         <KpiCard label="Facturado bruto EUR" sublabel="Sin IVA · antes de notas de crédito" value={formatCurrency(totalEur, "EUR")} icon={Coins} />
       </div>
 
-      <TopProveedoresCard isLoading={isLoading} rows={topProveedores} />
+      <TopProveedoresCard isLoading={isLoading} rows={topProveedores} facturasSinTipoCambio={facturasSinTipoCambio} />
 
       <Card>
         <CardHeader>

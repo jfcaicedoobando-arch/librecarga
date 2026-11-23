@@ -13,6 +13,7 @@ export interface TopProveedorAgregado {
   eur: number;
   count: number;
   mxnEquiv: number;
+  sinTipoCambio: number;
 }
 
 export interface EvolucionMes {
@@ -30,27 +31,33 @@ export function agruparTopProveedores(
   rows: FacturaLite[],
   tcDof?: number,
   tcEurDof?: number,
-): TopProveedorAgregado[] {
+) {
+  let facturasSinTipoCambio = 0;
   const map = new Map<string, TopProveedorAgregado>();
   for (const r of rows) {
     const key = r.proveedor_id ?? r.proveedor_nombre ?? "—";
-    const cur = map.get(key) ?? { nombre: r.proveedor_nombre ?? "—", mxn: 0, usd: 0, eur: 0, count: 0, mxnEquiv: 0 };
+    const cur = map.get(key) ?? { nombre: r.proveedor_nombre ?? "—", mxn: 0, usd: 0, eur: 0, count: 0, mxnEquiv: 0, sinTipoCambio: 0 };
     cur.count += 1;
 
     const fallback = r.moneda === "USD" ? tcDof : r.moneda === "EUR" ? tcEurDof : null;
-    const equiv = aMxn(r.total, r.moneda, r.tipo_cambio_usd, { fallback }).monto;
+    const equiv = aMxn(r.total, r.moneda, r.tipo_cambio_usd, { fallback });
+    if (!equiv.completo) {
+      cur.sinTipoCambio += 1;
+      facturasSinTipoCambio += 1;
+    }
 
     if (r.moneda === "MXN") cur.mxn += r.total;
     else if (r.moneda === "USD") cur.usd += r.total;
     else cur.eur += r.total;
 
-    cur.mxnEquiv += equiv;
+    cur.mxnEquiv += equiv.monto;
     map.set(key, cur);
   }
 
-  return Array.from(map.values())
+  const topProveedores = Array.from(map.values())
     .sort((a, b) => b.mxnEquiv - a.mxnEquiv)
     .slice(0, 10);
+  return { topProveedores, facturasSinTipoCambio };
 }
 
 export function agruparEvolucionMensual(rows: FacturaLite[]): EvolucionMes[] {

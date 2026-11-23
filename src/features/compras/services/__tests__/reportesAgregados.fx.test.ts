@@ -15,40 +15,40 @@ describe("Top proveedores — TC documental (extensión 106)", () => {
     const rows = [factura()];
     const original = structuredClone(rows);
 
-    expect(agruparTopProveedores(rows, 18, 30)).toEqual([{
-      nombre: "Proveedor EUR", mxn: 0, usd: 0, eur: 100, count: 1, mxnEquiv: 2000,
+    expect(agruparTopProveedores(rows, 18, 30).topProveedores).toEqual([{
+      nombre: "Proveedor EUR", mxn: 0, usd: 0, eur: 100, count: 1, mxnEquiv: 2000, sinTipoCambio: 0,
     }]);
-    expect(agruparTopProveedores(rows)[0].mxnEquiv).toBe(2000);
+    expect(agruparTopProveedores(rows).topProveedores[0].mxnEquiv).toBe(2000);
     expect(rows).toEqual(original);
   });
 
   it("ordena por equivalente documental y conserva el desglose nominal", () => {
-    const result = agruparTopProveedores([
+    const { topProveedores } = agruparTopProveedores([
       factura(),
       factura({ id: "factura-mxn", moneda: "MXN", total: 2100, proveedor_id: "otro", proveedor_nombre: "Local", tipo_cambio_usd: null }),
       factura({ id: "factura-usd", moneda: "USD", total: 2, tipo_cambio_usd: 18 }),
     ], 25, 30);
 
-    expect(result).toEqual([
-      { nombre: "Local", mxn: 2100, usd: 0, eur: 0, count: 1, mxnEquiv: 2100 },
-      { nombre: "Proveedor EUR", mxn: 0, usd: 2, eur: 100, count: 2, mxnEquiv: 2036 },
+    expect(topProveedores).toEqual([
+      { nombre: "Local", mxn: 2100, usd: 0, eur: 0, count: 1, mxnEquiv: 2100, sinTipoCambio: 0 },
+      { nombre: "Proveedor EUR", mxn: 0, usd: 2, eur: 100, count: 2, mxnEquiv: 2036, sinTipoCambio: 0 },
     ]);
   });
 
   it.each([null, 0, -20, 1, 0.5, NaN, Infinity])(
     "usa respaldo específico de la moneda cuando el TC documental es inválido: %s",
     (tipo_cambio_usd) => {
-      expect(agruparTopProveedores([factura({ tipo_cambio_usd })], 18, 22)[0].mxnEquiv).toBe(2200);
-      expect(agruparTopProveedores([factura({ moneda: "USD", tipo_cambio_usd })], 18, 22)[0].mxnEquiv).toBe(1800);
+      expect(agruparTopProveedores([factura({ tipo_cambio_usd })], 18, 22).topProveedores[0].mxnEquiv).toBe(2200);
+      expect(agruparTopProveedores([factura({ moneda: "USD", tipo_cambio_usd })], 18, 22).topProveedores[0].mxnEquiv).toBe(1800);
     },
   );
 
   it.each([undefined, 0, -20, 1, NaN, Infinity])(
     "sin TC documental ni respaldo confiable conserva EUR nominal y no inventa MXN: %s",
     (tcEurDof) => {
-      expect(agruparTopProveedores([factura({ tipo_cambio_usd: null })], 18, tcEurDof)).toEqual([{
-        nombre: "Proveedor EUR", mxn: 0, usd: 0, eur: 100, count: 1, mxnEquiv: 0,
-      }]);
+      expect(agruparTopProveedores([factura({ tipo_cambio_usd: null })], 18, tcEurDof)).toEqual({ facturasSinTipoCambio: 1, topProveedores: [{
+        nombre: "Proveedor EUR", mxn: 0, usd: 0, eur: 100, count: 1, mxnEquiv: 0, sinTipoCambio: 1,
+      }] });
     },
   );
 });

@@ -3,15 +3,20 @@
  * para cumplir react-refresh/only-export-components (un archivo = solo componentes).
  */
 import type { FacturaCxP } from "@/features/cxp/services";
+import type { useFacturasCxP } from "@/features/cxp/hooks";
 
-export function sumaMxn(rows: FacturaCxP[]): number {
-  return rows
-    .filter((f) => f.moneda === "MXN")
-    .reduce((acc, f) => acc + Number(f.total ?? 0), 0);
+export type ConsultaAprobacion = ReturnType<typeof useFacturasCxP>;
+
+export function textoConteoAprobacion(consulta: ConsultaAprobacion) {
+  if (consulta.isError) return "Sin confirmar";
+  if (consulta.isLoading) return "Cargando…";
+  return String(consulta.data?.length ?? 0);
 }
 
-export function sumaUsd(rows: FacturaCxP[]): number {
-  return rows
-    .filter((f) => f.moneda === "USD")
-    .reduce((acc, f) => acc + Number(f.total ?? 0), 0);
+export function sumarFacturasPorMoneda(rows: readonly FacturaCxP[]) {
+  const totales = { MXN: 0, USD: 0, EUR: 0 };
+  for (const factura of rows) {
+    totales[factura.moneda] += Number(factura.total ?? 0);
+  }
+  return totales;
 }

@@ -9,7 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Save } from "lucide-react";
-import { useConfigGlobalCategoria, useUpdateConfiguracionGlobal } from "@/features/configuracion";
+import { useUpdateConfiguracionGlobal } from "@/features/configuracion";
+import { useConfiguracionGlobal, filtrarConfigGlobalCategoria } from "@/features/configuracion/hooks/useConfiguracionGlobal";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import {
   parseConfigSafe,
   plataformaConfigSchema,
@@ -30,9 +33,8 @@ const seguridadPoliticasSchema = z.object({
 });
 
 export default function TabSeguridadGlobal() {
-  const config = useConfigGlobalCategoria("seguridad");
+  const { data, isSuccess, isError, isFetching, refetch } = useConfiguracionGlobal();
   const updateConfig = useUpdateConfiguracionGlobal();
-  const configPlataforma = useConfigGlobalCategoria("plataforma");
 
   const [autoConfirmar, setAutoConfirmar] = useState(false);
   const [longitudPassword, setLongitudPassword] = useState(8);
@@ -43,10 +45,9 @@ export default function TabSeguridadGlobal() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (initialized) return;
-    if (Object.keys(config).length === 0) return;
-    const seg = parseConfigSafe(seguridadConfigSchema, config);
-    const plat = parseConfigSafe(plataformaConfigSchema, configPlataforma);
+    if (initialized || !isSuccess) return;
+    const seg = parseConfigSafe(seguridadConfigSchema, filtrarConfigGlobalCategoria(data, "seguridad"));
+    const plat = parseConfigSafe(plataformaConfigSchema, filtrarConfigGlobalCategoria(data, "plataforma"));
     setAutoConfirmar(seg.auto_confirmar_email);
     setLongitudPassword(seg.longitud_minima_password);
     setExpiracionSesion(seg.expiracion_sesion_horas);
@@ -54,9 +55,14 @@ export default function TabSeguridadGlobal() {
     setRegistroPublico(seg.permitir_registro_publico);
     setEmailSoporte(plat.email_soporte);
     setInitialized(true);
-  }, [config, configPlataforma, initialized]);
+  }, [data, initialized, isSuccess]);
+
+  if (isError) return <ErrorStateInline title="No se pudo cargar la configuración global"
+    message="Reintenta consultar las políticas antes de editarlas." onRetry={() => void refetch()} retrying={isFetching} />;
+  if (!initialized) return <EmptyStateInline loading message="Cargando políticas de seguridad…" />;
 
   const handleGuardar = () => {
+    if (!isSuccess || isFetching || updateConfig.isPending) return;
     const parsed = seguridadPoliticasSchema.safeParse({
       longitudPassword: Number(longitudPassword),
       expiracionSesion: Number(expiracionSesion),
@@ -91,18 +97,18 @@ export default function TabSeguridadGlobal() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex items-center justify-between p-3 rounded-lg border">
             <div>
-              <Label className="text-body font-medium">Auto-confirmar emails</Label>
-              <p className="text-body-sm text-muted-foreground mt-1">Los usuarios nuevos no necesitan verificar su email</p>
+              <Label htmlFor="config-global-confirmar-email" className="text-body font-medium">Auto-confirmar emails</Label>
+              <p id="config-global-confirmar-email-info" className="text-body-sm text-muted-foreground mt-1">Los usuarios nuevos no necesitan verificar su email</p>
             </div>
-            <Switch checked={autoConfirmar} onCheckedChange={setAutoConfirmar} />
+            <Switch id="config-global-confirmar-email" aria-describedby="config-global-confirmar-email-info" checked={autoConfirmar} onCheckedChange={setAutoConfirmar} />
           </div>
 
           <div className="flex items-center justify-between p-3 rounded-lg border">
             <div>
-              <Label className="text-body font-medium">Registro público</Label>
-              <p className="text-body-sm text-muted-foreground mt-1">Permitir que cualquiera se registre en la plataforma</p>
+              <Label htmlFor="config-global-registro" className="text-body font-medium">Registro público</Label>
+              <p id="config-global-registro-info" className="text-body-sm text-muted-foreground mt-1">Permitir que cualquiera se registre en la plataforma</p>
             </div>
-            <Switch checked={registroPublico} onCheckedChange={setRegistroPublico} />
+            <Switch id="config-global-registro" aria-describedby="config-global-registro-info" checked={registroPublico} onCheckedChange={setRegistroPublico} />
           </div>
 
           <div className="p-3 rounded-lg border">
@@ -157,7 +163,7 @@ export default function TabSeguridadGlobal() {
         </div>
 
         <div className="flex justify-end pt-2">
-          <Button onClick={handleGuardar} disabled={updateConfig.isPending}>
+          <Button onClick={handleGuardar} disabled={!isSuccess || isFetching || updateConfig.isPending}>
             <Save className="h-4 w-4 mr-2" /> Guardar políticas
           </Button>
         </div>

@@ -35,7 +35,7 @@ describe("confirmación de lote revisado", () => {
     }, { initialProps: { rows: [f] } });
     act(() => result.current.abrir());
     rerender({ rows: [{ ...f, updated_at: "v2", total: 200 }] });
-    expect(result.current.confirmacion.totalUsd).toBe(100);
+    expect(result.current.confirmacion.totales.USD).toBe(100);
     await act(() => result.current.confirmar());
     expect(aprobar).toHaveBeenCalledWith(["f1"], expect.objectContaining({ versionesRevisadas: new Map([["f1", "v1"]]) }));
     expect(limpiar).toHaveBeenCalledOnce();
@@ -65,8 +65,8 @@ describe("confirmación de lote revisado", () => {
     expect(result.current.confirmOpen).toBe(true);
     expect(result.current.justificacionLote).toBe("Gasto administrativo revisado");
     expect(result.current.confirmacion.ids).toEqual(["f2"]);
-    expect(result.current.confirmacion.totalMxn).toBe(200);
-    expect(result.current.confirmacion.totalUsd).toBe(0);
+    expect(result.current.confirmacion.totales.MXN).toBe(200);
+    expect(result.current.confirmacion.totales.USD).toBe(0);
     expect(limpiar).not.toHaveBeenCalled();
 
     await act(() => result.current.confirmar());

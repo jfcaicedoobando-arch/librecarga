@@ -15,7 +15,7 @@ interface Props {
 export function SidebarGroupHeader({ label, hasActive, open }: Props) {
   return (
     <CollapsibleTrigger
-      aria-label={`Colapsar sección ${label}`}
+      aria-label={label}
       aria-expanded={open}
       className={cn(
         "flex w-full items-center justify-between px-3 py-2 text-label font-semibold uppercase tracking-wider transition-colors",
