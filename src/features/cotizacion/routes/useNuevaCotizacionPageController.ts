@@ -96,6 +96,7 @@ export function useNuevaCotizacionPageController() {
     restaurarCostosSincronizados: w.restaurarCostosSincronizados,
     resincronizarSello: w.resincronizarSello,
   });
+  const borradorBloqueaEdicion = restaurando || Boolean(pendienteBorrador) || conflictoSello;
 
   // CRM-COT-01: sólo se precarga si no hay borrador vivo ni cotización creada,
   // para no reemplazar en silencio lo que el usuario ya tenía capturado.
@@ -136,7 +137,7 @@ export function useNuevaCotizacionPageController() {
     getCostosSincronizados: w.getCostosSincronizados,
     // v13.823.69: el borrador guarda el sello optimista vigente.
     selloActual: w.selloActual,
-    paused: restaurando || Boolean(pendienteBorrador) || conflictoSello,
+    paused: borradorBloqueaEdicion,
   });
 
   const closeSuccessAndGoTo = useCallback((to: string) => {
@@ -154,7 +155,7 @@ export function useNuevaCotizacionPageController() {
   const irAlListado = useCallback(() => navigate("/cotizaciones"), [navigate]);
 
   return {
-    w: { ...w, isPending: w.isPending || restaurando || Boolean(pendienteBorrador) || conflictoSello },
+    w: { ...w, isPending: w.isPending || borradorBloqueaEdicion },
     plantillaId: searchParams.get("plantilla"),
     clientes,
     catalogoClientes,

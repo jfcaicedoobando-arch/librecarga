@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { UseFormReturn } from "react-hook-form";
 import type { CotizacionFormValues } from "@/features/cotizacion/types";
+import { cotizaciones } from "@/features/cotizacion/queryKeys";
 import { fetchPrefillTarifaAerea } from "@/features/cotizacion/services/prefillTarifaAerea";
 import { notifyError } from "@/lib/ui/appFeedback";
 
@@ -15,7 +16,7 @@ export function usePrefillTarifaAerea(
   const hecho = useRef(false);
   const activo = enabled && Boolean(organizationId && tarifaId && solicitudId);
   const q = useQuery({
-    queryKey: ["cotizacion", "prefill-tarifa-aerea", organizationId, tarifaId, solicitudId],
+    queryKey: cotizaciones.prefillTarifaAerea(organizationId, tarifaId, solicitudId),
     queryFn: () => fetchPrefillTarifaAerea(organizationId!, tarifaId!, solicitudId!),
     enabled: activo, retry: false,
   });

@@ -60,12 +60,13 @@ export function useCostosAutoSync({ filas, setFilas, precargar, onDesajusteChang
   const [tarifaOrigenId, modo, incoterm, tipoEmbarque, numContenedores] = captura;
   const sinFleteVenta = esIncotermSinFleteVenta(incoterm, modo);
   // Una tarifa retenida como origen Pricing no autoriza generar flete.
-  const tarifaId = modo === "Marítimo" && !sinFleteVenta ? tarifaOrigenId : null;
+  // Aéreo/Terrestre sólo cargan su propia tarifa multimodo (ver useCargaCostosTarifa).
+  const tarifaId = (modo === "Marítimo" || modo === "Aéreo" || modo === "Terrestre") && !sinFleteVenta ? tarifaOrigenId : null;
   const [lclFleteManual, dimensionesLCL, pesoKg] = useWatch({
     control, name: ["lclFleteManual", "dimensionesLCL", "pesoKg"],
   });
 
-  const { data: tarifa } = useTarifaVinculada(precargar ? tarifaId : null);
+  const { data: tarifa } = useTarifaVinculada(precargar && modo === "Marítimo" ? tarifaId : null);
   const { data: proveedores = [] } = useProveedoresLite(precargar && tipoEmbarque === "LCL");
   const markup = useConfigValue<number>("cotizaciones", "markup_default_maritimo", 0.15);
   const { cargar, fase, firmaActual } = useCargaCostosTarifa({ getValues, captura, markup, setFilas });

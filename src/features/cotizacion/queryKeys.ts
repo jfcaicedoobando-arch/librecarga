@@ -27,6 +27,8 @@ export const cotizaciones = {
   contextoPricing: (scope: PricingScopeKey, oportunidadId: string | null, solicitudId: string | null, tarifaId: string | null) =>
     ['cotizacion', 'contexto-pricing', scope.organizationId, scope.userId, scope.generation, oportunidadId, solicitudId, tarifaId] as const,
   prefillTarifaPricing: (tarifaId: string | null) => ['cotizacion', 'prefill-tarifa-pricing', tarifaId] as const,
+  prefillTarifaAerea: (organizationId: string | null | undefined, tarifaId: string | null, solicitudId: string | null) =>
+    ['cotizacion', 'prefill-tarifa-aerea', organizationId, tarifaId, solicitudId] as const,
   pendientesReaprobacion: {
     all: ['cotizaciones', 'pendientes-reaprobacion', 'all'] as const,
     mias: (email: string | null) => ['cotizaciones', 'pendientes-reaprobacion', 'mias', email] as const,

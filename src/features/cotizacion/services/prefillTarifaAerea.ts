@@ -7,6 +7,10 @@ export interface PrefillTarifaAerea {
   vigenteHasta: string; pesoKg: number | null; volumenM3: number | null; commodity: string | null;
 }
 
+function monedaDeTarifa(moneda: string | null): PrefillTarifaAerea["moneda"] {
+  return moneda === "USD" || moneda === "MXN" ? moneda : null;
+}
+
 export async function fetchPrefillTarifaAerea(organizationId: string, tarifaId: string, solicitudId: string): Promise<PrefillTarifaAerea> {
   const [t, s] = await Promise.all([
     supabase.from("costeo_tarifas").select("id, modo, moneda, aeropuerto_origen, aeropuerto_destino, vigente_hasta, estado, estado_aprobacion")
@@ -22,7 +26,7 @@ export async function fetchPrefillTarifaAerea(organizationId: string, tarifaId: 
   }
   if (!sol || sol.servicio !== "Aéreo") throw new Error("La solicitud aérea ya no está disponible.");
   return {
-    tarifaId: tar.id, moneda: tar.moneda === "USD" || tar.moneda === "MXN" ? tar.moneda : null,
+    tarifaId: tar.id, moneda: monedaDeTarifa(tar.moneda),
     origen: sol.pol || tar.aeropuerto_origen || "", destino: sol.pod || tar.aeropuerto_destino || "",
     vigenteHasta: tar.vigente_hasta, pesoKg: pesoSolicitudAKg(sol.peso, sol.unidad_medida),
     volumenM3: sol.volumen_cbm == null ? null : Number(sol.volumen_cbm), commodity: sol.commodity?.trim() || null,
