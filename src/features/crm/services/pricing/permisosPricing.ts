@@ -1,3 +1,5 @@
+import { enTrabajo } from "./estadosPricing";
+
 /**
  * Espejo en pantalla de `_crm_es_pricing` (la base es la que decide).
  */
@@ -20,9 +22,9 @@ interface SolicitudPermiso {
   solicitante_id: string | null;
 }
 
-/** Sólo mientras está abierta (borrador o enviada); cancelada y respondida son terminales. */
+/** Sólo mientras está abierta (borrador o en trabajo); cancelada, respondida y sin opción son terminales. */
 export function solicitudAbierta(s: SolicitudPermiso): boolean {
-  return s.estado === "borrador" || s.estado === "enviada";
+  return s.estado === "borrador" || enTrabajo(s.estado);
 }
 
 export function esAutorSolicitud(s: SolicitudPermiso, userId: string | undefined): boolean {

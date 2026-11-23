@@ -18,6 +18,7 @@ vi.mock("@/features/crm/hooks/usePricingCrm", () => ({
 vi.mock("@/features/crm/hooks/usePlazoPricing", () => ({
   usePlazoPricing: () => ({ mutate: mocks.ajustarPlazo, isPending: false }),
 }));
+vi.mock("../AccionesFlujoPricing", () => ({ AccionesFlujoPricing: () => null }));
 vi.mock("../SolicitudPricingDetalle", () => ({ SolicitudPricingDetalle: () => null }));
 vi.mock("../SolicitudPricingDialog", () => ({ SolicitudPricingDialog: () => null }));
 vi.mock("@/features/crm/hooks/useObjetosCrm", () => ({

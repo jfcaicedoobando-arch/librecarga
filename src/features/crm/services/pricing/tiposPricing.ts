@@ -34,7 +34,8 @@ export const ETIQUETA_TIPO_SOLICITUD: Record<string, string> = {
   nuevas_tarifas: "Nuevas tarifas con otros agentes", nueva_ruta: "Nueva ruta sin agentes identificados",
 };
 export const ETIQUETA_ESTADO_PRICING: Record<string, string> = {
-  borrador: "Borrador", enviada: "Enviada", respondida: "Respondida", cancelada: "Cancelada",
+  borrador: "Borrador", enviada: "Enviada", asignada: "Asignada", en_proceso: "En proceso",
+  info_requerida: "Información requerida", respondida: "Respondida", sin_opcion: "Sin opción", cancelada: "Cancelada",
 };
 
 /** Los 4 cargos que captura Pricing; cada uno con tarifa, moneda y unidad. */
@@ -73,6 +74,7 @@ export function mensajeErrorPricing(err: unknown): string {
     LC_PRICING_SIN_PERMISO: "Solo Pricing o el solicitante pueden hacer esto.",
     LC_PRICING_NO_EDITABLE: "La solicitud ya no acepta cambios en opciones.",
     LC_PRICING_ESTADO_INVALIDO: "La solicitud ya cambió de estado. Recarga la página.",
+    LC_PRICING_NO_ES_EJECUTIVO: "Esa persona no es ejecutivo de Pricing en esta empresa.",
     LC_PRICING_INCOTERM_MODO: "FAS, FOB, CFR y CIF sólo aplican a transporte marítimo.",
     LC_PRICING_SOLICITANTE_INVALIDO: "El solicitante no pertenece a la empresa.",
   };

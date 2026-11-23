@@ -16,14 +16,22 @@ import { PAGINA_PRICING } from "@/features/crm/services/pricing/pricingCrm";
 import { DESCRIPCION_PLAZOS_MODO } from "@/features/crm/services/pricing/modoPricing";
 import { ETIQUETA_ESTADO_PRICING, type SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
 import { RelojPricing } from "@/features/crm/components/pricing/RelojPricing";
+import { estaVencida } from "@/features/crm/services/pricing/estadosPricing";
+import { esGerenteOps } from "@/features/crm/services/pricing/plazoPricing";
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { ModosEjecutivoPanel } from "@/features/crm/components/pricing/ModosEjecutivoPanel";
+import { TabsModoPricing, useModoPropioPricing } from "@/features/crm/components/pricing/TabsModoPricing";
 import { SolicitudPricingDetalle } from "@/features/crm/components/pricing/SolicitudPricingDetalle";
 
 const ESTADOS = [
-  { value: "enviada", label: "Por responder" }, { value: "respondida", label: "Respondidas" },
+  { value: "abiertas", label: "Por responder" }, { value: "info_requerida", label: "Información requerida" },
+  { value: "respondida", label: "Respondidas" }, { value: "sin_opcion", label: "Sin opción" },
   { value: "cancelada", label: "Canceladas" }, { value: "todos", label: "Todas" },
 ];
 const MENSAJES_VACIOS: Record<string, string> = {
-  enviada: "No hay solicitudes por responder.",
+  abiertas: "No hay solicitudes por responder.",
+  info_requerida: "No hay solicitudes esperando información.",
+  sin_opcion: "No hay solicitudes cerradas sin opción.",
   respondida: "No hay solicitudes respondidas.",
   cancelada: "No hay solicitudes canceladas.",
   todos: "Aún no hay solicitudes de Pricing.",
@@ -79,8 +87,9 @@ function FilaSolicitud({ solicitud, activa, onClick }: {
       <Badge variant="outline">{ETIQUETA_ESTADO_PRICING[estado] ?? estado}</Badge>
       <span className="text-body-sm">{cliente ?? "Sin cliente"}</span>
       <span className="text-body-sm text-muted-foreground">{[servicio, origen ?? pol, destino ?? pod].filter(Boolean).join(" · ")}</span>
+      {estaVencida(solicitud, new Date()) && <Badge variant="destructive">Vencida</Badge>}
       <span className="ml-auto"><RelojPricing enviadaAt={enviada_at} venceAt={vence_at} respondidaAt={respondida_at}
-        cancelada={estado === "cancelada"} /></span>
+        cancelada={estado === "cancelada" || estado === "sin_opcion"} pausada={estado === "info_requerida"} /></span>
     </button>
   );
 }
@@ -124,18 +133,22 @@ function ResultadosBandeja({ consulta, id, total, paginas, pagina, corrigiendoPa
 
 export function BandejaPricingPanel() {
   const [params, setParams] = useSearchParams();
-  const estado = params.get("estado") ?? "enviada";
+  const { effectiveRole } = useAuth();
+  const estado = params.get("estado") ?? "abiertas";
+  const modoPropio = useModoPropioPricing();
+  const modo = params.get("modo") ?? modoPropio;
   const indice = paginaDesdeUrl(params.get("p"));
   const pagina = indice ?? 0;
   const id = params.get("id");
-  const consulta = useBandejaPricing(estado, pagina);
+  const consulta = useBandejaPricing(estado, pagina, modo);
   const { data, isPlaceholderData, error } = consulta;
   const cambiar = (k: string, v: string | null) => {
     const n = new URLSearchParams(params);
     if (v == null) n.delete(k); else n.set(k, v);
-    if (k === "estado") n.delete("p");
+    if (k === "estado" || k === "modo") n.delete("p");
     setParams(n, { replace: true });
   };
+  const puedeConfigurar = esGerenteOps(effectiveRole);
   const total = data?.total ?? 0;
   const paginas = Math.max(1, Math.ceil(total / PAGINA_PRICING));
   const paginaDisponible = data && !isPlaceholderData && !error ? Math.min(pagina, paginas - 1) : pagina;
@@ -152,6 +165,8 @@ export function BandejaPricingPanel() {
   return (
     <>
       <PageHeader title="Bandeja de pricing" description={DESCRIPCION_PLAZOS_MODO} />
+      {puedeConfigurar && <ModosEjecutivoPanel />}
+      <TabsModoPricing valor={modo} onCambiar={(v) => cambiar("modo", v)} />
       <Select value={estado} onValueChange={(v) => cambiar("estado", v)}>
         <SelectTrigger className="w-48" aria-label="Estado de la solicitud"><SelectValue /></SelectTrigger>
         <SelectContent>{ESTADOS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}</SelectContent>

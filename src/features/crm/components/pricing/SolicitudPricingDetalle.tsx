@@ -13,6 +13,7 @@ import { useOpcionesPricing } from "@/features/crm/hooks/usePricingCrm";
 import { useTarifasRespuestaPricing } from "@/features/crm/hooks/useTarifasRespuestaPricing";
 import { esRolPricing, esAutorSolicitud, puedeAgregarTarifaRespuesta, puedeEditarSolicitud, solicitudAbierta } from "@/features/crm/services/pricing/permisosPricing";
 import type { SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
+import { enTrabajo } from "@/features/crm/services/pricing/estadosPricing";
 import { AccionesSolicitudPricing } from "./AccionesSolicitudPricing";
 import { AdjuntosSolicitudPricing } from "./AdjuntosSolicitudPricing";
 import { OpcionPricingEditor } from "./OpcionPricingEditor";
@@ -50,8 +51,8 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
   const esPricing = esRolPricing(effectiveRole);
   const opcionesRespuesta = useOpcionesPricing(s.id);
   const opciones = opcionesRespuesta.data ?? [];
-  const tarifasRespuesta = useTarifasRespuestaPricing(s.id, s.estado === "enviada");
-  const editable = esPricing && s.estado === "enviada";
+  const tarifasRespuesta = useTarifasRespuestaPricing(s.id, enTrabajo(s.estado));
+  const editable = esPricing && enTrabajo(s.estado);
   const puedeCancelar = solicitudAbierta(s) && (esPricing || s.created_by === userId);
   const puedeEditar = puedeEditarSolicitud(s, userId, esPricing);
   const puedeElegir = puedeUsarRespuesta(s, userId, esPricing);
@@ -94,7 +95,7 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
         tarifas={tarifas} isLoading={tarifasRespuesta.isLoading}
         isError={tarifasRespuesta.isError} isFetching={tarifasRespuesta.isFetching} onSaved={() => { void tarifasRespuesta.refetch(); }}
         onCotizar={puedeCotizar && s.estado === "respondida" ? cotizarRespuesta : undefined}
-        editable={(s.estado === "enviada" || s.estado === "respondida") && puedeAgregarTarifaRespuesta(effectiveRole)} />
+        editable={(enTrabajo(s.estado) || s.estado === "respondida") && puedeAgregarTarifaRespuesta(effectiveRole)} />
     </div>
   );
 }

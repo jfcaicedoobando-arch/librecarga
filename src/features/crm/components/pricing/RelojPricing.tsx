@@ -6,7 +6,7 @@ import { Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { calcularReloj } from "@/features/crm/services/pricing/relojPricing";
 
-interface Props { enviadaAt: string | null; venceAt: string | null; respondidaAt: string | null; cancelada?: boolean }
+interface Props { enviadaAt: string | null; venceAt: string | null; respondidaAt: string | null; cancelada?: boolean; pausada?: boolean }
 
 const VARIANTE = {
   ok: "success",
@@ -15,15 +15,16 @@ const VARIANTE = {
   detenida: "neutral",
 } as const;
 
-export function RelojPricing({ enviadaAt, venceAt, respondidaAt, cancelada = false }: Props) {
+export function RelojPricing({ enviadaAt, venceAt, respondidaAt, cancelada = false, pausada = false }: Props) {
   const [ahora, setAhora] = useState(() => new Date());
   useEffect(() => {
-    if (respondidaAt || cancelada) return undefined;
+    if (respondidaAt || cancelada || pausada) return undefined;
     const t = setInterval(() => setAhora(new Date()), 60_000);
     return () => clearInterval(t);
-  }, [respondidaAt, cancelada]);
+  }, [respondidaAt, cancelada, pausada]);
 
   if (cancelada) return <Badge variant="neutral">Plazo detenido</Badge>;
+  if (pausada) return <Badge variant="warning">Plazo en pausa</Badge>;
   const reloj = calcularReloj({ enviadaAt, venceAt, respondidaAt, ahora });
   if (!reloj) return <span className="text-body-sm text-muted-foreground">—</span>;
   return (

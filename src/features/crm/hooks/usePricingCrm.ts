@@ -1,4 +1,5 @@
 export { useAccionSolicitud } from "./useAccionSolicitud";
+import { enTrabajo } from "@/features/crm/services/pricing/estadosPricing";
 import { crmPricingKeys } from "@/features/crm/queryKeys.performance";
 import { useInvalidarSolicitud } from "./useInvalidarSolicitud";
 /**
@@ -37,14 +38,14 @@ export function useSolicitudesOportunidad(oportunidadId: string) {
     // Mientras haya solicitudes enviadas sin respuesta, reconsulta solo (30 s)
     // para que el solicitante vea la respuesta de Pricing sin recargar.
     refetchInterval: (q) =>
-      (q.state.data ?? []).some((s) => s.estado === "enviada") ? 30_000 : false,
+      (q.state.data ?? []).some((s) => enTrabajo(s.estado)) ? 30_000 : false,
   });
 }
 
-export function useBandejaPricing(estado: string, pagina: number) {
+export function useBandejaPricing(estado: string, pagina: number, modo = "todos") {
   return useQuery({
-    queryKey: crmPricingKeys.bandeja(estado, pagina),
-    queryFn: () => listarBandejaPricing(estado, pagina),
+    queryKey: [...crmPricingKeys.bandeja(estado, pagina), modo],
+    queryFn: () => listarBandejaPricing(estado, pagina, modo),
     placeholderData: keepPreviousData,
   });
 }

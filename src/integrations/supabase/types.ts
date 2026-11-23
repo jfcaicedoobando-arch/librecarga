@@ -4828,6 +4828,38 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_pricing_modos_ejecutivo: {
+        Row: {
+          created_at: string
+          id: string
+          modo: string
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          modo: string
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          modo?: string
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_pricing_modos_ejecutivo_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_pricing_opciones: {
         Row: {
           agente: string | null
@@ -5191,6 +5223,9 @@ export type Database = {
       crm_solicitudes_pricing: {
         Row: {
           arrastre_puerto: string | null
+          asignada_a: string | null
+          aviso_80_at: string | null
+          aviso_vencida_at: string | null
           baterias_litio: boolean | null
           cantidad: number | null
           cliente: string | null
@@ -5218,14 +5253,17 @@ export type Database = {
           imo_un: string | null
           in_bond: boolean | null
           incoterm: string | null
+          info_motivo: string | null
           known_shipper: boolean | null
           modalidad_negocio: string | null
+          motivo_sin_opcion: string | null
           notas: string | null
           oportunidad_id: string
           organization_id: string
           origen: string | null
           origen_cp: string | null
           paradas: string[] | null
+          pausada_at: string | null
           peso: string | null
           plazo_motivo: string | null
           pod: string | null
@@ -5251,6 +5289,9 @@ export type Database = {
         }
         Insert: {
           arrastre_puerto?: string | null
+          asignada_a?: string | null
+          aviso_80_at?: string | null
+          aviso_vencida_at?: string | null
           baterias_litio?: boolean | null
           cantidad?: number | null
           cliente?: string | null
@@ -5278,14 +5319,17 @@ export type Database = {
           imo_un?: string | null
           in_bond?: boolean | null
           incoterm?: string | null
+          info_motivo?: string | null
           known_shipper?: boolean | null
           modalidad_negocio?: string | null
+          motivo_sin_opcion?: string | null
           notas?: string | null
           oportunidad_id: string
           organization_id: string
           origen?: string | null
           origen_cp?: string | null
           paradas?: string[] | null
+          pausada_at?: string | null
           peso?: string | null
           plazo_motivo?: string | null
           pod?: string | null
@@ -5311,6 +5355,9 @@ export type Database = {
         }
         Update: {
           arrastre_puerto?: string | null
+          asignada_a?: string | null
+          aviso_80_at?: string | null
+          aviso_vencida_at?: string | null
           baterias_litio?: boolean | null
           cantidad?: number | null
           cliente?: string | null
@@ -5338,14 +5385,17 @@ export type Database = {
           imo_un?: string | null
           in_bond?: boolean | null
           incoterm?: string | null
+          info_motivo?: string | null
           known_shipper?: boolean | null
           modalidad_negocio?: string | null
+          motivo_sin_opcion?: string | null
           notas?: string | null
           oportunidad_id?: string
           organization_id?: string
           origen?: string | null
           origen_cp?: string | null
           paradas?: string[] | null
+          pausada_at?: string | null
           peso?: string | null
           plazo_motivo?: string | null
           pod?: string | null
@@ -11190,12 +11240,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      _crm_pricing_destinatarios_modo: {
+        Args: { p_modo: string; p_org: string }
+        Returns: string[]
+      }
       _crm_pricing_es_gerente_ops: { Args: { p_org: string }; Returns: boolean }
       _crm_pricing_hay_tarifa_vigente: {
         Args: { p_id: string }
         Returns: boolean
       }
       _crm_pricing_horas: { Args: { p_complejidad: string }; Returns: number }
+      _crm_pricing_horas_habiles_entre: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: number
+      }
       _crm_pricing_horas_modo: {
         Args: { p_complejidad: string; p_servicio: string }
         Returns: number
@@ -13080,9 +13138,18 @@ export type Database = {
         Args: { p_horas: number; p_id: string; p_motivo: string }
         Returns: Json
       }
+      crm_pricing_avisos_sla: { Args: never; Returns: number }
       crm_pricing_cambiar_complejidad: {
         Args: { p_complejidad: string; p_id: string; p_motivo: string }
         Returns: Json
+      }
+      crm_pricing_cambiar_estado: {
+        Args: { p_accion: string; p_id: string; p_motivo?: string }
+        Returns: Json
+      }
+      crm_pricing_set_modos_ejecutivo: {
+        Args: { p_modos: string[]; p_user_id: string }
+        Returns: undefined
       }
       crm_propagar_conversion_cliente: {
         Args: {

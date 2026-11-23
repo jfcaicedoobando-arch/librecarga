@@ -7,6 +7,8 @@ import type {
   OpcionPricingForm, OpcionPricingRow, SolicitudPricingInsert, SolicitudPricingRow,
 } from "./tiposPricing";
 
+import { ESTADOS_EN_TRABAJO } from "./estadosPricing";
+
 export const PAGINA_PRICING = 25;
 const COLS_SOL = "*";
 
@@ -20,16 +22,19 @@ export async function listarSolicitudesOportunidad(oportunidadId: string): Promi
 }
 
 export async function listarBandejaPricing(
-  estado: string, pagina: number,
+  estado: string, pagina: number, modo = "todos",
 ): Promise<{ filas: SolicitudPricingRow[]; total: number }> {
   const desde = pagina * PAGINA_PRICING;
   let q = supabase.from("crm_solicitudes_pricing").select(COLS_SOL, { count: "exact" }).is("deleted_at", null);
-  q = estado === "todos" ? q.neq("estado", "borrador") : q.eq("estado", estado);
+  if (estado === "todos") q = q.neq("estado", "borrador");
+  else if (estado === "abiertas") q = q.in("estado", [...ESTADOS_EN_TRABAJO]);
+  else q = q.eq("estado", estado);
+  if (modo !== "todos") q = q.eq("servicio", modo);
   const { data, error, count } = await q
     .order("vence_at", { ascending: true, nullsFirst: false })
     .range(desde, desde + PAGINA_PRICING - 1);
   // PostgREST puede rechazar un offset fuera del total; la portada informa el conteo vigente para corregir la URL.
-  if (error?.code === "PGRST103" && pagina > 0) return listarBandejaPricing(estado, 0);
+  if (error?.code === "PGRST103" && pagina > 0) return listarBandejaPricing(estado, 0, modo);
   if (error) throw error;
   return { filas: data ?? [], total: count ?? 0 };
 }

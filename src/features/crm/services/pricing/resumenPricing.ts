@@ -50,7 +50,7 @@ export async function obtenerResumenPricing(organizationId: string | null): Prom
     }
   }
 
-  const orden = ["enviada", "respondida", "cancelada"];
+  const orden = ["enviada", "asignada", "en_proceso", "info_requerida", "respondida", "sin_opcion", "cancelada"];
   const porEstado = orden
     .filter((e) => conteo.has(e))
     .map((e) => ({ estado: e, etiqueta: ETIQUETA_ESTADO_PRICING[e] ?? e, cantidad: conteo.get(e) ?? 0 }));

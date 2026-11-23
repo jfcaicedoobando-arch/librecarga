@@ -12,6 +12,7 @@ import { useAccionSolicitud, useGuardarSolicitud } from "@/features/crm/hooks/us
 import { datosCopiaSolicitud } from "@/features/crm/services/pricing/copiaSolicitud";
 import { ETIQUETA_ESTADO_PRICING, type SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
 import { RelojPricing } from "./RelojPricing";
+import { AccionesFlujoPricing } from "./AccionesFlujoPricing";
 
 interface Props {
   solicitud: SolicitudPricingRow;
@@ -61,7 +62,7 @@ export function AccionesSolicitudPricing({ solicitud: s, puedeCancelar, puedeRes
         <span className="text-h4 font-semibold">{s.folio}</span>
         <Badge variant="outline">{ETIQUETA_ESTADO_PRICING[s.estado] ?? s.estado}</Badge>
         <RelojPricing enviadaAt={s.enviada_at} venceAt={s.vence_at} respondidaAt={s.respondida_at}
-          cancelada={s.estado === "cancelada"} />
+          cancelada={s.estado === "cancelada" || s.estado === "sin_opcion"} pausada={s.estado === "info_requerida"} />
         <div className="ml-auto flex gap-2">
           {puedeCopiar && (
             <Button variant="outline" size="sm" disabled={copiar.isPending}
@@ -84,6 +85,7 @@ export function AccionesSolicitudPricing({ solicitud: s, puedeCancelar, puedeRes
           )}
         </div>
       </CardContent>
+      <div className="px-6 pb-4 empty:hidden"><AccionesFlujoPricing solicitud={s} /></div>
       {puedeResponder && sinOpciones && <EstadoConsultaRespuesta consulta={consultaRespuesta} />}
       <ConfirmActionDialog
         open={puedeCancelar && idPorCancelar === s.id}

@@ -13,6 +13,7 @@ import { formatDate } from "@/lib/formatters/dates";
 import { NotasTarifa } from "./NotasTarifa";
 import type { CargoTarifario, TarifaTarifario } from "@/features/costeo";
 import { useOpcionesTarifario } from "@/features/crm/hooks/useOpcionesTarifario";
+import { enTrabajo } from "@/features/crm/services/pricing/estadosPricing";
 import type { SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
 
 function mensajeSinTarifas(estado: string, puedeElegir: boolean) {
@@ -20,7 +21,7 @@ function mensajeSinTarifas(estado: string, puedeElegir: boolean) {
     case "borrador": return puedeElegir
       ? "No encontramos una tarifa vigente. Envía la solicitud a Pricing cuando esté completa."
       : "No encontramos una tarifa vigente. La solicitud sigue en borrador.";
-    case "enviada": return "No encontramos una tarifa vigente. La solicitud está en espera de respuesta de Pricing.";
+    case "enviada": case "asignada": case "en_proceso": case "info_requerida": return "No encontramos una tarifa vigente. La solicitud está en espera de respuesta de Pricing.";
     case "respondida": return "No encontramos una tarifa vigente. Revisa las tarifas de la respuesta.";
     default: return "No encontramos una tarifa vigente.";
   }
@@ -46,7 +47,7 @@ export function OpcionesTarifario({ solicitud: s, puedeElegir, puedeCotizar, tar
   };
   // Respondida: las opciones del tarifario siguen visibles junto a las tarifas nuevas de Pricing.
   const respondida = s.estado === "respondida";
-  if (!elegida && !respondida && s.estado !== "borrador" && s.estado !== "enviada") return null;
+  if (!elegida && !respondida && s.estado !== "borrador" && !enTrabajo(s.estado)) return null;
 
   return (
     <div className="space-y-2">

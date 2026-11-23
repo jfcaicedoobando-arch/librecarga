@@ -15,7 +15,7 @@ export async function ampliarPlazo(id: string, horas: number, motivo: string): P
 
 /** Ventana de 8 h desde el envío para ampliar el plazo de una solicitud especial. */
 export function puedeAmpliarPlazo(s: { estado: string; complejidad: string; enviada_at: string | null }, ahora: Date): boolean {
-  if (s.estado !== "enviada" || s.complejidad !== "alta" || !s.enviada_at) return false;
+  if (!["enviada", "asignada", "en_proceso"].includes(s.estado) || s.complejidad !== "alta" || !s.enviada_at) return false;
   return ahora.getTime() <= new Date(s.enviada_at).getTime() + 8 * 3_600_000;
 }
 

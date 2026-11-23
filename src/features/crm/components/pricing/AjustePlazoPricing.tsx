@@ -2,6 +2,7 @@
  * Controles del gerente de operaciones: cambiar complejidad o ampliar plazo,
  * siempre con justificación (avisa al solicitante y administradores).
  */
+import { enTrabajo } from "@/features/crm/services/pricing/estadosPricing";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,7 +19,7 @@ export function AjustePlazoPricing({ solicitud: s }: { solicitud: SolicitudPrici
   const [complejidad, setComplejidad] = useState(s.complejidad);
   const [horas, setHoras] = useState("");
   const [motivo, setMotivo] = useState("");
-  if (s.estado !== "enviada") return null;
+  if (!enTrabajo(s.estado)) return null;
   const motivoOk = motivo.trim().length >= 10;
   const ampliable = puedeAmpliarPlazo(s, new Date());
   const nHoras = Number(horas);
