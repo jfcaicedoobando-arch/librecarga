@@ -1,0 +1,23 @@
+/** Ruta aérea: aeropuertos de origen y destino (IATA); el país se toma del aeropuerto. */
+import { CampoAeropuerto } from "./CampoAeropuerto";
+import type { DatosSolicitud } from "./SolicitudPricingCampos";
+
+interface Props {
+  datos: DatosSolicitud;
+  set: <K extends keyof DatosSolicitud>(campo: K, valor: DatosSolicitud[K]) => void;
+  disabled?: boolean;
+}
+
+export function RutaAerea({ datos, set, disabled }: Props) {
+  return (
+    <>
+      <CampoAeropuerto id="pr-aol" label="Aeropuerto de origen" value={datos.pol} disabled={disabled}
+        onChange={(et, a) => { set("pol", et); set("origen", a?.pais ?? null); }} />
+      <CampoAeropuerto id="pr-aod" label="Aeropuerto de destino" value={datos.pod} disabled={disabled}
+        onChange={(et, a) => { set("pod", et); set("destino", a?.pais ?? null); }} />
+      {datos.pol && datos.pol === datos.pod && (
+        <p role="alert" className="col-span-full text-body-sm text-destructive">Origen y destino no pueden ser el mismo aeropuerto.</p>
+      )}
+    </>
+  );
+}
