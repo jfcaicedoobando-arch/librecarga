@@ -165,23 +165,15 @@ export function DashboardEjecutivoFacturacion() {
       {tendencia.some((t) => t.facturado_mxn !== 0 || t.cobrado_mxn !== 0) && (
         <Card>
           <CardContent className="p-3">
-            <p className="text-overline mb-2">
-              Tendencia · Últimos 6 meses (MXN)
-            </p>
-            <div className="flex items-start gap-6">
-              <MiniSerie
-                titulo="Facturado"
-                data={facturadoArr}
-                meses={meses}
-                colorClass="bg-primary/70"
-              />
-              <MiniSerie
-                titulo="Cobrado"
-                data={cobradoArr}
-                meses={meses}
-                colorClass="bg-success/70"
-              />
-            </div>
+            <details>
+              <summary className="cursor-pointer rounded-sm text-body-sm font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
+                Tendencia · Últimos 6 meses (MXN)
+              </summary>
+              <div className="mt-3 flex flex-col items-start gap-6 sm:flex-row">
+                <MiniSerie titulo="Facturado" data={facturadoArr} meses={meses} colorClass="bg-primary/70" />
+                <MiniSerie titulo="Cobrado" data={cobradoArr} meses={meses} colorClass="bg-success/70" />
+              </div>
+            </details>
           </CardContent>
         </Card>
       )}

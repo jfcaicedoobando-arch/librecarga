@@ -8,10 +8,12 @@
  * administrativo" (Por liquidar). Las definiciones de tarjeta viven en
  * `constants/alertasTiles.ts`.
  */
-import { AlertTriangle } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { EmbarqueAlertaFiltro } from "@/features/embarques/hooks/useEmbarquesFilters";
 import type { EmbarquesAlertasResumen } from "@/features/embarques/services/alertas";
 import { SectionHeading } from "@/components/shared/SectionHeading";
@@ -24,31 +26,38 @@ interface Props {
 }
 
 export function EmbarquesAlertasPanel({ resumen, activeAlerta, onSelect }: Props) {
-  if (resumen.total === 0) return null;
+  const [expanded, setExpanded] = useState(false);
+  const alertaActiva = ALERTAS_TILES.find(({ key }) => key === activeAlerta);
+  if (resumen.total === 0 && !alertaActiva) return null;
 
   return (
-    <Card className="p-4 border-warning/40 bg-warning/10 dark:bg-warning/5">
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2">
+    <Collapsible asChild open={expanded} onOpenChange={setExpanded}>
+    <Card className="px-4 py-2 border-warning/40 bg-warning/10 dark:bg-warning/5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-warning" aria-hidden />
           <SectionHeading>Alertas activas</SectionHeading>
           <Badge variant="warning" size="xs">
             {resumen.total}
           </Badge>
+          {alertaActiva && <span className="text-body-sm">Filtro: {alertaActiva.titulo}</span>}
         </div>
-        {activeAlerta !== "todos" && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-body-sm"
-            onClick={() => onSelect("todos")}
-          >
-            Ver todas
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-1">
+          {alertaActiva && (
+            <Button variant="ghost" size="sm" onClick={() => onSelect("todos")}>
+              Ver todos los embarques
+            </Button>
+          )}
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="gap-1">
+              {expanded ? "Ocultar alertas" : "Ver alertas"}
+              <ChevronDown aria-hidden className={expanded ? "size-4 rotate-180" : "size-4"} />
+            </Button>
+          </CollapsibleTrigger>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+      <CollapsibleContent className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {ALERTAS_TILES.map(({ key, titulo, descripcion, Icon, color }) => {
 
           const count = resumen[key];
@@ -80,7 +89,8 @@ export function EmbarquesAlertasPanel({ resumen, activeAlerta, onSelect }: Props
             </button>
           );
         })}
-      </div>
+      </CollapsibleContent>
     </Card>
+    </Collapsible>
   );
 }

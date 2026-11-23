@@ -1,9 +1,5 @@
-import { useMemo, useState } from "react";
-import { Download, ChevronDown, Receipt } from "lucide-react";
-import { DialogDescargarZipMes } from "@/features/facturacion/components/DialogDescargarZipMes";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useId, useMemo } from "react";
+import { Receipt } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -22,6 +18,7 @@ import EmptyState from "@/components/empty/EmptyState";
 import { usePermissions } from "@/hooks/shared";
 import type { Factura } from "@/features/facturacion/routes/facturacionColumns";
 import { buildFacturasEmitidasChips } from "./facturasEmitidasChips";
+import { FacturasExportMenu } from "./FacturasExportMenu";
 import type { Database } from "@/types/db";
 import { rangoLabel } from "@/lib/ui/rangoFechasCopy";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
@@ -35,7 +32,7 @@ const ESTADOS_FACTURA: EstadoFactura[] = [
 export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: FacturasEmitidasProps) {
   const { canEmitirFactura } = usePermissions();
   const selection = useRowSelection();
-  const [zipMesOpen, setZipMesOpen] = useState(false);
+  const dateId = useId();
   const columnsConSeleccion = useMemo(
     () => [buildSelectionColumn<Factura>(), ...t.columns],
     [t.columns],
@@ -72,8 +69,8 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Factu
   );
   const rangoFecha = (etiqueta: "desde" | "hasta", value: string, onChange: (v: string) => void) => (
     <div className="space-y-1.5">
-      <label className="text-body-sm font-medium text-muted-foreground">{rangoLabel("Emisión", etiqueta)}</label>
-      <DatePickerMx value={value} onChange={onChange} className="w-full" />
+      <label htmlFor={`${dateId}-${etiqueta}`} className="text-body-sm font-medium text-muted-foreground">{rangoLabel("Emisión", etiqueta)}</label>
+      <DatePickerMx id={`${dateId}-${etiqueta}`} value={value} onChange={onChange} className="w-full" />
     </div>
   );
   const secondarySlot = (
@@ -103,24 +100,7 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Factu
                 onClearAll={f.onClear}
               />
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="shrink-0 gap-2">
-                  <Download className="h-4 w-4" />
-                  <span>Exportar</span>
-                  <ChevronDown className="h-4 w-4 opacity-60" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem disabled={f.rangoInvertido} onClick={a.exportarFacturasCsv}>CSV de página actual</DropdownMenuItem>
-                <DropdownMenuItem disabled={f.rangoInvertido} onClick={a.exportarLayoutContable} title="Layout contable con RFC, subtotal, IVA y total">
-                  Layout de página actual
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setZipMesOpen(true)} title="Paquete PDF+XML de todos los CFDI del mes, generado por el PAC">
-                  ZIP del mes (PAC)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <FacturasExportMenu acciones={a} rangoInvertido={f.rangoInvertido} />
           </div>
           {f.rangoInvertido ? (
             <div className="flex flex-wrap items-center gap-2">
@@ -177,7 +157,13 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Factu
                   pageSizeOptions: [50, 100, 200, 500],
                   pageSizeLabels: { 500: "500" }, total: t.totalFacturas,
                 }}
-                mobileCard={(f) => <FacturaEmitidaMobileCard factura={f} />}
+                mobileCard={(factura) => (
+                  <FacturaEmitidaMobileCard
+                    factura={factura}
+                    seleccionada={selection.isSelected(factura.id)}
+                    onSeleccionar={() => selection.toggle(factura.id)}
+                  />
+                )}
               />
             </CardContent>
           </Card>
@@ -186,7 +172,6 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Factu
         </>
       )}
 
-      <DialogDescargarZipMes open={zipMesOpen} onOpenChange={setZipMesOpen} />
     </>
   );
 }

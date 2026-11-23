@@ -1,14 +1,7 @@
-import { useMemo, useCallback } from "react";
-import { useListPageState, useDebounce } from "@/hooks/shared";
-import { exportToCsv } from "@/generators/exportCsv";
-import { exportarLayoutContable } from "@/generators/layoutContable";
+import { useMemo } from "react";
+import { useListPageState, useDebounce, usePermissions } from "@/hooks/shared";
 import { useFacturasListado, useClientesFacturas } from "@/features/facturacion/hooks/useFacturas";
-import { useRegistrarActividad } from "@/hooks/shared";
-import { usePermissions } from "@/hooks/shared";
-
-import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
-
-import { todayLocalISO } from "@/lib/date/today";
+import { useExportarFacturasEmitidas } from "./useExportarFacturasEmitidas";
 /**
  * Controller para la página de Facturación.
  * Encapsula filtros, búsqueda, paginación, mutaciones y export CSV.
@@ -16,12 +9,12 @@ import { todayLocalISO } from "@/lib/date/today";
  * v13.317.3 (P7) — paginación server-side vía `useFacturasListado`.
  * Todos los filtros y el conteo se aplican en SQL antes de paginar.
  */
-export function useFacturacionPageController(opts?: {
+export function useFacturacionPageController(opts: {
   fechaDesde?: string | null;
   fechaHasta?: string | null;
   activeTab?: string;
-}) {
-  const activeTab = opts?.activeTab;
+} = {}) {
+  const { activeTab, fechaDesde, fechaHasta } = opts;
   const {
     search, filters, page, pageSize,
     setSearch, setFilter, setPage, setPageSize,
@@ -39,75 +32,36 @@ export function useFacturacionPageController(opts?: {
   // El id real de la bandeja de emitidas es "emitidas": con "facturas" el
   // guard nunca coincidía y la query pesada quedaba habilitada en todos los tabs.
   const facturasEnabled = activeTab === undefined || activeTab === "emitidas";
-  const rangoInvertido = !!opts?.fechaDesde && !!opts.fechaHasta && opts.fechaDesde > opts.fechaHasta;
+  const rangoInvertido = !!fechaDesde && !!fechaHasta && fechaDesde > fechaHasta;
+  const listadoHabilitado = facturasEnabled && !rangoInvertido;
 
-  const { data: listado, isLoading: loadingFacturas, isError: errorFacturas, refetch: refetchFacturas } = useFacturasListado({
-    page,
-    pageSize,
+  const filtrosConsulta = {
     search: debouncedSearch,
     estado: filterEstado,
     clienteNombre: filterCliente === "todos" ? undefined : filterCliente,
-    fechaDesde: opts?.fechaDesde || undefined,
-    fechaHasta: opts?.fechaHasta || undefined,
-    enabled: facturasEnabled && !rangoInvertido,
+    fechaDesde: fechaDesde || undefined,
+    fechaHasta: fechaHasta || undefined,
+  };
+  const {
+    data: listado, isLoading, isError: errorFacturas, isPlaceholderData, refetch: refetchFacturas,
+  } = useFacturasListado({
+    ...filtrosConsulta,
+    page,
+    pageSize,
+    enabled: listadoHabilitado,
   });
   const facturas = useMemo(() => listado?.data ?? [], [listado]);
   const totalCount = listado?.count ?? 0;
   const { canEdit } = usePermissions();
-  const registrarActividad = useRegistrarActividad();
+  const loadingFacturas = isLoading || isPlaceholderData || search !== debouncedSearch;
+  const exportacion = useExportarFacturasEmitidas(filtrosConsulta,
+    listadoHabilitado && !loadingFacturas && !errorFacturas && totalCount > 0);
 
   const clientesQuery = useClientesFacturas(facturasEnabled);
   const clientesDisponibles = useMemo(() => (clientesQuery.data ?? []).map((nombre) => ({ id: nombre, nombre })), [clientesQuery.data]);
   const filtered = facturas;
   const paginatedFacturas = facturas;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-
-
-
-  const exportarFacturasCsv = useCallback(() => {
-    if (rangoInvertido) return;
-    exportToCsv(
-      `facturas_${todayLocalISO()}.csv`,
-      [
-        { key: "numero", label: "# Factura" },
-        { key: "expediente", label: "Expediente" },
-        { key: "cliente", label: "Cliente" },
-        { key: "total", label: "Monto" },
-        { key: "moneda", label: "Moneda" },
-        { key: "emision", label: "Emisión" },
-        { key: "vencimiento", label: "Vencimiento" },
-        { key: "estado", label: "Estado" },
-      ],
-      filtered.map(f => ({
-        numero: f.numero,
-        expediente: f.expediente,
-        cliente: f.cliente_nombre,
-        total: f.total,
-        moneda: f.moneda,
-        emision: f.fecha_emision,
-        vencimiento: f.fecha_vencimiento,
-        estado: f.estado,
-      })),
-    );
-  }, [filtered, rangoInvertido]);
-
-  const exportarLayoutContableHandler = useCallback(async () => {
-    if (rangoInvertido) return;
-    try {
-      await exportarLayoutContable(filtered);
-      registrarActividad.mutate({
-        accion: 'exportar',
-        modulo: 'facturas',
-        entidad_id: 'layout_contable',
-        entidad_nombre: `Layout contable (${filtered.length} facturas)`,
-      });
-      notifySuccess(undefined, { title: "Layout contable generado" });
-    } catch (error) {
-      notifyError(undefined, { title: "Error al generar layout contable", error,
-        method: "FACTURACION_EXPORTAR_LAYOUT_CONTABLE", context: { cantidadFacturas: filtered.length } });
-    }
-  }, [filtered, rangoInvertido, registrarActividad]);
-
   return {
     // estado
     search, setSearch,
@@ -132,8 +86,7 @@ export function useFacturacionPageController(opts?: {
     refetchFacturas: () => void refetchFacturas(),
     // permisos / mutaciones
     canEdit,
-    exportarFacturasCsv,
-    exportarLayoutContable: exportarLayoutContableHandler,
+    ...exportacion,
   };
 }
 

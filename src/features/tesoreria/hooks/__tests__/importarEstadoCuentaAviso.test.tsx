@@ -88,6 +88,19 @@ describe("Importación: revisar antes de persistir", () => {
     expect(mocks.mutateAsync).not.toHaveBeenCalled();
     expect(result.current.revision).toBeNull();
   });
+  it("desmontar la revisión pendiente impide iniciar la importación al terminar la lectura", async () => {
+    const { result, unmount } = renderHook(() => useImportarEstadoCuenta("cta-1"));
+    await act(async () => { await result.current.handleFile(evento()); });
+    let resolver!: (resultado: RevisionImportacion) => void;
+    mocks.revisar.mockReturnValueOnce(new Promise<RevisionImportacion>((resolve) => { resolver = resolve; }));
+    let confirmar!: Promise<void>;
+    act(() => { confirmar = result.current.confirmarRevision(); });
+
+    unmount();
+    resolver(lectura());
+    await confirmar;
+    expect(mocks.mutateAsync).not.toHaveBeenCalled();
+  });
   it("una lectura incompleta bloquea toda la revisión", async () => {
     mocks.parse.mockResolvedValueOnce({ movimientos: [fila], ilegibles: [{ fila: 4, motivo: "fecha ilegible" }], sinImporte: 0 });
     const { result } = renderHook(() => useImportarEstadoCuenta("cta-1"));

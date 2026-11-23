@@ -26,7 +26,7 @@ vi.mock("@/features/cotizacion/hooks", () => ({
   useCotizacionWizardForm: montarEditor,
 }));
 vi.mock("@/features/cotizacion/components/CotizacionWizardLayout", () => ({
-  default: () => <div>Editor de cotización</div>,
+  default: () => <div>Editor de cotización<input aria-label="Captura pendiente" /></div>,
 }));
 
 const route = () => (
@@ -55,4 +55,31 @@ describe("Editar cotización · carga de costos", () => {
       expect(montarEditor).toHaveBeenLastCalledWith(expect.objectContaining({ initialCostos: rows }));
     },
   );
+
+  it("permite reintentar una actualización fallida conservando el editor y la captura", () => {
+    const rows = [{ id: "costo-existente" }];
+    const refetch = vi.fn();
+    cotizacion.mockReturnValue({ data: { id: "cot-qa", folio: "QA", estado: "Borrador" } });
+    costos.mockReturnValue({ data: rows, refetch });
+    const view = render(route());
+    const captura = screen.getByRole("textbox", { name: "Captura pendiente" });
+    fireEvent.change(captura, { target: { value: "Borrador en curso" } });
+
+    costos.mockReturnValue({ data: rows, isRefetchError: true, refetch });
+    view.rerender(route());
+    expect(screen.getByRole("alert")).toHaveTextContent("No pudimos actualizar los costos");
+    expect(captura).toBeVisible();
+    expect(captura).toHaveValue("Borrador en curso");
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(refetch).toHaveBeenCalledOnce();
+
+    costos.mockReturnValue({ data: rows, isRefetchError: true, isFetching: true, refetch });
+    view.rerender(route());
+    expect(screen.getByRole("button", { name: "Reintentando…" })).toBeDisabled();
+    costos.mockReturnValue({ data: [{ id: "costo-actualizado" }], refetch });
+    view.rerender(route());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(captura).toBeVisible();
+    expect(captura).toHaveValue("Borrador en curso");
+  });
 });

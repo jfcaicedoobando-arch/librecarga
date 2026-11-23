@@ -1,5 +1,11 @@
 # Changelog
 
+## [13.824.101] - 2026-11-22
+- **Facturación:** Emitidas exporta todos los resultados de los filtros, conserva el orden del layout contable y permite seleccionar facturas en móvil.
+- **Embarques:** las notas conservan su borrador al cambiar de pestaña. El listado recupera páginas fuera de rango y permite ordenar y consultar ETA y alertas en móvil.
+- **CRM y Cotizaciones:** el Kanban admite teclado, los vínculos abren el detalle y la cotización conserva los puertos seleccionados. El editor permite reintentar la consulta de costos sin perder la captura.
+- **Tesorería:** cambiar de cuenta desde la URL reinicia la selección y los diálogos. Una confirmación de importación que sigue en revisión se cancela al salir.
+
 ## [13.824.100] - 2026-11-22
 - **Captura y cobranza:** cada recordatorio y re-cotización abre con sus campos limpios. El margen comercial exige un valor explícito, las demoras validan la vigencia y las notas conservan el siguiente borrador mientras se envía el anterior.
 - **Operaciones y portales:** Embarques identifica pólizas futuras y llegadas registradas, ofrece el filtro «En Proceso» y permite reintentar el historial de cierre. El portal separa embarques sin expediente y explica cuándo vence una cotización.

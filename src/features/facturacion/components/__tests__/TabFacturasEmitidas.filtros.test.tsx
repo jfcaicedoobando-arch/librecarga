@@ -7,12 +7,12 @@ vi.mock("@/components/shared/dataTable/ResponsiveDataTable", () => ({ Responsive
 vi.mock("../FacturasMasivasToolbar", () => ({ FacturasMasivasToolbar: () => null }));
 vi.mock("../FacturasEmitidasFooter", () => ({ FacturasEmitidasFooter: () => null }));
 vi.mock("../DialogDescargarZipMes", () => ({ DialogDescargarZipMes: () => null }));
-vi.mock("@/components/shared/filters/UnifiedFiltersBar", () => ({ UnifiedFiltersBar: () => null }));
+vi.mock("@/components/shared/filters/UnifiedFiltersBar", () => ({ UnifiedFiltersBar: ({ secondary }: { secondary: React.ReactNode }) => secondary }));
 vi.mock("@/components/empty/EmptyState", () => ({ default: ({ title, primaryAction }: { title: string; primaryAction?: { label: string; onClick: () => void } }) => <div><h2>{title}</h2>{primaryAction && <button onClick={primaryAction.onClick}>{primaryAction.label}</button>}</div> }));
 const makeProps = () => ({
   filtros: { search: "", setSearch: vi.fn(), filterEstado: "todos", filterCliente: "todos", setFilter: vi.fn(), fechaDesde: "", setFechaDesde: vi.fn(), fechaHasta: "", setFechaHasta: vi.fn(), rangoInvertido: false, limpiarRango: vi.fn(), clientes: [], onClear: vi.fn() },
   tabla: { columns: [], data: [], facturasFiltradas: [], totalFacturas: 0, isLoading: false, page: 0, totalPages: 1, setPage: vi.fn(), pageSize: 100, setPageSize: vi.fn() },
-  acciones: { exportarFacturasCsv: vi.fn(), exportarLayoutContable: vi.fn(), onCreateNew: vi.fn() },
+  acciones: { exportarFacturasCsv: vi.fn(), exportarLayoutContable: vi.fn(), onCreateNew: vi.fn(), exportando: false, exportacionDeshabilitada: false },
 });
 describe("Emitidas: vacío filtrado", () => {
   it.each(["filterEstado", "filterCliente", "fechaDesde", "fechaHasta", "search"] as const)("%s ofrece limpiar, no crear otra factura", (field) => {
@@ -38,5 +38,21 @@ describe("Emitidas: vacío filtrado", () => {
     fireEvent.click(screen.getByRole("button", { name: "Quitar rango de emisión" }));
     expect(props.filtros.limpiarRango).toHaveBeenCalledOnce();
     expect(props.filtros.onClear).not.toHaveBeenCalled();
+  });
+
+  it("asocia cada fecha a su etiqueta visible", () => {
+    render(<TabFacturasEmitidas {...makeProps()} />);
+    expect(screen.getByRole("textbox", { name: "Emisión desde" })).toBeVisible();
+    expect(screen.getByRole("textbox", { name: "Emisión hasta" })).toBeVisible();
+  });
+
+  it("mantiene ZIP del mes independiente del rango invertido", async () => {
+    const props = makeProps();
+    props.filtros.rangoInvertido = true;
+    render(<TabFacturasEmitidas {...props} />);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Exportar" }), { key: "Enter" });
+    expect(await screen.findByRole("menuitem", { name: "CSV de resultados filtrados" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("menuitem", { name: "Layout de resultados filtrados" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("menuitem", { name: "ZIP del mes (PAC)" })).not.toHaveAttribute("aria-disabled", "true");
   });
 });

@@ -36,6 +36,7 @@ interface Props {
   onAbrirEliminar: () => void;
   onAbrirDuplicar: () => void;
   onNavigateTab: (tab: "documentos" | "tracking" | "cierre") => void;
+  confirmarSalida?: (accion: () => void) => void;
 }
 
 
@@ -43,7 +44,7 @@ export function EmbarqueDetalleHeader({
   embarque, embarqueId, estadoVisual, siguienteEstado, canEdit,
   trackingPending, tieneLinkActivo, onCompartirTracking, onRevocarTracking,
   onAbrirEliminar, onAbrirDuplicar,
-  onNavigateTab,
+  onNavigateTab, confirmarSalida,
 }: Props) {
 
   const volver = useVolver("/embarques");
@@ -136,6 +137,7 @@ export function EmbarqueDetalleHeader({
               onRevocarTracking,
               onAbrirEliminar,
               onAbrirDuplicar,
+              confirmarSalida,
               onReabrir: handleReabrir,
               onIrACierre,
               onIrADocumentos,

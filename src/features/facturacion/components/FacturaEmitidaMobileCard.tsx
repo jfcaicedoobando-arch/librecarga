@@ -6,11 +6,16 @@
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { MoneyCell } from "@/components/shared/MoneyCell";
 import { Hint } from "@/components/shared/Hint";
+import { Checkbox } from "@/components/ui/checkbox";
 import { formatCurrency, formatDate, toTitleCase } from "@/lib/formatters";
 import { deriveFacturaBadgeEstado } from "@/features/facturacion/domain/facturaBadgeEstado";
 import type { Factura } from "@/features/facturacion/routes/facturacionColumns";
 
-export function FacturaEmitidaMobileCard({ factura }: { factura: Factura }) {
+export function FacturaEmitidaMobileCard({ factura, seleccionada, onSeleccionar }: {
+  factura: Factura;
+  seleccionada: boolean;
+  onSeleccionar: () => void;
+}) {
   const estado = deriveFacturaBadgeEstado(
     factura.estado,
     (factura as { acuse_cancelacion_status?: string | null }).acuse_cancelacion_status ?? null,
@@ -20,6 +25,8 @@ export function FacturaEmitidaMobileCard({ factura }: { factura: Factura }) {
 
   return (
     <div className="flex items-start justify-between gap-2">
+      <Checkbox data-no-row-nav checked={seleccionada} onCheckedChange={onSeleccionar}
+        className="mt-1 shrink-0" aria-label={`Seleccionar factura ${factura.numero}`} />
       <div className="min-w-0 flex-1 space-y-1">
         <div className="font-semibold text-body truncate">
           {esBorradorSinFolio ? (

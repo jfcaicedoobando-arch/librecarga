@@ -1,5 +1,5 @@
 /** La selección prepara una revisión. Sólo la confirmación persiste el archivo. */
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
 import { notifyError, notifyInfo, notifySuccess, notifyWarning } from "@/lib/ui/appFeedback";
 import { reportCaughtError } from "@/lib/observability/reportCaughtError";
 import { getErrorMessage } from "@/lib/errors";
@@ -7,6 +7,7 @@ import { parseEstadoCuentaBBVA, type MovimientoParseado } from "@/features/tesor
 import { firmaRevisionImportacion } from "@/features/tesoreria/domain/import/revisionImportacion";
 import { revisarImportacion, type RevisionImportacion } from "@/features/tesoreria/services/revisionImportacion";
 import { useImportarMovimientos } from "@/features/tesoreria/hooks";
+import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
 
 export interface ImportacionPendiente extends RevisionImportacion {
   archivo: string;
@@ -43,16 +44,20 @@ export function useImportarEstadoCuenta(cuentaId: string) {
   const [procesando, setProcesando] = useState(false);
   const [revision, setRevision] = useState<ImportacionPendiente | null>(null);
   const [confirmando, setConfirmando] = useState(false);
+  const invalidarSolicitud = useCallback(() => { solicitudRef.current++; }, []);
 
-  useEffect(() => {
-    solicitudRef.current++;
+  useLayoutEffect(() => {
+    invalidarSolicitud();
+    confirmandoRef.current = false;
     setRevision(null);
     setProcesando(false);
-  }, [cuentaId]);
+    setConfirmando(false);
+    return invalidarSolicitud;
+  }, [cuentaId, invalidarSolicitud]);
 
   const cancelarRevision = () => {
     if (confirmandoRef.current) return;
-    solicitudRef.current++;
+    invalidarSolicitud();
     setRevision(null);
     setProcesando(false);
   };
@@ -64,11 +69,13 @@ export function useImportarEstadoCuenta(cuentaId: string) {
       return;
     }
     const solicitud = ++solicitudRef.current;
+    e.target.value = "";
     setProcesando(true);
     setRevision(null);
     try {
       notifyInfo(undefined, { title: "Leyendo el archivo para revisión." });
       const resultado = await leerArchivoImportable(file);
+      if (solicitud !== solicitudRef.current) return;
       const lectura = await revisarImportacion(cuentaId, resultado.movimientos);
       if (solicitud !== solicitudRef.current) return;
       setRevision({ ...lectura, archivo: file.name, movimientos: resultado.movimientos, sinImporte: resultado.sinImporte });
@@ -76,18 +83,18 @@ export function useImportarEstadoCuenta(cuentaId: string) {
       if (solicitud === solicitudRef.current) informarErrorImportacion(error);
     } finally {
       if (solicitud === solicitudRef.current) setProcesando(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
   const confirmarRevision = async () => {
     if (!revision || revision.cuenta.id !== cuentaId || confirmandoRef.current || importar.isPending) return;
     const solicitud = solicitudRef.current;
+    const scope = captureAuthOperationScope();
     confirmandoRef.current = true;
     setConfirmando(true);
     try {
       const actual = await revisarImportacion(cuentaId, revision.movimientos);
-      if (solicitud !== solicitudRef.current) return;
+      if (solicitud !== solicitudRef.current || !scope.isCurrent()) return;
       if (actual.cuenta.moneda !== revision.cuenta.moneda
         || firmaRevisionImportacion(actual.resumen) !== firmaRevisionImportacion(revision.resumen)) {
         setRevision({ ...revision, ...actual });
@@ -99,7 +106,12 @@ export function useImportarEstadoCuenta(cuentaId: string) {
       notifySuccess(undefined, { title: `Importados ${res.nuevos} nuevos / ${res.duplicados} duplicados ignorados / ${res.vinculados ?? 0} vinculados${omitidas}` });
       if (solicitud === solicitudRef.current) setRevision(null);
     } catch (error) { if (solicitud === solicitudRef.current) informarErrorImportacion(error); }
-    finally { confirmandoRef.current = false; setConfirmando(false); }
+    finally {
+      if (solicitud === solicitudRef.current) {
+        confirmandoRef.current = false;
+        setConfirmando(false);
+      }
+    }
   };
 
   return { fileRef, handleFile, revision, cancelarRevision, confirmarRevision,

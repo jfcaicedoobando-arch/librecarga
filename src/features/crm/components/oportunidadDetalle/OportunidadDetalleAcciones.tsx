@@ -4,8 +4,8 @@
  * oportunidad; "Nueva cotización" sólo escritura de cotizaciones (SALES).
  */
 import { ClipboardList, Edit, Trash2 } from "lucide-react";
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
-import { Hint } from "@/components/shared/Hint";
 
 interface Props {
   crearCotizacion: () => void;
@@ -27,6 +27,7 @@ export function OportunidadDetalleAcciones({
   crearCotizacion, crearCotPending, onEditar, onEliminar, canCotizar, canGestionar,
   puedeCotizar, motivoNoCotizar,
 }: Props) {
+  const motivoId = useId();
   if (!canCotizar && !canGestionar) return null;
   // v13.823.77 — cuando no se puede cotizar el botón queda deshabilitado con la
   // razón visible en lugar de no hacer nada al pulsarlo.
@@ -34,21 +35,16 @@ export function OportunidadDetalleAcciones({
   return (
     <div className="flex flex-wrap gap-2">
       {canCotizar && (
-        <Hint label={puedeCotizar ? undefined : motivo}>
-          <Button
-            size="sm"
-            onClick={crearCotizacion}
-            disabled={crearCotPending || !puedeCotizar}
-            loading={crearCotPending}
-            aria-describedby={puedeCotizar ? undefined : "oportunidad-cotizar-motivo"}
-          >
-            {!crearCotPending && <ClipboardList className="h-4 w-4 mr-1" />}
-            Nueva cotización
-          </Button>
-        </Hint>
-      )}
-      {canCotizar && !puedeCotizar && (
-        <span id="oportunidad-cotizar-motivo" className="sr-only">{motivo}</span>
+        <Button
+          size="sm"
+          onClick={crearCotizacion}
+          disabled={crearCotPending || !puedeCotizar}
+          loading={crearCotPending}
+          aria-describedby={puedeCotizar ? undefined : motivoId}
+        >
+          {!crearCotPending && <ClipboardList className="h-4 w-4 mr-1" />}
+          Nueva cotización
+        </Button>
       )}
       {canGestionar && (
         <>
@@ -66,6 +62,9 @@ export function OportunidadDetalleAcciones({
             <Trash2 className="h-4 w-4 mr-1" /> Eliminar
           </Button>
         </>
+      )}
+      {canCotizar && !puedeCotizar && (
+        <p id={motivoId} className="basis-full text-body-sm text-muted-foreground">{motivo}</p>
       )}
     </div>
   );

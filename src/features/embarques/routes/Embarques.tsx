@@ -146,7 +146,8 @@ export default function Embarques() {
               <EmbarquesSortIndicator
                 sortKey={sortKey}
                 sortDir={sortDir}
-                onClear={() => handleSortChange(null, "asc")}
+                onClear={() => handleSortChange(null, "desc")}
+                onSortChange={handleSortChange}
               />
               <ResponsiveDataTable
                 columns={columns}

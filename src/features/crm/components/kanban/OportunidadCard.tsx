@@ -6,6 +6,7 @@
  */
 import { memo } from "react";
 import { useDraggable } from "@dnd-kit/core";
+import { GripVertical } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Hint } from "@/components/shared/Hint";
@@ -68,9 +69,10 @@ function derivarDatosTarjeta(
 }
 
 export default function OportunidadCard({ op, onClick, proxima, estadoProximas = "listo", avance, esCerrada, arrastrable = true }: Props) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } = useDraggable({
     id: op.id,
     disabled: !arrastrable,
+    data: { nombre: op.nombre },
   });
   const style: React.CSSProperties = {
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
@@ -81,23 +83,36 @@ export default function OportunidadCard({ op, onClick, proxima, estadoProximas =
     <Card
       ref={setNodeRef}
       style={style}
-      {...(arrastrable ? listeners : {})}
-      {...(arrastrable ? attributes : {})}
+      onPointerDown={arrastrable ? (event) => listeners?.onPointerDown?.(event) : undefined}
       onClick={(e) => {
         if (isDragging) return;
         e.stopPropagation();
         onClick();
       }}
-      className="bg-card border border-border hover:border-primary/50 transition-colors"
+      className="relative bg-card border border-border hover:border-primary/50 transition-colors"
     >
-      <ContenidoTarjeta op={op} proxima={proxima} estadoProximas={estadoProximas} avance={avance} esCerrada={esCerrada} />
+      {arrastrable && (
+        <button
+          {...attributes}
+          type="button"
+          ref={setActivatorNodeRef}
+          onKeyDown={(event) => listeners?.onKeyDown?.(event)}
+          onClick={(event) => event.stopPropagation()}
+          aria-label={`Mover ${op.nombre} de etapa`}
+          className="absolute right-1 top-1 z-10 flex size-9 touch-none items-center justify-center rounded-md text-muted-foreground hover:bg-muted cursor-grab active:cursor-grabbing focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <GripVertical className="size-4" aria-hidden />
+        </button>
+      )}
+      <ContenidoTarjeta op={op} proxima={proxima} estadoProximas={estadoProximas} avance={avance}
+        esCerrada={esCerrada} onClick={onClick} arrastrable={arrastrable} />
     </Card>
   );
 }
 
 const ContenidoTarjeta = memo(function ContenidoTarjeta({
-  op, proxima, estadoProximas = "listo", avance, esCerrada,
-}: Pick<Props, "op" | "proxima" | "estadoProximas" | "avance" | "esCerrada">) {
+  op, proxima, estadoProximas = "listo", avance, esCerrada, arrastrable, onClick,
+}: Props) {
   const { vencida, montoEstimado, montoMeta, semaforo, meta } =
     derivarDatosTarjeta(op, proxima, avance, esCerrada);
   return (
@@ -105,7 +120,12 @@ const ContenidoTarjeta = memo(function ContenidoTarjeta({
       {/* E-14: nombre y cliente se truncan en tarjetas angostas; el texto
           completo queda disponible en un tooltip accesible. */}
       <Hint label={op.nombre}>
-        <div className="font-medium text-body line-clamp-2">{op.nombre}</div>
+        <button
+          type="button"
+          aria-label={`Ver oportunidad ${op.nombre}`}
+          onClick={(event) => { event.stopPropagation(); onClick(); }}
+          className={`rounded-sm text-left font-medium text-body line-clamp-2 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring ${arrastrable ? "pr-8" : ""}`}
+        >{op.nombre}</button>
       </Hint>
       <EtiquetaEmpresaEliminada oportunidadId={op.id} />
       <EtiquetaSolicitudRespondida oportunidadId={op.id} />

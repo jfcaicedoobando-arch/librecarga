@@ -94,7 +94,7 @@ export default function Facturacion() {
     errorFacturas,
     refetchFacturas,
     clientesDisponibles, loadingClientes, errorClientes, refetchClientes,
-    exportarFacturasCsv, exportarLayoutContable,
+    exportarFacturasCsv, exportarLayoutContable, exportando, exportacionDeshabilitada,
   } = useFacturacionPageController({ fechaDesde: desdeIso, fechaHasta: hastaIso, activeTab: activeBandeja });
 
   const clearFiltros = () => {
@@ -115,12 +115,12 @@ export default function Facturacion() {
             title="Facturación"
             description="Panel fiscal: CFDI, complemento de pagos (REP) y cartera de clientes"
           />
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             {activeBandeja === "emitidas" && (
               <PeriodoFiscalSelector desdeIso={desdeIso} hastaIso={hastaIso} onChange={setRango} />
             )}
             {canEmitirFactura && (
-              <Button onClick={() => setOpenFacturaManual(true)}>
+              <Button className="w-full sm:w-auto" onClick={() => setOpenFacturaManual(true)}>
                 <FilePlus2 className="h-4 w-4 mr-2" /> Nueva factura manual
               </Button>
             )}
@@ -160,6 +160,8 @@ export default function Facturacion() {
               acciones: {
                 exportarFacturasCsv,
                 exportarLayoutContable,
+                exportando,
+                exportacionDeshabilitada,
                 onCreateNew: () => setOpenFacturaManual(true),
               },
             }}

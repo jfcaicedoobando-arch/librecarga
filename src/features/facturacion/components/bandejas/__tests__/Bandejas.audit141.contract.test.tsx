@@ -9,6 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { calcularKPIs } from "@/features/facturacion/services/cobranzaAggregates";
 import type { FacturaCobranza } from "@/features/facturacion/services/cobranza";
 const state = vi.hoisted(() => ({
+  tendencia: [] as Array<{ mes: string; facturado_mxn: number; cobrado_mxn: number }>,
   counts: {
     data: undefined as undefined | { vencidas: number; porCobrar: number },
     isError: false,
@@ -45,7 +46,7 @@ vi.mock(
   "@/features/facturacion/hooks/useDashboardEjecutivoFacturacion",
   () => ({
     useDashboardEjecutivoFacturacion: () => ({
-      data: undefined,
+      data: { tendencia: state.tendencia },
       isError: false,
       refetch: vi.fn(),
     }),
@@ -177,6 +178,21 @@ describe("AUD141 counter and real table contract", () => {
     expect(screen.getByText(/facturas vencidas/)).toHaveTextContent(
       "Mostrando 1 de 1 facturas vencidas",
     );
+  });
+  it("permite abrir y contraer la tendencia sin ocultar los indicadores", () => {
+    state.tendencia = [{ mes: "2026-09", facturado_mxn: 120, cobrado_mxn: 60 }];
+    render(<DashboardEjecutivoFacturacion />, { wrapper: wrapper() });
+    const resumen = screen.getByText("Tendencia · Últimos 6 meses (MXN)");
+    const tendencia = resumen.closest("details");
+    expect(tendencia).not.toHaveAttribute("open");
+    fireEvent.click(resumen);
+    expect(tendencia).toHaveAttribute("open");
+    expect(screen.getByText("Facturado")).toBeVisible();
+    expect(screen.getByText("Cobrado")).toBeVisible();
+    fireEvent.click(resumen);
+    expect(tendencia).not.toHaveAttribute("open");
+    expect(screen.getByText("Saldo por cobrar")).toBeVisible();
+    state.tendencia = [];
   });
   it("clamps the page when switching from 22 rows to a two-row bucket", async () => {
     state.rows = [
