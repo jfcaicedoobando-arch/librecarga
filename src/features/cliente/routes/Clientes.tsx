@@ -1,6 +1,5 @@
 
-import { Building2, Plus, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Building2, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useClientesPaginados } from "@/features/cliente/hooks";
 import { usePermissions, useDebounce, useOrgFilter, useRegistrarActividad, useDocumentTitle } from "@/hooks/shared";
@@ -24,6 +23,7 @@ import {
   type ClienteRow,
 } from "@/features/cliente/components/clientesTableConfig";
 import { ClienteMobileCard } from "@/features/cliente/components/ClienteMobileCard";
+import { ClientesPageActions } from "@/features/cliente/components/ClientesPageActions";
 import EmptyState from "@/components/empty/EmptyState";
 import { useState, useMemo } from "react";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
@@ -80,16 +80,7 @@ export default function Clientes() {
         title="Clientes"
         description={getClientesPageDescription(isError, isLoading, totalCount)}
         actions={
-          canAltaCliente ? (
-            <div className="hidden md:flex gap-2">
-              <Button variant="outline" onClick={() => setImportOpen(true)}>
-                <Upload className="h-4 w-4 mr-1" />Importar CSV
-              </Button>
-              <Button onClick={() => setDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-1" />Nuevo Cliente
-              </Button>
-            </div>
-          ) : null
+          canAltaCliente && <ClientesPageActions onImport={() => setImportOpen(true)} onCreate={() => setDialogOpen(true)} />
         }
       />
 

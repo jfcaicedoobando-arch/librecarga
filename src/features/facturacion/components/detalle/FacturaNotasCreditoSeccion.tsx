@@ -14,9 +14,10 @@ import { DialogCrearNotaCredito } from "@/features/facturacion/components/Dialog
 import { DialogEnviarCfdi } from "@/features/facturacion/components/DialogEnviarCfdi";
 import { DialogCancelarNotaCredito } from "@/features/facturacion/components/DialogCancelarNotaCredito";
 import { useTimbrarNotaCredito, useCancelarNotaCredito } from "@/features/facturacion/hooks/useNotaCreditoFacturapi";
-import { FacturaNotasCreditoTable } from "./FacturaNotasCreditoTable";
+import { FacturaNotasCreditoTable, type NotaCreditoRow } from "./FacturaNotasCreditoTable";
 import type { Moneda } from "@/features/facturacion/types";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { ClaimPendingBanner } from "./ClaimPendingBanner";
 import { parseConceptosSugeridos, usaCuadreAgrupadoNC } from "./facturaNotasCreditoConceptos";
 
@@ -45,7 +46,8 @@ export function FacturaNotasCreditoSeccion(props: Props) {
   const timbrar = useTimbrarNotaCredito(facturaId);
   const cancelar = useCancelarNotaCredito(facturaId);
 
-  const { data: notas = [], isLoading } = useNotasCreditoDeFactura(facturaId);
+  const { data: notas = [], isLoading, isError, isFetching, refetch } = useNotasCreditoDeFactura(facturaId);
+  const notaACancelar = notas.find((nota) => nota.id === cancelarNcId);
   const { data: pagos = [] } = usePagosFactura(facturaId);
 
   const conceptosSugeridos = useMemo(
@@ -60,42 +62,26 @@ export function FacturaNotasCreditoSeccion(props: Props) {
     [pagos],
   );
 
-  // Fail-closed: sin saldo confiable no se emiten NC (evita acreditar de más).
-  const facturaLiquidada = !tieneSaldoMonetario(saldoFactura);
-  const bloqueado = facturaLiquidada || Boolean(saldoError);
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="flex items-center gap-2">
           <FileMinus className="h-4 w-4 text-muted-foreground" /> Notas de crédito
-          <span className="text-body-sm text-muted-foreground font-normal">({notas.length})</span>
+          {!isLoading && !isError && (
+            <span className="text-body-sm text-muted-foreground font-normal">({notas.length})</span>
+          )}
         </CardTitle>
-        {canEdit && (
-          bloqueado ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={0}>
-                  <Button size="sm" disabled>
-                    <Plus className="h-3.5 w-3.5 mr-1" /> Nueva
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="left" className="max-w-xs">
-                {saldoError
-                  ? "No pudimos verificar el saldo de la factura (falló la lectura de pagos o notas de crédito). Reintenta desde el aviso superior antes de emitir una nota de crédito."
-                  : "La factura ya está liquidada. No se pueden emitir notas de crédito sobre facturas sin saldo pendiente."}
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <Button size="sm" onClick={() => setOpenCrear(true)}>
-              <Plus className="h-3.5 w-3.5 mr-1" /> Nueva
-            </Button>
-          )
-        )}
+        <NuevaNotaCredito canEdit={canEdit} saldo={saldoFactura} saldoError={saldoError} onCrear={() => setOpenCrear(true)} />
       </CardHeader>
       <CardContent className="space-y-3">
-        {isLoading ? (
+        {isError ? (
+          <ErrorStateInline
+            title="No se pudieron cargar las notas de crédito"
+            message="Reintenta para consultar las notas asociadas a esta factura."
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+        ) : isLoading ? (
           <EmptyStateInline loading message="Cargando…" className="py-2" />
         ) : notas.length === 0 ? (
           <p className="text-body text-muted-foreground">Esta factura no tiene notas de crédito.</p>
@@ -153,17 +139,50 @@ export function FacturaNotasCreditoSeccion(props: Props) {
       />
 
       <DialogCancelarNotaCredito
-        open={canEdit && !!cancelarNcId}
+        key={cancelarNcId ?? "cerrado"}
+        open={canEdit && !!notaACancelar}
+        folio={folioFiscal(notaACancelar)}
         onOpenChange={(o) => !o && setCancelarNcId(null)}
         loading={cancelar.isPending}
         onConfirm={(motivo, sustituyeUuid) => {
-          if (!canEdit || !cancelarNcId) return;
+          if (!canEdit || !notaACancelar) return;
           cancelar.mutate(
-            { notaCreditoId: cancelarNcId, motivo, sustituyeUuid },
+            { notaCreditoId: notaACancelar.id, motivo, sustituyeUuid },
             { onSuccess: () => setCancelarNcId(null) },
           );
         }}
       />
     </Card>
+  );
+}
+
+function folioFiscal(nota?: NotaCreditoRow) {
+  if (!nota) return undefined;
+  return nota.folio_fiscal != null ? `${nota.serie ?? ""}${nota.folio_fiscal}` : nota.folio;
+}
+
+function NuevaNotaCredito({ canEdit, saldo, saldoError, onCrear }: {
+  canEdit: boolean;
+  saldo: number;
+  saldoError?: boolean;
+  onCrear: () => void;
+}) {
+  if (!canEdit) return null;
+  if (!saldoError && tieneSaldoMonetario(saldo)) {
+    return <Button size="sm" onClick={onCrear}><Plus className="h-3.5 w-3.5 mr-1" /> Nueva</Button>;
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span tabIndex={0}>
+          <Button size="sm" disabled><Plus className="h-3.5 w-3.5 mr-1" /> Nueva</Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="left" className="max-w-xs">
+        {saldoError
+          ? "No pudimos verificar el saldo de la factura (falló la lectura de pagos o notas de crédito). Reintenta desde el aviso superior antes de emitir una nota de crédito."
+          : "La factura ya está liquidada. No se pueden emitir notas de crédito sobre facturas sin saldo pendiente."}
+      </TooltipContent>
+    </Tooltip>
   );
 }

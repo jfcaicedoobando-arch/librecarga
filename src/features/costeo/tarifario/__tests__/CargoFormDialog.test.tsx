@@ -15,7 +15,9 @@ describe("monto del cargo de tarifario", () => {
     render(<QueryClientProvider client={client}>
       <CargoFormDialog tipo="fob" orgId="org" cargo={null} onClose={vi.fn()} onSaved={vi.fn()} />
     </QueryClientProvider>);
-    fireEvent.keyDown(screen.getByText("Selecciona"), { key: "ArrowDown" });
+    const selector = screen.getAllByRole("combobox")[0];
+    await waitFor(() => expect(selector).toBeEnabled());
+    fireEvent.keyDown(selector, { key: "ArrowDown" });
     fireEvent.click(await screen.findByRole("option", { name: "Agente uno" }));
 
     const monto = screen.getByRole("textbox", { name: "Monto" });
@@ -33,5 +35,17 @@ describe("monto del cargo de tarifario", () => {
     fireEvent.click(guardar);
     await waitFor(() => expect(guardarCargo).toHaveBeenCalledExactlyOnceWith("fob", "org",
       expect.objectContaining({ entidad_id: "a1", monto: 0 }), undefined));
+  });
+
+  it("permite reintentar un catálogo fallido y distingue el vacío confirmado", async () => {
+    vi.mocked(listarEntidadesCargo).mockRejectedValueOnce(new Error("falló catálogo")).mockResolvedValueOnce([]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}>
+      <CargoFormDialog tipo="fob" orgId="org" cargo={null} onClose={vi.fn()} onSaved={vi.fn()} />
+    </QueryClientProvider>);
+    expect(await screen.findByRole("alert")).toHaveTextContent("No se pudo consultar el catálogo del cargo.");
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(await screen.findByText(/No hay agentes activos/)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Guardar" })).toBeDisabled();
   });
 });

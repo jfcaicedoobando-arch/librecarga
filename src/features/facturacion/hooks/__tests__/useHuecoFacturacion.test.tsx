@@ -67,6 +67,18 @@ describe("useHuecoFacturacion", () => {
     expect(mockExport).not.toHaveBeenCalled();
   });
 
+  it("exporta únicamente las filas solicitadas y no toma las del conjunto global", async () => {
+    const primera = { id: "primera" } as never;
+    const segunda = { id: "segunda" } as never;
+    mockFetch.mockResolvedValue({ filas: [primera, segunda], totalEmbarques: 2, totalUsd: 0, totalMxn: 0 });
+    const { result } = renderHook(() => useHuecoFacturacion(), { wrapper });
+    await waitFor(() => expect(result.current.filas).toHaveLength(2));
+    result.current.exportarCsv([segunda]);
+    expect(mockExport).toHaveBeenCalledWith("hueco.csv", ["col"], [segunda]);
+    result.current.exportarCsv([]);
+    expect(mockExport).toHaveBeenCalledOnce();
+  });
+
   it("exportarCsv llama exportToCsv cuando hay filas", async () => {
     mockFetch.mockResolvedValue({ filas: [{ id: "f1" } as never], totalEmbarques: 1, totalUsd: 0, totalMxn: 0 });
     const { result } = renderHook(() => useHuecoFacturacion(), { wrapper });

@@ -13,6 +13,12 @@ import {
   useCompletarActividad, usePosponerActividad, type CrmActividadRow,
 } from "@/features/crm/hooks";
 import ActividadNotasSheet from "@/features/crm/components/actividades/ActividadNotasSheet";
+import { formatFechaHoraCorta } from "@/lib/formatters/dates";
+import { mxAddDaysIso } from "@/lib/date/mx";
+
+const opcionesPosponer = [
+  { dias: 1, etiqueta: "+1 día" }, { dias: 3, etiqueta: "+3 días" }, { dias: 7, etiqueta: "+1 semana" },
+];
 
 interface Props { actividad: CrmActividadRow }
 
@@ -20,6 +26,7 @@ export default function ActividadRowActions({ actividad }: Props) {
   const completar = useCompletarActividad();
   const posponer = usePosponerActividad();
   const [notasOpen, setNotasOpen] = useState(false);
+  const [fechaMenu, setFechaMenu] = useState(() => new Date());
   const completada = !!actividad.fecha_completada;
 
   const handleCompletar = async () => {
@@ -58,12 +65,22 @@ export default function ActividadRowActions({ actividad }: Props) {
                 <DropdownMenuItem onSelect={() => void handleCompletar()}>
                   <CheckCircle2 className="mr-2 size-4 text-success" />Marcar como completada
                 </DropdownMenuItem>
-                <DropdownMenuSub>
+                <DropdownMenuSub onOpenChange={(open) => { if (open) setFechaMenu(new Date()); }}>
                   <DropdownMenuSubTrigger><Clock className="mr-2 size-4" />Posponer</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
-                    <DropdownMenuItem onSelect={() => void handlePosponer(1)}>+1 día</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => void handlePosponer(3)}>+3 días</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => void handlePosponer(7)}>+1 semana</DropdownMenuItem>
+                    {opcionesPosponer.map(({ dias, etiqueta }) => {
+                      const destino = mxAddDaysIso(actividad.fecha_programada, dias, fechaMenu);
+                      const sigueVencida = Date.parse(destino) < fechaMenu.getTime();
+                      return (
+                        <DropdownMenuItem key={dias} onSelect={() => void handlePosponer(dias)}
+                          className="flex flex-col items-start gap-0.5">
+                          <span>{etiqueta}</span>
+                          <span className="text-caption text-muted-foreground">
+                            {formatFechaHoraCorta(destino)} · CDMX{sigueVencida ? " · Sigue vencida" : ""}
+                          </span>
+                        </DropdownMenuItem>
+                      );
+                    })}
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 <DropdownMenuSeparator />

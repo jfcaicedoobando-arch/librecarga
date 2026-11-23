@@ -55,7 +55,7 @@ function AvisoRefacturar({ proformaId, numero, facturaNum }: {
               disabled={mutation.isPending}
               onClick={(e) => { e.preventDefault(); mutation.mutate(); }}
             >
-              {mutation.isPending ? "Preparando…" : "Continuar a la proforma nueva"}
+              {mutation.isPending ? "Preparando…" : "Cancelar anterior y abrir nueva proforma"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

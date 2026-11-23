@@ -40,11 +40,10 @@ async function crearActividad() {
     wrapper: createWrapper(),
   });
   fireEvent.change(screen.getByLabelText(/Asunto/), { target: { value: "Llamar a cliente" } });
-  // Radix Select no responde a click en jsdom: se abre y elige con teclado.
   const trigger = screen.getByRole("combobox", { name: /Oportunidad/i });
-  fireEvent.keyDown(trigger, { key: "ArrowDown" });
+  fireEvent.click(trigger);
   const opcion = await screen.findByRole("option", { name: "Proyecto X" });
-  fireEvent.keyDown(opcion, { key: "Enter" });
+  fireEvent.click(opcion);
   fireEvent.click(screen.getByRole("button", { name: "Crear" }));
   await waitFor(() => expect(mocks.notifyError).toHaveBeenCalled());
 }

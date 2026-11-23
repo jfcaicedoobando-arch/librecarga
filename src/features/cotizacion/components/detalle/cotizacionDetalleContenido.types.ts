@@ -3,7 +3,7 @@
  * Extraídos para mantener el componente por debajo de 200 líneas (Power of 10).
  */
 import type { AppRole } from "@/types/appRole";
-import type { EnvioRow } from "@/features/cotizacion/services/envios";
+import type { HistorialEnviosProps } from "./HistorialEnviosCard";
 import type { useCotizacionDetalleState } from "@/features/cotizacion/hooks";
 
 export type DetalleState = ReturnType<typeof useCotizacionDetalleState>;
@@ -49,7 +49,7 @@ export interface CotizacionDetalleContenidoProps {
   canEdit: boolean;
   effectiveRole: AppRole | null;
   embarquesVinculados: DetalleState["embarquesVinculados"];
-  envios: EnvioRow[];
+  historialEnvios: HistorialEnviosProps;
   totales: CotizacionDetalleTotales;
   dialogos: CotizacionDetalleDialogos;
   acciones: CotizacionDetalleAccionesProps;

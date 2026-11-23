@@ -17,11 +17,9 @@ import { PageContainer } from "@/components/shared/PageContainer";
 import { ClienteDetalleTabs } from "./_sections/ClienteDetalleTabs";
 import { leerFlagAutorizacion } from "@/features/cliente/domain/autorizacionCliente";
 import { useDocumentTitle } from "@/hooks/shared/useDocumentTitle";
-/** Contactos secundarios + el contacto principal del perfil (si existe). */
 function contarContactos(secundarios: number, principal?: string | null): number {
   return secundarios + (principal && principal.trim() ? 1 : 0);
 }
-
 
 type ClienteRow = NonNullable<ReturnType<typeof useClienteDetalleController>["cliente"]>;
 
@@ -88,6 +86,7 @@ export default function ClienteDetalle() {
     refetchCliente,
     contactos,
     loadingContactos,
+    errorContactos, refetchContactos, fetchingContactos,
     embarquesCliente,
     loadingEmbarques,
     errorEmbarques, refetchEmbarques, fetchingEmbarques,
@@ -148,7 +147,7 @@ export default function ClienteDetalle() {
       <ClienteSummaryCards
         embarques={embarquesCliente.length}
         cotizaciones={cotizacionesCliente.length}
-        contactos={contarContactos(contactos.length, cliente.contacto)}
+        contactos={loadingContactos || errorContactos ? null : contarContactos(contactos.length, cliente.contacto)}
         {...mapFinancialSummary(financials)}
       />
 
@@ -156,8 +155,13 @@ export default function ClienteDetalle() {
 
       <ClienteDetalleTabs
         cliente={cliente}
-        contactos={contactos}
-        loadingContactos={loadingContactos}
+        consultaContactos={{
+          contactos,
+          isLoading: loadingContactos,
+          error: errorContactos,
+          onRetry: refetchContactos,
+          isFetching: fetchingContactos,
+        }}
         canEdit={canEdit}
         embarquesCliente={embarquesCliente}
         loadingEmbarques={loadingEmbarques}

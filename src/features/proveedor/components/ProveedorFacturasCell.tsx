@@ -25,9 +25,13 @@ export function ProveedorFacturasCell({ partida }: Props) {
           to={`/compras/facturas/${f.factura_id}`}
           onClick={(e) => e.stopPropagation()}
           className="text-body-sm text-accent underline-offset-2 hover:underline"
-          title={f.folio_proveedor ? `Folio proveedor: ${f.folio_proveedor}` : undefined}
         >
           {f.folio_interno ?? f.folio_proveedor ?? "Ver factura"}
+          {f.folio_interno && f.folio_proveedor && f.folio_proveedor !== f.folio_interno && (
+            <span className="block break-words text-label text-muted-foreground">
+              Folio proveedor: {f.folio_proveedor}
+            </span>
+          )}
         </Link>
       ))}
     </div>

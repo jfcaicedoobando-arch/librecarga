@@ -18,17 +18,17 @@ export default function BrokerLayout() {
   return (
     <div className="min-h-dvh bg-background flex flex-col">
       <header className="border-b bg-card sticky top-0 z-50 shadow-card">
-        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14 sm:h-16 gap-2">
+        <div className="max-w-screen-2xl mx-auto grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-2 sm:px-6 lg:flex lg:h-16 lg:justify-between">
           <Link to="/broker" className="flex items-center min-w-0">
             <BrandLockup variant="horizontal" size="sm" subtitle="Portal de Brokers" />
           </Link>
-          <nav className="flex items-center gap-1" aria-label="Portal de Brokers">
-            <Button asChild variant="ghost" size="sm"><NavLink to="/broker" end>Mis empresas</NavLink></Button>
-            <Button asChild variant="ghost" size="sm"><NavLink to="/broker/consultar">Consultar empresa</NavLink></Button>
-            <Button asChild variant="ghost" size="sm"><NavLink to="/broker/comisiones">Comisiones</NavLink></Button>
+          <nav className="col-span-2 row-start-2 flex flex-wrap items-center gap-1 lg:flex-nowrap" aria-label="Portal de Brokers">
+            <Button asChild variant="ghost" size="sm" className="min-h-11 lg:min-h-0"><NavLink to="/broker" end>Mis empresas</NavLink></Button>
+            <Button asChild variant="ghost" size="sm" className="min-h-11 lg:min-h-0"><NavLink to="/broker/consultar">Consultar empresa</NavLink></Button>
+            <Button asChild variant="ghost" size="sm" className="min-h-11 lg:min-h-0"><NavLink to="/broker/comisiones">Comisiones</NavLink></Button>
           </nav>
-          <div className="flex items-center gap-2">
-            <span className="hidden sm:inline text-body-sm text-muted-foreground truncate max-w-[220px]">
+          <div className="col-start-2 row-start-1 flex items-center gap-2">
+            <span className="hidden md:inline text-body-sm text-muted-foreground truncate max-w-[220px]">
               {user?.email}
             </span>
             <ThemeToggle />

@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { formatCurrency } from "@/lib/formatters";
 import { createWrapper } from "@/test/utils/queryWrapper";
+import { ResultadoTruncadoError } from "@/lib/supabase/assertNotTruncated";
 import type { EmbarqueConciliacion } from "@/features/compras/services/conciliacionEmbarques";
 import ComprasConciliacion from "../ComprasConciliacion";
 
@@ -51,6 +52,9 @@ describe("estado sin resultados de Conciliación con embarques", () => {
     const onUrlUpdate = mostrarConsulta("?q=sin-resultados&moneda=USD&estado=parcial&origen=qa");
 
     expect(await screen.findByText("No hay resultados con los filtros actuales.")).toBeVisible();
+    expect(screen.getByRole("combobox", { name: "Estado de conciliación" })).toBeVisible();
+    expect(screen.getByRole("combobox", { name: "Moneda" })).toBeVisible();
+    expect(screen.getByRole("searchbox", { name: "Buscar por expediente o cliente" })).toBeVisible();
     expect(screen.queryByText("No hay embarques con conceptos de costo para conciliar.")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
 
@@ -76,5 +80,14 @@ describe("estado sin resultados de Conciliación con embarques", () => {
     expect(screen.getAllByText("No disponible")).toHaveLength(7);
     fireEvent.click(retry);
     expect(await screen.findByText(formatCurrency(0, "EUR"))).toBeVisible();
+  });
+
+  it("ante el límite de lectura dirige a la consulta por expediente", async () => {
+    listar.mockRejectedValue(new ResultadoTruncadoError("conciliacion", 1000));
+    mostrarConsulta("?q=EXP-QA&moneda=USD");
+    expect(await screen.findByRole("alert")).toHaveTextContent("alcanzó su límite de lectura");
+    expect(screen.getByRole("link", { name: "Consultar embarques" })).toHaveAttribute("href", "/embarques?q=EXP-QA");
+    expect(screen.queryByRole("button", { name: "Reintentar" })).not.toBeInTheDocument();
+    expect(screen.getAllByText("No disponible")).toHaveLength(7);
   });
 });

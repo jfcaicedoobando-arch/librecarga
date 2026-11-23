@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { usePermissions } from "@/hooks/shared";
 import { useCotizacionWizardForm } from "@/features/cotizacion/hooks";
 import CotizacionWizardLayout from "@/features/cotizacion/components/CotizacionWizardLayout";
+import type { EstadoCatalogoClientes } from "@/features/cotizacion/components/seccionDestinatario/EstadoConsultaClientes";
 import type { NavigateFunction } from "react-router";
 import type { CotizacionRow } from "@/features/cotizacion/hooks";
 import type { CostoCotizacion } from "@/features/cotizacion/hooks";
@@ -30,7 +31,7 @@ export default function EditarCotizacion() {
   // (`puede_escribir_cotizaciones` en RLS). Con `canEdit` (que incluye
   // finanzas) contador/tesorero entraban al wizard y fallaban con 42501.
   const { canWriteCotizaciones } = usePermissions();
-  const { data: clientes = [] } = useClientesForSelect();
+  const catalogoClientes = useClientesForSelect();
   const { data: cotizacion, isLoading, isError, refetch } = useCotizacion(id);
   useRegisterBreadcrumbLabel(id, cotizacion?.folio);
   const {
@@ -95,7 +96,8 @@ export default function EditarCotizacion() {
       <EditarCotizacionForm
         cotizacion={cotizacion}
         costos={costos}
-        clientes={clientes}
+        clientes={catalogoClientes.data ?? []}
+        catalogoClientes={catalogoClientes}
         navigate={navigate}
         toast={toast}
         userEmail={user?.email ?? ""}
@@ -108,6 +110,7 @@ function EditarCotizacionForm({
   cotizacion,
   costos,
   clientes,
+  catalogoClientes,
   navigate,
   toast,
   userEmail,
@@ -115,6 +118,7 @@ function EditarCotizacionForm({
   cotizacion: CotizacionRow;
   costos: CostoCotizacion[];
   clientes: { id: string; nombre: string }[];
+  catalogoClientes: EstadoCatalogoClientes;
   navigate: NavigateFunction;
   toast: ReturnType<typeof import("@/hooks/shared").useToast>["toast"];
   userEmail: string;
@@ -138,6 +142,7 @@ function EditarCotizacionForm({
     <CotizacionWizardLayout
       w={w}
       clientes={clientes}
+      catalogoClientes={catalogoClientes}
       title={`Editar cotización ${cotizacion.folio}`}
       subtitle="Modifica los datos generales, ruta y conceptos de la cotización"
       onBack={() => navigate(`/cotizaciones/${cotizacion.id}`)}

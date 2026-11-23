@@ -5,20 +5,18 @@
  */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Receipt } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Hint } from "@/components/shared/Hint";
-
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency, formatDate, toTitleCase } from "@/lib/formatters";
 import { useNotasCreditoRecientes, type EstadoNotaCredito } from "@/features/facturacion/hooks";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
-import { Receipt } from "lucide-react";
-
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { DetailTableHead } from "@/components/shared/DetailTable";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -32,8 +30,8 @@ const ESTADO_COLOR: Record<EstadoNotaCredito, string> = {
   Cancelada: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
+const LIMITE_NOTAS_RECIENTES = 200;
 const ESTADOS: Array<EstadoNotaCredito | "todos"> = ["todos", "Borrador", "Aprobada", "Timbrada", "Aplicada", "Cancelada"];
-
 export function NotasCreditoRecientes() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -42,10 +40,9 @@ export function NotasCreditoRecientes() {
   const [sel, setSel] = useState<Set<string>>(new Set());
   const toggle = (id: string) => setSel((prev) => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s; });
 
-  const { data = [], isLoading } = useNotasCreditoRecientes({
-    estado, limit: 200,
+  const { data = [], isLoading, isError, isFetching, refetch } = useNotasCreditoRecientes({
+    estado, limit: LIMITE_NOTAS_RECIENTES,
   });
-
   const clientes = useMemo(() => {
     const set = new Map<string, string>();
     data.forEach((n) => { if (n.cliente_id) set.set(n.cliente_id, n.cliente_nombre); });
@@ -65,7 +62,6 @@ export function NotasCreditoRecientes() {
     });
     return acc;
   }, [filtradas]);
-
   return (
     <Card>
       <CardContent className="p-0">
@@ -77,10 +73,13 @@ export function NotasCreditoRecientes() {
           aria-label="Mostrar u ocultar notas de crédito recientes"
           className="h-auto w-full flex items-center justify-between whitespace-normal rounded-none p-3 font-normal hover:bg-muted/30"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-left">
             <span className="font-medium text-body">Notas de crédito recientes</span>
-            <span className="text-body-sm text-muted-foreground">({data.length})</span>
-            {Object.entries(totales).map(([mon, total]) => (
+            {!isLoading && !isError && <span className="text-body-sm text-muted-foreground">({data.length})</span>}
+            {!isError && Object.keys(totales).length > 0 && (
+              <span className="text-body-sm text-muted-foreground">Importe de notas visibles sin canceladas</span>
+            )}
+            {!isError && Object.entries(totales).map(([mon, total]) => (
               <Badge key={mon} variant="outline" className="font-mono text-body-sm">
                 {formatCurrency(total, mon)}
               </Badge>
@@ -92,13 +91,22 @@ export function NotasCreditoRecientes() {
         {open && (
           <div className="border-t">
             <div className="p-3 flex flex-wrap gap-2 items-center">
-              <Select value={estado} onValueChange={(v) => setEstado(v as EstadoNotaCredito | "todos")}>
+              <p className="w-full text-body-sm text-muted-foreground">
+                Hasta {LIMITE_NOTAS_RECIENTES} notas recientes del estado seleccionado. El filtro de cliente se aplica sobre esas notas.
+              </p>
+              <Select value={estado} onValueChange={(v) => {
+                setEstado(v as EstadoNotaCredito | "todos");
+                setSel(new Set());
+              }}>
                 <SelectTrigger className="w-[150px] h-8 text-body-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ESTADOS.map((e) => <SelectItem key={e} value={e}>{e === "todos" ? "Todos los estados" : e}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={cliente} onValueChange={setCliente}>
+              <Select value={cliente} onValueChange={(v) => {
+                setCliente(v);
+                setSel(new Set());
+              }}>
                 <SelectTrigger className="w-[220px] h-8 text-body-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos los clientes</SelectItem>
@@ -107,10 +115,20 @@ export function NotasCreditoRecientes() {
               </Select>
               <div className="flex-1" />
               {sel.size > 0 && <Button variant="ghost" size="sm" className="h-8" onClick={() => setSel(new Set())}>Limpiar selección</Button>}
-              <NotasCreditoZipButton notas={sel.size > 0 ? filtradas.filter((n) => sel.has(n.id)) : filtradas} />
+              {!isError && <NotasCreditoZipButton
+                alcance={sel.size > 0 ? "seleccionadas" : "filtradas"}
+                notas={sel.size > 0 ? filtradas.filter((n) => sel.has(n.id)) : filtradas}
+              />}
             </div>
 
-            {isLoading ? (
+            {isError ? (
+              <ErrorStateInline
+                title="No se pudieron cargar las notas de crédito recientes"
+                message="Reintenta la consulta. Se conservarán tus filtros."
+                onRetry={() => void refetch()}
+                retrying={isFetching}
+              />
+            ) : isLoading ? (
               <EmptyStateInline loading message="Cargando…" />
             ) : filtradas.length === 0 ? (
               <EmptyStateInline icon={Receipt} message="No hay notas de crédito que coincidan." className="py-4" />

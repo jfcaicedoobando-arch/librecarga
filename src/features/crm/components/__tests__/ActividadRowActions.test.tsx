@@ -46,7 +46,9 @@ describe("ActividadRowActions — menú compacto", () => {
     const posponer = await screen.findByRole("menuitem", { name: "Posponer" });
     act(() => posponer.focus());
     fireEvent.keyDown(posponer, { key: "ArrowRight" });
-    fireEvent.click(await screen.findByRole("menuitem", { name: "+3 días" }));
+    const opcion = await screen.findByRole("menuitem", { name: /\+3 días.*CDMX/ });
+    expect(opcion).toHaveTextContent("28/09/2026");
+    fireEvent.click(opcion);
     expect(mocks.posponer).toHaveBeenCalledWith({ id: "a1", dias: 3, fechaProgramada: actividad.fecha_programada });
   });
 

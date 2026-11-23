@@ -16,9 +16,9 @@ import { DetailTableHead } from "@/components/shared/DetailTable";
 export type FilasType = Awaited<ReturnType<typeof fetchReconciliacionEmbarque>>;
 export type TotalesMoneda = ReturnType<typeof calcularResumenPorMoneda>;
 
-export function TablaBody({ filas, expandidos, onToggle, onVincular }: {
+export function TablaBody({ filas, expandidos, onToggle, costosHref }: {
   filas: FilasType; expandidos: Set<string>;
-  onToggle: (id: string) => void; onVincular: (id: string) => void;
+  onToggle: (id: string) => void; costosHref: string;
 }) {
   return (
     <div className="rounded-md border overflow-hidden">
@@ -42,7 +42,7 @@ export function TablaBody({ filas, expandidos, onToggle, onVincular }: {
               fila={f}
               expandido={expandidos.has(f.concepto_costo_id)}
               onToggle={() => onToggle(f.concepto_costo_id)}
-              onVincular={() => onVincular(f.concepto_costo_id)}
+              costosHref={costosHref}
             />
           ))}
         </TableBody>

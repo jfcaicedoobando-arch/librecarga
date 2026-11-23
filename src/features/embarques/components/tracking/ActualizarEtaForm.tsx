@@ -58,12 +58,13 @@ export function ActualizarEtaForm({ etaActual, isPending, onSubmit, onCancel }: 
           className="grid grid-cols-1 md:grid-cols-2 gap-4"
         >
           <div className="space-y-2">
-            <label className="text-body font-medium">Nuevo ETA *</label>
+            <label htmlFor="actualizar-eta-fecha" className="text-body font-medium">Nuevo ETA *</label>
             <Controller
               control={control}
               name="fecha"
               render={({ field }) => (
                 <DatePickerMx
+                  id="actualizar-eta-fecha"
                   value={field.value ?? ""}
                   onChange={field.onChange}
                   className="w-full"
@@ -77,7 +78,7 @@ export function ActualizarEtaForm({ etaActual, isPending, onSubmit, onCancel }: 
             </p>
           </div>
           <div className="space-y-2">
-            <label htmlFor="actualizar-eta-fuente" className="text-body font-medium">Fuente / Motivo</label>
+            <label htmlFor="actualizar-eta-fuente" className="text-body font-medium">Motivo o fuente (obligatorio)</label>
             <Controller
               control={control}
               name="fuente"
@@ -87,10 +88,15 @@ export function ActualizarEtaForm({ etaActual, isPending, onSubmit, onCancel }: 
                   {...field}
                   placeholder="Ej. Portal del transportista, aviso del agente…"
                   maxLength={120}
+                  required
+                  disabled={isPending}
+                  aria-invalid={Boolean(errors.fuente) || undefined}
+                  aria-describedby={errors.fuente ? "actualizar-eta-ayuda actualizar-eta-error" : "actualizar-eta-ayuda"}
                 />
               )}
             />
-            {errors.fuente && <p className="text-body-sm text-destructive">{errors.fuente.message}</p>}
+            <p id="actualizar-eta-ayuda" className="text-body-sm text-muted-foreground">Escribe al menos 3 caracteres.</p>
+            {errors.fuente && <p id="actualizar-eta-error" className="text-body-sm text-destructive">{errors.fuente.message}</p>}
           </div>
           <div className="md:col-span-2 flex gap-2 justify-end">
             <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isPending}>

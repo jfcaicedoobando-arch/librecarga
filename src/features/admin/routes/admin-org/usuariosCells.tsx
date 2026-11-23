@@ -100,6 +100,7 @@ interface ChangeRoleCellProps {
 
 /** Celda "Cambiar rol": select agrupado por área. */
 export function ChangeRoleCell({ user, isSelf, onPendingRole }: ChangeRoleCellProps) {
+  const rolActualId = `rol-actual-${user.user_id}`;
   return (
     <Select
       value={user.role}
@@ -113,8 +114,9 @@ export function ChangeRoleCell({ user, isSelf, onPendingRole }: ChangeRoleCellPr
       {/* El trigger muestra SOLO la etiqueta del rol: `SelectValue` clonaría el
           contenido del `SelectItem` (etiqueta + descripción) y desbordaba la
           celda encimando el texto entre filas (auditoría visual 1366×768). */}
-      <SelectTrigger className="w-full min-w-[160px] sm:min-w-[180px] lg:min-w-[220px] max-w-[260px]">
-        <span className="truncate text-left">{ROLE_LABELS[user.role]}</span>
+      <SelectTrigger className="w-full min-w-[160px] sm:min-w-[180px] lg:min-w-[220px] max-w-[260px]"
+        aria-label={`Rol de ${user.email}`} aria-describedby={rolActualId}>
+        <span id={rolActualId} className="truncate text-left">{ROLE_LABELS[user.role]}</span>
       </SelectTrigger>
 
       <SelectContent>

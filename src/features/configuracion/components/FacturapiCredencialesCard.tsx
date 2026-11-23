@@ -9,8 +9,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Receipt, AlertTriangle, CheckCircle2, Wand2 } from "lucide-react";
+import { Receipt } from "lucide-react";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 import { useCopyText } from "@/hooks/shared";
 import { useOrganization } from "@/lib/contexts/OrganizationContext";
@@ -22,31 +21,13 @@ import { type FacturapiAmbiente } from "@/features/configuracion/services/factur
 import FacturapiCredencialesForm from "./FacturapiCredencialesForm";
 import { FacturapiWebhookUrlSection } from "./FacturapiWebhookUrlSection";
 import FacturapiOnboardingWizard from "./FacturapiOnboardingWizard";
-import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
-function HeaderBadges({ configurado, ambiente }: { configurado: boolean; ambiente: FacturapiAmbiente }) {
-  return (
-    <>
-      {configurado ? (
-        <Badge variant="secondary" className="ml-2 gap-1">
-          <CheckCircle2 className="h-3 w-3" /> Configurado
-        </Badge>
-      ) : (
-        <Badge variant="outline" className="ml-2 gap-1">
-          <AlertTriangle className="h-3 w-3" /> Sin configurar
-        </Badge>
-      )}
-      <Badge variant={ambiente === "live" ? "default" : "outline"} className="ml-1">
-        {ambiente === "live" ? "Producción" : "Sandbox"}
-      </Badge>
-    </>
-  );
-}
+import { AccesoAsistenteFacturapi, EstadoLecturaCredenciales, HeaderBadges } from "./FacturapiCredencialesCard.parts";
 
 export default function FacturapiCredencialesCard() {
   const { organization } = useOrganization();
   const copy = useCopyText();
   const orgId = organization?.id ?? null;
-  const { data, isLoading } = useFacturapiCredenciales(orgId);
+  const { data, isLoading, isError, isFetching, refetch } = useFacturapiCredenciales(orgId);
   const upsert = useUpsertFacturapiCredenciales(orgId);
 
   const [ambiente, setAmbiente] = useState<FacturapiAmbiente>("sandbox");
@@ -86,16 +67,24 @@ export default function FacturapiCredencialesCard() {
     }
   };
 
-  const sandboxLast4 = data?.api_key_sandbox_last4 ?? null;
-  const liveLast4 = data?.api_key_live_last4 ?? null;
-  const configurado = !!data && (ambiente === "sandbox" ? !!sandboxLast4 : !!liveLast4);
+  const {
+    api_key_sandbox_last4: sandboxLast4 = null,
+    api_key_live_last4: liveLast4 = null,
+    ambiente: ambienteGuardado = "sandbox",
+  } = data ?? {};
+  const configurado = ambienteGuardado === "sandbox" ? !!sandboxLast4 : !!liveLast4;
+
+  if (isLoading || isError) {
+    return <EstadoLecturaCredenciales error={isError} ultimoAmbiente={data?.ambiente}
+      reintentar={() => void refetch()} reintentando={isFetching} />;
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Receipt className="h-5 w-5" /> FacturApi (Timbrado SAT)
-          <HeaderBadges configurado={configurado} ambiente={ambiente} />
+          <HeaderBadges configurado={configurado} ambiente={ambienteGuardado} />
         </CardTitle>
         <CardDescription>
           Conecta tu cuenta de FacturApi para timbrar CFDI 4.0 desde Libre Carga.
@@ -105,24 +94,7 @@ export default function FacturapiCredencialesCard() {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {isLoading && <EmptyStateInline loading message="Cargando…" className="py-4" />}
-
-        <div className="flex items-center justify-between gap-3 rounded border border-dashed p-3 bg-muted/30">
-          <div className="space-y-0.5">
-            <p className="text-sm font-medium">
-              {configurado ? "Reconfigurar conexión" : "Asistente paso a paso"}
-            </p>
-            <p className="text-label text-muted-foreground">
-              {configurado
-                ? "Vuelve a ejecutar el wizard si cambiaste de ambiente o rotaste tus keys."
-                : "Te guiamos en 3 pasos para vincular tu cuenta de FacturApi."}
-            </p>
-          </div>
-          <Button type="button" onClick={() => setWizardOpen(true)}>
-            <Wand2 className="h-4 w-4 mr-1" />
-            {configurado ? "Reconfigurar" : "Conectar FacturApi"}
-          </Button>
-        </div>
+        <AccesoAsistenteFacturapi configurado={configurado} abrir={() => setWizardOpen(true)} />
 
         <details className="rounded border">
           <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/30">
@@ -144,6 +116,9 @@ export default function FacturapiCredencialesCard() {
               csdVence={csdVence}
               setCsdVence={setCsdVence}
             />
+            {ambiente !== ambienteGuardado && (
+              <p role="status" className="text-body-sm text-muted-foreground">Cambio de ambiente pendiente de guardar.</p>
+            )}
             <div className="flex justify-end">
               <Button onClick={onGuardar} disabled={upsert.isPending} variant="outline" size="sm">
                 {upsert.isPending ? "Guardando…" : "Guardar configuración"}

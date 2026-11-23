@@ -122,6 +122,7 @@ export function TabTracking({ embarqueId, embarque }: Props) {
           modoTransporte={embarque?.modo}
           estadoActual={embarque?.estado}
           etaActual={embarque?.eta}
+          etd={embarque?.etd}
           fechaLlegadaRealActual={embarque?.fecha_llegada_real}
           destinoDefault={
             embarque?.puerto_destino ?? embarque?.aeropuerto_destino ?? embarque?.ciudad_destino ?? ""

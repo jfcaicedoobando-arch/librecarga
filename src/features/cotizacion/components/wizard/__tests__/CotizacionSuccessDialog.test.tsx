@@ -64,7 +64,7 @@ describe("CotizacionSuccessDialog — estado (R215-COT-01)", () => {
     fireEvent.click(screen.getByRole("button", { name: /Ver cotización y aceptar/i }));
     expect(props.onVerDetalle).toHaveBeenCalledTimes(1);
     expect(props.onCrearEmbarque).not.toHaveBeenCalled();
-    expect(screen.getByText(/Aceptar la cotización no genera un embarque automáticamente/)).toHaveTextContent(/seleccionar «Crear embarque»/);
+    expect(screen.getByText(/puede generarse un embarque en borrador/)).toHaveTextContent(/un usuario con permiso puede elegir «Crear embarque»/);
     expect(screen.getByText(/primero conviértelo en cliente/)).toBeInTheDocument();
   });
 
@@ -77,7 +77,9 @@ describe("CotizacionSuccessDialog — estado (R215-COT-01)", () => {
   it("sin la capability de rol no ofrece 'Crear embarque' aunque esté Aceptada", () => {
     const props = setup({ estado: "Aceptada", puedeCrearEmbarqueRol: false });
     expect(screen.queryByRole("button", { name: /Crear embarque/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Ver cotización y aceptar/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Ver estado del embarque/i }));
+    expect(screen.getByText(/Consulta en el detalle si se generó un embarque en borrador/)).toBeInTheDocument();
+    expect(props.onVerDetalle).toHaveBeenCalledTimes(1);
     expect(props.onCrearEmbarque).not.toHaveBeenCalled();
   });
 });

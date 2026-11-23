@@ -25,5 +25,6 @@ describe("EstadoCuentaToolbar · accesibilidad", () => {
     );
     expect(screen.getByLabelText(/Desde \(fecha inicial/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Hasta \(fecha final/i)).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Tipo de movimiento" })).toBeInTheDocument();
   });
 });

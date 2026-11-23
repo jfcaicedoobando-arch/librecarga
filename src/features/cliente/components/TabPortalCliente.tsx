@@ -15,6 +15,7 @@ import type { ClientUserEnriched } from "@/features/cliente/services/usuarios";
 import PortalInviteDialog from "./PortalInviteDialog";
 import { useState } from "react";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Hint } from "@/components/shared/Hint";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { diffDiasCalendario } from "@/lib/date/dateOnly";
@@ -51,7 +52,7 @@ function badgeEstado(u: ClientUserEnriched) {
 export default function TabPortalCliente({ clienteId, organizationId, canEdit }: Props) {
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  const { data: clientUsers = [], isLoading } = useClientUsers(clienteId);
+  const { data: clientUsers = [], isLoading, isError, isFetching, refetch } = useClientUsers(clienteId);
 
   const revokeMutation = useRevokeClientUser(clienteId);
   const resendMutation = useResendClientUserInvite(clienteId);
@@ -146,7 +147,7 @@ export default function TabPortalCliente({ clienteId, organizationId, canEdit }:
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Globe className="h-4 w-4" /> Acceso al Portal de Cliente
-            {!isLoading && countBadge}
+            {!isLoading && !isError && countBadge}
           </CardTitle>
           {canEdit && (
             <Button size="sm" onClick={() => setInviteOpen(true)}>
@@ -155,9 +156,17 @@ export default function TabPortalCliente({ clienteId, organizationId, canEdit }:
           )}
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <EmptyStateInline loading message="Cargando…" className="py-4" />
-          ) : (
+          {isLoading && <EmptyStateInline loading message="Cargando accesos…" className="py-4" />}
+          {isError && (
+            <ErrorStateInline
+              className="mb-3"
+              title="No pudimos consultar los accesos al portal"
+              message={count ? "Mostramos los últimos accesos consultados." : "Reintenta para consultar los usuarios de este cliente."}
+              onRetry={() => void refetch()}
+              retrying={isFetching}
+            />
+          )}
+          {!isLoading && (!isError || count > 0) && (
             <ResponsiveDataTable
               columns={cols}
               data={clientUsers}

@@ -16,6 +16,7 @@ import { AdjuntoRow } from "@/features/cxp/components/InfoFacturaSection.parts";
 import { AdjuntosDelBuzon } from "./AdjuntosDelBuzon";
 import type { FacturaCxP, TipoAdjuntoCfdi } from "@/features/cxp/services";
 import { useOrgActiva } from "@/hooks/shared/useOrgActiva";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 
 interface Props {
   factura: FacturaCxP;
@@ -29,7 +30,8 @@ export function DocumentosProveedorSection({ factura: f, canEdit = false }: Prop
   const puedeEditarAdjuntos = canEdit && f.estado !== "Cancelada";
   const faltaPdf = !f.archivo_pdf_url;
   const faltaXml = !f.archivo_xml_url;
-  const { data: entrante } = useEntranteDeFactura(f.id, faltaPdf || faltaXml);
+  const buscarRespaldo = faltaPdf || faltaXml;
+  const { data: entrante, isLoading, isError, isFetching, refetch } = useEntranteDeFactura(f.id, buscarRespaldo);
 
   const handleUpload = (file: File, tipo: TipoAdjuntoCfdi) =>
     adjuntar.mutate({ facturaId: f.id, organizationId, tipo, file });
@@ -62,6 +64,17 @@ export function DocumentosProveedorSection({ factura: f, canEdit = false }: Prop
           onUpload={handleUpload} onRemove={handleRemove}
         />
       </div>
+      {buscarRespaldo && isLoading && (
+        <p role="status" className="text-body-sm text-muted-foreground">Buscando adjuntos del buzón…</p>
+      )}
+      {buscarRespaldo && isError && (
+        <ErrorStateInline
+          title="No pudimos buscar los adjuntos del buzón"
+          message="Los adjuntos propios de la factura siguen disponibles."
+          onRetry={() => void refetch()}
+          retrying={isFetching}
+        />
+      )}
       {entrante && (
         <AdjuntosDelBuzon entrante={entrante} faltaPdf={faltaPdf} faltaXml={faltaXml} />
       )}

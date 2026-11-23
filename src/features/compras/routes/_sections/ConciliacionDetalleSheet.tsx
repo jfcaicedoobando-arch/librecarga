@@ -8,6 +8,7 @@ import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { compras } from "../../queryKeys";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import {
   calcularResumenPorEstatus,
   calcularResumenPorMoneda,
@@ -33,7 +34,7 @@ export function ConciliacionDetalleSheet({ embarque, onClose }: Props) {
     staleTime: 30_000,
   });
 
-  const { data: huerfanas = 0 } = useQuery({
+  const { data: huerfanas, isLoading: huerfanasCargando, isError: huerfanasError } = useQuery({
     queryKey: compras.conciliacionHuerfanas(embarqueId),
     queryFn: () => fetchPartidasHuerfanasCount(embarqueId as string),
     enabled: Boolean(embarqueId),
@@ -59,11 +60,16 @@ export function ConciliacionDetalleSheet({ embarque, onClose }: Props) {
         {embarque && (
           <>
             <HeaderPanel embarque={embarque} onOpenEmbarque={() => navigate(`/embarques/${embarque.embarque_id}`)} />
-            <ResumenGrid
-              totalesPorMoneda={totalesPorMoneda}
-              resumenEstatus={resumenEstatus}
-              huerfanas={huerfanas}
-            />
+            {isLoading ? (
+              <div role="status"><EmptyStateInline loading message="Cargando resumen de conciliación…" /></div>
+            ) : !error && (
+              <ResumenGrid
+                totalesPorMoneda={totalesPorMoneda}
+                resumenEstatus={resumenEstatus}
+                huerfanas={huerfanasError ? undefined : huerfanas}
+                huerfanasCargando={huerfanasCargando}
+              />
+            )}
             <div className="mt-4">
               <CuerpoTabla
                 isLoading={isLoading}
@@ -72,12 +78,7 @@ export function ConciliacionDetalleSheet({ embarque, onClose }: Props) {
                 filas={filas}
                 expandidos={expandidos}
                 onToggle={toggle}
-                onVincular={(conceptoId) =>
-                  navigate(
-                    `/compras/por-aprobar?embarque=${encodeURIComponent(embarque.embarque_id)}` +
-                    `&concepto=${encodeURIComponent(conceptoId)}`,
-                  )
-                }
+                costosHref={`/embarques/${encodeURIComponent(embarque.embarque_id)}?tab=costos`}
                 totalesPorMoneda={totalesPorMoneda}
               />
             </div>

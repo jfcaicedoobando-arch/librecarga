@@ -20,7 +20,7 @@ export default function NuevaCotizacion() {
 
 function NuevaCotizacionScope() {
   const {
-    w, clientes, organizationId, userId, canCrearEmbarqueDesdeCotizacion, plantillaId,
+    w, clientes, catalogoClientes, organizationId, userId, canCrearEmbarqueDesdeCotizacion, plantillaId,
     draftDetectado, banderaBorrador, handleRestore, handleDiscard,
     conflictoExterno, descartarConflicto,
     conflictoSello, resincronizando, handleResincronizar, recargarPorConflictoSello,
@@ -67,6 +67,7 @@ function NuevaCotizacionScope() {
       <CotizacionWizardLayout
         w={w}
         clientes={clientes}
+        catalogoClientes={catalogoClientes}
         title="Nueva cotización"
         subtitle="Completa los datos para crear una cotización"
         onBack={irAlListado}

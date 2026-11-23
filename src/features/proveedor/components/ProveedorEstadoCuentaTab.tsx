@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
 import { CardSkeleton } from "@/components/shared/skeletons";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { getErrorMessage } from "@/lib/errors";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { todayLocalISO } from "@/lib/date/today";
 import { useProveedorMovimientos } from "@/features/proveedor/hooks/useProveedorMovimientos";
@@ -43,12 +44,16 @@ function alcanceExport(data: EstadoCuentaMovimientos | undefined) {
   return { hayMas: data?.hay_mas, totalMovimientos: data?.total_movimientos };
 }
 
+function puedeExportarEstadoCuenta(consulta: ReturnType<typeof useProveedorMovimientos>) {
+  return Boolean(consulta.data) && !consulta.isLoading && !consulta.isFetching && !consulta.isError;
+}
+
 export function ProveedorEstadoCuentaTab({ proveedorId, proveedorNombre, rfc }: Props) {
   const [desde, setDesde] = useState(isoHaceUnAnio);
   const [hasta, setHasta] = useState(isoHoy);
   const [descargando, setDescargando] = useState(false);
-  const { data, isLoading, isError, error, refetch, isFetching } =
-    useProveedorMovimientos(proveedorId, desde, hasta);
+  const consulta = useProveedorMovimientos(proveedorId, desde, hasta);
+  const { data, isLoading, isError, error, refetch, isFetching } = consulta;
 
   const movimientos = useMemo(
     () => conSaldoCorrido(
@@ -60,6 +65,7 @@ export function ProveedorEstadoCuentaTab({ proveedorId, proveedorNombre, rfc }: 
   const aging = useMemo(() => agingPorMoneda(data?.aging ?? []), [data?.aging]);
   const saldos = data?.saldos ?? [];
   const apertura = data?.saldo_apertura ?? [];
+  const puedeDescargar = puedeExportarEstadoCuenta(consulta);
 
   const datosExport = {
     proveedorId, proveedorNombre, rfc, desde, hasta, movimientos, aging, saldos,
@@ -67,6 +73,7 @@ export function ProveedorEstadoCuentaTab({ proveedorId, proveedorNombre, rfc }: 
   };
 
   const handlePdf = async () => {
+    if (!puedeDescargar || descargando) return;
     setDescargando(true);
     try {
       await descargarEstadoCuentaPdf(datosExport);
@@ -75,19 +82,16 @@ export function ProveedorEstadoCuentaTab({ proveedorId, proveedorNombre, rfc }: 
     }
   };
 
-  if (isLoading) return <CardSkeleton />;
-
-  // R3FE-05 (Ola 12): un fallo de la RPC NO debe pintarse como "sin movimientos".
-  if (isError) {
-    return (
-      <ErrorStateInline
-        title="No pudimos cargar el estado de cuenta"
-        message={error instanceof Error ? error.message : "Error desconocido al consultar la información."}
-        onRetry={() => void refetch()}
-        retrying={isFetching}
-      />
-    );
-  }
+  const estadoConsulta = isLoading ? (
+    <div role="status" aria-label="Cargando movimientos del periodo"><CardSkeleton /></div>
+  ) : isError ? (
+    <ErrorStateInline
+      title="No pudimos cargar el estado de cuenta"
+      message={getErrorMessage(error)}
+      onRetry={() => void refetch()}
+      retrying={isFetching}
+    />
+  ) : null;
 
   return (
     <div className="space-y-4">
@@ -106,6 +110,7 @@ export function ProveedorEstadoCuentaTab({ proveedorId, proveedorNombre, rfc }: 
               type="button"
               variant="outline"
               size="sm"
+              disabled={!puedeDescargar}
               onClick={() => descargarEstadoCuentaCsv(datosExport)}
             >
               <Download className="mr-2 h-4 w-4" /> CSV
@@ -114,6 +119,7 @@ export function ProveedorEstadoCuentaTab({ proveedorId, proveedorNombre, rfc }: 
               type="button"
               variant="outline"
               size="sm"
+              disabled={!puedeDescargar}
               loading={descargando}
               onClick={handlePdf}
             >
@@ -123,65 +129,69 @@ export function ProveedorEstadoCuentaTab({ proveedorId, proveedorNombre, rfc }: 
         </CardContent>
       </Card>
 
-      <ProveedorAgingCard aging={aging} />
+      {estadoConsulta ?? (
+        <>
+          <ProveedorAgingCard aging={aging} />
 
-      {saldos.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Saldos por moneda</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-6">
-            {saldos.map((s) => (
-              <div key={s.moneda}>
-                <p className="text-body-sm text-muted-foreground">
-                  {s.moneda} · saldo global · cargos {formatCurrency(s.cargos, s.moneda)} ·{" "}
-                  abonos{" "}
-                  {formatCurrency(s.abonos, s.moneda)}
+          {saldos.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Saldos por moneda</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-6">
+                {saldos.map((s) => (
+                  <div key={s.moneda}>
+                    <p className="text-body-sm text-muted-foreground">
+                      {s.moneda} · saldo global · cargos {formatCurrency(s.cargos, s.moneda)} ·{" "}
+                      abonos{" "}
+                      {formatCurrency(s.abonos, s.moneda)}
+                    </p>
+                    <p className="text-kpi font-semibold tabular-nums">
+                      {formatCurrency(s.saldo, s.moneda)}
+                    </p>
+                  </div>
+                ))}
+                <p className="w-full text-body-sm text-muted-foreground">
+                  Saldo global al día de hoy (sin filtro de periodo); cuadra contra la antigüedad de
+                  saldos.
                 </p>
-                <p className="text-kpi font-semibold tabular-nums">
-                  {formatCurrency(s.saldo, s.moneda)}
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Movimientos
+                <span className="ml-2 font-normal text-muted-foreground tabular-nums">
+                  {movimientos.length}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="overflow-x-auto p-0">
+              {apertura.length > 0 && (
+                <div className="flex flex-wrap gap-x-6 gap-y-1 border-b px-4 py-3">
+                  {apertura.map((a) => (
+                    <p key={a.moneda} className="text-body-sm text-muted-foreground">
+                      Saldo inicial {a.moneda} (antes del {formatDate(desde)}):{" "}
+                      <span className="font-semibold tabular-nums text-foreground">
+                        {formatCurrency(a.saldo, a.moneda)}
+                      </span>
+                    </p>
+                  ))}
+                </div>
+              )}
+              {data?.hay_mas && (
+                <p className="px-4 pt-3 text-body-sm text-warning">
+                  Mostrando los {movimientos.length} movimientos más recientes del periodo
+                  (total: {data.total_movimientos}). Acota el rango de fechas para ver el resto.
                 </p>
-              </div>
-            ))}
-            <p className="w-full text-body-sm text-muted-foreground">
-              Saldo global al día de hoy (sin filtro de periodo); cuadra contra la antigüedad de
-              saldos.
-            </p>
-          </CardContent>
-        </Card>
+              )}
+              <ProveedorMovimientosTable movimientos={movimientos} />
+            </CardContent>
+          </Card>
+        </>
       )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Movimientos
-            <span className="ml-2 font-normal text-muted-foreground tabular-nums">
-              {movimientos.length}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="overflow-x-auto p-0">
-          {apertura.length > 0 && (
-            <div className="flex flex-wrap gap-x-6 gap-y-1 border-b px-4 py-3">
-              {apertura.map((a) => (
-                <p key={a.moneda} className="text-body-sm text-muted-foreground">
-                  Saldo inicial {a.moneda} (antes del {formatDate(desde)}):{" "}
-                  <span className="font-semibold tabular-nums text-foreground">
-                    {formatCurrency(a.saldo, a.moneda)}
-                  </span>
-                </p>
-              ))}
-            </div>
-          )}
-          {data?.hay_mas && (
-            <p className="px-4 pt-3 text-body-sm text-warning">
-              Mostrando los {movimientos.length} movimientos más recientes del periodo
-              (total: {data.total_movimientos}). Acota el rango de fechas para ver el resto.
-            </p>
-          )}
-          <ProveedorMovimientosTable movimientos={movimientos} />
-        </CardContent>
-      </Card>
     </div>
   );
 }

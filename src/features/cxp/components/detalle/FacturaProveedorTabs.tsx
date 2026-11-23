@@ -36,7 +36,7 @@ export function FacturaProveedorTabs({
 }: Props) {
   const [pagoEditar, setPagoEditar] = useState<PagoEditable | null>(null);
   const { data: conceptos = [] } = useConceptosCfdiFactura(f.id);
-  const { data: notasCredito = [] } = useNotasCreditoFactura(f.id);
+  const consultaNotas = useNotasCreditoFactura(f.id);
   const { data: pagos = [], isLoading, isError, isFetching, refetch } = consultaPagos;
 
   const tabs: DocumentoTabItem[] = [
@@ -119,13 +119,14 @@ export function FacturaProveedorTabs({
     {
       id: "notas-credito",
       label: "Notas de crédito",
-      count: notasCredito.length,
+      count: consultaNotas.isLoading || consultaNotas.isError ? undefined : consultaNotas.data?.length,
       content: (
         <NotasCreditoSection
           facturaId={f.id}
           monedaFactura={f.moneda}
           saldoFactura={f.saldo}
           canEdit={canEdit}
+          consultaNotas={consultaNotas}
         />
       ),
     },

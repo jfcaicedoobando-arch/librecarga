@@ -60,7 +60,7 @@ export function UsuariosToolbar({
           />
         </div>
         <Select value={filtroRol} onValueChange={onFiltroRolChange}>
-          <SelectTrigger className="sm:w-[220px]">
+          <SelectTrigger className="sm:w-[220px]" aria-label="Filtrar por rol">
             <SelectValue placeholder="Filtrar por rol" />
           </SelectTrigger>
           <SelectContent>

@@ -23,12 +23,15 @@ import type { CrmLeadEstado } from "@/features/crm/domain/leads/constants";
 interface Opcion { id: string; label: string; }
 
 interface BaseProps {
+  id?: string;
+  ariaLabel?: string;
   value: string;
   selectedLabel: string;
   placeholder: string;
   emptyLabel: string;
   opciones: Opcion[];
   isLoading: boolean;
+  onRetry?: () => void;
   search: string;
   onSearchChange: (v: string) => void;
   onSelect: (o: Opcion) => void;
@@ -36,14 +39,14 @@ interface BaseProps {
 
 /** UI compartida del combobox — sin conocimiento de leads/oportunidades. */
 function ComboboxBase({
-  value, selectedLabel, placeholder, emptyLabel, opciones, isLoading, search, onSearchChange, onSelect,
+  id, ariaLabel, value, selectedLabel, placeholder, emptyLabel, opciones, isLoading, onRetry, search, onSearchChange, onSelect,
 }: BaseProps) {
   const [open, setOpen] = useState(false);
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          type="button" variant="outline" role="combobox" aria-expanded={open}
+          id={id} type="button" variant="outline" role="combobox" aria-expanded={open} aria-label={ariaLabel}
           className={cn("w-full justify-between font-normal", !value && "text-muted-foreground")}
         >
           <span className="truncate">{selectedLabel || placeholder}</span>
@@ -52,9 +55,10 @@ function ComboboxBase({
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Buscar…" value={search} onValueChange={onSearchChange} />
+          <CommandInput placeholder="Buscar…" aria-label={ariaLabel ? `Buscar ${ariaLabel.toLowerCase()}` : undefined}
+            value={search} onValueChange={onSearchChange} />
           <CommandList>
-            <CommandEmpty>{isLoading ? "Buscando…" : emptyLabel}</CommandEmpty>
+            {!onRetry && <CommandEmpty>{isLoading ? "Buscando…" : emptyLabel}</CommandEmpty>}
             <CommandGroup>
               {opciones.map((o) => (
                 <CommandItem
@@ -69,6 +73,14 @@ function ComboboxBase({
             </CommandGroup>
           </CommandList>
         </Command>
+        {onRetry && (
+          <div role="alert" className="space-y-2 p-3 text-body-sm">
+            <p>No pudimos consultar las oportunidades.</p>
+            <Button type="button" variant="outline" size="sm" disabled={isLoading} onClick={onRetry}>
+              {isLoading ? "Reintentando…" : "Reintentar"}
+            </Button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -134,20 +146,25 @@ export function LeadComboboxCrm({
 }
 
 /** Selector de Oportunidad con búsqueda server-side. */
-export function OportunidadComboboxCrm({ value, onChange, placeholder = "Selecciona una oportunidad…" }: ComboProps) {
+export function OportunidadComboboxCrm({
+  id, ariaLabel, value, onChange, placeholder = "Selecciona una oportunidad…",
+}: ComboProps & { id?: string; ariaLabel?: string }) {
   const [search, setSearch] = useState("");
   const { etiqueta, registrar } = useEtiquetaSincronizada(value);
   const debounced = useDebouncedValue(search, 300);
-  const { data, isFetching } = useOportunidades({ search: debounced, pageSize: 30 });
-  const opciones: Opcion[] = (data?.data ?? []).map((o) => ({ id: o.id, label: o.nombre }));
+  const { data, isFetching, isError, refetch } = useOportunidades({ search: debounced, pageSize: 30 });
+  const opciones: Opcion[] = (isError ? [] : data?.data ?? []).map((o) => ({ id: o.id, label: o.nombre }));
   return (
     <ComboboxBase
+      id={id}
+      ariaLabel={ariaLabel}
       value={value}
       selectedLabel={etiqueta}
       placeholder={placeholder}
       emptyLabel="Sin oportunidades con ese nombre."
       opciones={opciones}
       isLoading={isFetching}
+      onRetry={isError ? () => void refetch() : undefined}
       search={search}
       onSearchChange={setSearch}
       onSelect={(o) => { registrar(o.id, o.label); onChange(o.id, o.label); }}

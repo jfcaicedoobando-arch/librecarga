@@ -20,7 +20,7 @@ const tarifaDbSchema = z.array(z.object({
   agente: z.object({ id: z.string(), nombre: z.string() }).passthrough().nullable(),
   naviera: z.object({ id: z.string(), name: z.string() }).passthrough().nullable(),
   tipo: z.object({ code: z.string(), name: z.string().optional() }).passthrough().nullable(),
-  ruta: z.object({ origen: nombre, destino: nombre }).passthrough().nullable(),
+  ruta: z.object({ id: z.string().optional(), origen: nombre, destino: nombre }).passthrough().nullable(),
 }).passthrough());
 
 export type TarifaTarifario = z.infer<typeof tarifaDbSchema>[number];
@@ -28,7 +28,7 @@ export type TarifaTarifario = z.infer<typeof tarifaDbSchema>[number];
 const COLS = [
   "id, flete_base, moneda, dias_libres_demoras, vigente_desde, vigente_hasta, notas, solicitud_pricing_id",
   "agente:costeo_agentes(id, nombre), naviera:navieras(id, name), tipo:tipos_contenedor(code, name)",
-  "ruta:costeo_rutas(origen:puertos!costeo_rutas_puerto_origen_id_fkey(name, country), destino:puertos!costeo_rutas_puerto_destino_id_fkey(name, country))",
+  "ruta:costeo_rutas(id, origen:puertos!costeo_rutas_puerto_origen_id_fkey(name, country), destino:puertos!costeo_rutas_puerto_destino_id_fkey(name, country))",
 ].join(", ");
 
 const DIA_MS = 86_400_000;
@@ -111,7 +111,7 @@ export function agruparTarifas(tarifas: readonly TarifaTarifario[]): FilaTarifar
 }
 
 function claveTarifa(t: TarifaTarifario): string {
-  return [t.ruta?.origen?.name, t.ruta?.destino?.name, t.agente?.id, t.naviera?.id, t.vigente_desde, t.vigente_hasta].join("|");
+  return [t.ruta?.id ?? t.ruta?.origen?.name, t.ruta?.destino?.name, t.agente?.id, t.naviera?.id, t.vigente_desde, t.vigente_hasta].join("|");
 }
 
 function nuevaFilaTarifario(t: TarifaTarifario, clave: string): FilaTarifario {

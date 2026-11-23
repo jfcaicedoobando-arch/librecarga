@@ -76,6 +76,33 @@ describe.each([["CxC", CxcAging], ["CxP", CxpAging]] as const)("CSV Aging %s res
 });
 
 
+it("CxC bloquea el CSV al actualizar o fallar la consulta, conserva fecha y se recupera", () => {
+  const refetch = vi.fn();
+  const query = { ...queryState, refetch, rowsFiltradas: [{ ...base, cliente_id: "a1", cliente_nombre: "Alfa Norte" }] };
+  cxc.mockReturnValue({ ...query, isFetching: true });
+  const { rerender } = render(<CxcAging />, { wrapper: wrapper("") });
+  const fecha = screen.getByRole("textbox", { name: "Fecha para antigüedad" });
+  const csvButton = screen.getByRole("button", { name: "Exportar CSV" });
+  fireEvent.change(fecha, { target: { value: "15/10/2026" } });
+  fireEvent.blur(fecha);
+  expect(csvButton).toBeDisabled();
+  expect(screen.getByRole("status")).toHaveTextContent("Actualizando saldos");
+  expect(screen.getByText("Totales de MXN, antes de filtros de clientes.")).toBeInTheDocument();
+
+  cxc.mockReturnValue({ ...query, isError: true });
+  rerender(<CxcAging />);
+  expect(csvButton).toBeDisabled();
+  fireEvent.click(csvButton);
+  expect(csv).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+  expect(refetch).toHaveBeenCalledOnce();
+
+  cxc.mockReturnValue(query);
+  rerender(<CxcAging />);
+  expect(fecha).toHaveValue("15/10/2026");
+  expect(csvButton).toBeEnabled();
+});
+
 it("CxP aclara que la fecha reclasifica saldos actuales tanto en pantalla como en CSV", () => {
   render(<CxpAging />, { wrapper: wrapper("") });
   expect(screen.getByRole("textbox", { name: "Fecha para antigüedad" })).toBeInTheDocument();

@@ -42,12 +42,21 @@ describe("ListaObjetosCrm · tabla canónica", () => {
     show();
     fireEvent.click(screen.getByRole("button", { name: /reintentar/i }));
     expect(refetch).toHaveBeenCalledOnce();
-    expect(screen.queryByText("Sin resultados.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Aún no hay contactos registrados")).not.toBeInTheDocument();
   });
   it("una consulta exitosa sin filas sí presenta el estado vacío", () => {
     query.mockReturnValue({ isLoading: false, isError: false, data: { filas: [], total: 0 } });
     show();
-    expect(screen.getByText("Sin resultados.")).toBeInTheDocument();
+    expect(screen.getByText("Aún no hay contactos registrados")).toBeInTheDocument();
+  });
+  it("distingue la búsqueda sin coincidencias y permite limpiar los filtros", () => {
+    query.mockReturnValue({ isLoading: false, isError: false, data: { filas: [], total: 0 } });
+    show();
+    fireEvent.change(screen.getByRole("textbox", { name: "Buscar contacto" }), { target: { value: "Sin coincidencia" } });
+    expect(screen.getByText("Sin coincidencias con estos filtros")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
+    expect(query).toHaveBeenLastCalledWith("contacto", "", 0, "todas", "todos");
+    expect(screen.getByText("Aún no hay contactos registrados")).toBeVisible();
   });
   it.each(["Lead", "Prospecto"])("pasa el estado %s de la URL a la consulta de empresas", (estado) => {
     query.mockReturnValue({ isLoading: false, isError: false, data: { filas: [], total: 0 } });

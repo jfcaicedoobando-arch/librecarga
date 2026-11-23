@@ -1,12 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 import { FileDown, Mail } from "lucide-react";
 import { formatDate } from "@/lib/formatters";
 import type { EnvioRow } from "@/features/cotizacion/hooks/mutations/useEnviarCotizacionEmail";
 
-interface Props {
+export interface HistorialEnviosProps {
   envios: EnvioRow[];
+  isLoading: boolean;
+  isError: boolean;
+  isFetching: boolean;
+  onRetry: () => void;
 }
 
 const ESTADO_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -15,8 +21,8 @@ const ESTADO_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   fallido: "destructive",
 };
 
-export function HistorialEnviosCard({ envios }: Props) {
-  if (envios.length === 0) return null;
+export function HistorialEnviosCard({ envios, isLoading, isError, isFetching, onRetry }: HistorialEnviosProps) {
+  if (envios.length === 0 && !isLoading && !isError) return null;
   return (
     <Card>
       <CardHeader>
@@ -25,6 +31,15 @@ export function HistorialEnviosCard({ envios }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {isLoading && <EmptyStateInline loading message="Consultando historial de envíos…" />}
+        {isError && (
+          <ErrorStateInline
+            title="No pudimos consultar el historial de envíos"
+            message={envios.length ? "Mostramos los últimos envíos consultados." : "Reintenta para saber si esta cotización ya se envió por correo."}
+            onRetry={onRetry}
+            retrying={isFetching}
+          />
+        )}
         {envios.map((e) => {
           const tos = (e.destinatarios ?? []).map((d) => d.email).join(", ");
           const ccs = (e.cc ?? []).join(", ");

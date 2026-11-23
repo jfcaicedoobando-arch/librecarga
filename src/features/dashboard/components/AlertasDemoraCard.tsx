@@ -97,7 +97,7 @@ export const AlertasDemoraCard = memo(function AlertasDemoraCard({ alertas, isLo
       </CardHeader>
       <CardContent className="space-y-2">
         {renderBody()}
-        {!isLoading && <DashboardListaVerMas total={alertas.length} ruta="/embarques" etiqueta="embarques" />}
+        {!isLoading && <DashboardListaVerMas total={alertas.length} ruta="/embarques" etiqueta="Abrir todos los embarques" />}
       </CardContent>
     </Card>
   );

@@ -9,8 +9,10 @@
  * P1-B: filtros, consulta y KPIs viven en `useComprasConciliacionController`.
  */
 import { useMemo } from "react";
+import { Link } from "react-router";
 import { GitCompare, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -24,6 +26,7 @@ import { ConciliacionDetalleSheet } from "./_sections/ConciliacionDetalleSheet";
 import { ErrorState } from "@/components/shared/states/ErrorState";
 import { FilteredListEmptyState } from "@/components/empty/FilteredListEmptyState";
 import { ResultadoTruncadoError } from "@/lib/supabase/assertNotTruncated";
+import { ROUTES } from "@/constants/routes";
 import {
   useComprasConciliacionController,
   type EstadoFiltro,
@@ -39,6 +42,7 @@ export default function ComprasConciliacion() {
 
   const columns = useMemo(() => buildConciliacionColumns(), []);
   const hayFiltros = estado !== "todos" || moneda !== "todas" || Boolean(search.trim());
+  const busquedaEmbarques = search.trim() ? `?q=${encodeURIComponent(search.trim())}` : "";
   const valorKpi = (valor: number | string) => isError ? "No disponible" : valor;
 
   const limpiarFiltros = () => {
@@ -70,9 +74,9 @@ export default function ComprasConciliacion() {
         <CardContent className="pt-4 space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="space-y-1">
-              <Label>Estado conciliación</Label>
+              <Label htmlFor="conciliacion-estado">Estado de conciliación</Label>
               <Select value={estado} onValueChange={(v) => setEstado(v as EstadoFiltro)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="conciliacion-estado"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="sin_facturar">Sin facturar</SelectItem>
@@ -84,9 +88,9 @@ export default function ComprasConciliacion() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Moneda</Label>
+              <Label htmlFor="conciliacion-moneda">Moneda</Label>
               <Select value={moneda} onValueChange={(v) => setMoneda(v as MonedaFiltro)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="conciliacion-moneda"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas</SelectItem>
                   <SelectItem value="MXN">MXN</SelectItem>
@@ -96,22 +100,27 @@ export default function ComprasConciliacion() {
               </Select>
             </div>
             <div className="md:col-span-2 space-y-1">
-              <Label>Buscar</Label>
+              <p className="text-body-sm font-medium">Buscar</p>
               <SearchInput
                 value={search}
                 onChange={setSearch}
                 placeholder="Expediente o cliente…"
+                aria-label="Buscar por expediente o cliente"
               />
             </div>
           </div>
 
           {isError ? (
             error instanceof ResultadoTruncadoError ? (
-              <ErrorState
-                onRetry={() => void refetch()}
-                title="Conciliación con demasiados registros para mostrarse completa"
-                description="Hay más conceptos de costo de los que este reporte puede leer de forma segura. Aplica filtros (moneda, estado, cliente) para acotar el resultado; nunca se muestra un total parcial."
-              />
+              <div className="space-y-3">
+                <ErrorState
+                  title="Conciliación con demasiados registros para mostrarse completa"
+                  description="El informe global alcanzó su límite de lectura. Busca un expediente en Embarques y abre Costos para consultar ese expediente."
+                />
+                <Button asChild variant="outline" size="sm">
+                  <Link to={`${ROUTES.EMBARQUES}${busquedaEmbarques}`}>Consultar embarques</Link>
+                </Button>
+              </div>
             ) : (
               <ErrorState onRetry={() => void refetch()} />
             )

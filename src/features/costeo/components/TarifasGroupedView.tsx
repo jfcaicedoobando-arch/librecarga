@@ -3,7 +3,7 @@
  * v13.135.53: header de columnas alineado, mini-barra de vigencia,
  * micro-meta "por vencer" en header del grupo.
  */
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Hint } from "@/components/shared/Hint";
@@ -38,10 +38,12 @@ interface Props {
 
 export function TarifasGroupedView({ tarifas, onEditar, onDuplicar, onEliminar }: Props) {
   const grupos = useMemo(() => buildGruposTarifas(tarifas, todayLocalISO()), [tarifas]);
+  const panelId = useId();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const { aprobar, rechazar, reactivar } = useAprobacionTarifa();
   const [rechazandoId, setRechazandoId] = useState<string | null>(null);
   const pending = aprobar.isPending || reactivar.isPending;
+  const colapsadasVisibles = grupos.every((g) => collapsed.has(g.key));
 
   const toggle = (k: string) => {
     setCollapsed((prev) => {
@@ -51,18 +53,40 @@ export function TarifasGroupedView({ tarifas, onEditar, onDuplicar, onEliminar }
     });
   };
 
+  const toggleTodos = () => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      const expandir = grupos.every((g) => prev.has(g.key));
+      for (const { key } of grupos) {
+        if (expandir) next.delete(key);
+        else next.add(key);
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-2">
+      {grupos.length > 1 && (
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" onClick={toggleTodos}>
+            {colapsadasVisibles ? "Expandir todos" : "Colapsar todos"}
+          </Button>
+        </div>
+      )}
       <div className="sticky top-0 z-10 hidden bg-background rounded-md border overflow-hidden md:block">
         <TarifaColumnHeader />
       </div>
-      {grupos.map((g) => {
+      {grupos.map((g, indice) => {
         const isCollapsed = collapsed.has(g.key);
+        const idGrupo = `${panelId}-${indice}`;
         return (
           <Card key={g.key} className="overflow-hidden">
             <button
               type="button"
               onClick={() => toggle(g.key)}
+              aria-expanded={!isCollapsed}
+              aria-controls={idGrupo}
               className="w-full flex items-center gap-3 bg-muted/15 px-4 py-1.5 text-left transition-colors hover:bg-muted/30"
             >
               {isCollapsed ? <ChevronRight className="size-4" /> : <ChevronDown className="size-4" />}
@@ -95,9 +119,8 @@ export function TarifasGroupedView({ tarifas, onEditar, onDuplicar, onEliminar }
                 </Hint>
               )}
             </button>
-            {!isCollapsed && (
-              <div className="divide-y divide-border/60">
-                {g.rows.map((t) => (
+              <div id={idGrupo} hidden={isCollapsed} className="divide-y divide-border/60">
+                {!isCollapsed && g.rows.map((t) => (
                   <TarifaFila
                     key={t.id}
                     t={t}
@@ -113,22 +136,9 @@ export function TarifasGroupedView({ tarifas, onEditar, onDuplicar, onEliminar }
                   />
                 ))}
               </div>
-            )}
           </Card>
         );
       })}
-
-      {grupos.length > 1 && (
-        <div className="flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCollapsed((prev) => (prev.size === grupos.length ? new Set() : new Set(grupos.map((g) => g.key))))}
-          >
-            {collapsed.size === grupos.length ? "Expandir todos" : "Colapsar todos"}
-          </Button>
-        </div>
-      )}
 
       <DialogRechazarTarifa
         open={!!rechazandoId}

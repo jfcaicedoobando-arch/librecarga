@@ -47,7 +47,8 @@ export function useNuevaCotizacionPageController() {
   const { user } = useAuth();
   const { organizationId } = useOrgActiva();
   const { canCrearEmbarqueDesdeCotizacion } = usePermissions();
-  const { data: clientes = [] } = useClientesForSelect();
+  const catalogoClientes = useClientesForSelect();
+  const clientes = catalogoClientes.data ?? [];
   const userId = user?.id ?? "";
 
   // P2 (v13.295.0) — Guardar como plantilla desde el success dialog.
@@ -151,6 +152,7 @@ export function useNuevaCotizacionPageController() {
     w: { ...w, isPending: w.isPending || restaurando || Boolean(pendienteBorrador) || conflictoSello },
     plantillaId: searchParams.get("plantilla"),
     clientes,
+    catalogoClientes,
     organizationId,
     userId,
     canCrearEmbarqueDesdeCotizacion,

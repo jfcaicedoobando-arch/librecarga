@@ -17,7 +17,7 @@ describe("Audit145: revisión explícita del vínculo legado", () => {
   it("conserva estado al abrir/cancelar sin decidir y expone advertencia clara", () => {
     const onVincular = vi.fn();
     const { unmount } = render(<VincularVentasHeredadas costos={[costo]} ventas={[venta, manual]} tasaIva={0.16} onVincular={onVincular} />);
-    expect(screen.getByText(/Conservamos tus conceptos e impuestos actuales/)).toBeInTheDocument();
+    expect(screen.getByText(/Si dejas una fila sin seleccionar, se conservan sus conceptos e impuestos actuales/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Aplicar vínculo" })).toBeDisabled();
     unmount();
     expect(onVincular).not.toHaveBeenCalled();

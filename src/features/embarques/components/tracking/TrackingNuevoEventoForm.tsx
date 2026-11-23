@@ -17,6 +17,7 @@ interface Props {
   modoTransporte?: string | null;
   estadoActual?: string | null;
   etaActual?: string | null;
+  etd?: string | null;
   fechaLlegadaRealActual?: string | null;
   destinoDefault?: string | null;
   onClose: () => void;
@@ -26,6 +27,7 @@ export function TrackingNuevoEventoForm({
   embarqueId,
   modoTransporte,
   etaActual,
+  etd,
   fechaLlegadaRealActual,
   destinoDefault,
   onClose,
@@ -114,6 +116,7 @@ export function TrackingNuevoEventoForm({
   return (
     <MarcarLlegadaForm
       destinoDefault={destinoDefault ?? ""}
+      etd={etd}
       isPending={isPending}
       onCancel={() => setModo("menu")}
       onSubmit={({ fecha, ubicacion }) => guardar("llegada", fecha, ubicacion)}

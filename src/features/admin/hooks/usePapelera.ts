@@ -70,6 +70,10 @@ export function usePapelera(enabled: boolean) {
     isError: query.isError,
     refetch: query.refetch,
     counts: countsQuery.data ?? [],
+    countsLoading: countsQuery.isLoading,
+    countsError: countsQuery.isError,
+    countsFetching: countsQuery.isFetching,
+    refetchCounts: countsQuery.refetch,
     restore,
     purge,
   };

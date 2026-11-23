@@ -14,6 +14,7 @@ import { useOrgFilter } from "@/hooks/shared/useOrgFilter";
 export interface UseCxcAgingResult {
   data: CxcAgingRow[] | undefined;
   isLoading: boolean;
+  isFetching: boolean;
   isError: boolean;
   error: unknown;
   refetch: () => void;
@@ -57,6 +58,7 @@ export function useCxcAging(fecha?: string): UseCxcAgingResult {
   return {
     data: q.data,
     isLoading: q.isLoading,
+    isFetching: q.isFetching,
     isError: q.isError,
     error: q.error,
     refetch: q.refetch,

@@ -75,7 +75,7 @@ describe("EtapasPipelineEditor · borradores", () => {
     });
 
     // Muevo A hacia abajo (RPC de reordenar).
-    fireEvent.click(screen.getAllByLabelText("Bajar")[0]);
+    fireEvent.click(screen.getAllByLabelText(/^Bajar etapa /)[0]);
     expect(reordenarMutateAsync).toHaveBeenCalledWith({ etapaA: "e1", etapaB: "e2" });
 
     // Refetch con el orden ya intercambiado.

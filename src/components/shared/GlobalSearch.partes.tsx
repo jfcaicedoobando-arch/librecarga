@@ -5,6 +5,7 @@
 import { SearchX, History, Loader2 } from "lucide-react";
 import { CommandFooter, CommandGroup, CommandItem, CommandKey } from "@/components/ui/command";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Hint } from "@/components/shared/Hint";
 
 import type { GlobalSearchResult } from "@/hooks/shared";
@@ -61,21 +62,23 @@ export function GlobalSearchCargando() {
 
 interface GlobalSearchVacioProps {
   busquedaFallo: boolean;
+  onRetry?: () => void;
   enCrm?: boolean;
   atajoCrm?: string;
 }
 
 /** Estado vacío: distingue "sin resultados" de un fallo de red. */
-export function GlobalSearchVacio({ busquedaFallo, enCrm, atajoCrm }: GlobalSearchVacioProps) {
+export function GlobalSearchVacio({ busquedaFallo, onRetry, enCrm, atajoCrm }: GlobalSearchVacioProps) {
   return (
     <div className="flex flex-col items-center gap-2 py-4">
       <SearchX className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
       {busquedaFallo ? (
         <>
-          <p className="text-body font-medium text-foreground">No pudimos completar la búsqueda</p>
-          <p className="text-body-sm text-muted-foreground">
-            Revisa tu conexión y vuelve a escribir el término para reintentar.
-          </p>
+          <p role="alert" className="text-body font-medium text-foreground">No pudimos completar la búsqueda</p>
+          <Button type="button" variant="outline" size="sm" onClick={onRetry}
+            onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") event.stopPropagation(); }}>
+            Reintentar búsqueda
+          </Button>
         </>
       ) : (
         <>

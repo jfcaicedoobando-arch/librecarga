@@ -4,6 +4,8 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { DataTable, defineColumns } from "@/components/shared/DataTable";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { useDebounce } from "@/hooks/shared";
@@ -44,6 +46,13 @@ export function ListaObjetosCrm<T extends { id: string }>({ placeholder, rutaBas
     : columnas;
   const total = q.data?.total ?? 0;
   const paginas = Math.max(1, Math.ceil(total / OBJETOS_PAGE_SIZE));
+  const filtrado = Boolean(texto.trim()) || filtroEstado !== "todos" || letra !== "todas";
+  const limpiar = () => {
+    setTexto("");
+    setLetra("todas");
+    setPagina(0);
+    if (conPuntaje) void setEstado("todos");
+  };
 
   const tableColumns = defineColumns<T>(cols.map((c) => ({
     id: c.titulo, header: c.titulo, enableSorting: false,
@@ -63,12 +72,19 @@ export function ListaObjetosCrm<T extends { id: string }>({ placeholder, rutaBas
       </div>
       {conPuntaje && <FiltroEstadoEmpresaSelect value={estado} onChange={(v) => { setEstado(v); setPagina(0); }} />}
       {conPuntaje && <FiltroLetraSelect value={letra} onChange={(v) => { setLetra(v); setPagina(0); }} />}
+      {filtrado && total > 0 && <Button type="button" size="sm" variant="ghost" onClick={limpiar}>Limpiar filtros</Button>}
       </div>
       <div className="rounded-md border">
         <DataTable columns={tableColumns} data={q.data?.filas ?? []} rowKey={(f) => f.id}
           getRowHref={(f) => `${rutaBase}/${f.id}`} isLoading={q.isLoading} isError={q.isError}
           onRetry={() => void q.refetch()} density={TABLE_DENSITY.listado} sortMode="server"
-          emptyMessage="Sin resultados." pagination={{ page: pagina, totalPages: paginas,
+          emptyMessage={objeto === "empresa" ? "Aún no hay empresas registradas" : "Aún no hay contactos registrados"}
+          emptyState={filtrado ? (
+            <EmptyStateInline icon={Search} message="Sin coincidencias con estos filtros"
+              hint="Ajusta la búsqueda o limpia los filtros para ver el directorio."
+              action={{ label: "Limpiar filtros", onClick: limpiar }} />
+          ) : undefined}
+          pagination={{ page: pagina, totalPages: paginas,
             onPageChange: setPagina, pageSize: OBJETOS_PAGE_SIZE, total }} />
       </div>
     </div>

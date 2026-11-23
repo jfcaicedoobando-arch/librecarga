@@ -18,7 +18,7 @@ export function useCatalogoClavesSATController() {
   const { organizationId } = useOrgActiva();
   const qc = useQueryClient();
 
-  const { data: rows = [], isLoading } = useQuery<Row[]>({
+  const { data: rows = [], isLoading, isError, isFetching, refetch } = useQuery<Row[]>({
     queryKey: queryKeys.configuracion.catalogoClavesSat(organizationId),
     enabled: !!organizationId,
     // SAFE-CAST: el service devuelve el row canónico; Row local es un alias estructural del mismo shape.
@@ -67,5 +67,5 @@ export function useCatalogoClavesSATController() {
     onError: handleError,
   });
 
-  return { rows, isLoading, addMut, updateMut, deleteMut };
+  return { rows, isLoading, isError, isFetching, refetch, addMut, updateMut, deleteMut };
 }

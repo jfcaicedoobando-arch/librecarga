@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 
-const mocks = vi.hoisted(() => ({ timbrar: vi.fn(), cancelar: vi.fn(), tabla: {} as Record<string, (id: string) => void>, confirmar: null as null | ((motivo: string) => void) }));
+const mocks = vi.hoisted(() => ({ notas: vi.fn(), timbrar: vi.fn(), cancelar: vi.fn(), tabla: {} as Record<string, (id: string) => void>, confirmar: null as null | ((motivo: string) => void) }));
 vi.mock("@/features/facturacion/hooks", () => ({ usePagosFactura: () => ({ data: [] }) }));
-vi.mock("@/features/facturacion/hooks/useNotasCreditoDeFactura", () => ({ useNotasCreditoDeFactura: () => ({ data: [{ id: "nc1", facturapi_id: "PENDING:claim" }], isLoading: false }) }));
+vi.mock("@/features/facturacion/hooks/useNotasCreditoDeFactura", () => ({ useNotasCreditoDeFactura: mocks.notas }));
 vi.mock("@/features/facturacion/hooks/useNotaCreditoFacturapi", () => ({ useTimbrarNotaCredito: () => ({ mutate: mocks.timbrar }), useCancelarNotaCredito: () => ({ mutate: mocks.cancelar }) }));
 vi.mock("../FacturaNotasCreditoTable", () => ({ FacturaNotasCreditoTable: (p: Record<string, (id: string) => void>) => { mocks.tabla = p; return <p>NC histórica visible</p>; } }));
 vi.mock("../ClaimPendingBanner", () => ({ ClaimPendingBanner: ({ soloLectura }: { soloLectura: boolean }) => <p>{soloLectura ? "Claim en consulta" : "Claim recuperable"}</p> }));
@@ -16,7 +16,25 @@ import { FacturaNotasCreditoSeccion } from "../FacturaNotasCreditoSeccion";
 const props: ComponentProps<typeof FacturaNotasCreditoSeccion> = { facturaId: "f1", facturaNumero: "F-1", monedaFactura: "MXN", tipoCambioFactura: 1, saldoFactura: 100, uuidFacturaOriginal: "uuid", snapshotEmision: null, canEdit: true };
 
 describe("NC: cambio de elegibilidad con modal abierto", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.notas.mockReturnValue({ data: [{ id: "nc1", facturapi_id: "PENDING:claim" }], isLoading: false });
+  });
+
+  it("ofrece reintento ante error y conserva el vacío para una lectura exitosa", () => {
+    const refetch = vi.fn();
+    mocks.notas.mockReturnValue({ isError: true, isLoading: false, refetch });
+    const { rerender } = render(<FacturaNotasCreditoSeccion {...props} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("No se pudieron cargar las notas de crédito");
+    expect(screen.queryByText("Esta factura no tiene notas de crédito.")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(refetch).toHaveBeenCalledOnce();
+
+    mocks.notas.mockReturnValue({ data: [], isError: false, isLoading: false });
+    rerender(<FacturaNotasCreditoSeccion {...props} />);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText("Esta factura no tiene notas de crédito.")).toBeInTheDocument();
+  });
   it("retira crear/cancelar/email y bloquea mutaciones; mantiene historial y claim de lectura", () => {
     const { rerender } = render(<FacturaNotasCreditoSeccion {...props} />);
     fireEvent.click(screen.getByRole("button", { name: "Nueva" }));

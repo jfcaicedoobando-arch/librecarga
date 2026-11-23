@@ -35,6 +35,7 @@ beforeEach(() => { vi.clearAllMocks(); cobranza.mockReturnValue(query()); });
 describe("Aging CxC detalle y CSV a la fecha seleccionada", () => {
   it("clasifica las tres facturas en31–60 y exporta33/31/31 al04/11 aunque la consulta de cobranza use hoy", () => {
     render(<CxcAgingDrillDownDialog cliente={cliente} open onOpenChange={() => {}} cubetaInicial="d_31_60" fechaReferencia="2026-11-04" />);
+    expect(screen.getByText("Totales del cliente, todas las cubetas.")).toBeInTheDocument();
     expect(screen.getByText("A3:33")).toBeInTheDocument();
     expect(screen.getByText("A4:31")).toBeInTheDocument();
     expect(screen.getByText("A5:31")).toBeInTheDocument();

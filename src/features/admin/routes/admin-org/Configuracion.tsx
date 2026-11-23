@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
 import { Save, Building2, Receipt, Anchor, Wrench, Scale, ShoppingCart } from "lucide-react";
 import { useConfiguracionState, TabEmpresa, OrgInfoCard, TabFacturacion, TabCatalogos, TabOperaciones, TabCompras } from "@/features/configuracion";
 import { useAuth } from "@/lib/contexts/AuthContext";
@@ -11,6 +10,9 @@ import { PageContainer } from "@/components/shared/PageContainer";
 import { ListSkeleton } from "@/components/shared/states/ListSkeleton";
 import { AsyncBoundary } from "@/components/shared/states/AsyncBoundary";
 import { useDocumentTitle } from "@/hooks/shared";
+import { useTabsParam } from "@/hooks/shared/useTabsParam";
+
+const TABS_CONFIGURACION = ["empresa", "facturacion", "catalogos", "operaciones", "compras", "herramientas"] as const;
 
 
 function getSaveButtonLabel(isSaving: boolean): string {
@@ -22,7 +24,10 @@ export default function Configuracion() {
   const { s, set, isLoading, isError, refetch, isSaving, isDirty, handleSave } = useConfiguracionState();
   const { effectiveRole } = useAuth();
   const esContador = effectiveRole === "contador";
-  const [tab, setTab] = useState<string>(esContador ? "facturacion" : "empresa");
+  const { activeTab: tab, setActiveTab: setTab } = useTabsParam(
+    esContador ? ["facturacion"] : TABS_CONFIGURACION,
+    esContador ? "facturacion" : "empresa",
+  );
 
   // P1-1: antes un fallo dejaba el esqueleto para siempre. Ahora hay error + retry.
   if (isLoading || isError) {

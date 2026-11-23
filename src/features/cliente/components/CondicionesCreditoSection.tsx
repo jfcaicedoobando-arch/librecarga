@@ -78,8 +78,11 @@ export function CondicionesCreditoSection<T extends Value>({ form, setForm }: Pr
           value={limite.value}
           onChange={limite.onChange}
           onBlur={limite.onBlur}
-          placeholder="Vacío = sin límite" className="mt-1"
+          aria-describedby="cliente-limite-credito-ayuda" className="mt-1"
         />
+        <p id="cliente-limite-credito-ayuda" className="mt-1 text-body-sm text-muted-foreground">
+          Deja el campo vacío si el cliente no tiene límite.
+        </p>
       </div>
     </FormDialogSection>
   );

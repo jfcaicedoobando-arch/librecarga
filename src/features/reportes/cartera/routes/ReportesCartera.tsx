@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { DatePickerMx } from "@/components/ui/date-picker-mx";
+import { formatDate } from "@/lib/formatters";
 import { useDocumentTitle } from "@/hooks/shared";
 import { useDiaNegocio } from "@/hooks/shared/useDiaNegocio";
 import { leyendaTcCorte } from "@/features/reportes/cartera/domain/agingCartera";
@@ -77,17 +77,8 @@ export default function ReportesCartera() {
       <Card>
         <CardContent className="flex flex-wrap items-end gap-4 p-4">
           <div className="space-y-1">
-            <Label htmlFor="cartera-corte">Fecha de corte</Label>
-            <DatePickerMx
-              id="cartera-corte"
-              value={fechaCorte}
-              onChange={() => undefined}
-              disabled
-              className="w-40"
-            />
-            <p className="text-2xs text-muted-foreground">
-              Corte fijo al día de hoy: los saldos provienen de la cartera vigente.
-            </p>
+            <p className="text-body font-medium">Corte al {formatDate(fechaCorte)}</p>
+            <p className="text-body-sm text-muted-foreground">Los saldos provienen de la cartera vigente al día de hoy.</p>
           </div>
           <div className="min-w-[220px] flex-1 space-y-1">
             <Label htmlFor="cartera-buscar">Cliente, proveedor, folio o expediente</Label>

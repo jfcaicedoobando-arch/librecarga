@@ -5,18 +5,18 @@
  * v13.746.0: migrado de Popover a modal estándar (ver nota en
  * `QuickCreateLeadDialog.tsx`).
  */
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { OportunidadComboboxCrm } from "@/features/crm/components/comboboxes/EntidadComboboxCrm";
 import { DateTimePickerMx } from "@/components/ui/date-time-picker-mx";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
 import { FormDialogFooter } from "@/components/shared/FormDialogFooter";
 import { notifyError } from "@/lib/ui/appFeedback";
-import { useCrearActividad, useOportunidades, type CrmEntidadTipo } from "@/features/crm/hooks";
+import { useCrearActividad, type CrmEntidadTipo } from "@/features/crm/hooks";
 import { actividadDefaultFechaMx } from "@/features/crm/domain/actividadDefaultFecha";
 import { mxLocalToUtcIso } from "@/lib/date/mx";
 
@@ -42,13 +42,12 @@ function defaultFecha(): string {
 
 export default function QuickCreateActividadDialog({ open, onOpenChange, onCreated, onMore }: Props) {
   const fechaId = `qc-actividad-fecha-${useId()}`;
+  const oportunidadId = `qc-actividad-oportunidad-${useId()}`;
   const crear = useCrearActividad();
   const enviandoRef = useRef(false);
-  const { data: opsData } = useOportunidades({ pageSize: 100 });
   const [asunto, setAsunto] = useState("");
   const [fecha, setFecha] = useState(defaultFecha());
   const [entidadId, setEntidadId] = useState<string>("");
-  const ops = useMemo(() => opsData?.data ?? [], [opsData]);
   // Fecha inicial de ESTA apertura: sirve de referencia para saber si el
   // usuario capturó algo (isDirty) sin considerar el default como captura.
   const [fechaInicial, setFechaInicial] = useState(fecha);
@@ -162,14 +161,8 @@ export default function QuickCreateActividadDialog({ open, onOpenChange, onCreat
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="qc-actividad-oportunidad">Oportunidad *</Label>
-            <Select value={entidadId} onValueChange={setEntidadId}>
-              <SelectTrigger id="qc-actividad-oportunidad"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
-              <SelectContent>
-                {ops.map((o) => (<SelectItem key={o.id} value={o.id}>{o.nombre}</SelectItem>))}
-                {ops.length === 0 && <div className="p-2 text-body-sm text-muted-foreground">Sin oportunidades</div>}
-              </SelectContent>
-            </Select>
+            <Label htmlFor={oportunidadId}>Oportunidad *</Label>
+            <OportunidadComboboxCrm id={oportunidadId} ariaLabel="Oportunidad" value={entidadId} onChange={setEntidadId} />
           </div>
           <div className="space-y-1">
             <Label htmlFor={fechaId}>Fecha</Label>

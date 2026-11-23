@@ -24,7 +24,10 @@ async function bytes(id: string, tipo: "pdf" | "xml") {
   return await blob.arrayBuffer();
 }
 
-export function NotasCreditoZipButton({ notas }: { notas: ReadonlyArray<NotaZip> }) {
+export function NotasCreditoZipButton({ notas, alcance }: {
+  notas: ReadonlyArray<NotaZip>;
+  alcance: "seleccionadas" | "filtradas";
+}) {
   const [progreso, setProgreso] = useState<{ hechas: number; total: number } | null>(null);
   const descargables = notas.filter((n) => ESTADOS_NC_CON_CFDI.has(n.estado));
 
@@ -78,7 +81,7 @@ export function NotasCreditoZipButton({ notas }: { notas: ReadonlyArray<NotaZip>
       onClick={descargar}
     >
       {!progreso && <Download className="size-4 mr-1" />}
-      {progreso ? `Descargando ${progreso.hechas}/${progreso.total}…` : `Descargar ZIP (${descargables.length})`}
+      {progreso ? `Descargando ${progreso.hechas}/${progreso.total}…` : `Descargar ZIP de ${alcance} (${descargables.length})`}
     </Button>
   );
 }

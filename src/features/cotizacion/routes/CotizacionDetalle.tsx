@@ -52,7 +52,8 @@ export default function CotizacionDetalle() {
   const { isExporting, run } = usePdfExport({ method: "EXPORTAR_PDF_COTIZACION" });
 
   const [enviarOpen, setEnviarOpen] = useState(false);
-  const { data: envios = [] } = useHistorialEnviosCotizacion(cotizacion?.id);
+  const historial = useHistorialEnviosCotizacion(cotizacion?.id);
+  const envios = historial.data ?? [];
 
   useRegisterBreadcrumbLabel(id, cotizacion?.folio);
   // B5 — sin esto la pestaña conservaba el título del landing público.
@@ -120,7 +121,13 @@ export default function CotizacionDetalle() {
               canEdit={canEdit}
               effectiveRole={effectiveRole as AppRole | null}
               embarquesVinculados={embarquesVinculados}
-              envios={envios}
+              historialEnvios={{
+                envios,
+                isLoading: historial.isLoading,
+                isError: historial.isError,
+                isFetching: historial.isFetching,
+                onRetry: () => void historial.refetch(),
+              }}
               totales={{
                 tasaIva, conceptosVentaUSD, conceptosVentaMXN,
                 totalUSD, subtotalUSD, ivaUSD, subtotalMXN, ivaMXN, totalMXN, conceptosDescartados,

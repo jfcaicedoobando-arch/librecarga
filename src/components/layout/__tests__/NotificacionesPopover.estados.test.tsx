@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +8,24 @@ const { useNotificacionesInternas } = vi.hoisted(() => ({ useNotificacionesInter
 vi.mock("@/features/notificaciones/hooks/useNotificacionesInternas", () => ({ useNotificacionesInternas }));
 
 describe("NotificacionesPopover", () => {
+  it("nombra el panel y no coloca el foco inicial en el marcado masivo", async () => {
+    const marcarTodasLeidas = vi.fn();
+    useNotificacionesInternas.mockReturnValue({
+      notificaciones: [], noLeidas: 1, isSuccess: true, isError: false, marcarTodasLeidas,
+    });
+    render(
+      <MemoryRouter>
+        <TooltipProvider><NotificacionesPopover /></TooltipProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Notificaciones, 1 sin leer" }));
+    const panel = screen.getByRole("dialog", { name: "Notificaciones" });
+    const marcar = screen.getByRole("button", { name: "Marcar todas como leídas" });
+    await waitFor(() => expect(panel).toContainElement(document.activeElement as HTMLElement));
+    expect(marcar).not.toHaveFocus();
+    expect(marcarTodasLeidas).not.toHaveBeenCalled();
+  });
+
   it("distingue entre carga, error y una bandeja vacía confirmada", () => {
     const refetch = vi.fn();
     const base = { notificaciones: [], noLeidas: 0, refetch };

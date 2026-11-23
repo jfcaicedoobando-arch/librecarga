@@ -107,7 +107,7 @@ export function EstadoCuentaToolbar({
         <div className="min-w-[150px]">
           <p className="text-body-sm text-muted-foreground mb-1">Tipo</p>
           <Select value={tipo} onValueChange={(v) => onTipoChange(v as TipoMovimientoEstadoCuenta)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Tipo de movimiento"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               <SelectItem value="entradas">Solo entradas</SelectItem>

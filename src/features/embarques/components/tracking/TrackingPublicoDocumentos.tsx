@@ -34,7 +34,8 @@ function Fila({ doc }: { doc: TrackingPublicoDocumento }) {
 
 export function TrackingPublicoDocumentos({ documentos }: Props) {
   const recibidos = documentos.filter((d) => d.recibido);
-  const faltantes = documentos.filter((d) => !d.recibido);
+  const requeridos = documentos.filter((d) => !d.recibido && d.requerido);
+  const opcionales = documentos.filter((d) => !d.recibido && !d.requerido);
 
   return (
     <Card>
@@ -68,17 +69,17 @@ export function TrackingPublicoDocumentos({ documentos }: Props) {
 
             <div>
               <p className="text-body-sm font-medium uppercase tracking-wide text-muted-foreground mb-1">
-                Faltantes ({faltantes.length})
+                Requeridos por entregar ({requeridos.length})
               </p>
-              {faltantes.length === 0 ? (
+              {requeridos.length === 0 ? (
                 <EmptyStateInline
                   icon={CircleDashed}
-                  message="Tenemos completo el expediente de esta etapa."
+                  message="Todos los documentos requeridos de esta etapa están completos."
                   className="py-4"
                 />
               ) : (
                 <>
-                  <ul>{faltantes.map((d) => <Fila key={d.nombre} doc={d} />)}</ul>
+                  <ul>{requeridos.map((d) => <Fila key={d.nombre} doc={d} />)}</ul>
                   <p className="text-body-sm text-muted-foreground pt-2">
                     Envía los documentos faltantes a tu ejecutivo de cuenta para no retrasar el
                     despacho de tu carga.
@@ -86,6 +87,14 @@ export function TrackingPublicoDocumentos({ documentos }: Props) {
                 </>
               )}
             </div>
+            {opcionales.length > 0 && (
+              <div>
+                <p className="text-body-sm font-medium uppercase tracking-wide text-muted-foreground mb-1">
+                  Opcionales pendientes ({opcionales.length})
+                </p>
+                <ul>{opcionales.map((d) => <Fila key={d.nombre} doc={d} />)}</ul>
+              </div>
+            )}
           </>
         )}
       </CardContent>

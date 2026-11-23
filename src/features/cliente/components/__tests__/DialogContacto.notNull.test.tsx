@@ -73,3 +73,28 @@ describe("DialogContacto — columnas NOT NULL", () => {
     );
   });
 });
+
+describe("DialogContacto — salida protegida", () => {
+  it("conserva la captura al volver del aviso y usa el mismo aviso al cancelar", () => {
+    const onOpenChange = vi.fn();
+    const onSave = vi.fn();
+    render(<DialogContacto open onOpenChange={onOpenChange} contacto={null} onSave={onSave} isSaving={false} />);
+    fireEvent.change(screen.getByLabelText(/Nombre/), { target: { value: "Exportador de prueba" } });
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(screen.getByRole("alertdialog", { name: "¿Descartar los cambios?" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Seguir capturando" }));
+    expect(screen.getByLabelText(/Nombre/)).toHaveValue("Exportador de prueba");
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Descartar" }));
+    expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("ignora Escape y deshabilita Cancelar durante el guardado", () => {
+    const onOpenChange = vi.fn();
+    render(<DialogContacto open onOpenChange={onOpenChange} contacto={null} onSave={vi.fn()} isSaving />);
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+});

@@ -25,8 +25,8 @@ vi.mock("@/features/crm/hooks", () => ({
 
 import EtapasPipelineEditor from "@/features/crm/components/EtapasPipelineEditor";
 
-const botonesSubir = () => screen.getAllByRole("button", { name: "Subir" });
-const botonesBajar = () => screen.getAllByRole("button", { name: "Bajar" });
+const botonesSubir = () => screen.getAllByRole("button", { name: /^Subir etapa / });
+const botonesBajar = () => screen.getAllByRole("button", { name: /^Bajar etapa / });
 
 describe("EtapasPipelineEditor · orden", () => {
   beforeEach(() => {

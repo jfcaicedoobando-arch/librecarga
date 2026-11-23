@@ -66,4 +66,27 @@ describe("explicación de llegada real y efectos existentes", () => {
     expect(fx.rpc).toHaveBeenCalledOnce();
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it("evita una llegada real antes de una ETD futura y muestra la referencia", () => {
+    render(<TooltipProvider><TrackingNuevoEventoForm embarqueId="emb-ficticio" etd="2099-01-01"
+      onClose={vi.fn()} /></TooltipProvider>, { wrapper: createWrapper() });
+    fireEvent.click(screen.getByRole("button", { name: /Registrar llegada real/ }));
+    expect(screen.getByText(/La salida estimada es futura/)).toBeVisible();
+    expect(screen.getByLabelText("Fecha de llegada real *")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Registrar llegada real" })).toBeDisabled();
+    expect(fx.rpc).not.toHaveBeenCalled();
+  });
+
+  it("nombra la nueva ETA y describe el error del motivo obligatorio", async () => {
+    render(<TooltipProvider><TrackingNuevoEventoForm embarqueId="emb-ficticio" onClose={vi.fn()} /></TooltipProvider>,
+      { wrapper: createWrapper() });
+    fireEvent.click(screen.getByRole("button", { name: /Actualizar ETA/ }));
+    expect(screen.getByRole("textbox", { name: "Nuevo ETA *" })).toBeVisible();
+    const motivo = screen.getByRole("textbox", { name: "Motivo o fuente (obligatorio)" });
+    expect(motivo).toBeRequired();
+    fireEvent.change(motivo, { target: { value: "ab" } });
+    await waitFor(() => expect(motivo).toHaveAccessibleDescription(/al menos 3 caracteres.*Indica la fuente/));
+    expect(screen.getByRole("button", { name: "Actualizar ETA" })).toBeDisabled();
+    expect(fx.rpc).not.toHaveBeenCalled();
+  });
 });

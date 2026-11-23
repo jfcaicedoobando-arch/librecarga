@@ -95,12 +95,13 @@ export function alcanceEstadoCuentaExport(
   };
 }
 
-/** Nombre de archivo: `estado-cuenta-<alias>-<desde>-<hasta>.<ext>`. */
+/** Identifica por separado la descarga de un subconjunto de movimientos. */
 export function nombreArchivoEstadoCuenta(
   alias: string,
   desde: string,
   hasta: string,
   ext: "csv" | "pdf",
+  filtrado = false,
 ): string {
   const slug = (alias || "cuenta")
     .normalize("NFD")
@@ -108,5 +109,5 @@ export function nombreArchivoEstadoCuenta(
     .replace(/[^a-zA-Z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .toLowerCase();
-  return `estado-cuenta-${slug}-${desde}-${hasta}.${ext}`;
+  return `estado-cuenta-${slug}-${desde}-${hasta}${filtrado ? "-filtrado" : ""}.${ext}`;
 }

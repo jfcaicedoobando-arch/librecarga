@@ -10,8 +10,8 @@ import { BandejaPorFacturar } from "../BandejaPorFacturar";
 import { BandejaProformasListas } from "../BandejaProformasListas";
 
 const state = vi.hoisted(() => ({
-  empty: false, loading: false, error: false, mobile: false,
-  refetch: vi.fn(), setMoneda: vi.fn(),
+  empty: false, loading: false, error: false, mobile: false, ventaUsd: 100, ventaMxn: 0,
+  refetch: vi.fn(), setMoneda: vi.fn(), exportarHueco: vi.fn(),
 }));
 const agingRow = {
   cliente_id: "cliente-ficticio", proveedor_id: "proveedor-ficticio",
@@ -35,8 +35,8 @@ vi.mock("@/lib/date/today", () => ({ todayLocalISO: () => "2026-11-02" }));
 vi.mock("@/hooks/shared", () => ({ useIsMobile: () => state.mobile, useCargaExpirada: () => false }));
 vi.mock("@/features/facturacion/hooks", () => ({
   useHuecoFacturacion: () => ({
-    ...queryState(), totalEmbarques: state.empty ? 0 : 1, totalUsd: 100, totalMxn: 0, exportarCsv: vi.fn(),
-    filas: state.empty ? [] : [{ embarque_id: "embarque-ficticio", expediente: "EXP-PRUEBA", cliente_nombre: "Cliente de prueba", operador: "", eta: "2026-11-02", diasDesdeEta: 0, ventaUsd: 100, ventaMxn: 0 }],
+    ...queryState(), totalEmbarques: state.empty ? 0 : 1, totalUsd: 100, totalMxn: 0, exportarCsv: state.exportarHueco,
+    filas: state.empty ? [] : [{ embarque_id: "embarque-ficticio", expediente: "EXP-PRUEBA", cliente_nombre: "Cliente de prueba", operador: "", eta: "2026-11-02", diasDesdeEta: 0, ventaUsd: state.ventaUsd, ventaMxn: state.ventaMxn }],
   }),
 }));
 vi.mock("@/features/facturacion/hooks/useProformasListas", () => ({
@@ -58,7 +58,26 @@ function wrapper(params = "") {
 }
 beforeEach(() => {
   vi.clearAllMocks();
-  Object.assign(state, { empty: false, loading: false, error: false, mobile: false });
+  Object.assign(state, { empty: false, loading: false, error: false, mobile: false, ventaUsd: 100, ventaMxn: 0 });
+});
+
+it("exporta el conjunto filtrado de embarques sin factura y bloquea el filtro sin coincidencias", async () => {
+  render(<BandejaPorFacturar />, { wrapper: wrapper("?q=EXP-PRUEBA") });
+  const exportar = screen.getByRole("button", { name: "CSV de resultados filtrados" });
+
+  fireEvent.click(exportar);
+  expect(state.exportarHueco).toHaveBeenCalledWith([expect.objectContaining({ embarque_id: "embarque-ficticio" })]);
+  fireEvent.change(screen.getByRole("searchbox"), { target: { value: "sin-coincidencias" } });
+  await waitFor(() => expect(exportar).toBeDisabled());
+  fireEvent.click(exportar);
+  expect(state.exportarHueco).toHaveBeenCalledOnce();
+});
+
+it("muestra ventas en MXN y distingue ETA de hoy en la tarjeta móvil", () => {
+  Object.assign(state, { mobile: true, ventaUsd: 0, ventaMxn: 500 });
+  render(<BandejaPorFacturar />, { wrapper: wrapper() });
+  expect(screen.getByText("ETA hoy")).toBeInTheDocument();
+  expect(screen.getByText("MXN 500.00")).toBeInTheDocument();
 });
 
 describe.each([false, true])("vacíos financieros, móvil=%s", (mobile) => {

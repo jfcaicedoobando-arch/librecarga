@@ -10,6 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { listarEntidadesCargo, guardarCargo, type CargoTarifario, type TipoCargo } from "./cargosService";
 import { ConceptoNavieraSelect } from "./ConceptoNavieraSelect";
 
@@ -34,7 +36,9 @@ function valoresIniciales(tipo: TipoCargo, cargo: CargoTarifario | null) {
 }
 
 export function CargoFormDialog({ tipo, orgId, cargo, onClose, onSaved }: Props) {
-  const { data: entidades = [] } = useQuery({ queryKey: costeo.tarifario.entidades(tipo), queryFn: () => listarEntidadesCargo(tipo) });
+  const catalogo = useQuery({ queryKey: costeo.tarifario.entidades(tipo), queryFn: () => listarEntidadesCargo(tipo) });
+  const entidades = catalogo.data ?? [];
+  const sinOpciones = entidades.length === 0;
   const ini = valoresIniciales(tipo, cargo);
   const [entidad, setEntidad] = useState(ini.entidad);
   const [concepto, setConcepto] = useState(ini.concepto);
@@ -73,14 +77,16 @@ export function CargoFormDialog({ tipo, orgId, cargo, onClose, onSaved }: Props)
   return (
     <FormDialogShell open onOpenChange={(o) => { if (!o) onClose(); }} icon={Receipt} busy={busy}
       title={cargo ? "Editar cargo" : "Nuevo cargo"}
-      footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={() => void guardar()} disabled={busy}>Guardar</Button></>}>
+      footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={() => void guardar()} disabled={busy || (sinOpciones && !entidad)}>Guardar</Button></>}>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="space-y-1 md:col-span-2">
           <Label>{tipo === "fob" ? "Agente" : "Naviera"}</Label>
-          <Select value={entidad} onValueChange={setEntidad}>
+          <Select value={entidad} onValueChange={setEntidad} disabled={sinOpciones || busy}>
             <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
             <SelectContent>{entidades.map((e) => <SelectItem key={e.id} value={e.id}>{e.nombre}</SelectItem>)}</SelectContent>
           </Select>
+          <EstadoCatalogoCargo tipo={tipo} cargando={catalogo.isLoading} sinOpciones={sinOpciones}
+            error={catalogo.isError} reintentando={catalogo.isFetching} onRetry={() => void catalogo.refetch()} />
         </div>
         {tipo === "fob"
           ? <div className="space-y-1 md:col-span-2"><Label htmlFor="cargo-concepto">Concepto</Label><Input id="cargo-concepto" value={concepto} onChange={(e) => setConcepto(e.target.value)} /></div>
@@ -116,4 +122,27 @@ export function CargoFormDialog({ tipo, orgId, cargo, onClose, onSaved }: Props)
       </div>
     </FormDialogShell>
   );
+}
+
+function EstadoCatalogoCargo({ tipo, cargando, error, sinOpciones, reintentando, onRetry }: {
+  tipo: TipoCargo;
+  cargando: boolean;
+  error: boolean;
+  sinOpciones: boolean;
+  reintentando: boolean;
+  onRetry: () => void;
+}) {
+  if (cargando) {
+    return <div role="status"><EmptyStateInline loading density="compact" message="Cargando opciones del catálogo…" /></div>;
+  }
+  if (error) {
+    return <ErrorStateInline message="No se pudo consultar el catálogo del cargo." onRetry={onRetry} retrying={reintentando} />;
+  }
+  if (!sinOpciones) return null;
+
+  const esFob = tipo === "fob";
+  return <EmptyStateInline density="compact"
+    message={esFob ? "No hay agentes activos." : "No hay navieras activas."}
+    hint={esFob ? "Da de alta un agente en Costeo › Agentes." : "Da de alta una naviera en Costeo › Condiciones por naviera."}
+  />;
 }

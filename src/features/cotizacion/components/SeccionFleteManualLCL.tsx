@@ -18,6 +18,8 @@ import { NumericInput } from "@/components/shared/NumericInput";
 import { FormField } from "@/components/shared/FormField";
 import { WizardSection } from "@/components/shared/WizardSection";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { useProveedoresLite } from "@/features/proveedor/hooks/useProveedores";
 import { formatCurrency, formatNumber } from "@/lib/formatters/numbers";
 import { useConfigValue } from "@/features/configuracion/hooks/useConfiguracion";
@@ -29,13 +31,44 @@ import {
 
 const OPTS = { shouldValidate: true, shouldDirty: true } as const;
 
+function SelectorConsolidadorLcl({ valor, onChange }: { valor: string; onChange: (id: string) => void }) {
+  const { data: proveedores = [], isLoading, isError, isFetching, refetch } = useProveedoresLite();
+  return (
+    <div className="space-y-2">
+      <FormField label="Consolidador / Agente LCL" required>
+        <Select value={valor} disabled={proveedores.length === 0} onValueChange={onChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecciona un proveedor…" />
+          </SelectTrigger>
+          <SelectContent>
+            {proveedores.map((p) => (
+              <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FormField>
+      {isLoading && <div role="status"><EmptyStateInline loading density="compact" message="Cargando proveedores…" /></div>}
+      {isError && (
+        <ErrorStateInline
+          title="No pudimos consultar los proveedores"
+          message="Reintenta para consultar los consolidadores disponibles."
+          onRetry={() => void refetch()}
+          retrying={isFetching}
+        />
+      )}
+      {!isLoading && !isError && proveedores.length === 0 && (
+        <EmptyStateInline density="compact" message="No hay proveedores disponibles." />
+      )}
+    </div>
+  );
+}
+
 interface Props {
   complete?: boolean;
 }
 
 export default function SeccionFleteManualLCL({ complete }: Props = {}) {
   const { watch, setValue } = useFormContext<CotizacionFormValues>();
-  const { data: proveedores = [] } = useProveedoresLite();
 
   const dimensionesLCL = watch("dimensionesLCL");
   const pesoKg = watch("pesoKg");
@@ -67,21 +100,8 @@ export default function SeccionFleteManualLCL({ complete }: Props = {}) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField label="Consolidador / Agente LCL" required>
-            <Select
-              value={manual?.consolidadorId ?? ""}
-              onValueChange={(v) => setField("consolidadorId", v || null)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un proveedor…" />
-              </SelectTrigger>
-              <SelectContent>
-                {proveedores.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
+          <SelectorConsolidadorLcl valor={manual?.consolidadorId ?? ""}
+            onChange={(v) => setField("consolidadorId", v || null)} />
 
           <FormField label="Días libres de almacenaje">
             <NumericInput

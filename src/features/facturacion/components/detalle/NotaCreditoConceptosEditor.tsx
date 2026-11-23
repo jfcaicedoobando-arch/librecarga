@@ -105,10 +105,12 @@ export function NotaCreditoConceptosEditor(props: Props) {
       </div>
       <div className="space-y-2">
         {conceptos.map((c, i) => (
-          <div key={i} className="grid grid-cols-12 gap-2 items-end border rounded-md p-2">
+          <fieldset key={i} className="grid min-w-0 grid-cols-12 gap-2 items-end border rounded-md p-2">
+            <legend className="px-1 text-body-sm font-medium">Concepto {i + 1}</legend>
             <div className="col-span-12 sm:col-span-5 space-y-1">
-              <Label size="sm">Descripción</Label>
+              <Label htmlFor={`nc-descripcion-${i}`} size="sm">Descripción</Label>
               <Input
+                id={`nc-descripcion-${i}`}
                 value={c.descripcion}
                 onChange={(e) => onUpdate(i, { descripcion: e.target.value })}
                 placeholder="Descripción del concepto"
@@ -116,8 +118,9 @@ export function NotaCreditoConceptosEditor(props: Props) {
               />
             </div>
             <div className="col-span-3 sm:col-span-2 space-y-1">
-              <Label size="sm">Cant.</Label>
+              <Label htmlFor={`nc-cantidad-${i}`} size="sm">Cant.</Label>
               <NumericInput
+                id={`nc-cantidad-${i}`}
                 aria-label="Cantidad"
                 decimals
                 value={c.cantidad || 0}
@@ -126,8 +129,9 @@ export function NotaCreditoConceptosEditor(props: Props) {
               />
             </div>
             <div className="col-span-5 sm:col-span-2 space-y-1">
-              <Label size="sm">P. Unitario</Label>
+              <Label htmlFor={`nc-precio-${i}`} size="sm">P. Unitario</Label>
               <NumericInput
+                id={`nc-precio-${i}`}
                 aria-label="Precio unitario"
                 decimals
                 value={c.precio_unitario || 0}
@@ -164,12 +168,12 @@ export function NotaCreditoConceptosEditor(props: Props) {
               <Button
                 type="button" variant="ghost" size="icon"
                 onClick={() => onRemove(i)} disabled={conceptos.length === 1}
-                aria-label="Eliminar concepto"
+                aria-label={`Eliminar concepto ${i + 1}`}
               >
                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
               </Button>
             </div>
-          </div>
+          </fieldset>
         ))}
       </div>
     </div>

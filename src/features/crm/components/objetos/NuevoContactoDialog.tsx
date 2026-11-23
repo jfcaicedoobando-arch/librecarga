@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { LoadingState } from "@/components/shared/states/LoadingState";
 import { useCrearContactoCrm } from "@/features/crm/hooks/useObjetosCrm";
 import { usePropiedadesCrm } from "@/features/crm/hooks/usePropiedadesCrm";
 import type { PropiedadCrm } from "@/features/crm/services/propiedadesCrm";
@@ -25,6 +27,19 @@ function contactoSucio(nombre: string, email: string, telefono: string, empresa:
 const FORM_ID = "nuevo-contacto-crm";
 const vacio = (v: ValorEntrada | undefined) => v == null || v === "" || (Array.isArray(v) && v.length === 0);
 
+function EstadoCamposContacto({ consulta }: { consulta: ReturnType<typeof usePropiedadesCrm> }) {
+  if (consulta.isPending) return <LoadingState label="Cargando campos adicionales…" minHeight="min-h-20" />;
+  if (!consulta.isError) return null;
+  return (
+    <ErrorStateInline
+      title="No pudimos consultar los campos adicionales"
+      message="Puedes reintentar sin perder los datos que ya capturaste."
+      onRetry={() => void consulta.refetch()}
+      retrying={consulta.isFetching}
+    />
+  );
+}
+
 interface Props { open: boolean; onOpenChange: (open: boolean) => void }
 
 export function NuevoContactoDialog({ open, onOpenChange }: Props) {
@@ -36,7 +51,8 @@ export function NuevoContactoDialog({ open, onOpenChange }: Props) {
   const [verMas, setVerMas] = useState(false);
   const [version, setVersion] = useState(0);
   const crear = useCrearContactoCrm();
-  const props = (usePropiedadesCrm("contacto").data ?? []).filter((p) => !p.archivada);
+  const propiedades = usePropiedadesCrm("contacto");
+  const props = (propiedades.data ?? []).filter((p) => !p.archivada);
   const listo = !!nombre.trim() && !!empresa && !crear.isPending;
 
   const cerrar = () => {
@@ -101,6 +117,7 @@ export function NuevoContactoDialog({ open, onOpenChange }: Props) {
           <Input id="obj-tel" type="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} maxLength={30} />
         </div>
       </FormDialogSection>
+      <EstadoCamposContacto consulta={propiedades} />
       {props.length > 0 && (
         <FormDialogSection cols={1} flat>
           <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => setVerMas((v) => !v)} aria-expanded={verMas}>

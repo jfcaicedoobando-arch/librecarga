@@ -6,6 +6,7 @@ import { Link } from "react-router";
 import { X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useRelacionCrm, useVinculoCrm, type Relacion } from "@/features/crm/hooks/useObjetosCrm";
 import type { TipoVinculo } from "@/features/crm/services/vinculosCrm";
 import { BuscadorObjetoCrm } from "./BuscadorObjetoCrm";
@@ -26,14 +27,14 @@ interface Props {
 }
 
 export function VinculosCard({ titulo, relacion, duenoId, rutaBase, edicion, canEdit }: Props) {
-  const { data = [], isLoading, isError } = useRelacionCrm(relacion, duenoId);
+  const { data = [], isLoading, isError, isFetching, refetch } = useRelacionCrm(relacion, duenoId);
   const vinculo = useVinculoCrm();
   const editable = canEdit && !!edicion;
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-body font-semibold">{titulo} ({data.length})</CardTitle>
+        <CardTitle className="text-body font-semibold">{titulo}{!isLoading && !isError && ` (${data.length})`}</CardTitle>
         {editable && (
           <BuscadorObjetoCrm
             objeto={edicion.objeto}
@@ -45,7 +46,14 @@ export function VinculosCard({ titulo, relacion, duenoId, rutaBase, edicion, can
       </CardHeader>
       <CardContent>
         {isLoading && <p className="text-body-sm text-muted-foreground">Cargando…</p>}
-        {isError && <p className="text-body-sm text-destructive">No se pudieron cargar los vínculos.</p>}
+        {isError && (
+          <ErrorStateInline
+            title="No pudimos consultar los vínculos"
+            message={data.length ? "Mostramos los últimos vínculos consultados." : "Reintenta para consultar los registros ligados."}
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+        )}
         {!isLoading && !isError && data.length === 0 && (
           <p className="text-body-sm text-muted-foreground">Sin registros ligados.</p>
         )}

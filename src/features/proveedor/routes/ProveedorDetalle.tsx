@@ -5,10 +5,12 @@ import { useRegisterBreadcrumbLabel } from "@/lib/contexts/BreadcrumbContext";
 import { useVolver } from "@/hooks/shared/useVolver";
 import { DetailSkeleton } from "@/components/shared/skeletons";
 import { formatNombreEntidad } from "@/lib/formatNombreEntidad";
+import { getErrorMessage } from "@/lib/errors";
 import EditarProveedorDialog from "@/features/proveedor/components/EditarProveedorDialog";
 import DoubleConfirmDeleteDialog from "@/components/shared/DoubleConfirmDeleteDialog";
 import { DetailNotFound } from "@/components/shared/DetailNotFound";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { useProveedorDetalleController } from "@/features/proveedor/hooks";
 import { ProveedorBrechaCard } from "../components/ProveedorBrechaCard";
 import { ProveedorDetalleHeader } from "../components/ProveedorDetalleHeader";
@@ -19,6 +21,10 @@ import { ProveedorAnticiposCard } from "@/features/anticipos-proveedor/component
 import { ProveedorDetalleTabs } from "./_sections/ProveedorDetalleTabs";
 import { esNacionalOrigen } from "@/features/proveedor/domain/documentosProveedor";
 
+function estadoDeOperaciones(cargando: boolean, conError: boolean) {
+  if (cargando) return "cargando";
+  return conError ? "error" : "listo";
+}
 
 export default function ProveedorDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -29,7 +35,7 @@ export default function ProveedorDetalle() {
     canEdit, isAdmin, editOpen, setEditOpen,
     deleteOpen, setDeleteOpen, handleUpdate, handleDelete,
     isErrorProveedor, errorProveedor, refetchProveedor,
-    isErrorEstadoCuenta, errorEstadoCuenta, refetchEstadoCuenta, isFetchingEstadoCuenta,
+    isLoadingEstadoCuenta, isErrorEstadoCuenta, errorEstadoCuenta, refetchEstadoCuenta, isFetchingEstadoCuenta,
   } = useProveedorDetalleController();
   useRegisterBreadcrumbLabel(id, proveedor?.nombre ? formatNombreEntidad(proveedor.nombre) : undefined);
 
@@ -69,6 +75,7 @@ export default function ProveedorDetalle() {
   }
 
   const nombreFmt = formatNombreEntidad(proveedor.nombre);
+  const estadoOperaciones = estadoDeOperaciones(isLoadingEstadoCuenta, isErrorEstadoCuenta);
   const rfcFmt = (proveedor.rfc || "").toUpperCase();
   // R3P-14: NULL = Nacional (fuente única: esNacionalOrigen).
   const esNacional = esNacionalOrigen(proveedor.origen_proveedor);
@@ -93,12 +100,12 @@ export default function ProveedorDetalle() {
         onUpdate={handleUpdate}
       />
 
-      {isErrorEstadoCuenta ? (
+      {estadoOperaciones === "cargando" ? (
+        <div role="status"><EmptyStateInline loading message="Cargando saldos y operaciones del proveedor…" /></div>
+      ) : estadoOperaciones === "error" ? (
         <ErrorStateInline
           title="No pudimos cargar las operaciones del proveedor"
-          message={errorEstadoCuenta instanceof Error
-            ? errorEstadoCuenta.message
-            : "Error desconocido al consultar la conciliación."}
+          message={getErrorMessage(errorEstadoCuenta)}
           onRetry={() => void refetchEstadoCuenta()}
           retrying={isFetchingEstadoCuenta}
         />
@@ -146,7 +153,7 @@ export default function ProveedorDetalle() {
         canEdit={canEdit}
       />
 
-      {!isErrorEstadoCuenta && (
+      {estadoOperaciones === "listo" && (
         <ProveedorBrechaCard brecha={brecha} huerfanas={huerfanas} proveedorId={proveedor.id} proveedorNombre={nombreFmt} />
       )}
 
@@ -158,6 +165,7 @@ export default function ProveedorDetalle() {
         esNacional={esNacional}
         partidas={partidas}
         partidasPendientes={brecha.partidasPendientes}
+        isLoadingEstadoCuenta={isLoadingEstadoCuenta}
         isErrorEstadoCuenta={isErrorEstadoCuenta}
         errorEstadoCuenta={errorEstadoCuenta}
         refetchEstadoCuenta={refetchEstadoCuenta}

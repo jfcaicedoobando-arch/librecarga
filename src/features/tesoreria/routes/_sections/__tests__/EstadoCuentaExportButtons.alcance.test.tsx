@@ -5,7 +5,8 @@ import type { EstadoCuentaBancarioDocument } from "@/pdf/documents/EstadoCuentaB
 import type { EstadoCuentaBancario, MovimientoEstadoCuenta } from "@/features/tesoreria/domain/estadoCuenta";
 import { EstadoCuentaExportButtons } from "../EstadoCuentaExportButtons";
 
-const mocks = vi.hoisted(() => ({ pdf: vi.fn().mockResolvedValue(undefined), emisor: vi.fn().mockResolvedValue({ organizacionNombre: "Comercial A" }) }));
+const mocks = vi.hoisted(() => ({ csv: vi.fn(), pdf: vi.fn().mockResolvedValue(undefined), emisor: vi.fn().mockResolvedValue({ organizacionNombre: "Comercial A" }) }));
+vi.mock("@/lib/downloadBlob", () => ({ descargarBlob: mocks.csv }));
 vi.mock("@/pdf/render/descargarPdf", () => ({ descargarPdf: mocks.pdf }));
 vi.mock("@/pdf/emisor", () => ({ cargarEmisorEntidad: mocks.emisor }));
 vi.mock("@/lib/ui/appFeedback", () => ({ notifySuccess: vi.fn(), notifyError: vi.fn() }));
@@ -14,6 +15,12 @@ const movimiento: MovimientoEstadoCuenta = { id: "A1", fecha: "2026-09-30", conc
 const estado: EstadoCuentaBancario = { cuenta_id: "fixture", alias: "Cuenta sintética", banco: "Banco", moneda: "MXN", desde: "2026-09-01", desde_solicitado: "2026-09-01", cobertura_historica: "completa", hasta: "2026-09-30", saldo_inicial: 1000, total_entradas: 116, total_salidas: 100, saldo_final: 1016, fecha_saldo_inicial: null, movimientos_previos_corte: 0, movimientos: [{ ...movimiento, id: "FP", cargo: 100, abono: 0, saldo_corrido: 900 }, movimiento] };
 
 describe("Descarga PDF - estado de cuenta filtrado", () => {
+  it("advierte el alcance y distingue el nombre del CSV filtrado", () => {
+    render(<EstadoCuentaExportButtons estado={estado} movimientos={[movimiento]} filtros={{ texto: "A1", tipo: "entradas" }} />);
+    expect(screen.getByText("Exportar movimientos filtrados (1)")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "CSV" }));
+    expect(mocks.csv).toHaveBeenCalledWith(expect.any(Blob), "estado-cuenta-cuenta-sintetica-2026-09-01-2026-09-30-filtrado.csv");
+  });
   it("entrega al documento filtro, ambos ámbitos y sólo los movimientos visibles", async () => {
     render(<EstadoCuentaExportButtons estado={estado} movimientos={[movimiento]} filtros={{ texto: "A1", tipo: "entradas" }} />);
     fireEvent.click(screen.getByRole("button", { name: "Exportar PDF" }));

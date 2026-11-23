@@ -1,8 +1,28 @@
 import { useState } from "react";
 import type { RefPago } from "@/features/tesoreria/domain/pagoDetalle";
 import type { MovimientoBBVA } from "@/features/tesoreria/services";
+import type { useCuentasBancarias } from "./useTesoreriaCuentas";
 
-export function useCuentaConciliacion(cuentaId: string) {
+type ConsultaCuentas = ReturnType<typeof useCuentasBancarias>;
+
+function resolverCuenta(consulta: ConsultaCuentas, solicitada: string) {
+  const cuentas = consulta.data ?? [];
+  const cuentasOcupadas = consulta.isLoading || consulta.isError;
+  const activa = cuentasOcupadas ? undefined : cuentas.find((cuenta) => cuenta.id === solicitada);
+  return {
+    cuentas,
+    cuentasOcupadas,
+    cuentaId: activa?.id ?? "",
+    moneda: activa?.moneda ?? "MXN",
+    alias: activa?.alias,
+    mensajeSinCuenta: solicitada ? "Esta cuenta ya no está disponible. Selecciona otra."
+      : "Selecciona una cuenta para empezar a conciliar.",
+  };
+}
+
+export function useCuentaConciliacion(consulta: ConsultaCuentas, cuentaSolicitada: string) {
+  const cuenta = resolverCuenta(consulta, cuentaSolicitada);
+  const { cuentaId } = cuenta;
   const [seleccion, setSeleccion] = useState<MovimientoBBVA | null>(null);
   const [refPago, setRefPago] = useState<RefPago | null>(null);
   const movimientoSeleccionado = seleccion?.cuenta_bancaria_id === cuentaId ? seleccion : null;
@@ -16,5 +36,5 @@ export function useCuentaConciliacion(cuentaId: string) {
 
   const cerrarMovimiento = () => setSeleccion((actual) => actual === movimientoSeleccionado ? null : actual);
 
-  return { movimientoSeleccionado, panelKey, seleccionarMovimiento, cerrarMovimiento, refPago, setRefPago };
+  return { cuenta, movimientoSeleccionado, panelKey, seleccionarMovimiento, cerrarMovimiento, refPago, setRefPago };
 }

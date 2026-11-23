@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, Download, Calendar, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Calendar, Info, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,11 +15,19 @@ import { proyeccionColumns } from "./proyeccionColumns";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { ProyeccionMobileCard } from "./ProyeccionMobileCard";
 import { getErrorMessage } from "@/lib/errors";
+import { KpiGridSkeleton } from "@/components/shared/skeletons";
 
 export function TabProyeccion() {
   const c = useTabProyeccionController();
   const k = c.kpis;
-  const filtrado = c.filtroCliente !== "todos" || c.filtroOperador !== "todos" || c.filtroEstado !== "todos";
+  const consultando = c.isLoading || c.isFetching;
+  const disponible = !consultando && !c.error;
+  const filtrosActivos = [
+    { valor: c.filtroCliente, nombre: "Cliente", quitar: () => c.setFiltroCliente("todos") },
+    { valor: c.filtroOperador, nombre: "Operador", quitar: () => c.setFiltroOperador("todos") },
+    { valor: c.filtroEstado, nombre: "Estado", quitar: () => c.setFiltroEstado("todos") },
+  ].filter(({ valor }) => valor !== "todos");
+  const filtrado = filtrosActivos.length > 0;
 
   return (
     <div className="space-y-4">
@@ -40,7 +49,7 @@ export function TabProyeccion() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Select value={c.mesActual.key} onValueChange={c.setMesKey}>
-              <SelectTrigger className="w-[200px] font-medium">
+              <SelectTrigger aria-label="Mes del reporte" className="w-[200px] font-medium">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -63,27 +72,33 @@ export function TabProyeccion() {
 
           <div className="flex-1" />
 
-          <div className="text-body-sm text-muted-foreground hidden md:block">
-            {filtrado ? `${k.totalExpedientes} de ${c.kpisGlobales.totalExpedientes}` : c.kpisGlobales.totalExpedientes} expedientes con ETA en {c.mesActual.label}
-            {filtrado ? " (filtros aplicados)" : ""}
-          </div>
+          {disponible && (
+            <div className="text-body-sm text-muted-foreground hidden md:block">
+              {filtrado ? `${k.totalExpedientes} de ${c.kpisGlobales.totalExpedientes}` : c.kpisGlobales.totalExpedientes} expedientes con ETA en {c.mesActual.label}
+              {filtrado ? " (filtros aplicados)" : ""}
+            </div>
+          )}
 
-          <Button variant="outline" onClick={c.exportarCsv} disabled={c.grupos.length === 0}>
+          <Button variant="outline" onClick={c.exportarCsv} disabled={!disponible || c.grupos.length === 0}>
             <Download className="h-4 w-4 mr-2" /> Exportar CSV
           </Button>
         </CardContent>
       </Card>
 
-      {c.error && (
+      {c.error ? (
         <ErrorStateInline
+          title="No se pudo cargar el cierre mensual"
           message={getErrorMessage(c.error)}
           onRetry={() => { void c.refetch(); }}
           retrying={c.isFetching}
         />
+      ) : consultando ? (
+        <div role="status" aria-label="Consultando el cierre mensual">
+          <KpiGridSkeleton count={3} heightClass="h-32" desktopCols={3} />
+        </div>
+      ) : (
+        <ProyeccionCierreSection k={k} mesLabel={c.mesActual.label} filtrado={filtrado} />
       )}
-
-      {/* Bloque "Cierre [Mes Año]" */}
-      <ProyeccionCierreSection k={k} mesLabel={c.mesActual.label} filtrado={filtrado} />
 
       {/* Nota de moneda */}
       <p className="text-body-sm text-muted-foreground flex items-center gap-1.5 px-1">
@@ -132,10 +147,25 @@ export function TabProyeccion() {
         </CardContent>
       </Card>
 
+      {filtrado && (
+        <div className="flex flex-wrap items-center gap-2">
+          {filtrosActivos.map(({ valor, nombre, quitar }) => (
+            <Badge key={nombre} variant="secondary" className="gap-1">
+              {nombre}: {valor}
+              <Button type="button" variant="ghost" size="icon" className="size-7"
+                aria-label={`Quitar filtro de ${nombre.toLowerCase()}`} onClick={quitar}>
+                <X className="size-3" aria-hidden />
+              </Button>
+            </Badge>
+          ))}
+          <Button type="button" variant="ghost" size="sm" onClick={c.limpiarFiltros}>Limpiar filtros</Button>
+        </div>
+      )}
+
       {/* Tabla de detalle */}
-      <Card>
+      {!c.error && <Card>
         <CardContent className="p-0">
-          {!c.isLoading && c.grupos.length === 0 ? (
+          {!consultando && c.grupos.length === 0 ? (
             <EmptyStateInline
               icon={Calendar}
               message={`Sin embarques con ETA en ${c.mesActual.label}`}
@@ -145,7 +175,7 @@ export function TabProyeccion() {
             <ResponsiveDataTable
               columns={proyeccionColumns}
               data={c.grupos}
-              isLoading={c.isLoading}
+              isLoading={consultando}
               rowKey={(g) => g.expediente}
               density={TABLE_DENSITY.listado}
               emptyMessage="Sin resultados con los filtros aplicados"
@@ -154,7 +184,7 @@ export function TabProyeccion() {
             />
           )}
         </CardContent>
-      </Card>
+      </Card>}
     </div>
   );
 }

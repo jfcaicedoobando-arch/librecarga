@@ -85,13 +85,13 @@ export function EtapasPipelineFila({
         <Campo label="Orden" className="w-auto">
           <div className="flex items-center gap-1 h-9">
             <Hint label="Subir">
-              <Button size="icon" variant="ghost" className={btnMover} onClick={() => onMover(-1)} aria-label="Subir" disabled={!puedeSubir || reordenando}>
+              <Button size="icon" variant="ghost" className={btnMover} onClick={() => onMover(-1)} aria-label={`Subir etapa ${d.nombre}`} disabled={!puedeSubir || reordenando}>
                 <ArrowUp className="size-3" />
               </Button>
             </Hint>
             <span className="text-body-sm text-muted-foreground w-6 text-center">{orden}</span>
             <Hint label="Bajar">
-              <Button size="icon" variant="ghost" className={btnMover} onClick={() => onMover(1)} aria-label="Bajar" disabled={!puedeBajar || reordenando}>
+              <Button size="icon" variant="ghost" className={btnMover} onClick={() => onMover(1)} aria-label={`Bajar etapa ${d.nombre}`} disabled={!puedeBajar || reordenando}>
                 <ArrowDown className="size-3" />
               </Button>
             </Hint>

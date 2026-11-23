@@ -14,7 +14,7 @@ export default function CierreMensual() {
     <PageContainer>
       <PageHeader
         title="Cierre mensual"
-        description="Proyección de facturación del mes en curso con base en ETA de embarques"
+        description="Proyección de facturación por mes seleccionado, con base en la ETA de los embarques"
       />
       <TabProyeccion />
     </PageContainer>
