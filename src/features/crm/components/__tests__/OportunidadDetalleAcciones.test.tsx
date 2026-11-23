@@ -22,7 +22,8 @@ describe("OportunidadDetalleAcciones", () => {
     expect(btn.disabled).toBe(true);
     fireEvent.click(btn);
     expect(crearCotizacion).not.toHaveBeenCalled();
-    expect(screen.getByText(/prospecto calificado del CRM/i)).toBeTruthy();
+    expect(screen.getByText(/prospecto calificado del CRM/i)).toBeVisible();
+    expect(btn).toHaveAccessibleDescription(/prospecto calificado del CRM/i);
   });
 
   it("con cliente el botón cotiza normalmente", () => {

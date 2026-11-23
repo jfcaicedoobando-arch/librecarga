@@ -39,10 +39,13 @@ interface Props {
   onNuevo?: (etapaId: string) => void;
   /** Permiso real de mover cada oportunidad entre etapas. */
   puedeArrastrar?: (op: CrmOportunidadRow) => boolean;
+  aceptaArrastre?: boolean;
 }
 
-export default function ColumnaEtapa({ etapa, ops, onClickCard, proximasMap, estadoProximas = "listo", avanceMap, onNuevo, puedeArrastrar }: Props) {
-  const { setNodeRef, isOver } = useDroppable({ id: etapa.id });
+export default function ColumnaEtapa({ etapa, ops, onClickCard, proximasMap, estadoProximas = "listo", avanceMap, onNuevo, puedeArrastrar, aceptaArrastre = true }: Props) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: etapa.id, disabled: !aceptaArrastre, data: { nombre: etapa.nombre },
+  });
   const [visibles, setVisibles] = useState(LIMITE_ETAPA_INICIAL);
   const totales = useMemo(() => totalesEtapa(ops), [ops]);
   const esCerrada = etapa.tipo === "ganada" || etapa.tipo === "perdida";
@@ -71,6 +74,8 @@ export default function ColumnaEtapa({ etapa, ops, onClickCard, proximasMap, est
           columna más llena del tablero (antes ~900px en móvil vacío). */}
       <div
         ref={setNodeRef}
+        role="group"
+        aria-label={`Oportunidades en ${etapa.nombre}`}
         className={`flex-1 p-2 space-y-2 min-h-40 transition-colors ${isOver ? "bg-primary/5" : ""}`}
       >
         {opsVisibles.map((op) => (

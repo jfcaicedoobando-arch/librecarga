@@ -3,10 +3,10 @@ import { expect, it, vi } from "vitest";
 import type { CrmOportunidadRow } from "@/features/crm/hooks";
 import OportunidadCard from "../OportunidadCard";
 
-const perfil = vi.hoisted(() => ({ x: 0, onRender: vi.fn() }));
+const perfil = vi.hoisted(() => ({ x: 0, onRender: vi.fn(), onPointerDown: vi.fn() }));
 vi.mock("@dnd-kit/core", () => ({
   useDraggable: () => ({
-    attributes: {}, listeners: {}, setNodeRef: () => undefined,
+    attributes: {}, listeners: { onPointerDown: perfil.onPointerDown }, setNodeRef: () => undefined,
     transform: perfil.x ? { x: perfil.x, y: 0 } : null,
     isDragging: perfil.x > 0,
   }),
@@ -41,6 +41,8 @@ it("actualiza el arrastre sin volver a renderizar el contenido de la tarjeta", (
   const tarjeta = () => <OportunidadCard op={op} onClick={onClick} esCerrada={false} />;
   const { container, rerender } = render(tarjeta());
   const card = container.firstElementChild as HTMLElement;
+  fireEvent.pointerDown(card);
+  expect(perfil.onPointerDown).toHaveBeenCalledOnce();
   for (let paso = 1; paso <= 20; paso += 1) {
     perfil.x = paso;
     rerender(tarjeta());

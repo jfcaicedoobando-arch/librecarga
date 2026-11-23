@@ -7,9 +7,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 const leadLineage = vi.fn();
+const oportunidadLineage = vi.fn();
 
 vi.mock("@/features/crm/hooks", () => ({
   useLeadLineage: (leadId: string) => leadLineage(leadId),
+  useOportunidadLineage: () => oportunidadLineage(),
 }));
 
 vi.mock("react-router", () => ({
@@ -18,13 +20,25 @@ vi.mock("react-router", () => ({
 }));
 
 vi.mock("@/components/shared/dataTable/DrilldownRow", () => ({
-  DrilldownRow: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DrilldownRow: ({ children, href, ariaLabel }: { children: React.ReactNode; href: string; ariaLabel: string }) => (
+    <a href={href} aria-label={ariaLabel}>{children}</a>
+  ),
 }));
 
-import { LeadLineageCard } from "@/features/crm/components/LineageCard";
+import { LeadLineageCard, OportunidadLineageCard } from "@/features/crm/components/LineageCard";
 
 beforeEach(() => {
   leadLineage.mockReset();
+  oportunidadLineage.mockReset();
+});
+
+it("el vínculo de la cotización abre el detalle de lectura", () => {
+  oportunidadLineage.mockReturnValue({
+    cots: [{ id: "cot-1", folio: "COT-1", estado: "Aceptada", modo: "Marítimo" }],
+    embs: [], lead: null, isLoadingCots: false,
+  });
+  render(<OportunidadLineageCard oportunidadId="op-1" leadId={null} />);
+  expect(screen.getByRole("link", { name: "Ver cotización COT-1" })).toHaveAttribute("href", "/cotizaciones/cot-1");
 });
 
 describe("LeadLineageCard — formato de fechas", () => {

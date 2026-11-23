@@ -16,6 +16,7 @@ import type { CostoCotizacion } from "@/features/cotizacion/hooks";
 import { useRegisterBreadcrumbLabel } from "@/lib/contexts/BreadcrumbContext";
 import { motivoBloqueoEdicionCotizacion } from "@/features/cotizacion/domain/estadosEditables";
 import { ErrorState } from "@/components/shared/states/ErrorState";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import EmptyState from "@/components/empty/EmptyState";
 import { Lock } from "lucide-react";
 
@@ -32,7 +33,10 @@ export default function EditarCotizacion() {
   const { data: clientes = [] } = useClientesForSelect();
   const { data: cotizacion, isLoading, isError, refetch } = useCotizacion(id);
   useRegisterBreadcrumbLabel(id, cotizacion?.folio);
-  const { data: costos, isLoading: costosLoading, refetch: refetchCostos } = useCotizacionCostos(id);
+  const {
+    data: costos, isLoading: costosLoading, isRefetchError: costosError,
+    isFetching: costosFetching, refetch: refetchCostos,
+  } = useCotizacionCostos(id);
 
   if (isLoading || costosLoading) {
     return <PageContainer><DetailSkeleton sections={1} /></PageContainer>;
@@ -78,14 +82,25 @@ export default function EditarCotizacion() {
   }
 
   return (
-    <EditarCotizacionForm
-      cotizacion={cotizacion}
-      costos={costos}
-      clientes={clientes}
-      navigate={navigate}
-      toast={toast}
-      userEmail={user?.email ?? ""}
-    />
+    <>
+      {costosError && (
+        <ErrorStateInline
+          title="No pudimos actualizar los costos"
+          message="Se conservan los últimos costos disponibles y tu captura. Reintenta la consulta."
+          onRetry={() => void refetchCostos()}
+          retrying={costosFetching}
+          className="m-4"
+        />
+      )}
+      <EditarCotizacionForm
+        cotizacion={cotizacion}
+        costos={costos}
+        clientes={clientes}
+        navigate={navigate}
+        toast={toast}
+        userEmail={user?.email ?? ""}
+      />
+    </>
   );
 }
 
