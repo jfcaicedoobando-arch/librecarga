@@ -6,7 +6,7 @@
  *  - Por viaje (FTL/Arrastre): flete base × número de viajes.
  * Aéreo usa peso tasable (real vs volumétrico 1:6000); terrestre, peso real.
  */
-import { fletePorPeso, pesoTasable, precioPorTramo, type TramoPeso } from "@/features/costeo/domain/tarifaPorPeso";
+import { escalonMasBarato, pesoTasable, precioPorTramo, type TramoPeso } from "@/features/costeo/domain/tarifaPorPeso";
 import { subtotalLinea } from "@/lib/financial/financialUtils";
 
 export interface TarifaMultimodoCosteo {
@@ -37,9 +37,11 @@ export function fleteMultimodo(
   }
   const kg = tarifa.modo === "Aéreo" ? pesoTasable(carga.pesoKg, carga.volumenM3) : Math.max(0, carga.pesoKg || 0);
   if (!(kg > 0)) return null;
-  const precio = precioPorTramo(tarifa.tramos, kg, tarifa.flete_base);
-  const importe = fletePorPeso(tarifa.tramos, kg, tarifa.flete_base, tarifa.minimo);
-  if (tarifa.minimo != null && importe === tarifa.minimo && importe > subtotalLinea(kg, precio)) {
+  const cobro = tarifa.modo === "Aéreo"
+    ? escalonMasBarato(tarifa.tramos, kg, tarifa.flete_base)
+    : { kgCobrados: kg, precio: precioPorTramo(tarifa.tramos, kg, tarifa.flete_base) };
+  const importe = subtotalLinea(cobro.kgCobrados, cobro.precio);
+  if (tarifa.minimo != null && tarifa.minimo > importe) {
     return { cantidad: 1, costo_unitario: tarifa.minimo, unidad: "embarque", cantidadRecargos: kg, unidadRecargos: "kg" };
   }
   if (!(cobro.precio > 0)) return null;
