@@ -168,9 +168,11 @@ export function CotizacionWizardSteps({ w, clientes, catalogoClientes, esMaritim
             totalUSD={w.totalUSD}
             totalMXN={w.totalMXN}
             esEdicion={w.isEditMode}
-            onEditarDatos={() => w.setCurrentStep(1)}
-            onEditarConceptos={() => w.setCurrentStep(3)}
-            edicionBloqueada={bloqueado}
+            accionesEdicion={{
+              editarDatos: () => w.setCurrentStep(1),
+              editarConceptos: () => w.setCurrentStep(3),
+              bloqueado,
+            }}
             resumenFiscal={resumenFiscal}
             />}
           </VistaFiscalCotizacion>

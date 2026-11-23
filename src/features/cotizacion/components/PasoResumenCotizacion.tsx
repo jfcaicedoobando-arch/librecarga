@@ -32,9 +32,11 @@ interface Props {
   totalUSD: number;
   totalMXN: number;
   resumenFiscal?: ReactNode;
-  onEditarDatos?: () => void;
-  onEditarConceptos?: () => void;
-  edicionBloqueada?: boolean;
+  accionesEdicion?: {
+    editarDatos: () => void;
+    editarConceptos: () => void;
+    bloqueado: boolean;
+  };
   /** Sólo cambia el texto del aviso final (crear borrador vs. guardar cambios). */
   esEdicion?: boolean;
 }
@@ -45,7 +47,7 @@ const DATO = (label: string, valor: string) => ({ label, valor });
 export default function PasoResumenCotizacion({
   plUSD, plMXN, tieneCostosUSD, tieneCostosMXN, conceptosVenta,
   nombreCliente, origen, destino, numContenedores, cargaLcl,
-  modo, incoterm, tipo, totalUSD, totalMXN, resumenFiscal, esEdicion = false, onEditarDatos, onEditarConceptos, edicionBloqueada,
+  modo, incoterm, tipo, totalUSD, totalMXN, resumenFiscal, esEdicion = false, accionesEdicion,
 }: Props) {
 
   // BL-COT-04: sólo el marítimo se mide en contenedores.
@@ -78,7 +80,7 @@ export default function PasoResumenCotizacion({
       />
 
       <WizardSection title="Datos de la operación" columns={3}
-        actions={onEditarDatos && <Button type="button" variant="outline" size="sm" disabled={edicionBloqueada} onClick={onEditarDatos}>Editar datos</Button>}>
+        actions={accionesEdicion && <Button type="button" variant="outline" size="sm" disabled={accionesEdicion.bloqueado} onClick={accionesEdicion.editarDatos}>Editar datos</Button>}>
         {datos.map((d) => (
           <div key={d.label}>
             <span className="text-body-sm text-muted-foreground">{d.label}</span>
@@ -88,7 +90,7 @@ export default function PasoResumenCotizacion({
       </WizardSection>
 
       <WizardSection title="Totales de la cotización"
-        actions={onEditarConceptos && <Button type="button" variant="outline" size="sm" disabled={edicionBloqueada} onClick={onEditarConceptos}>Editar conceptos</Button>}>
+        actions={accionesEdicion && <Button type="button" variant="outline" size="sm" disabled={accionesEdicion.bloqueado} onClick={accionesEdicion.editarConceptos}>Editar conceptos</Button>}>
         {resumenFiscal ?? (
         <div className="flex flex-col items-end gap-1">
           <span className="text-body font-semibold tabular-nums">

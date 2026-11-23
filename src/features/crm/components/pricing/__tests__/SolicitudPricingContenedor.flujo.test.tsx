@@ -98,7 +98,7 @@ describe("formulario → persistencia → coincidencias → selección", () => {
   it("una solicitud sin tipo guardado no ofrece seleccionar ninguna tarifa", async () => {
     render(<Flujo />, { wrapper });
     fireEvent.click(screen.getByRole("button", { name: "Guardar borrador de prueba" }));
-    await screen.findByText(/No hay tarifas vigentes/);
+    await screen.findByText(/No encontramos una tarifa vigente\. Envía la solicitud a Pricing/);
     expect(screen.queryByRole("button", { name: "Usar esta opción" })).toBeNull();
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
