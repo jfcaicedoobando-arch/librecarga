@@ -1,5 +1,7 @@
 /** Tarifas aéreas guardadas que coinciden con la ruta IATA de la solicitud (sólo consulta). */
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
@@ -10,7 +12,13 @@ import { hoyMx } from "@/lib/date/mx";
 import { iataDeEtiqueta, listarTarifasAereasSugeridas } from "@/features/crm/services/pricing/tarifasAereasSugeridas";
 import type { SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
 
-export function OpcionesTarifarioAereo({ solicitud: s }: { solicitud: SolicitudPricingRow }) {
+export function OpcionesTarifarioAereo({ solicitud: s, puedeCotizar }: { solicitud: SolicitudPricingRow; puedeCotizar: boolean }) {
+  const navigate = useNavigate();
+  const cotizar = (tarifaId: string) => {
+    const q = new URLSearchParams({ tarifaAerea: tarifaId, solicitud: s.id });
+    if (s.oportunidad_id) q.set("oportunidad", s.oportunidad_id);
+    navigate(`/cotizaciones/nueva?${q.toString()}`);
+  };
   const origen = iataDeEtiqueta(s.pol);
   const destino = iataDeEtiqueta(s.pod);
   const hoy = hoyMx();
@@ -42,6 +50,11 @@ export function OpcionesTarifarioAereo({ solicitud: s }: { solicitud: SolicitudP
             <div className="md:col-span-1"><span className="text-muted-foreground">Rangos: </span>
               {t.tramos.length === 0 ? "—" : t.tramos.map((r) => `+${r.desde_kg}: ${formatCurrency(r.precio, t.moneda)}`).join(" · ")}</div>
             <div><span className="text-muted-foreground">Vigencia hasta: </span>{formatDate(t.vigente_hasta)}</div>
+            {puedeCotizar && (
+              <div className="md:col-span-4">
+                <Button size="sm" onClick={() => cotizar(t.id)}>Cotizar con esta tarifa</Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       ))}

@@ -72,6 +72,7 @@ const prefillArgs: Record<string, unknown>[] = [];
 const pricingPrefillArgs: Record<string, unknown>[] = [];
 const pricingPrefillState: ReturnType<typeof import("@/features/cotizacion/hooks/wizard/usePrefillContextoPricing").usePrefillContextoPricing> = { estado: "inactivo", isLoading: false };
 vi.mock("@/features/cotizacion/hooks/wizard/usePrefillContextoPricing", () => ({ usePrefillContextoPricing: (args: Record<string, unknown>) => { pricingPrefillArgs.push(args); return pricingPrefillState; } }));
+vi.mock("@/features/cotizacion/hooks/wizard/usePrefillTarifaAerea", () => ({ usePrefillTarifaAerea: () => undefined }));
 vi.mock("@/features/cotizacion/hooks/wizard/usePrefillProspectoOportunidad", () => ({
   usePrefillProspectoOportunidad: (args: Record<string, unknown>) => { prefillArgs.push(args); },
 }));
