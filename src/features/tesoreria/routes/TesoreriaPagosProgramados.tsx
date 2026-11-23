@@ -2,6 +2,7 @@ import { useDocumentTitle } from "@/hooks/shared/useDocumentTitle";
 import { useFiltroUrl } from "@/hooks/shared/useFiltroUrl";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { useOptimisticSearchParams } from "nuqs/adapters/react-router/v8";
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchPagosProgramables,
@@ -98,13 +99,14 @@ export default function TesoreriaPagosProgramados() {
   // CI-02: "Programar pago" / "Revisar aprobación" navegan a la factura de
   // Compras vía callback.
   const navigate = useNavigate();
-  const location = useLocation();
+  const { pathname } = useLocation();
+  const search = useOptimisticSearchParams().toString();
   const abrirFactura = useCallback(
     (f: FacturaProgramable) => navigate(
       `/compras/facturas/${f.id}?tab=fiscal${puedeEjecutarPago(f) && !f.fecha_programada_pago ? "#programacion-pago" : ""}`,
-      { state: { from: location.pathname + location.search } },
+      { state: { from: search ? `${pathname}?${search}` : pathname } },
     ),
-    [navigate, location.pathname, location.search],
+    [navigate, pathname, search],
   );
   const columns = useMemo(
     () => buildPagosProgramadosColumns(abrirDialogoPago, abrirFactura),

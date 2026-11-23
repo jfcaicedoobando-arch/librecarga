@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter, Route, Routes, useLocation, useParams } from "react-router";
+import { BrowserRouter, Route, Routes, useLocation, useParams } from "react-router";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v8";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DocumentoTabs } from "@/components/shared/documento/DocumentoTabs";
@@ -53,7 +53,8 @@ function RutaActual() {
 }
 function montar(url = "/tesoreria/pagos-programados?origen=revision") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(<QueryClientProvider client={client}><TooltipProvider><MemoryRouter initialEntries={[url]}>
+  window.history.replaceState({ idx: 0, key: "initial", usr: null }, "", url);
+  render(<QueryClientProvider client={client}><TooltipProvider><BrowserRouter>
     <NuqsAdapter>
       <RutaActual />
       <Routes>
@@ -61,7 +62,7 @@ function montar(url = "/tesoreria/pagos-programados?origen=revision") {
         <Route path="/compras/facturas/:id" element={<Destino />} />
       </Routes>
     </NuqsAdapter>
-  </MemoryRouter></TooltipProvider></QueryClientProvider>);
+  </BrowserRouter></TooltipProvider></QueryClientProvider>);
 }
 
 describe("56: Programar pago abre la fecha en datos fiscales y conserva el origen", () => {
@@ -114,7 +115,10 @@ describe("56: Programar pago abre la fecha en datos fiscales y conserva el orige
     expect(mostrar).toHaveTextContent("Todas las pendientes");
     fireEvent.keyDown(mostrar, { key: "ArrowDown" });
     fireEvent.keyDown(await screen.findByRole("option", { name: "Solo con pago programado" }), { key: "Enter" });
-    await waitFor(() => expect(screen.getByTestId("ruta")).toHaveTextContent("?origen=revision&mostrar=programadas"));
+    await waitFor(() => expect(window.location.search).toBe("?origen=revision&mostrar=programadas"));
     expect(screen.queryByRole("button", { name: "Programar pago" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Revisar aprobación" }));
+    const volver = screen.getByRole("link", { name: "Volver a Pagos programados" });
+    expect(volver).toHaveAttribute("href", "/tesoreria/pagos-programados?origen=revision&mostrar=programadas");
   });
 });
