@@ -30,8 +30,8 @@ export function buildCostosMultimodo(args: {
       costeo_tarifa_id: tarifa.id,
     });
   }
-  const qty = flete && flete.unidad !== "embarque" ? flete.cantidad : 1;
-  const unidad = flete && flete.unidad !== "embarque" ? flete.unidad : "embarque";
+  const qty = flete ? flete.cantidadRecargos : 1;
+  const unidad = flete ? flete.unidadRecargos : "embarque";
   filas.push(...filasDesdeRecargos({ recargos, tarifaId: tarifa.id, proveedor: tarifa.proveedor, qty, unidad, markup }));
   return filas;
 }
