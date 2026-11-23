@@ -18,7 +18,7 @@ import { toCSV } from "@/lib/io/csv";
 import { notifySuccess, notifyError } from "@/lib/ui/appFeedback";
 import { RANGO_INVERTIDO_MENSAJE } from "@/lib/ui/rangoFechasCopy";
 
-export const MONEDAS_FILTRO = ["todas", "MXN", "USD"] as const;
+export const MONEDAS_FILTRO = ["todas", "MXN", "USD", "EUR"] as const;
 export type MonedaFiltro = (typeof MONEDAS_FILTRO)[number];
 export const ESTADOS_FILTRO = ["todos", "Borrador", "Aprobada", "Aplicada", "Cancelada"] as const;
 export type EstadoFiltro = (typeof ESTADOS_FILTRO)[number] & ("todos" | NotaCreditoRow["estado"]);
@@ -59,6 +59,9 @@ export function useComprasNotasCreditoController() {
     .reduce((a, r) => a + r.monto, 0);
   const totalUsd = rows
     .filter((r) => r.moneda === "USD" && r.estado === "Aplicada")
+    .reduce((a, r) => a + r.monto, 0);
+  const totalEur = rows
+    .filter((r) => r.moneda === "EUR" && r.estado === "Aplicada")
     .reduce((a, r) => a + r.monto, 0);
 
   const handleExport = () => {
@@ -103,7 +106,7 @@ export function useComprasNotasCreditoController() {
     desde, setDesde, hasta, setHasta, errorRango,
     moneda, setMoneda, estado, setEstado, search, setSearch,
     rows, isLoading, isError, refetch,
-    totalMxn, totalUsd,
+    totalMxn, totalUsd, totalEur,
     handleExport,
   };
 }

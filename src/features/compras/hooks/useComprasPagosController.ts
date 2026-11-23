@@ -17,7 +17,7 @@ import { notifySuccess, notifyError } from "@/lib/ui/appFeedback";
 import { RANGO_INVERTIDO_MENSAJE } from "@/lib/ui/rangoFechasCopy";
 import { AJUSTE_NO_MONETARIO } from "../ajustePagoCopy";
 
-export const MONEDAS_FILTRO = ["todas", "MXN", "USD"] as const;
+export const MONEDAS_FILTRO = ["todas", "MXN", "USD", "EUR"] as const;
 export type MonedaFiltro = (typeof MONEDAS_FILTRO)[number];
 
 function firstOfMonth(): string {
@@ -60,6 +60,7 @@ export function useComprasPagosController() {
 
   const totalMxn = rows.filter((r) => r.moneda === "MXN" && !r.es_ajuste).reduce((a, r) => a + r.monto, 0);
   const totalUsd = rows.filter((r) => r.moneda === "USD" && !r.es_ajuste).reduce((a, r) => a + r.monto, 0);
+  const totalEur = rows.filter((r) => r.moneda === "EUR" && !r.es_ajuste).reduce((a, r) => a + r.monto, 0);
 
   const handleExport = () => {
     if (errorRango) return;
@@ -99,7 +100,7 @@ export function useComprasPagosController() {
     desde, setDesde, hasta, setHasta, errorRango,
     moneda, setMoneda, metodoPago, setMetodoPago, search, setSearch,
     rows, isLoading, isError, refetch,
-    metodosDisponibles, totalMxn, totalUsd,
+    metodosDisponibles, totalMxn, totalUsd, totalEur,
     handleExport,
   };
 }

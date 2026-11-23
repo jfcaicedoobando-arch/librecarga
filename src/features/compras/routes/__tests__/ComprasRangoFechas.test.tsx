@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { createWrapper } from "@/test/utils/queryWrapper";
+import { formatCurrency } from "@/lib/formatters";
 import type { NotaCreditoRow } from "@/features/compras/services/notasCreditoGlobal";
 import type { PagoProveedorRow } from "@/features/compras/services/pagosGlobal";
 import ComprasNotasCredito from "../ComprasNotasCredito";
@@ -68,5 +69,45 @@ describe("Filtro Desde/Hasta de Compras", () => {
     expect(exportar).toBeEnabled();
     fireEvent.click(exportar);
     expect(mocks.descargar).toHaveBeenCalledOnce();
+  });
+});
+
+describe("Moneda de los listados globales de Compras", () => {
+  it.each([
+    {
+      nombre: "Pagos", Page: ComprasPagos, fetch: mocks.pagos, label: "Total pagado EUR",
+      rows: [pago, { ...pago, id: "pago-2", moneda: "EUR", monto: 13 }, { ...pago, id: "pago-3", moneda: "EUR", monto: 17 },
+        { ...pago, id: "pago-ajuste", moneda: "EUR", monto: 900, es_ajuste: true }],
+    },
+    {
+      nombre: "Notas de crédito", Page: ComprasNotasCredito, fetch: mocks.notas, label: "Aplicadas EUR",
+      rows: [nota, { ...nota, id: "nota-2", moneda: "EUR", monto: 13 }, { ...nota, id: "nota-3", moneda: "EUR", monto: 17 },
+        { ...nota, id: "nota-borrador", moneda: "EUR", monto: 900, estado: "Borrador" }],
+    },
+  ])("$nombre: suma sólo EUR aplicados y acepta el filtro EUR en la URL", async ({ Page, fetch, label, rows }) => {
+    vi.clearAllMocks();
+    fetch.mockImplementation(async ({ moneda }: { moneda?: string }) =>
+      moneda ? rows.filter((row) => row.moneda === moneda) : rows);
+    const onUrlUpdate = vi.fn();
+    render(
+      <MemoryRouter>
+        <NuqsTestingAdapter hasMemory searchParams="?desde=2026-10-01&hasta=2026-10-31" onUrlUpdate={onUrlUpdate}>
+          <Page />
+        </NuqsTestingAdapter>
+      </MemoryRouter>,
+      { wrapper: createWrapper() },
+    );
+
+    expect(await screen.findByText(formatCurrency(30, "EUR"))).toBeInTheDocument();
+    expect(screen.getByText(label)).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(expect.objectContaining({ moneda: undefined }), "org-test");
+
+    const moneda = screen.getByRole("combobox", { name: "Moneda" });
+    fireEvent.keyDown(moneda, { key: "ArrowDown" });
+    fireEvent.keyDown(await screen.findByRole("option", { name: "EUR" }), { key: "Enter" });
+    await waitFor(() => expect(fetch).toHaveBeenLastCalledWith(expect.objectContaining({ moneda: "EUR" }), "org-test"));
+    expect(moneda).toHaveTextContent("EUR");
+    expect(onUrlUpdate).toHaveBeenCalledWith(expect.objectContaining({ queryString: expect.stringContaining("moneda=EUR") }));
+    expect(await screen.findByText(formatCurrency(30, "EUR"))).toBeInTheDocument();
   });
 });

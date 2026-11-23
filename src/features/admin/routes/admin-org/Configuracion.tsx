@@ -17,8 +17,6 @@ function getSaveButtonLabel(isSaving: boolean): string {
   return isSaving ? "Guardando…" : "Guardar Cambios";
 }
 
-const TABS_CON_GUARDAR = new Set(["empresa", "facturacion"]);
-
 export default function Configuracion() {
   useDocumentTitle("Configuración");
   const { s, set, isLoading, isError, refetch, isSaving, isDirty, handleSave } = useConfiguracionState();
@@ -45,9 +43,7 @@ export default function Configuracion() {
   }
 
 
-  // Contadores sólo tienen visibilidad al catálogo de productos (pestaña Facturación).
-  // No necesitan botón "Guardar" porque el catálogo tiene su propio flujo por producto.
-  const mostrarGuardar = !esContador && TABS_CON_GUARDAR.has(tab);
+  const mostrarGuardar = !esContador && tab === "empresa";
 
   return (
     <PageContainer>

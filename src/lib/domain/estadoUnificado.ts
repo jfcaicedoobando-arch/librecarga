@@ -18,6 +18,8 @@
  *   4 cancelada   → documento histórico terminal, sin acciones pendientes
  */
 
+import { etiquetaProformaConvertida, type FacturaCicloLite } from "./etiquetaCicloProforma";
+
 export type EstadoUnificadoProforma =
   | "pendiente"
   | "aceptada"
@@ -96,4 +98,12 @@ export function etiquetaEstadoUnificado(p: ProformaEstadoInput): string {
       : "Aceptada";
   }
   return LABEL_ESTADO_UNIFICADO[estado];
+}
+
+export function etiquetaEstadoProformaListado(
+  proforma: ProformaEstadoInput & { facturas_asociadas?: FacturaCicloLite[] | null },
+): string {
+  return getEstadoUnificado(proforma) === "facturada"
+    ? etiquetaProformaConvertida(proforma.facturas_asociadas ?? [])
+    : etiquetaEstadoUnificado(proforma);
 }

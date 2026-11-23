@@ -121,8 +121,8 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Props
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={a.exportarFacturasCsv}>CSV de página actual</DropdownMenuItem>
-                <DropdownMenuItem onClick={a.exportarLayoutContable} title="Layout contable con RFC, subtotal, IVA y total">
+                <DropdownMenuItem disabled={f.rangoInvertido} onClick={a.exportarFacturasCsv}>CSV de página actual</DropdownMenuItem>
+                <DropdownMenuItem disabled={f.rangoInvertido} onClick={a.exportarLayoutContable} title="Layout contable con RFC, subtotal, IVA y total">
                   Layout de página actual
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setZipMesOpen(true)} title="Paquete PDF+XML de todos los CFDI del mes, generado por el PAC">
@@ -131,57 +131,69 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Props
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div className="text-body-sm text-muted-foreground">
-            {/* El conteo usa los mismos filtros que la página. */}
-            <strong className="text-foreground">{t.facturasFiltradas.length}</strong> filas visibles
-            {" · "}{t.totalFacturas} facturas con los filtros actuales
-          </div>
+          {f.rangoInvertido ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <p role="alert" className="text-body-sm text-destructive">
+                La fecha final de emisión es anterior a la inicial.
+              </p>
+              <Button variant="link" size="sm" onClick={f.limpiarRango}>Quitar rango de emisión</Button>
+            </div>
+          ) : (
+            <div className="text-body-sm text-muted-foreground">
+              <strong className="text-foreground">{t.facturasFiltradas.length}</strong> filas visibles
+              {" · "}{t.totalFacturas} facturas con los filtros actuales
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <FacturasMasivasToolbar
-        selectedIds={selection.selectedIds}
-        onClear={selection.clear}
-        onMarked={selection.remove}
-      />
-
-      <Card>
-        <CardContent className="p-0">
-          <ResponsiveDataTable
-            columns={columnsConSeleccion}
-            data={t.data}
-            isLoading={t.isLoading}
-            isError={t.isError}
-            onRetry={t.onRetry}
-            emptyMessage="No se encontraron facturas"
-            emptyState={
-              <EmptyState
-                icon={Receipt}
-                title={hayFiltros ? "No se encontraron facturas" : "Aún no hay facturas"}
-                description={hayFiltros ? "Ajusta los filtros o busca con otro término." : "Las facturas creadas desde embarques o proformas aparecerán aquí."}
-                primaryAction={hayFiltros ? { label: "Limpiar filtros", onClick: f.onClear } : canEmitirFactura && a.onCreateNew ? { label: "Nueva factura", onClick: a.onCreateNew } : undefined}
-              />
-            }
-            rowKey={(f) => f.id}
-            density={TABLE_DENSITY.listado}
-            getRowHref={(f) => `/facturacion/${f.id}`}
-            rowSelection={selection.rowSelection}
-            onRowSelectionChange={selection.onRowSelectionChange}
-            pagination={{
-              page: t.page,
-              totalPages: t.totalPages,
-              onPageChange: t.setPage,
-              pageSize: t.pageSize,
-              onPageSizeChange: (s) => { t.setPageSize(s); t.setPage(0); },
-              pageSizeOptions: [50, 100, 200, 500],
-              pageSizeLabels: { 500: "500" }, total: t.totalFacturas,
-            }}
-            mobileCard={(f) => <FacturaEmitidaMobileCard factura={f} />}
+      {!f.rangoInvertido && (
+        <>
+          <FacturasMasivasToolbar
+            selectedIds={selection.selectedIds}
+            onClear={selection.clear}
+            onMarked={selection.remove}
           />
-        </CardContent>
-      </Card>
 
-      <FacturasEmitidasFooter facturas={t.facturasFiltradas} />
+          <Card>
+            <CardContent className="p-0">
+              <ResponsiveDataTable
+                columns={columnsConSeleccion}
+                data={t.data}
+                isLoading={t.isLoading}
+                isError={t.isError}
+                onRetry={t.onRetry}
+                emptyMessage="No se encontraron facturas"
+                emptyState={
+                  <EmptyState
+                    icon={Receipt}
+                    title={hayFiltros ? "No se encontraron facturas" : "Aún no hay facturas"}
+                    description={hayFiltros ? "Ajusta los filtros o busca con otro término." : "Las facturas creadas desde embarques o proformas aparecerán aquí."}
+                    primaryAction={hayFiltros ? { label: "Limpiar filtros", onClick: f.onClear } : canEmitirFactura && a.onCreateNew ? { label: "Nueva factura", onClick: a.onCreateNew } : undefined}
+                  />
+                }
+                rowKey={(f) => f.id}
+                density={TABLE_DENSITY.listado}
+                getRowHref={(f) => `/facturacion/${f.id}`}
+                rowSelection={selection.rowSelection}
+                onRowSelectionChange={selection.onRowSelectionChange}
+                pagination={{
+                  page: t.page,
+                  totalPages: t.totalPages,
+                  onPageChange: t.setPage,
+                  pageSize: t.pageSize,
+                  onPageSizeChange: (s) => { t.setPageSize(s); t.setPage(0); },
+                  pageSizeOptions: [50, 100, 200, 500],
+                  pageSizeLabels: { 500: "500" }, total: t.totalFacturas,
+                }}
+                mobileCard={(f) => <FacturaEmitidaMobileCard factura={f} />}
+              />
+            </CardContent>
+          </Card>
+
+          <FacturasEmitidasFooter facturas={t.facturasFiltradas} />
+        </>
+      )}
 
       <DialogDescargarZipMes open={zipMesOpen} onOpenChange={setZipMesOpen} />
     </>

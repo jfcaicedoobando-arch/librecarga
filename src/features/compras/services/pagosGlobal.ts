@@ -37,7 +37,7 @@ export interface ListarPagosFiltros {
   hasta?: string;
   proveedorId?: string;
   metodoPago?: string;
-  moneda?: "MXN" | "USD";
+  moneda?: PagoProveedorRow["moneda"];
   search?: string;
 }
 

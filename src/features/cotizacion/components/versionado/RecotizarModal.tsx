@@ -35,26 +35,38 @@ export function RecotizarModal({
 
   const canSubmit = motivo.trim().length >= 5 && confirmacion === "RECOTIZAR";
 
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      setMotivo("");
+      setConfirmacion("");
+    }
+    onOpenChange(next);
+  };
+
   const handleSubmit = async () => {
-    if (!canSubmit) return;
-    await mut.mutateAsync({ cotizacionId, motivo });
-    onOpenChange(false);
-    setMotivo("");
-    setConfirmacion("");
+    if (!canSubmit || mut.isPending) return;
+    try {
+      await mut.mutateAsync({ cotizacionId, motivo });
+    } catch {
+      // El hook muestra el error. Conserva la captura para reintentar.
+      return;
+    }
+    handleOpenChange(false);
     onSuccess?.();
   };
 
   return (
     <FormDialogShell
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
+      busy={mut.isPending}
       icon={RefreshCw}
       title={`Re-cotizar (crear v${versionActual + 1})`}
       description={`La versión actual (v${versionActual}) quedará archivada como referencia histórica. El cliente deberá aceptar la nueva versión.`}
       size="2xl"
       footer={
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={mut.isPending}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={mut.isPending}>
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={!canSubmit || mut.isPending}>

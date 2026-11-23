@@ -22,11 +22,12 @@ interface Props {
   isPending: boolean;
   canSubmit: boolean;
   tipoInvalido: boolean;
+  vigenciaInvalida: "desde" | "hasta" | null;
   onSubmit: (e: React.FormEvent) => void;
 }
 
 export function NuevaTarifaDemoraDialog({
-  open, onOpenChange, form, setForm, tipos, isPending, canSubmit, tipoInvalido, onSubmit,
+  open, onOpenChange, form, setForm, tipos, isPending, canSubmit, tipoInvalido, vigenciaInvalida, onSubmit,
 }: Props) {
   return (
     <FormDialogShell
@@ -118,18 +119,22 @@ export function NuevaTarifaDemoraDialog({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="dem-vig-desde">{rangoLabel("Vigencia", "desde")}</Label>
+            <Label htmlFor="dem-vig-desde">{rangoLabel("Vigencia", "desde")} *</Label>
             <DatePickerMx
+              id="dem-vig-desde"
               value={form.vigente_desde}
               onChange={(v) => setForm({ ...form, vigente_desde: v })}
+              errorText={vigenciaInvalida === "desde" ? "Captura el inicio de la vigencia." : null}
               className="w-full"
             />
           </div>
           <div>
             <Label htmlFor="dem-vig-hasta">{rangoLabel("Vigencia", "hasta")}</Label>
             <DatePickerMx
+              id="dem-vig-hasta"
               value={form.vigente_hasta ?? ""}
               onChange={(v) => setForm({ ...form, vigente_hasta: v || null })}
+              errorText={vigenciaInvalida === "hasta" ? "El fin debe ser igual o posterior al inicio de la vigencia." : null}
               className="w-full"
             />
           </div>

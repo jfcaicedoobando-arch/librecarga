@@ -24,6 +24,8 @@ export interface FacturasEmitidasFiltros {
   setFechaDesde: (v: string) => void;
   fechaHasta: string;
   setFechaHasta: (v: string) => void;
+  rangoInvertido: boolean;
+  limpiarRango: () => void;
   clientes: ClienteOption[];
   loadingClientes?: boolean;
   errorClientes?: boolean;

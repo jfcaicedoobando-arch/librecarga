@@ -60,7 +60,7 @@ export default function Facturacion() {
   const { canEmitirFactura } = usePermissions();
   const [openFacturaManual, setOpenFacturaManual] = useState(false);
 
-  const { setRango, desdeIso, hastaIso } = useFacturacionDateRange();
+  const { setRango, limpiar: limpiarRango, desdeIso, hastaIso } = useFacturacionDateRange();
 
   const bandejaUrlRaw = searchParams.get("bandeja");
   const bandejaAliased = bandejaUrlRaw && BANDEJA_ALIASES[bandejaUrlRaw]
@@ -89,7 +89,7 @@ export default function Facturacion() {
     search, setSearch,
     filterEstado, filterCliente, setFilter,
     page, setPage, pageSize, setPageSize,
-    paginatedFacturas, facturasFiltradas, totalPages, totalCount,
+    paginatedFacturas, facturasFiltradas, totalPages, totalCount, rangoInvertido,
     loadingFacturas,
     errorFacturas,
     refetchFacturas,
@@ -141,6 +141,7 @@ export default function Facturacion() {
                 filterEstado, filterCliente, setFilter,
                 fechaDesde: desdeIso ?? "", setFechaDesde,
                 fechaHasta: hastaIso ?? "", setFechaHasta,
+                rangoInvertido, limpiarRango,
                 clientes: clientesDisponibles,
                 loadingClientes, errorClientes, onRetryClientes: refetchClientes,
                 onClear: clearFiltros,
