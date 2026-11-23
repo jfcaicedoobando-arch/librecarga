@@ -5,6 +5,8 @@ import type { TopTarifaRow } from "@/features/costeo/types";
 import { buildCostosDesdeTarifa } from "@/features/cotizacion/domain/buildCostosDesdeTarifa";
 import { reemplazarCostosAutoTarifa } from "@/features/cotizacion/domain/costosAutoGenerados";
 import { fetchTarifaVinculada } from "@/features/cotizacion/services/tarifaVinculada";
+import { buildCostosMultimodo } from "@/features/cotizacion/domain/buildCostosMultimodo";
+import { fetchTarifaMultimodoVinculada } from "@/features/cotizacion/services/tarifaMultimodoVinculada";
 import type { CotizacionFormValues, FilaCostoLocal } from "@/features/cotizacion/types";
 import { esIncotermSinFleteVenta } from "@/features/cotizacion/utils/incotermRules";
 import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
@@ -12,7 +14,7 @@ import { notifyError } from "@/lib/ui/appFeedback";
 
 export const CAMPOS_COSTO_TARIFA = [
   "tarifaId", "modo", "incoterm", "tipoEmbarque", "numContenedores",
-  "tipoContenedor", "puertoOrigenId", "puertoDestinoId",
+  "tipoContenedor", "puertoOrigenId", "puertoDestinoId", "pesoKg", "volumenM3",
 ] as const;
 
 type FaseCarga = "cargando" | "lista" | "error";
@@ -34,12 +36,15 @@ function firmaTarifa(captura: readonly unknown[], markup: number): string {
   return JSON.stringify([...captura, markup]);
 }
 
+const MODOS_CON_TARIFA = new Set<unknown>(["Marítimo", "Aéreo", "Terrestre"]);
+
 function capturarCosteoTarifa(getValues: Args["getValues"], seleccionada?: TopTarifaRow) {
   const valores = getValues(CAMPOS_COSTO_TARIFA);
   const [tarifaId, modo, incoterm, tipoEmbarque, numContenedores] = valores;
-  if (!tarifaId || modo !== "Marítimo" || esIncotermSinFleteVenta(incoterm, modo)) return null;
+  if (!tarifaId || !MODOS_CON_TARIFA.has(modo) || esIncotermSinFleteVenta(incoterm, modo)) return null;
   if (seleccionada && seleccionada.id !== tarifaId) return null;
-  return { valores, tarifaId, tipoEmbarque, cantidad: Math.max(1, Number(numContenedores) || 1) };
+  const carga = { pesoKg: Number(valores[8]) || 0, volumenM3: Number(valores[9]) || 0, viajes: Number(numContenedores) || 1 };
+  return { valores, tarifaId, modo, tipoEmbarque, carga, cantidad: Math.max(1, Number(numContenedores) || 1) };
 }
 
 /** Una instancia por wizard para selección, precarga y recálculo. */
@@ -61,7 +66,7 @@ export function useCargaCostosTarifa({ getValues, captura, markup, setFilas }: A
   const cargar = useCallback(async ({ seleccionada, soloSiVacio = false }: SolicitudCarga = {}) => {
     const seleccion = capturarCosteoTarifa(getValues, seleccionada);
     if (!seleccion) return;
-    const { valores, tarifaId, tipoEmbarque, cantidad } = seleccion;
+    const { valores, tarifaId, modo, tipoEmbarque, cantidad, carga } = seleccion;
     const markupCapturado = markupVigente.current;
     const solicitud = { firma: firmaTarifa(valores, markupCapturado) };
     if (soloSiVacio && solicitudVigente.current?.firma === solicitud.firma) return;
@@ -72,14 +77,16 @@ export function useCargaCostosTarifa({ getValues, captura, markup, setFilas }: A
     setEstado({ ...solicitud, fase: "cargando" });
 
     try {
-      const tarifa = seleccionada ?? await fetchTarifaVinculada(tarifaId);
+      // Aéreo/Terrestre: precio real de la tarifa (rangos de peso, mínimo o por viaje).
+      const multimodo = modo !== "Marítimo" ? await fetchTarifaMultimodoVinculada(tarifaId) : null;
+      const tarifa = multimodo ? null : seleccionada ?? await fetchTarifaVinculada(tarifaId);
       if (!vigente()) return;
-      if (!tarifa) throw new Error("La tarifa vinculada ya no está disponible.");
+      if (!multimodo && !tarifa) throw new Error("La tarifa vinculada ya no está disponible.");
       const recargos = await fetchRecargosDeTarifa(tarifaId);
       if (!vigente()) return;
-      const nuevas = buildCostosDesdeTarifa({
-        tarifa, recargos, markup: markupCapturado, cantidad, tipoEmbarque,
-      });
+      const nuevas = multimodo
+        ? buildCostosMultimodo({ tarifa: multimodo, recargos, markup: markupCapturado, carga })
+        : buildCostosDesdeTarifa({ tarifa: tarifa!, recargos, markup: markupCapturado, cantidad, tipoEmbarque, modo });
       if (nuevas.length > 0) {
         setFilas(prev => vigente() && (!soloSiVacio || prev.length === 0)
           ? reemplazarCostosAutoTarifa(prev, nuevas)

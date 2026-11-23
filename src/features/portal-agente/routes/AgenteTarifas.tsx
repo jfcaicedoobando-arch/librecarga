@@ -47,6 +47,7 @@ function recargosIniciales(
     monto: Number(r.monto),
     moneda: r.moneda ?? "USD",
     incluido_en_total: r.incluido_en_total ?? true,
+    base: r.base === "por_embarque" ? "por_embarque" : "por_unidad",
   }));
 }
 

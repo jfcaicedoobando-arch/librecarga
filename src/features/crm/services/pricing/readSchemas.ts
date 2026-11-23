@@ -20,5 +20,9 @@ export const tarifasRespuestaDbSchema = z.array(
       origen: puertoDbSchema,
       destino: puertoDbSchema,
     }).passthrough().nullable(),
+    recargos: z.array(z.object({
+      id: z.string(), concepto: z.string(), lado: z.string(), monto: z.number().finite(),
+      moneda: z.string(), base: z.string(),
+    }).passthrough()).optional(),
   }).passthrough(),
 );

@@ -78,6 +78,7 @@ type TarifaRow = {
     monto: number | string;
     moneda: string | null;
     incluido_en_total: boolean | null;
+    base?: string | null;
   }>;
 };
 
@@ -100,6 +101,7 @@ export function buildInitialFromTarifa(t: TarifaRow): Partial<TarifaInput> {
       monto: Number(r.monto),
       moneda: r.moneda ?? "USD",
       incluido_en_total: r.incluido_en_total ?? true,
+      base: r.base === "por_embarque" ? "por_embarque" : "por_unidad",
     })),
   };
 }

@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from "react";
 import { aNumero } from "@/features/crm/services/pricing/tiposPricing";
-import { CLASES_IMO, normalizarNumeroUN, pesoMedidaWM } from "@/features/crm/services/pricing/modoPricing";
+import { CLASES_IMO, faltantesCargaDetalle, normalizarNumeroUN, pesoMedidaWM } from "@/features/crm/services/pricing/modoPricing";
 import { CampoLista, CampoTexto } from "./CamposPricing";
 import type { DatosSolicitud } from "./SolicitudPricingCampos";
 
@@ -16,10 +16,19 @@ interface Props {
 
 export function CamposCargaDetalle({ datos, set, disabled }: Props) {
   const [un, setUn] = useState(datos.imo_un ?? "");
-  useEffect(() => { setUn(datos.imo_un ?? ""); }, [datos.imo_un]);
+  useEffect(() => {
+    if (datos.imo_un && normalizarNumeroUN(un) !== datos.imo_un) setUn(datos.imo_un);
+  }, [datos.imo_un]); // eslint-disable-line react-hooks/exhaustive-deps -- sólo sincroniza valores guardados
+  const faltan = faltantesCargaDetalle(datos);
   const wm = pesoMedidaWM(datos.peso, datos.unidad_medida, datos.volumen_cbm);
   return (
     <>
+      {faltan.length > 0 && (
+        <p role="alert" className="col-span-full rounded-md border border-destructive/40 bg-destructive/10 p-3 text-body-sm text-destructive">
+          {datos.submodalidad === "LCL" && datos.imo === true ? "Carga suelta peligrosa" : datos.imo === true ? "Mercancía peligrosa" : "Carga suelta (LCL)"}:
+          {" "}falta {faltan.join(", ")}. Pricing no aceptará el envío sin estos datos.
+        </p>
+      )}
       {datos.submodalidad === "LCL" && (
         <>
           <CampoTexto id="pr-cbm" label="Volumen (CBM)" type="number" required disabled={disabled}

@@ -7,7 +7,7 @@ import type { TarifaImport } from "./importarTarifas";
 import { resolverIdCanonicoTipo, type TipoContenedorCanonico } from "@/features/catalogos/domain";
 
 export interface TarifaExistente {
-  id: string; agente_id: string; naviera_id: string; ruta_id: string; tipo_contenedor_id: string;
+  id: string; agente_id: string; naviera_id: string | null; ruta_id: string | null; tipo_contenedor_id: string | null;
   flete_base: number; vigente_desde: string; vigente_hasta: string;
   estado?: string | null; estado_aprobacion?: string | null;
 }
@@ -44,6 +44,7 @@ export function detectarConflictos(
   const porClave = new Map<string, TarifaExistente[]>();
   for (const e of existentes) {
     if (!estaActiva(e, hoy)) continue;
+    if (!e.naviera_id || !e.ruta_id || !e.tipo_contenedor_id) continue;
     const k = clave(e.agente_id, e.naviera_id, e.ruta_id, resolverIdCanonicoTipo(tipos, e.tipo_contenedor_id));
     porClave.set(k, [...(porClave.get(k) ?? []), e]);
   }

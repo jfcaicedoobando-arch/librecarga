@@ -1,6 +1,6 @@
 /**
- * Editor de filas dinámicas para recargos de una tarifa marítima.
- * Conceptos sugeridos: BAF, LSS, ISPS, THC Origen, Cargos en Origen/Destino, Otro.
+ * Editor de filas dinámicas para recargos de una tarifa (marítima, aérea o terrestre).
+ * Conceptos sugeridos por modo (`conceptosRecargoPorModo`) y base de cobro por recargo.
  */
 import { Button } from "@/components/ui/button";
 import { MoneyInput } from "@/components/shared/MoneyInput";
@@ -12,23 +12,27 @@ import { Plus, Trash2 } from "lucide-react";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import type { TarifaRecargoInput } from "@/features/costeo/services/tarifas";
 
-const CONCEPTOS = ["BAF", "LSS", "ISPS", "THC Origen", "Cargos en Origen", "Cargos en Destino", "Otro"];
+import {
+  ETIQUETA_BASE_RECARGO, baseSugerida, conceptosRecargoPorModo, type ModoRecargo,
+} from "@/features/costeo/domain/conceptosRecargo";
 
 interface Props {
   value: TarifaRecargoInput[];
   onChange: (next: TarifaRecargoInput[]) => void;
   /** P2-A8: pinta en rojo los recargos con monto <= 0 tras intentar guardar. */
   mostrarErrores?: boolean;
+  /** Modo de la tarifa: define los conceptos sugeridos. */
+  modo?: ModoRecargo;
 }
 
-export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false }: Props) {
+export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false, modo = "Marítimo" }: Props) {
   const update = (i: number, patch: Partial<TarifaRecargoInput>) => {
     onChange(value.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
   };
   const add = () =>
     onChange([
       ...value,
-      { concepto: "BAF", monto: 0, lado: "origen", incluido_en_total: true },
+      { concepto: conceptosRecargoPorModo(modo)[0], monto: 0, lado: "origen", incluido_en_total: true, base: "por_unidad" },
     ]);
   const remove = (i: number) => onChange(value.filter((_, idx) => idx !== i));
 
@@ -47,9 +51,9 @@ export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false }
 
       {value.map((r, i) => (
         <div key={i} className="grid grid-cols-12 gap-2 items-end">
-          <div className="col-span-4">
+          <div className="col-span-3">
             <Label htmlFor={`recargo-concepto-${i}`} className="sr-only">{`Concepto del recargo ${i + 1}`}</Label>
-            <Select value={r.concepto} onValueChange={(v) => update(i, { concepto: v })}>
+            <Select value={r.concepto} onValueChange={(v) => update(i, { concepto: v, base: baseSugerida(v) })}>
               <SelectTrigger
                 id={`recargo-concepto-${i}`}
                 aria-label={`Concepto del recargo ${i + 1}`}
@@ -57,7 +61,7 @@ export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false }
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {CONCEPTOS.map((c) => (
+                {conceptosRecargoPorModo(modo, r.concepto).map((c) => (
                   <SelectItem key={c} value={c}>{c}</SelectItem>
                 ))}
               </SelectContent>
@@ -80,7 +84,7 @@ export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false }
               </p>
             )}
           </div>
-          <div className="col-span-3">
+          <div className="col-span-2">
             <Label htmlFor={`recargo-lado-${i}`} className="sr-only">{`Lado del recargo ${i + 1}`}</Label>
             <Select value={r.lado ?? "origen"} onValueChange={(v) => update(i, { lado: v as "origen" | "destino" })}>
               <SelectTrigger
@@ -95,7 +99,19 @@ export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false }
               </SelectContent>
             </Select>
           </div>
-          <div className="col-span-2 flex justify-end">
+          <div className="col-span-3">
+            <Label htmlFor={`recargo-base-${i}`} className="sr-only">{`Base del recargo ${i + 1}`}</Label>
+            <Select value={r.base ?? "por_unidad"} onValueChange={(v) => update(i, { base: v as "por_unidad" | "por_embarque" })}>
+              <SelectTrigger id={`recargo-base-${i}`} aria-label={`Base del recargo ${i + 1}`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="por_unidad">{ETIQUETA_BASE_RECARGO.por_unidad}</SelectItem>
+                <SelectItem value="por_embarque">{ETIQUETA_BASE_RECARGO.por_embarque}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="col-span-1 flex justify-end">
             <Button
               type="button"
               size="icon"

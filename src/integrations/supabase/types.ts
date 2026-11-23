@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      aeropuertos: {
+        Row: {
+          ciudad: string | null
+          codigo_pais: string | null
+          hub_carga: boolean
+          iata: string
+          icao: string | null
+          nombre: string
+          pais: string | null
+          region: string | null
+        }
+        Insert: {
+          ciudad?: string | null
+          codigo_pais?: string | null
+          hub_carga?: boolean
+          iata: string
+          icao?: string | null
+          nombre: string
+          pais?: string | null
+          region?: string | null
+        }
+        Update: {
+          ciudad?: string | null
+          codigo_pais?: string | null
+          hub_carga?: boolean
+          iata?: string
+          icao?: string | null
+          nombre?: string
+          pais?: string | null
+          region?: string | null
+        }
+        Relationships: []
+      }
       agente_users: {
         Row: {
           agente_id: string
@@ -2378,6 +2411,7 @@ export type Database = {
       }
       costeo_tarifa_recargos: {
         Row: {
+          base: string
           concepto: string
           created_at: string
           id: string
@@ -2389,6 +2423,7 @@ export type Database = {
           tarifa_id: string
         }
         Insert: {
+          base?: string
           concepto: string
           created_at?: string
           id?: string
@@ -2400,6 +2435,7 @@ export type Database = {
           tarifa_id: string
         }
         Update: {
+          base?: string
           concepto?: string
           created_at?: string
           id?: string
@@ -2434,14 +2470,61 @@ export type Database = {
           },
         ]
       }
+      costeo_tarifa_tramos: {
+        Row: {
+          created_at: string
+          desde_kg: number
+          id: string
+          organization_id: string
+          precio: number
+          tarifa_id: string
+        }
+        Insert: {
+          created_at?: string
+          desde_kg: number
+          id?: string
+          organization_id: string
+          precio: number
+          tarifa_id: string
+        }
+        Update: {
+          created_at?: string
+          desde_kg?: number
+          id?: string
+          organization_id?: string
+          precio?: number
+          tarifa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "costeo_tarifa_tramos_tarifa_id_fkey"
+            columns: ["tarifa_id"]
+            isOneToOne: false
+            referencedRelation: "costeo_tarifas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "costeo_tarifa_tramos_tarifa_id_fkey"
+            columns: ["tarifa_id"]
+            isOneToOne: false
+            referencedRelation: "costeo_tarifas_vigentes_v"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       costeo_tarifas: {
         Row: {
+          aerolinea: string | null
+          aeropuerto_destino: string | null
+          aeropuerto_origen: string | null
           agente_id: string
           aprobada_en: string | null
           aprobada_por: string | null
           carta_garantia: boolean | null
           creado_por: string | null
           created_at: string
+          destino_ciudad: string | null
+          destino_cp: string | null
           dias_libres_almacenaje_lcl: number | null
           dias_libres_demoras: number
           estado: string
@@ -2449,15 +2532,21 @@ export type Database = {
           flete_base: number
           frecuencia_override: string | null
           id: string
+          minimo: number | null
+          modo: string
           moneda: string
           motivo_rechazo: string | null
-          naviera_id: string
+          naviera_id: string | null
           notas: string | null
           organization_id: string
+          origen_ciudad: string | null
+          origen_cp: string | null
           reemplazada_por: string | null
-          ruta_id: string
+          ruta_id: string | null
           solicitud_pricing_id: string | null
-          tipo_contenedor_id: string
+          submodalidad: string | null
+          tipo_contenedor_id: string | null
+          tipo_unidad: string | null
           transit_time_dias: number | null
           unidad_flete: string | null
           updated_at: string
@@ -2465,12 +2554,17 @@ export type Database = {
           vigente_hasta: string
         }
         Insert: {
+          aerolinea?: string | null
+          aeropuerto_destino?: string | null
+          aeropuerto_origen?: string | null
           agente_id: string
           aprobada_en?: string | null
           aprobada_por?: string | null
           carta_garantia?: boolean | null
           creado_por?: string | null
           created_at?: string
+          destino_ciudad?: string | null
+          destino_cp?: string | null
           dias_libres_almacenaje_lcl?: number | null
           dias_libres_demoras?: number
           estado?: string
@@ -2478,15 +2572,21 @@ export type Database = {
           flete_base: number
           frecuencia_override?: string | null
           id?: string
+          minimo?: number | null
+          modo?: string
           moneda?: string
           motivo_rechazo?: string | null
-          naviera_id: string
+          naviera_id?: string | null
           notas?: string | null
           organization_id: string
+          origen_ciudad?: string | null
+          origen_cp?: string | null
           reemplazada_por?: string | null
-          ruta_id: string
+          ruta_id?: string | null
           solicitud_pricing_id?: string | null
-          tipo_contenedor_id: string
+          submodalidad?: string | null
+          tipo_contenedor_id?: string | null
+          tipo_unidad?: string | null
           transit_time_dias?: number | null
           unidad_flete?: string | null
           updated_at?: string
@@ -2494,12 +2594,17 @@ export type Database = {
           vigente_hasta: string
         }
         Update: {
+          aerolinea?: string | null
+          aeropuerto_destino?: string | null
+          aeropuerto_origen?: string | null
           agente_id?: string
           aprobada_en?: string | null
           aprobada_por?: string | null
           carta_garantia?: boolean | null
           creado_por?: string | null
           created_at?: string
+          destino_ciudad?: string | null
+          destino_cp?: string | null
           dias_libres_almacenaje_lcl?: number | null
           dias_libres_demoras?: number
           estado?: string
@@ -2507,15 +2612,21 @@ export type Database = {
           flete_base?: number
           frecuencia_override?: string | null
           id?: string
+          minimo?: number | null
+          modo?: string
           moneda?: string
           motivo_rechazo?: string | null
-          naviera_id?: string
+          naviera_id?: string | null
           notas?: string | null
           organization_id?: string
+          origen_ciudad?: string | null
+          origen_cp?: string | null
           reemplazada_por?: string | null
-          ruta_id?: string
+          ruta_id?: string | null
           solicitud_pricing_id?: string | null
-          tipo_contenedor_id?: string
+          submodalidad?: string | null
+          tipo_contenedor_id?: string | null
+          tipo_unidad?: string | null
           transit_time_dias?: number | null
           unidad_flete?: string | null
           updated_at?: string
@@ -2523,6 +2634,20 @@ export type Database = {
           vigente_hasta?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "costeo_tarifas_aeropuerto_destino_fkey"
+            columns: ["aeropuerto_destino"]
+            isOneToOne: false
+            referencedRelation: "aeropuertos"
+            referencedColumns: ["iata"]
+          },
+          {
+            foreignKeyName: "costeo_tarifas_aeropuerto_origen_fkey"
+            columns: ["aeropuerto_origen"]
+            isOneToOne: false
+            referencedRelation: "aeropuertos"
+            referencedColumns: ["iata"]
+          },
           {
             foreignKeyName: "costeo_tarifas_agente_id_fkey"
             columns: ["agente_id"]
@@ -12686,12 +12811,17 @@ export type Database = {
       crear_tarifa_con_recargos_rpc: {
         Args: { p_organization_id: string; p_recargos: Json; p_tarifa: Json }
         Returns: {
+          aerolinea: string | null
+          aeropuerto_destino: string | null
+          aeropuerto_origen: string | null
           agente_id: string
           aprobada_en: string | null
           aprobada_por: string | null
           carta_garantia: boolean | null
           creado_por: string | null
           created_at: string
+          destino_ciudad: string | null
+          destino_cp: string | null
           dias_libres_almacenaje_lcl: number | null
           dias_libres_demoras: number
           estado: string
@@ -12699,15 +12829,21 @@ export type Database = {
           flete_base: number
           frecuencia_override: string | null
           id: string
+          minimo: number | null
+          modo: string
           moneda: string
           motivo_rechazo: string | null
-          naviera_id: string
+          naviera_id: string | null
           notas: string | null
           organization_id: string
+          origen_ciudad: string | null
+          origen_cp: string | null
           reemplazada_por: string | null
-          ruta_id: string
+          ruta_id: string | null
           solicitud_pricing_id: string | null
-          tipo_contenedor_id: string
+          submodalidad: string | null
+          tipo_contenedor_id: string | null
+          tipo_unidad: string | null
           transit_time_dias: number | null
           unidad_flete: string | null
           updated_at: string

@@ -15,6 +15,7 @@ export interface TarifaRecargoInput {
   monto: number;
   moneda?: string;
   incluido_en_total?: boolean;
+  base?: "por_unidad" | "por_embarque";
 }
 
 export interface TarifaInput {
@@ -85,7 +86,7 @@ function traducirErrorTarifa(e: unknown): unknown {
 }
 
 /** Recargos válidos para las RPC (concepto no vacío y monto > 0). */
-function recargosParaRpc(recargos: TarifaRecargoInput[]) {
+export function recargosParaRpc(recargos: TarifaRecargoInput[]) {
   return recargos
     .filter((r) => r.concepto.trim() && Number(r.monto) > 0)
     .map((r) => ({
@@ -94,6 +95,7 @@ function recargosParaRpc(recargos: TarifaRecargoInput[]) {
       lado: r.lado ?? "origen",
       monto: Number(r.monto) || 0,
       incluido_en_total: r.incluido_en_total ?? true,
+      base: r.base === "por_embarque" ? "por_embarque" : "por_unidad",
     }));
 }
 

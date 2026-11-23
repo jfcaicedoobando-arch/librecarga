@@ -151,7 +151,8 @@ export function desajusteCantidadTarifa(
   cantidadEsperada: number,
 ): boolean {
   const qty = Number.isFinite(cantidadEsperada) && cantidadEsperada >= 1 ? cantidadEsperada : 1;
-  return filas.some((f) => esCostoAutoTarifa(f) && Number(f.cantidad) !== qty);
+  // Recargos "por embarque" van siempre con cantidad 1 (unidad "embarque").
+  return filas.some((f) => esCostoAutoTarifa(f) && f.unidad_medida !== "embarque" && Number(f.cantidad) !== qty);
 }
 
 /**

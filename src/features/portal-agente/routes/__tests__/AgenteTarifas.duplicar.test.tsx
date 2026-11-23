@@ -70,8 +70,8 @@ describe("AgenteTarifas · duplicar", () => {
       modo: "duplicar",
       initial: expect.objectContaining({
         recargos: [
-          { concepto: "BAF", lado: "origen", monto: 175, moneda: "USD", incluido_en_total: true },
-          { concepto: "ISPS", lado: "destino", monto: 25, moneda: "USD", incluido_en_total: false },
+          { concepto: "BAF", lado: "origen", monto: 175, moneda: "USD", incluido_en_total: true, base: "por_unidad" },
+          { concepto: "ISPS", lado: "destino", monto: 25, moneda: "USD", incluido_en_total: false, base: "por_unidad" },
         ],
       }),
     })));
