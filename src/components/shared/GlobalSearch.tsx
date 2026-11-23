@@ -117,7 +117,7 @@ export function GlobalSearch() {
         onClick={() => setOpen(true)}
         data-testid="global-search-trigger"
         aria-label="Abrir búsqueda global"
-        className="flex h-9 w-9 md:w-56 items-center gap-2 justify-center md:justify-start rounded-md border border-border bg-muted/50 px-0 md:px-3 text-body text-muted-foreground/90 hover:bg-muted hover:text-foreground transition-colors"
+        className="flex h-11 w-11 shrink-0 md:h-9 md:w-56 items-center gap-2 justify-center md:justify-start rounded-md border border-border bg-muted/50 px-0 md:px-3 text-body text-muted-foreground/90 hover:bg-muted hover:text-foreground transition-colors"
       >
         <Search className="h-4 w-4" />
         <span className="hidden md:inline">Buscar…</span>
@@ -132,7 +132,7 @@ export function GlobalSearch() {
       <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false} loop inputLabel="Buscar en LibreCarga">
 
         <CommandInput
-          placeholder="Buscar embarques, clientes, proveedores y facturas…"
+          placeholder="Buscar un módulo o un registro (ej. Clientes)…"
           value={query}
           onValueChange={setQuery}
         />

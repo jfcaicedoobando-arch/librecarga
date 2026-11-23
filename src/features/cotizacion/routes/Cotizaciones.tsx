@@ -81,7 +81,9 @@ export default function Cotizaciones() {
       />
 
       <CotizacionesBannerOrigen
-        hayAceptadas={c.kpis && c.kpis.aceptadas > 0}
+        hayAceptadas={c.soloAceptadasSinEmbarque
+          ? c.isLoading || c.isError || c.total > 0
+          : c.kpis && c.kpis.aceptadas > 0}
         onNuevaCotizacion={c.canEdit ? c.irANueva : undefined}
       />
       <CotizacionesIndicadores

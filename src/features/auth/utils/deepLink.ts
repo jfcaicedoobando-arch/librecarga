@@ -24,6 +24,7 @@ export function isDeepLinkPermitido(
   // Ruta absoluta interna únicamente: `//host` y `http://…` son externas.
   if (!pathname.startsWith("/") || pathname.startsWith("//")) return false;
   if (pathname === "/login" || pathname === "/") return false;
+  if (pathname === "/ayuda") return true;
 
   const area = role ? AREA_POR_ROL[role] : undefined;
   if (area) return pathname === area || pathname.startsWith(`${area}/`);

@@ -4,10 +4,10 @@ import { useState } from "react";
 import { signUpWithEmail } from "@/features/auth/services";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/shared/FormField";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/shared";
 import { notifyError } from "@/lib/ui/appFeedback";
 import { translateAuthError } from "@/lib/auth/translateAuthError";
@@ -21,6 +21,7 @@ export function SignupForm() {
   const { toast } = useToast();
   const [signupDone, setSignupDone] = useState(false);
   const [signupError, setSignupError] = useState<string | null>(null);
+  const [mostrarContrasena, setMostrarContrasena] = useState(false);
 
   const form = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
@@ -78,7 +79,7 @@ export function SignupForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = form;
-  const alertMessage = signupError ?? getFirstFieldError(errors);
+  const alertMessage = signupError ?? (getFirstFieldError(errors) ? "Revisa los campos indicados." : null);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
@@ -88,12 +89,10 @@ export function SignupForm() {
           <AlertDescription>{alertMessage}</AlertDescription>
         </Alert>
       )}
-      <div className="space-y-2">
-        <Label htmlFor="signup-name">Nombre completo</Label>
+      <FormField label="Nombre completo" error={errors.name?.message}>
         <Input id="signup-name" type="text" placeholder="Juan Pérez" autoComplete="name" {...register("name")} />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="signup-company">Nombre de empresa</Label>
+      </FormField>
+      <FormField label="Nombre de empresa" error={errors.company?.message}>
         <Input
           id="signup-company"
           type="text"
@@ -101,11 +100,8 @@ export function SignupForm() {
           autoComplete="organization"
           {...register("company")}
         />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="signup-phone">
-          Teléfono <span className="text-muted-foreground font-normal">(opcional)</span>
-        </Label>
+      </FormField>
+      <FormField label="Teléfono" hint="(opcional)" error={errors.phone?.message}>
         <Input
           id="signup-phone"
           type="tel"
@@ -114,34 +110,36 @@ export function SignupForm() {
           inputMode="tel"
           {...register("phone")}
         />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="signup-email">Email de trabajo</Label>
+      </FormField>
+      <FormField label="Email de trabajo" error={errors.email?.message}>
         <Input id="signup-email" type="email" placeholder="tu@agencia.com" autoComplete="email" {...register("email")} />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="signup-password">Contraseña</Label>
+      </FormField>
+      <FormField label="Contraseña" error={errors.password?.message}>
         <Input
           id="signup-password"
-          type="password"
+          type={mostrarContrasena ? "text" : "password"}
           placeholder={`Mínimo ${PASSWORD_MIN} caracteres`}
           autoComplete="new-password"
           maxLength={PASSWORD_MAX}
           {...register("password")}
         />
+        <Button type="button" variant="ghost" size="sm" aria-controls="signup-password signup-password2"
+          onClick={() => setMostrarContrasena(v => !v)}>
+          {mostrarContrasena ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
+          {mostrarContrasena ? "Ocultar contraseña" : "Mostrar contraseña"}
+        </Button>
         <PasswordStrengthMeter password={form.watch("password")} />
-      </div>
+      </FormField>
 
-      <div className="space-y-2">
-        <Label htmlFor="signup-password2">Confirmar contraseña</Label>
+      <FormField label="Confirmar contraseña" error={errors.password2?.message}>
         <Input
           id="signup-password2"
-          type="password"
+          type={mostrarContrasena ? "text" : "password"}
           placeholder="Repite tu contraseña"
           autoComplete="new-password"
           {...register("password2")}
         />
-      </div>
+      </FormField>
       <label className="flex items-start gap-2 text-xs text-muted-foreground">
         <Controller
           control={control}
@@ -149,6 +147,8 @@ export function SignupForm() {
           render={({ field }) => (
             <Checkbox
               className="mt-0.5"
+              aria-invalid={!!errors.acceptTerms}
+              aria-describedby={errors.acceptTerms ? "signup-terms-error" : undefined}
               checked={field.value}
               onCheckedChange={(checked) => field.onChange(checked === true)}
               onBlur={field.onBlur}
@@ -168,6 +168,7 @@ export function SignupForm() {
           .
         </span>
       </label>
+      {errors.acceptTerms && <p id="signup-terms-error" className="text-body-sm text-destructive">{errors.acceptTerms.message}</p>}
       <Button type="submit" className="w-full" loading={isSubmitting}>
         Crear cuenta gratis
       </Button>

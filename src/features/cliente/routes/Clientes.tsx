@@ -1,4 +1,5 @@
 
+import { useNavigate } from "react-router";
 import { Building2, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useClientesPaginados } from "@/features/cliente/hooks";
@@ -32,6 +33,7 @@ import { getClientesPageDescription } from "@/features/cliente/routes/clientesPa
 
 export default function Clientes() {
   useDocumentTitle("Clientes");
+  const navigate = useNavigate();
   // P0 — alta de clientes: espejo del rol que exige la base de datos.
   const { canAltaCliente } = usePermissions();
   const { organizationId } = useOrgFilter();
@@ -144,13 +146,13 @@ export default function Clientes() {
       </Card>
       </CargaGuard>
 
-      <NuevoClienteDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <NuevoClienteDialog open={dialogOpen} onOpenChange={setDialogOpen} onAbrirCliente={(id) => navigate(`/clientes/${id}`)} />
 
       <BulkImportDialog
         open={importOpen}
         onOpenChange={setImportOpen}
         title="Importar clientes desde CSV"
-        description="Carga un archivo CSV con clientes. El correo (email) es obligatorio y debe tener un formato válido. Sólo se insertarán las filas válidas."
+        description="Carga un archivo CSV con clientes. El correo (email) es obligatorio y debe tener un formato válido. Sólo se insertarán las filas válidas. El CSV crea las fichas. Después adjunta la constancia fiscal desde Documentos de cada cliente."
         templateHeaders={CLIENTE_TEMPLATE_HEADERS}
         templateExampleRow={[
           "Acme S.A. de C.V.", "ACM010101AAA", "contacto@acme.mx",

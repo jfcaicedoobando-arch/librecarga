@@ -32,7 +32,7 @@ export default function Dashboard() {
   const { effectiveRole } = useAuth();
   return (
     <div className="space-y-4 sm:space-y-6">
-      <GuiaPrimerosPasos />
+      <GuiaPrimerosPasos abrirEnPrimeraVisita />
       {effectiveRole && ROLES_FINANCIEROS.has(effectiveRole) ? <FinanceDashboard /> : <OperationalDashboard />}
     </div>
   );

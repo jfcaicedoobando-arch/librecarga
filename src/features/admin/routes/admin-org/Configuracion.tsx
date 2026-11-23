@@ -10,6 +10,8 @@ import { PageContainer } from "@/components/shared/PageContainer";
 import { ListSkeleton } from "@/components/shared/states/ListSkeleton";
 import { AsyncBoundary } from "@/components/shared/states/AsyncBoundary";
 import { useDocumentTitle } from "@/hooks/shared";
+import { useDirtyGuard } from "@/hooks/shared/useDirtyGuard";
+import { usePermissions } from "@/hooks/shared/usePermissions";
 import { useTabsParam } from "@/hooks/shared/useTabsParam";
 
 const TABS_CONFIGURACION = ["empresa", "facturacion", "catalogos", "operaciones", "compras", "herramientas"] as const;
@@ -24,6 +26,8 @@ export default function Configuracion() {
   const { s, set, isLoading, isError, refetch, isSaving, isDirty, handleSave } = useConfiguracionState();
   const { effectiveRole } = useAuth();
   const esContador = effectiveRole === "contador";
+  const { canEmitirFactura } = usePermissions();
+  const { guardDialog } = useDirtyGuard(!esContador && isDirty && !isSaving, true);
   const { activeTab: tab, setActiveTab: setTab } = useTabsParam(
     esContador ? ["facturacion"] : TABS_CONFIGURACION,
     esContador ? "facturacion" : "empresa",
@@ -52,6 +56,7 @@ export default function Configuracion() {
 
   return (
     <PageContainer>
+      {guardDialog}
       <PageHeader
         title="Configuración"
         description="Parámetros generales del sistema"
@@ -89,6 +94,7 @@ export default function Configuracion() {
               direccion={s.direccion} setDireccion={set("direccion")}
               email={s.email} setEmail={set("email")}
               telefono={s.telefono} setTelefono={set("telefono")}
+              onVerPerfilFiscal={canEmitirFactura ? () => setTab("facturacion") : undefined}
             />
           </TabsContent>
         )}

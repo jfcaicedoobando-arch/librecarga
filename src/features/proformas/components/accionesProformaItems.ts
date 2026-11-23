@@ -9,6 +9,7 @@ export interface PrimaryParams {
   puedeConvertir: boolean;
   puedeAprobarInterna: boolean;
   convirtiendo: boolean;
+  verificandoCredito?: boolean;
   aprobando: boolean;
   onConvertir: () => void;
   onAprobarInterna: () => void;
@@ -18,10 +19,10 @@ export function buildPrimaryItem(p: PrimaryParams): DetalleActionItem | null {
   if (p.puedeConvertir) {
     return {
       id: "convertir",
-      label: "Crear borrador de factura",
+      label: p.verificandoCredito ? "Verificando crédito…" : "Crear borrador de factura",
       icon: Receipt,
       onClick: p.onConvertir,
-      loading: p.convirtiendo,
+      loading: p.convirtiendo || p.verificandoCredito,
     };
   }
   if (p.puedeAprobarInterna) {

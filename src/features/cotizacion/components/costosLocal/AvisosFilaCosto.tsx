@@ -25,12 +25,12 @@ export function AvisosFilaCosto({
         </p>
       )}
       {conceptoFaltante && (
-        <p className="text-label text-destructive" data-testid={`concepto-faltante-aviso-${gi}`}>
+        <p id={`costo-${gi}-concepto-error`} className="text-label text-destructive" data-testid={`concepto-faltante-aviso-${gi}`}>
           Selecciona el concepto de este renglón; sin nombre no se genera el concepto de venta.
         </p>
       )}
-      {proveedorFaltante && !conceptoFaltante && (
-        <p className="text-label text-destructive" data-testid={`proveedor-faltante-aviso-${gi}`}>
+      {proveedorFaltante && (
+        <p id={`costo-${gi}-proveedor-error`} className="text-label text-destructive" data-testid={`proveedor-faltante-aviso-${gi}`}>
           Captura el proveedor de este renglón; sin proveedor el costo llega al expediente sin a quién pagarle.
         </p>
       )}

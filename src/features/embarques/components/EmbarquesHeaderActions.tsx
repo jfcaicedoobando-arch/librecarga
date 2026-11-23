@@ -33,7 +33,7 @@ export function EmbarquesHeaderActions({
         // existe dentro de una cotización aceptada, así que el botón anuncia su
         // destino real en vez de prometer un alta que no existe en esta pantalla.
         <Button onClick={onNuevoDesdeCotizacion} className="hidden md:inline-flex">
-          <ClipboardList className="h-4 w-4 mr-2" /> Ver cotizaciones
+          <ClipboardList className="h-4 w-4 mr-2" /> Buscar cotización aceptada
         </Button>
       ) : null}
 

@@ -15,6 +15,17 @@ import type { CargoTarifario, TarifaTarifario } from "@/features/costeo";
 import { useOpcionesTarifario } from "@/features/crm/hooks/useOpcionesTarifario";
 import type { SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
 
+function mensajeSinTarifas(estado: string, puedeElegir: boolean) {
+  switch (estado) {
+    case "borrador": return puedeElegir
+      ? "No encontramos una tarifa vigente. Envía la solicitud a Pricing cuando esté completa."
+      : "No encontramos una tarifa vigente. La solicitud sigue en borrador.";
+    case "enviada": return "No encontramos una tarifa vigente. La solicitud está en espera de respuesta de Pricing.";
+    case "respondida": return "No encontramos una tarifa vigente. Revisa las tarifas de la respuesta.";
+    default: return "No encontramos una tarifa vigente.";
+  }
+}
+
 interface Props {
   solicitud: SolicitudPricingRow;
   puedeElegir: boolean;
@@ -49,7 +60,7 @@ export function OpcionesTarifario({ solicitud: s, puedeElegir, puedeCotizar, tar
               onRetry={() => void reintentar()} retrying={isFetching} />
       )}
       {opciones.length === 0 && !isLoading && !isError && (
-        <EmptyStateInline message="No hay tarifas vigentes que coincidan; Pricing atenderá la solicitud." />
+        <EmptyStateInline message={mensajeSinTarifas(s.estado, puedeElegir)} />
       )}
       {!isError && opciones.map((t) => (
         <OpcionTarifarioCard key={t.id} tarifa={t}

@@ -1,4 +1,5 @@
 import { formatCurrency } from "@/lib/formatters";
+import { Button } from "@/components/ui/button";
 
 interface BloqueFiscal {
   moneda: "USD" | "MXN";
@@ -11,7 +12,8 @@ interface BloqueFiscal {
 
 type ResumenFiscalProps =
   | { estado: "confirmado" | "pendiente"; bloques: readonly BloqueFiscal[]; motivos: readonly string[] }
-  | { estado: "cargando" | "revision" | "invalido" | "error" };
+  | { estado: "cargando" | "revision" | "invalido" }
+  | { estado: "error"; onReintentar?: () => void };
 
 const motivosPendientes: Record<string, string> = {
   ambiente_discordante: "Revisa el ambiente de Facturapi.",
@@ -29,7 +31,14 @@ export function ResumenFiscalCotizacion(props: ResumenFiscalProps) {
     const mensaje = props.estado === "cargando" ? "Calculando los totales fiscales…"
       : props.estado === "error" ? "No se pudieron calcular los totales fiscales."
         : "Revisa la evaluación fiscal antes de usar estos importes.";
-    return <p role="status" className="rounded-md border bg-muted/30 p-3 text-body-sm">{mensaje}</p>;
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/30 p-3 text-body-sm">
+        <p role="status">{mensaje}</p>
+        {props.estado === "error" && props.onReintentar && (
+          <Button type="button" variant="outline" size="sm" onClick={props.onReintentar}>Reintentar cálculo fiscal</Button>
+        )}
+      </div>
+    );
   }
 
   const provisional = props.estado === "pendiente";

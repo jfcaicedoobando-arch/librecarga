@@ -35,6 +35,7 @@ function NuevaCotizacionScope() {
           {/* UI-08: wrapper estándar PageContainer (antes div ad-hoc max-w-6xl). */}
           <DraftRestoreBanner
             savedAt={draftDetectado.savedAt}
+            tieneBorradorEnErp={Boolean(draftDetectado.cotizacionId)}
             onRestore={handleRestore}
             onDiscard={handleDiscard}
           />
@@ -73,6 +74,7 @@ function NuevaCotizacionScope() {
         onBack={irAlListado}
         saveLabel="Guardar cotización"
         onFlushDraft={flushDraft}
+        esAlta
       />
 
       <CotizacionSuccessDialog

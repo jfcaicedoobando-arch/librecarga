@@ -172,6 +172,8 @@ export function CotizacionDetalleContenido({
         onConfirmar={() => void aceptar.confirmar()}
         enviando={aceptar.enviando}
         cargandoMoneda={aceptar.cargandoMoneda}
+        monedaNoVerificada={aceptar.monedaNoVerificada}
+        onReintentarMoneda={aceptar.reintentarMoneda}
         tieneOportunidad={!!cotizacion.oportunidad_id}
         hayChoqueMoneda={aceptar.hayChoqueMoneda}
         monedaCotizacion={(cotizacion as { moneda?: string | null }).moneda ?? null}

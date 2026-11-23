@@ -1,6 +1,7 @@
 /** Contenido y capacidades de la guía; navegar nunca ejecuta una tarea. */
 export interface PermisosPrimerosPasos {
   canAdminTenant: boolean;
+  canAltaCliente?: boolean;
   canWriteCotizaciones: boolean;
   canCrearEmbarqueDesdeCotizacion: boolean;
   canEditarProforma: boolean;
@@ -21,7 +22,7 @@ export interface EnlacePrimerosPasos {
 }
 
 export interface TareaPrimerosPasos {
-  id: "cotizar" | "pricing" | "operacion" | "proforma" | "emision" | "captura-cxp"
+  id: "alta-cliente" | "cotizar" | "pricing" | "operacion" | "proforma" | "emision" | "captura-cxp"
     | "pagos" | "cobranza" | "consulta" | "configuracion" | "portal-cliente"
     | "portal-agente" | "plataforma";
   titulo: string;
@@ -42,17 +43,25 @@ export function crearTareasOrganizacion(
     const enlaces = tarea.enlaces.filter((e) => visible(e.href));
     if (habilitada && enlaces.length > 0) tareas.push({ ...tarea, enlaces });
   };
+  agregar(p.canAltaCliente === true, {
+    id: "alta-cliente", titulo: "Registrar un cliente",
+    descripcion: "Abre Clientes y selecciona Nuevo cliente. Ten a la mano la Constancia de Situación Fiscal si vas a darlo de alta.",
+    enlaces: [enlace("Abrir Clientes", "/clientes")],
+  });
   agregar(p.canWriteCotizaciones, {
     id: "cotizar", titulo: "Preparar una cotización",
     descripcion: "Prepara una cotización para un cliente existente o parte de un lead u oportunidad del CRM. Revisa Datos generales, Costos y utilidad, Cotización del cliente y Resumen.",
+    requisito: p.canAltaCliente
+      ? "Si aún no existe, regístralo desde Clientes antes de cotizar a un cliente directo."
+      : "Si aún no existe, solicita el alta a quien administra los clientes de tu organización.",
     enlaces: [enlace("Ver cotizaciones", "/cotizaciones"),
       ...(p.canCrearLead || p.canCrearOportunidad || p.canCrearActividad ? [enlace("Abrir CRM", "/crm")] : [])],
   });
   agregar(true, {
     id: "pricing", titulo: "Consultar tarifas y Pricing",
-    descripcion: "Consulta las solicitudes de Pricing y las tarifas disponibles. Revisa la respuesta antes de usarla en una cotización y comprueba después Costos y utilidad.",
+    descripcion: "Si ya hay tarifa, compárala antes de cotizar. Si falta un costo, revisa las solicitudes de Pricing para saber si ya hay una respuesta.",
     requisito: "Costeo no es un paso obligatorio para todos los modos de transporte.",
-    enlaces: [enlace("Ver solicitudes de Pricing", "/costeo/tarifas?tab=bandeja"), enlace("Comparar tarifas", "/costeo/buscar")],
+    enlaces: [enlace("Me falta un costo · Ver solicitudes", "/costeo/tarifas?tab=bandeja"), enlace("Ya hay tarifas · Comparar", "/costeo/buscar")],
   });
   agregar(p.canCrearEmbarqueDesdeCotizacion, {
     id: "operacion", titulo: "Continuar una operación",
@@ -69,8 +78,10 @@ export function crearTareasOrganizacion(
   agregar(p.canEmitirFactura, {
     id: "emision", titulo: "Preparar la emisión de una factura",
     descripcion: "Revisa las proformas aceptadas para preparar un borrador de factura. Después abre Por timbrar y revisa el documento antes de emitirlo.",
-    requisito: "La conversión requiere una proforma elegible y una serie activa; preparar el borrador no timbra la factura.",
-    enlaces: [enlace("Ver proformas aceptadas", "/proformas?estado=aceptada"), enlace("Ver Por timbrar", "/facturacion?bandeja=por-timbrar")],
+    requisito: "Puedes preparar el borrador con una proforma elegible y una serie activa. Para timbrar, revisa Facturapi en Configuración → Facturación o pídeselo al responsable de facturación.",
+    enlaces: [enlace("Ver proformas aceptadas", "/proformas?estado=aceptada"),
+      enlace("Ver Por timbrar", "/facturacion?bandeja=por-timbrar"),
+      enlace("Revisar conexión con Facturapi", "/configuracion?tab=facturacion")],
   });
   const enlacesCaptura = [
     ...(p.canCapturarFacturaProveedor ? [enlace("Ver Por capturar", "/compras/por-capturar")] : []),
@@ -97,8 +108,10 @@ export function crearTareasOrganizacion(
   });
   agregar(p.canAdminTenant, {
     id: "configuracion", titulo: "Revisar la empresa y el equipo",
-    descripcion: "Revisa la configuración de la organización activa y los accesos de tu equipo.",
-    enlaces: [enlace("Ver configuración", "/configuracion"), enlace("Ver usuarios", "/usuarios")],
+    descripcion: "Retoma los datos que dejaste para después. Empresa contiene los datos de los PDF; Facturación contiene el perfil fiscal del emisor para CFDI.",
+    enlaces: [enlace("Configurar datos para documentos", "/configuracion"),
+      ...(p.canEmitirFactura ? [enlace("Datos fiscales del emisor", "/configuracion?tab=facturacion")] : []),
+      enlace("Ver usuarios", "/usuarios")],
   });
   agregarConsulta(tareas, visible);
   return tareas;

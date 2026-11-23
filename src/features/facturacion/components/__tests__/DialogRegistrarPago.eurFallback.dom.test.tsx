@@ -28,7 +28,7 @@ vi.mock("@/lib/date/today", () => ({ todayLocalISO: () => "2026-10-12" }));
 const missingEur = { usdMxn: 18.4163, eurMxn: null, es_fallback: false, eur_es_fallback: true };
 // Synthetic IDs. Values reproduce only the read-only fixture's sandbox EUR invoice shape.
 const factura = { id: "qa-eur-fixture", numero: "QA-EUR", total: 1, moneda: "EUR", metodoPago: "PPD", estado: "Vencida", fechaEmision: "2026-10-05", uuidFiscal: "qa-mocked-uuid" };
-const guardar = () => screen.getByRole("button", { name: "Registrar pago" });
+const guardar = () => screen.getByRole("button", { name: "Registrar pago e intentar timbrar REP" });
 const tc = () => screen.getByLabelText("Tipo de cambio del pago");
 const monto = (value: string) => fireEvent.change(screen.getByLabelText("Monto del pago"), { target: { value } });
 const manual = (value: string) => fireEvent.change(tc(), { target: { value } });

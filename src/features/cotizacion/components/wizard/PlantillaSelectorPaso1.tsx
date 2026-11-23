@@ -1,14 +1,9 @@
-/**
- * Selector "Empezar desde plantilla…" para el paso 1 del wizard (P2 — v13.295.0).
- *
- * Muestra un combobox con las plantillas más usadas del tenant.
- * Al seleccionar aplica el payload con `form.reset()` + `trigger()`.
- */
 import { useState } from "react";
 import { notifySuccess } from "@/lib/ui/appFeedback";
 import { notifyError } from "@/lib/ui/appFeedback";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
+import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 import {
   Popover,
   PopoverContent,
@@ -27,6 +22,7 @@ import type { UseFormReturn } from "react-hook-form";
 import {
   useCotizacionPlantillas,
   useAplicarPlantilla,
+  type CotizacionPlantilla,
 } from "@/features/cotizacion/hooks/useCotizacionPlantillas";
 import type { CotizacionFormValues } from "@/features/cotizacion/domain/mappers/cotizacionForm";
 
@@ -38,9 +34,42 @@ interface Props {
   onApplied?: () => void;
 }
 
+const nombresDeCampo: Partial<Record<keyof CotizacionFormValues, string>> = {
+  clienteId: "Cliente",
+  origen: "Origen",
+  destino: "Destino",
+  puertoOrigenId: "Puerto de origen",
+  puertoDestinoId: "Puerto de destino",
+  descripcionMercancia: "Descripción de la mercancía",
+  validezPropuesta: "Vigencia de la propuesta",
+  modo: "Modo de transporte",
+  tipo: "Tipo de operación",
+  tipoMovimiento: "Tipo de movimiento",
+  tipoEmbarque: "Tipo de embarque",
+  tipoContenedor: "Tipo de contenedor",
+  numContenedores: "Número de contenedores",
+  notas: "Notas",
+};
+
+function camposQueCambiaria(
+  form: UseFormReturn<CotizacionFormValues>,
+  valores: Partial<CotizacionFormValues> | undefined,
+) {
+  const actual = form.getValues();
+  const base = form.formState.defaultValues;
+  return Object.keys(valores ?? {}).filter((campo): campo is keyof CotizacionFormValues =>
+    Object.hasOwn(actual, campo)
+  ).filter((campo) => {
+    const valorActual = JSON.stringify(actual[campo]);
+    const modificado = base && valorActual !== JSON.stringify(base[campo]);
+    return (modificado || form.getFieldState(campo).isDirty) && valorActual !== JSON.stringify(valores?.[campo]);
+  });
+}
+
 export function PlantillaSelectorPaso1({ organizationId, form, plantillaId, onApplied }: Props) {
   const [open, setOpen] = useState(false);
   const [idAplicado, setIdAplicado] = useState<string | null>(null);
+  const [pendiente, setPendiente] = useState<{ plantilla: CotizacionPlantilla; campos: string[] } | null>(null);
   const { data: plantillas = [], isLoading, isError, isFetching, refetch } = useCotizacionPlantillas(organizationId);
   const aplicar = useAplicarPlantilla();
 
@@ -59,12 +88,12 @@ export function PlantillaSelectorPaso1({ organizationId, form, plantillaId, onAp
     try {
       const payload = await aplicar.mutateAsync(id);
       if (payload?.values) {
-        // Merge: mantiene los defaults del form y sobreescribe con la plantilla.
         const current = form.getValues();
         form.reset({ ...current, ...payload.values }, { keepDefaultValues: true });
         await form.trigger();
       }
       setOpen(false);
+      setPendiente(null);
       setIdAplicado(id);
       notifySuccess(undefined, { title: `Plantilla "${nombre}" aplicada` });
       onApplied?.();
@@ -75,6 +104,20 @@ export function PlantillaSelectorPaso1({ organizationId, form, plantillaId, onAp
         method: "PlantillaSelectorPaso1.aplicar",
       });
     }
+  };
+
+  const solicitarAplicacion = (plantilla: CotizacionPlantilla) => {
+    const valores = plantilla.payload?.values;
+    const campos = camposQueCambiaria(form, valores);
+    if (campos.length === 0 && (valores || !form.formState.isDirty)) {
+      void handleAplicar(plantilla.id, plantilla.nombre);
+      return;
+    }
+    setOpen(false);
+    setPendiente({
+      plantilla,
+      campos: campos.map((campo) => nombresDeCampo[campo] ?? campo.replace(/([A-Z])/g, " $1")),
+    });
   };
 
   return (
@@ -92,7 +135,7 @@ export function PlantillaSelectorPaso1({ organizationId, form, plantillaId, onAp
             size="sm"
             className="h-auto min-h-10 max-w-full whitespace-normal py-1 text-left md:min-h-9"
             loading={aplicar.isPending}
-            onClick={() => handleAplicar(preseleccionada.id, preseleccionada.nombre)}
+            onClick={() => solicitarAplicacion(preseleccionada)}
           >
             Aplicar {preseleccionada.nombre}
           </Button>
@@ -114,7 +157,7 @@ export function PlantillaSelectorPaso1({ organizationId, form, plantillaId, onAp
                     <CommandItem
                       key={p.id}
                       value={`${p.nombre} ${p.descripcion ?? ""}`}
-                      onSelect={() => handleAplicar(p.id, p.nombre)}
+                      onSelect={() => solicitarAplicacion(p)}
                     >
                       <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                         <span className="font-medium truncate">{p.nombre}</span>
@@ -135,6 +178,20 @@ export function PlantillaSelectorPaso1({ organizationId, form, plantillaId, onAp
           </PopoverContent>
         </Popover>
       </div>
+      <ConfirmActionDialog
+        open={pendiente !== null}
+        onOpenChange={(open) => { if (!open && !aplicar.isPending) setPendiente(null); }}
+        title="¿Reemplazar datos con la plantilla?"
+        description={pendiente?.campos.length
+          ? `La plantilla reemplazará estos datos de tu captura: ${pendiente.campos.join(", ")}.`
+          : "La plantilla puede reemplazar datos de tu captura."}
+        confirmLabel="Aplicar plantilla"
+        cancelLabel="Conservar captura"
+        isPending={aplicar.isPending}
+        onConfirm={() => pendiente && !aplicar.isPending
+          ? handleAplicar(pendiente.plantilla.id, pendiente.plantilla.nombre)
+          : undefined}
+      />
     </div>
   );
 }

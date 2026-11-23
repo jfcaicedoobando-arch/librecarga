@@ -31,13 +31,14 @@ export function computarFlags(
   const clienteAcepto = estadoCliente === "aceptada";
   const publicacionSuspendida = suspenderPublicacion(proforma);
   const puedePublicar = !cancelada && !publicacionSuspendida;
+  const listaParaConvertir = clienteAcepto && !facturada && puedePublicar && !proforma.factura_id;
   return {
     facturada,
     cancelada,
     puedePublicar,
     tokenPublico: publicacionSuspendida ? null : proforma.token_publico ?? null,
-    puedeConvertir:
-      clienteAcepto && !facturada && puedePublicar && !proforma.factura_id && canEmitirFactura,
+    puedeConvertir: listaParaConvertir && canEmitirFactura,
+    indicarRelevoFacturacion: listaParaConvertir && !canEmitirFactura,
     puedeResponder:
       !facturada && puedePublicar && estadoCliente === "pendiente" && canResponderProformaManual,
     mostrarHint: !clienteAcepto && !facturada && puedePublicar,

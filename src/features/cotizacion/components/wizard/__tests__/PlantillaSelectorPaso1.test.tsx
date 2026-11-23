@@ -42,12 +42,13 @@ function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }
 
-function makeForm() {
+function makeForm(origen = "") {
   return {
-    getValues: vi.fn(() => ({ ruta: "" })),
+    getValues: vi.fn((campo?: string) => campo === "origen" ? origen : { ruta: "", origen, destino: "México" }),
+    getFieldState: vi.fn((campo: string) => ({ isDirty: campo === "origen" && Boolean(origen) })),
+    formState: { isDirty: Boolean(origen) },
     reset: vi.fn(),
     trigger: vi.fn(() => Promise.resolve(true)),
-     
   } as any;
 }
 
@@ -111,6 +112,31 @@ describe("PlantillaSelectorPaso1 (P2 cierre)", () => {
     expect(opts).toEqual({ keepDefaultValues: true });
     expect(form.trigger).toHaveBeenCalled();
     expect(onApplied).toHaveBeenCalled();
+  });
+
+  it("protege el origen escrito antes de aplicar una plantilla", async () => {
+    const payload = { version: 1, values: { origen: "Puerto existente" } };
+    state.plantillas = [Object.assign({
+      id: "p1", nombre: "Plantilla de ejemplo", descripcion: null, veces_usada: 0, visibilidad: "org",
+    }, { payload })];
+    state.rpcData = payload;
+    const form = makeForm("Puerto capturado");
+    // Algunos inputs controlados de ruta usan setValue sin shouldDirty.
+    form.getFieldState.mockReturnValue({ isDirty: false });
+    form.formState = { isDirty: false, defaultValues: { origen: "", destino: "México" } };
+    render(<PlantillaSelectorPaso1 organizationId="org-1" form={form} plantillaId="p1" />, { wrapper });
+    const cta = await screen.findByRole("button", { name: "Aplicar Plantilla de ejemplo" });
+    fireEvent.click(cta);
+    expect(await screen.findByRole("alertdialog")).toHaveTextContent("Origen");
+    fireEvent.click(screen.getByRole("button", { name: "Conservar captura" }));
+    expect(supabase.rpc).not.toHaveBeenCalled();
+    expect(form.reset).not.toHaveBeenCalled();
+    fireEvent.click(cta);
+    fireEvent.click(await screen.findByRole("button", { name: /^Aplicar plantilla$/ }));
+    await waitFor(() => expect(form.reset).toHaveBeenCalledWith(
+      expect.objectContaining({ origen: "Puerto existente", destino: "México" }),
+      { keepDefaultValues: true },
+    ));
   });
 
   it("muestra la plantilla pedida y usa su ID sólo al confirmar, aunque haya nombres iguales", async () => {

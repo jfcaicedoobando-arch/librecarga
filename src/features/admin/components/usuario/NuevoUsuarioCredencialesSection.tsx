@@ -65,8 +65,9 @@ export function NuevoUsuarioCredencialesSection(props: CredencialesProps) {
           autoFocus
           placeholder="usuario@empresa.com"
           aria-invalid={!!emailError}
+          aria-describedby={emailError ? "nu-email-error" : undefined}
         />
-        {emailError && <p className="text-body-sm text-destructive">{emailError}</p>}
+        {emailError && <p id="nu-email-error" className="text-body-sm text-destructive" role="alert">{emailError}</p>}
       </div>
 
       {ocultarPassword ? null : (

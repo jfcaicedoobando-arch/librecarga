@@ -13,7 +13,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   scoring.mockReturnValue({ data: new Map() });
 });
-function LocationProbe() { return <output aria-label="Ruta actual">{useLocation().pathname}</output>; }
+function LocationProbe() {
+  const { pathname, search } = useLocation();
+  return <output aria-label="Ruta actual">{pathname}{search}</output>;
+}
 const show = (objeto: "contacto" | "empresa" = "contacto", searchParams = "") => render(<NuqsTestingAdapter searchParams={searchParams}><MemoryRouter>
   <LocationProbe />
   <ListaObjetosCrm<{ id: string; nombre: string }> objeto={objeto} rutaBase={`/crm/${objeto === "empresa" ? "empresas" : "contactos"}`}
@@ -64,6 +67,17 @@ describe("ListaObjetosCrm · tabla canónica", () => {
     expect(query).toHaveBeenLastCalledWith("empresa", "", 0, "todas", estado);
     expect(screen.getByRole("combobox", { name: "Filtrar por estado" })).toHaveTextContent(estado);
   });
+  it("lleva la búsqueda, la página y los filtros a la ficha de empresa", () => {
+    query.mockReturnValue({ isLoading: false, isError: false, data: { filas: [{ id: "ana", nombre: "Ana" }], total: 60 } });
+    show("empresa", "?q=Ana&pagina=1&letra=A&estado=Lead");
+    fireEvent.keyDown(screen.getByRole("link"), { key: "Enter" });
+    const ruta = screen.getByLabelText("Ruta actual").textContent ?? "";
+    expect(ruta).toContain("/crm/empresas/ana?");
+    expect(Object.fromEntries(new URLSearchParams(ruta.split("?")[1]))).toEqual({
+      q: "Ana", pagina: "1", letra: "A", estado: "Lead",
+    });
+  });
+
   it("no aplica el filtro de empresas al listado de contactos", () => {
     query.mockReturnValue({ isLoading: false, isError: false, data: { filas: [], total: 0 } });
     show("contacto", "?estado=Prospecto");

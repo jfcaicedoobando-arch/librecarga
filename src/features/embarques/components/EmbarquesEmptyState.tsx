@@ -7,7 +7,6 @@
  * (cotización aprobada → embarque) y ofrece ir a cotizaciones si tiene acceso.
  */
 import { Ship } from "lucide-react";
-import { useNavigate } from "react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import EmptyState from "@/components/empty/EmptyState";
 import { OrgContextoHint } from "@/components/shared/OrgContextoHint";
@@ -17,16 +16,16 @@ import { hasRouteAccess } from "@/lib/access/roleRouteMatrix";
 interface Props {
   canEdit: boolean;
   onCreate: () => void;
+  onBuscarCotizacion: () => void;
 }
 
-export function EmbarquesEmptyState({ canEdit, onCreate }: Props) {
-  const navigate = useNavigate();
+export function EmbarquesEmptyState({ canEdit, onCreate, onBuscarCotizacion }: Props) {
   const { role } = usePermissions();
   const puedeVerCotizaciones = hasRouteAccess(role, "/cotizaciones");
 
   const descripcion = canEdit
     ? "Comienza registrando tu primer embarque para dar seguimiento a tus operaciones de importación, exportación y más."
-    : "Los embarques se crean desde una cotización aceptada. Abre una cotización para iniciar el flujo.";
+    : "Los embarques se crean desde una cotización aceptada. Ábrela y elige Crear embarque.";
 
   return (
     <Card>
@@ -38,7 +37,7 @@ export function EmbarquesEmptyState({ canEdit, onCreate }: Props) {
           primaryAction={canEdit ? { label: "Crear mi primer embarque", onClick: onCreate } : undefined}
           secondaryAction={
             !canEdit && puedeVerCotizaciones
-              ? { label: "Ver cotizaciones", onClick: () => navigate("/cotizaciones"), variant: "outline" }
+              ? { label: "Buscar cotización aceptada", onClick: onBuscarCotizacion, variant: "outline" }
               : undefined
           }
         />

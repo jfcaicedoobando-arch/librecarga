@@ -9,7 +9,7 @@ describe("descarga de tarifario", () => {
       <DescargarTarifarioButton cargando={cargando} error={error} hayFilas={hayFilas} onDownload={descargar} />
     );
     const { rerender } = render(vista({ cargando: true }));
-    const boton = screen.getByRole("button", { name: "Descargar Excel" });
+    const boton = screen.getByRole("button", { name: "Descargar CSV" });
     expect(boton).toBeDisabled();
     expect(boton).toHaveAccessibleDescription("Espera a que termine la consulta.");
     fireEvent.click(boton);

@@ -1,3 +1,5 @@
+import { useState, type Ref } from "react";
+import { validarDatosBancarios } from "@/lib/domain/datosBancarios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,19 +16,29 @@ type Controller = ReturnType<typeof useNuevoProveedorController>;
  * Si es Extranjero muestra los campos típicos de una transferencia internacional
  * (SWIFT/BIC, IBAN, ABA, banco intermediario, etc.).
  */
-export function NuevoProveedorStep2({ c }: { c: Controller }) {
+interface Paso2Props {
+  c: Controller;
+  clabeRef?: Ref<HTMLInputElement>;
+  mostrarErrorClabe?: boolean;
+}
+
+export function NuevoProveedorStep2({ c, clabeRef, mostrarErrorClabe }: Paso2Props) {
   const esExtranjero = c.form.origen_proveedor === "Extranjero";
   return (
     <div className="space-y-4">
       <SectionHeading as="h3" description="Opcional. Puedes capturarlos después desde la edición del proveedor.">
         Datos bancarios
       </SectionHeading>
-      {esExtranjero ? <Step2Internacional c={c} /> : <Step2Nacional c={c} />}
+      {esExtranjero ? <Step2Internacional c={c} /> : <Step2Nacional c={c} clabeRef={clabeRef} mostrarErrorClabe={mostrarErrorClabe} />}
     </div>
   );
 }
 
-function Step2Nacional({ c }: { c: Controller }) {
+function Step2Nacional({ c, clabeRef, mostrarErrorClabe }: Paso2Props) {
+  const [revisada, setRevisada] = useState(false);
+  const error = revisada || mostrarErrorClabe
+    ? validarDatosBancarios({ esExtranjero: false, clabe: c.form.clabe, swiftBic: undefined })?.mensaje
+    : undefined;
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div className="space-y-2">
@@ -43,17 +55,17 @@ function Step2Nacional({ c }: { c: Controller }) {
       <div className="space-y-2">
         <Label htmlFor="nprov-clabe">CLABE interbancaria</Label>
         <Input id="nprov-clabe"
+          ref={clabeRef}
+          onBlur={() => setRevisada(true)}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? "nprov-clabe-error" : undefined}
           inputMode="numeric"
           maxLength={18}
           placeholder="18 dígitos"
           value={c.form.clabe}
           onChange={(e) => c.setField("clabe", e.target.value.replace(/\D/g, ""))}
         />
-        {c.form.clabe.length > 0 && c.form.clabe.length !== 18 && (
-          <p className="text-body-sm text-destructive">
-            La CLABE debe tener 18 dígitos ({c.form.clabe.length}/18).
-          </p>
-        )}
+        {error && <p id="nprov-clabe-error" className="text-body-sm text-destructive">{error}</p>}
       </div>
     </div>
   );

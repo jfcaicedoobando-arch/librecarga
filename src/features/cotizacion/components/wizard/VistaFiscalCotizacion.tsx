@@ -23,6 +23,8 @@ function VistaFiscalActiva({
   const fiscal = useVistaFiscalCotizacion(opciones);
   if (fiscal.estado === "legacy") return children();
   if ("bloques" in fiscal) return children(<ResumenFiscalCotizacion {...fiscal} />);
-  const estado = fiscal.estado === "cargando" || fiscal.estado === "error" ? fiscal.estado : "revision";
-  return children(<ResumenFiscalCotizacion estado={estado} />);
+  if (fiscal.estado === "error") {
+    return children(<ResumenFiscalCotizacion estado="error" onReintentar={fiscal.reintentar} />);
+  }
+  return children(<ResumenFiscalCotizacion estado={fiscal.estado === "cargando" ? "cargando" : "revision"} />);
 }

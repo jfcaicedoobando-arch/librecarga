@@ -6,8 +6,7 @@
  * Mantiene el controller intacto y delega secciones a `NuevoClienteFormPieces`.
  */
 import { useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, UserPlus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { UserPlus } from "lucide-react";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { COPY_VALIDACION } from "@/lib/copy/publicoCopy";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
@@ -20,17 +19,13 @@ import {
   ClienteFiscalSelects,
 } from "./NuevoClienteFormPieces";
 import { rfcLooksValid, cpLooksValid, emailLooksValid } from "./nuevoClienteValidators";
-import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
+import { NuevoClienteFooter, NuevoClienteSalida } from "./NuevoClienteDialogAcciones";
 
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-function textoGuardar(isSaving: boolean, clienteCreado: boolean): string {
-  if (isSaving) return "Guardando…";
-  return clienteCreado ? "Reintentar constancia" : "Crear cliente";
+  onAbrirCliente?: (id: string) => void;
 }
 
 function descripcionDocumentos(clienteCreado: boolean, tieneCsf: boolean): string {
@@ -41,14 +36,8 @@ function descripcionDocumentos(clienteCreado: boolean, tieneCsf: boolean): strin
       : "Adjunta la CSF en PDF. Los demás documentos se suben después desde el detalle del cliente.";
 }
 
-function descripcionSalida(clienteCreado: boolean): string {
-  return clienteCreado
-    ? "El cliente ya fue creado, pero su constancia sigue pendiente. Si sales, completa el expediente desde su ficha."
-    : "Perderás los datos capturados y los documentos adjuntos de este formulario.";
-}
-
-export default function NuevoClienteDialog({ open, onOpenChange }: Props) {
-  const c = useNuevoClienteController(() => onOpenChange(false));
+export default function NuevoClienteDialog({ open, onOpenChange, onAbrirCliente }: Props) {
+  const c = useNuevoClienteController(() => onOpenChange(false), onAbrirCliente);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [confirmarSalida, setConfirmarSalida] = useState(false);
 
@@ -65,8 +54,6 @@ export default function NuevoClienteDialog({ open, onOpenChange }: Props) {
     fileInputRef.current.files = dt.files;
     fileInputRef.current.dispatchEvent(new Event("change", { bubbles: true }));
   };
-
-  const prefilled = c.csfParsed;
 
   const headerAside = c.csfFile ? (
     <div className="flex flex-col items-end gap-0.5">
@@ -85,29 +72,13 @@ export default function NuevoClienteDialog({ open, onOpenChange }: Props) {
       title="Nuevo cliente"
       description={
         c.step === 1
-          ? "Captura los datos del cliente o sube su CSF para prellenar el formulario."
+          ? "Para crear al cliente se requiere su Constancia de Situación Fiscal (CSF) en PDF. Si capturas a mano, la adjuntarás en el paso 2."
           : "Revisa la Constancia de Situación Fiscal; el resto del expediente puede completarse después."
       }
       size="lg"
       stepper={{ step: c.step, totalSteps: 2, labels: ["Datos del cliente", "Documentación"] }}
       headerAside={headerAside}
-      footer={c.step === 1 ? (
-        <>
-          <Button variant="outline" onClick={intentarCerrar}>Cancelar</Button>
-          <Button onClick={c.handleNext} disabled={!c.isStep1Valid || c.parsingCsf}>
-            Siguiente <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
-        </>
-      ) : (
-        <>
-          <Button variant="outline" onClick={() => c.setStep(1)} disabled={c.isSaving || !!c.clienteCreado}>
-            <ArrowLeft className="h-4 w-4 mr-1" /> Atrás
-          </Button>
-          <Button onClick={c.handleSave} disabled={!c.docsRequeridosCompletos || c.isSaving} loading={c.isSaving}>
-            {textoGuardar(c.isSaving, !!c.clienteCreado)}
-          </Button>
-        </>
-      )}
+      footer={<NuevoClienteFooter c={c} intentarCerrar={intentarCerrar} />}
     >
       {c.step === 1 && (
         <>
@@ -128,21 +99,24 @@ export default function NuevoClienteDialog({ open, onOpenChange }: Props) {
             </FormDialogSection>
           )}
 
+          {c.lecturaCsf === "manual" && <p role="status" className="text-body-sm text-muted-foreground">PDF adjunto. Captura los datos manualmente.</p>}
+          {c.lecturaCsf === "leida" && <p role="status" className="text-body-sm text-muted-foreground">Datos extraídos. Revisa los campos antes de continuar.</p>}
+
           <FormDialogSection title="Datos fiscales" description="Información requerida para facturación SAT.">
             <ClienteField label="RFC" field="rfc" form={c.form} onChange={c.handleChange} required
-              prefilledFromCsf={prefilled} validate={(v) => (!rfcLooksValid(v) ? "Formato de RFC inválido" : null)} />
+              prefilledFromCsf={c.camposCsf.has("rfc")} validate={(v) => (!rfcLooksValid(v) ? "Formato de RFC inválido" : null)} />
             <ClienteField label="Código Postal" field="cp" form={c.form} onChange={c.handleChange} required
-              prefilledFromCsf={prefilled} validate={(v) => (!cpLooksValid(v) ? "Deben ser 5 dígitos" : null)} />
-            <ClienteFiscalSelects form={c.form} onChange={c.handleChange} prefilledRegimen={prefilled} />
+              prefilledFromCsf={c.camposCsf.has("cp")} validate={(v) => (!cpLooksValid(v) ? "Deben ser 5 dígitos" : null)} />
+            <ClienteFiscalSelects form={c.form} onChange={c.handleChange} prefilledRegimen={c.camposCsf.has("regimen_fiscal")} />
           </FormDialogSection>
 
           <FormDialogSection title="Datos generales y contacto">
             <ClienteField className="md:col-span-2" label="Nombre / Razón Social" field="nombre"
-              form={c.form} onChange={c.handleChange} required prefilledFromCsf={prefilled} />
+              form={c.form} onChange={c.handleChange} required prefilledFromCsf={c.camposCsf.has("nombre")} />
             <ClienteField className="md:col-span-2" label="Dirección" field="direccion"
-              form={c.form} onChange={c.handleChange} prefilledFromCsf={prefilled} />
-            <ClienteField label="Ciudad" field="ciudad" form={c.form} onChange={c.handleChange} prefilledFromCsf={prefilled} />
-            <ClienteField label="Estado" field="estado" form={c.form} onChange={c.handleChange} prefilledFromCsf={prefilled} />
+              form={c.form} onChange={c.handleChange} prefilledFromCsf={c.camposCsf.has("direccion")} />
+            <ClienteField label="Ciudad" field="ciudad" form={c.form} onChange={c.handleChange} prefilledFromCsf={c.camposCsf.has("ciudad")} />
+            <ClienteField label="Estado" field="estado" form={c.form} onChange={c.handleChange} prefilledFromCsf={c.camposCsf.has("estado")} />
             <ClienteField label="Contacto" field="contacto" form={c.form} onChange={c.handleChange} required />
             <ClienteField label="Email" field="email" form={c.form} onChange={c.handleChange} required
               validate={(v) => (v && !emailLooksValid(v) ? COPY_VALIDACION.correoInvalido : null)} />
@@ -161,16 +135,13 @@ export default function NuevoClienteDialog({ open, onOpenChange }: Props) {
         />
       )}
     </FormDialogShell>
-      <ConfirmActionDialog
+      <NuevoClienteSalida
         open={confirmarSalida}
         onOpenChange={setConfirmarSalida}
-        title="¿Descartar el alta del cliente?"
-        description={descripcionSalida(!!c.clienteCreado)}
-        confirmLabel="Descartar"
-        cancelLabel="Seguir editando"
-        variant="destructive"
-        confirmDisabled={c.isSaving}
-        onConfirm={() => { setConfirmarSalida(false); c.resetAndClose(); }}
+        clienteId={c.clienteCreado?.id}
+        isSaving={c.isSaving}
+        onSalir={c.resetAndClose}
+        onAbrirCliente={onAbrirCliente}
       />
     </>
   );

@@ -23,9 +23,9 @@ export type Controller = ReturnType<typeof useNuevoProveedorController>;
 export function OrigenSelect({ c }: { c: Controller }) {
   return (
     <div className="space-y-2">
-      <Label>Origen *</Label>
+      <Label htmlFor="nuevo-proveedor-origen">Origen <span aria-hidden="true">*</span></Label>
       <Select value={c.form.origen_proveedor || ""} onValueChange={(v) => c.setField("origen_proveedor", v as "Nacional" | "Extranjero")}>
-        <SelectTrigger><SelectValue placeholder="Selecciona origen" /></SelectTrigger>
+        <SelectTrigger id="nuevo-proveedor-origen" aria-required="true"><SelectValue placeholder="Selecciona origen" /></SelectTrigger>
         <SelectContent>
           <SelectItem value="Nacional">Nacional</SelectItem>
           <SelectItem value="Extranjero">Extranjero</SelectItem>
@@ -46,11 +46,14 @@ export function CsfUploader({ c }: { c: Controller }) {
     <div className="space-y-2 rounded-md border border-dashed border-border bg-muted/40 p-3">
       <Label className="text-body">Cargar Constancia de Situación Fiscal (PDF)</Label>
       <p className="text-body-sm text-muted-foreground">
-        Opcional. Extraemos automáticamente nombre y RFC desde la CSF del SAT.
+        Opcional. Extraemos automáticamente nombre y RFC desde la CSF del SAT. El PDF se usa para prellenar; adjúntalo desde la ficha si lo necesitas en el expediente.
       </p>
       <input ref={csfInputRef} type="file" accept="application/pdf" className="hidden" onChange={onChange} />
+      {c.csfNombre && !c.csfLoading && (
+        <p role="status" className="text-body-sm text-muted-foreground break-words">Datos extraídos de {c.csfNombre}. Revisa nombre y RFC.</p>
+      )}
       <Button type="button" variant="outline" size="sm" disabled={c.csfLoading} loading={c.csfLoading} onClick={() => csfInputRef.current?.click()}>
-        {c.csfLoading ? "Procesando…" : (<><Upload className="h-4 w-4 mr-2" /> Subir CSF</>)}
+        {c.csfLoading ? "Procesando…" : (<><Upload className="h-4 w-4 mr-2" /> {c.csfNombre ? "Cambiar PDF" : "Subir CSF"}</>)}
       </Button>
     </div>
   );
@@ -60,9 +63,9 @@ export function TipoLogisticoSelect({ c }: { c: Controller }) {
   const tipos = tiposProveedorPorOrigen(c.form.origen_proveedor, c.form.tipo);
   return (
     <div className="space-y-2">
-      <Label>Tipo *</Label>
+      <Label htmlFor="nuevo-proveedor-tipo">Tipo <span aria-hidden="true">*</span></Label>
       <Select value={c.form.tipo ?? ""} onValueChange={c.handleTipoChange}>
-        <SelectTrigger><SelectValue placeholder="Selecciona tipo" /></SelectTrigger>
+        <SelectTrigger id="nuevo-proveedor-tipo" aria-required="true"><SelectValue placeholder="Selecciona tipo" /></SelectTrigger>
         <SelectContent>
           {tipos.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
         </SelectContent>
@@ -104,9 +107,9 @@ export function ContactoFields({ c }: { c: Controller }) {
       </div>
       {!c.isGasto && (
         <div className="space-y-2">
-          <Label>Moneda Preferida</Label>
+          <Label htmlFor="nuevo-proveedor-moneda">Moneda Preferida</Label>
           <Select value={c.form.moneda_preferida} onValueChange={(v) => c.setField("moneda_preferida", v as Enums<"moneda">)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="nuevo-proveedor-moneda"><SelectValue /></SelectTrigger>
             <SelectContent>
               {MONEDAS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
             </SelectContent>

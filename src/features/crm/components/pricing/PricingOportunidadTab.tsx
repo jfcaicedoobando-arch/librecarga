@@ -41,7 +41,7 @@ export function PricingOportunidadTab({ oportunidadId, clienteNombre, canEdit }:
         <Card><CardContent className="py-6 text-center text-body-sm text-muted-foreground">Aún no hay solicitudes a Pricing.</CardContent></Card>
       )}
       {solicitudes.map((s) => (
-        <button key={s.id} type="button" onClick={() => setAbierta(abierta === s.id ? null : s.id)}
+        <button key={s.id} type="button" aria-expanded={abierta === s.id} onClick={() => setAbierta(abierta === s.id ? null : s.id)}
           className="flex w-full flex-wrap items-center gap-3 rounded-lg border bg-card p-3 text-left hover:bg-muted/50">
           <span className="font-medium">{s.folio}</span>
           <Badge variant="outline">{ETIQUETA_ESTADO_PRICING[s.estado] ?? s.estado}</Badge>
@@ -60,7 +60,8 @@ export function PricingOportunidadTab({ oportunidadId, clienteNombre, canEdit }:
         </>
       )}
       <SolicitudPricingDialog open={dialogo.open} onOpenChange={(o) => setDialogo((p) => ({ ...p, open: o }))}
-        oportunidadId={oportunidadId} clienteNombre={clienteNombre} solicitud={dialogo.solicitud} />
+        oportunidadId={oportunidadId} clienteNombre={clienteNombre} solicitud={dialogo.solicitud}
+        onRevisarTarifario={setAbierta} />
     </div>
   );
 }

@@ -11,30 +11,54 @@ import { Plus, Trash2, Pencil } from "lucide-react";
 import { useCatalogoClavesSATController } from "@/features/configuracion/hooks/useCatalogoClavesSATController";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import SearchInput from "@/components/shared/SearchInput";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { DetailTableHead, DetailTableRow, DetailTableEmptyRow } from "@/components/shared/DetailTable";
+import { TableCell } from "@/components/ui/table";
+import { DetailTableRow } from "@/components/shared/DetailTable";
 import DoubleConfirmDeleteDialog from "@/components/shared/DoubleConfirmDeleteDialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
-import { EditRow } from "./CatalogoClavesSATCard.parts";
+import { CatalogoClavesSATTabla, EditRow } from "./CatalogoClavesSATCard.parts";
 import {
   EMPTY_DRAFT, TIPO_IVA_LABEL, TIPO_IVA_BADGE, TIPO_IVA_VARIANT,
   type Draft, type Row,
 } from "./CatalogoClavesSATCard.constants";
+
+function estadoTabla(cargando: boolean, total: number, visibles: number, agregando: boolean) {
+  if (cargando) return "cargando";
+  if (total === 0 && !agregando) return "vacio";
+  if (total > 0 && visibles === 0) return "sin-coincidencias";
+  return "disponible";
+}
+
+function BusquedaProductos({ valor, onChange }: { valor: string; onChange: (v: string) => void }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-2">
+      <SearchInput value={valor} onChange={onChange} placeholder="Buscar por nombre o clave SAT…" />
+      {valor && <Button variant="ghost" size="sm" onClick={() => onChange("")}>Limpiar búsqueda</Button>}
+    </div>
+  );
+}
 
 export function CatalogoClavesSATCard() {
   const { rows, isLoading, isError, isFetching, refetch, addMut, updateMut, deleteMut } = useCatalogoClavesSATController();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [showNew, setShowNew] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
+  const filtro = busqueda.trim().toLocaleLowerCase("es-MX");
+  const filasVisibles = rows.filter((r) =>
+    r.id === editingId || `${r.patron} ${r.clave_sat}`.toLocaleLowerCase("es-MX").includes(filtro),
+  );
   // UX-01: eliminar exige confirmación de doble paso.
   const [rowAEliminar, setRowAEliminar] = useState<Row | null>(null);
 
   const busy = addMut.isPending || updateMut.isPending || deleteMut.isPending;
 
+  const editando = editingId !== null || showNew;
+
   const startEdit = (r: Row) => {
+    if (editando || busy) return;
     setEditingId(r.id);
     setDraft({
       patron: r.patron, clave_sat: r.clave_sat,
@@ -67,66 +91,45 @@ export function CatalogoClavesSATCard() {
             y al facturar se usa esta información automáticamente.
           </CardDescription>
         </div>
-        <Button size="sm" variant="outline" onClick={() => { setShowNew(true); setDraft(EMPTY_DRAFT); }} disabled={showNew || busy || isLoading || isError}>
+        <Button size="sm" variant="outline" onClick={() => { setShowNew(true); setDraft(EMPTY_DRAFT); }} disabled={editando || busy || isLoading || isError}>
           <Plus className="h-4 w-4 mr-1" /> Nuevo producto
         </Button>
       </CardHeader>
       <CardContent>
+        {editando && <p role="status" className="mb-3 text-body-sm text-muted-foreground">Guarda o cancela el producto en edición antes de abrir otro.</p>}
         {isError && <ErrorStateInline title="No se pudo cargar el catálogo de productos" message="Reintenta antes de agregar o editar productos." onRetry={() => void refetch()} retrying={isFetching} />}
-        <div className="overflow-x-auto" hidden={isError}>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <DetailTableHead className="w-[28%]">Nombre</DetailTableHead>
-                <DetailTableHead className="w-[14%]">Clave SAT</DetailTableHead>
-                <DetailTableHead className="w-[14%]">Tipo IVA</DetailTableHead>
-                <DetailTableHead className="w-[14%]">Unidad SAT</DetailTableHead>
-                <DetailTableHead className="w-[10%]">Activo</DetailTableHead>
-                <DetailTableHead className="w-[12%] text-right">Acciones</DetailTableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
-                <TableRow role="status" aria-busy="true">
-                  <TableCell colSpan={6} className="py-4">
-                    <span className="sr-only">Cargando…</span>
-                    <Skeleton className="h-4 w-full" />
-                  </TableCell>
-                </TableRow>
-              )}
-              {!isLoading && !isError && rows.length === 0 && !showNew && (
-                <DetailTableEmptyRow colSpan={6} message="Aún no hay productos. Da de alta al menos uno para poder capturar cotizaciones." />
-              )}
-              {rows.map((r) => editingId === r.id ? (
-                <EditRow key={r.id} draft={draft} setDraft={setDraft} busy={busy} valid={validDraft}
-                         tipoIvaOriginal={r.tipo_iva}
-                         onCancel={() => setEditingId(null)}
-                         onSave={handleUpdate} />
-              ) : (
-                <DetailTableRow key={r.id}>
-                  <TableCell className="font-medium">{r.patron}</TableCell>
-                  <TableCell className="font-mono text-xs">{r.clave_sat}</TableCell>
-                  <TableCell>
-                    <Badge variant={TIPO_IVA_VARIANT[r.tipo_iva]} aria-label={TIPO_IVA_LABEL[r.tipo_iva]}>
-                      {TIPO_IVA_BADGE[r.tipo_iva]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">{r.clave_unidad_sat}</TableCell>
-                  <TableCell>{r.activo ? "Sí" : "No"}</TableCell>
-                  <TableCell className="text-right">
-                    <Button size="icon" variant="ghost" onClick={() => startEdit(r)} disabled={busy} aria-label={`Editar producto ${r.patron}`}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => setRowAEliminar(r)} disabled={busy} aria-label={`Eliminar producto ${r.patron}`}><Trash2 className="h-4 w-4" /></Button>
-                  </TableCell>
-                </DetailTableRow>
-              ))}
-              {showNew && (
-                <EditRow draft={draft} setDraft={setDraft} busy={busy} valid={validDraft}
-                         onCancel={() => { setShowNew(false); setDraft(EMPTY_DRAFT); }}
-                         onSave={handleAdd} />
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        {!isLoading && !isError && rows.length > 0 && (
+          <BusquedaProductos valor={busqueda} onChange={setBusqueda} />
+        )}
+        <CatalogoClavesSATTabla estado={estadoTabla(isLoading, rows.length, filasVisibles.length, showNew)} ocultar={isError}>
+          {filasVisibles.map((r) => editingId === r.id ? (
+            <EditRow key={r.id} draft={draft} setDraft={setDraft} busy={busy} valid={validDraft}
+                     tipoIvaOriginal={r.tipo_iva}
+                     onCancel={() => setEditingId(null)}
+                     onSave={handleUpdate} />
+          ) : (
+            <DetailTableRow key={r.id}>
+              <TableCell className="font-medium">{r.patron}</TableCell>
+              <TableCell className="font-mono text-xs">{r.clave_sat}</TableCell>
+              <TableCell>
+                <Badge variant={TIPO_IVA_VARIANT[r.tipo_iva]} aria-label={TIPO_IVA_LABEL[r.tipo_iva]}>
+                  {TIPO_IVA_BADGE[r.tipo_iva]}
+                </Badge>
+              </TableCell>
+              <TableCell className="font-mono text-xs">{r.clave_unidad_sat}</TableCell>
+              <TableCell>{r.activo ? "Sí" : "No"}</TableCell>
+              <TableCell className="text-right">
+                <Button size="icon" variant="ghost" onClick={() => startEdit(r)} disabled={editando || busy} aria-label={`Editar producto ${r.patron}`}><Pencil className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" onClick={() => setRowAEliminar(r)} disabled={editando || busy} aria-label={`Eliminar producto ${r.patron}`}><Trash2 className="h-4 w-4" /></Button>
+              </TableCell>
+            </DetailTableRow>
+          ))}
+          {showNew && (
+            <EditRow draft={draft} setDraft={setDraft} busy={busy} valid={validDraft}
+                     onCancel={() => { setShowNew(false); setDraft(EMPTY_DRAFT); }}
+                     onSave={handleAdd} />
+          )}
+        </CatalogoClavesSATTabla>
       </CardContent>
       <DoubleConfirmDeleteDialog
         open={!!rowAEliminar}

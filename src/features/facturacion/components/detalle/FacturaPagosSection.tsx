@@ -39,6 +39,10 @@ interface Props {
   onRegistrarPago?: () => void;
 }
 
+function saldoClass(liquidada: boolean) {
+  return `text-base font-semibold tabular-nums ${liquidada ? "text-success" : "text-accent"}`;
+}
+
 export function FacturaPagosSection({
   facturaId, facturaNumero, totalFactura, moneda, canEdit, estadoFactura, soloLectura,
 }: Props) {
@@ -49,15 +53,11 @@ export function FacturaPagosSection({
   const saldoServidorQuery = useSaldoFacturaServidor(facturaId);
   const pagos = pagosQuery.data ?? [];
   const notasAplicadas = notasQuery.data ?? [];
-  const isLoading = pagosQuery.isLoading;
+  const consultasSaldo = [pagosQuery, notasQuery, saldoServidorQuery];
+  const isLoading = consultasSaldo.some((consulta) => consulta?.isLoading);
   // P1 fail-closed: un error de lectura NO se degrada a "sin pagos"/saldo total.
-  const lecturaFallida =
-    pagosQuery.isError || notasQuery.isError || !!saldoServidorQuery?.isError;
-  const reintentar = () => {
-    void pagosQuery.refetch();
-    void notasQuery.refetch();
-    void saldoServidorQuery?.refetch();
-  };
+  const lecturaFallida = consultasSaldo.some((consulta) => consulta?.isError);
+  const reintentar = () => consultasSaldo.forEach((consulta) => void consulta?.refetch());
 
   const eliminar = useEliminarPagoFactura();
   const registrarActividad = useRegistrarActividad();
@@ -74,7 +74,9 @@ export function FacturaPagosSection({
     totalFactura, pagos, notasAplicadas, estadoFactura, saldoServidorQuery?.data,
   );
 
-  const liquidada = sinSaldo && pagos.length > 0;
+  const saldoDisponible = !isLoading && !lecturaFallida;
+  const hayPagos = pagos.length > 0;
+  const liquidada = sinSaldo && hayPagos;
 
   const inconsistente = esEstadoInconsistente({
     isLoading,
@@ -105,9 +107,9 @@ export function FacturaPagosSection({
   return (
     <>
       <Card>
-        <FacturaPagosHeader hayPagos={pagos.length > 0} liquidada={liquidada} />
+        <FacturaPagosHeader hayPagos={saldoDisponible && hayPagos} liquidada={liquidada} />
         <CardContent className="space-y-3">
-          {inconsistente && <FacturaEstadoInconsistenteAlert estadoFactura={estadoFactura} />}
+          {saldoDisponible && inconsistente && <FacturaEstadoInconsistenteAlert estadoFactura={estadoFactura} />}
           {lecturaFallida ? (
             <ErrorStateInline
               title="No pudimos cargar pagos y notas de crédito"
@@ -116,8 +118,11 @@ export function FacturaPagosSection({
               className="py-4"
             />
           ) : isLoading ? (
-            <ListSkeleton rows={3} />
-          ) : pagos.length === 0 ? (
+            <div className="space-y-2">
+              <p role="status" className="text-body-sm text-muted-foreground">Calculando saldo…</p>
+              <div aria-hidden><ListSkeleton rows={3} /></div>
+            </div>
+          ) : !hayPagos ? (
             <EmptyStateInline
               icon={Receipt}
               message="Aún no se han registrado pagos para esta factura."
@@ -136,8 +141,7 @@ export function FacturaPagosSection({
             />
 
           )}
-
-          {!lecturaFallida && (
+          {saldoDisponible && (
           <div className="border-t pt-3 grid grid-cols-2 gap-2">
             <div>
               <p className="text-overline font-medium">Pagado</p>
@@ -145,7 +149,7 @@ export function FacturaPagosSection({
             </div>
             <div className="text-right">
               <p className="text-overline font-medium">Saldo</p>
-              <p className={`text-base font-semibold tabular-nums ${liquidada ? "text-success" : "text-accent"}`}>
+              <p className={saldoClass(liquidada)}>
                 {formatCurrency(saldo, moneda)}
               </p>
             </div>

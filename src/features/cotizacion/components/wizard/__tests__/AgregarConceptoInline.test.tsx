@@ -71,6 +71,27 @@ describe("AgregarConceptoInline", () => {
     });
   });
 
+  it("en venta marca el precio en cero y conserva producto y cantidad", async () => {
+    const onAgregar = vi.fn();
+    render(<AgregarConceptoInline onAgregar={onAgregar} monedaFija="MXN" requierePrecioPositivo />);
+    await openPopover();
+    fireEvent.click(screen.getByTestId("mock-sat-select"));
+    fireEvent.change(screen.getByLabelText("Cantidad"), { target: { value: "3" } });
+
+    const agregar = screen.getByRole("button", { name: /^agregar$/i });
+    const precio = screen.getByLabelText(/precio unitario/i);
+    fireEvent.click(agregar);
+    expect(screen.getByRole("alert")).toHaveTextContent("Captura un precio mayor a cero.");
+    expect(precio).toHaveFocus();
+    expect(onAgregar).not.toHaveBeenCalled();
+
+    fireEvent.change(precio, { target: { value: "350" } });
+    fireEvent.click(agregar);
+    expect(onAgregar).toHaveBeenCalledWith("MXN", expect.objectContaining({
+      descripcion: "Flete marítimo", cantidad: 3, precio_unitario: 350,
+    }));
+  });
+
   it("toggle USD/MXN cambia la moneda propagada", async () => {
     const onAgregar = vi.fn();
     render(<AgregarConceptoInline onAgregar={onAgregar} monedaDefault="USD" />);

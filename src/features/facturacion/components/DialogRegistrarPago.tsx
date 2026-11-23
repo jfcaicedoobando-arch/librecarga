@@ -16,7 +16,6 @@ import {
   useNotasCreditoAplicadas,
   useSaldoFacturaServidor,
 } from "@/features/facturacion/hooks/useSaldoFactura";
-
 import { calcularSaldoFactura } from "@/lib/financial/saldoFactura";
 import { useRegistrarPagoSubmit } from "@/features/facturacion/hooks/useRegistrarPagoSubmit";
 import { useRegistrarPagoInit } from "@/features/facturacion/hooks/useRegistrarPagoInit";
@@ -151,6 +150,7 @@ export function DialogRegistrarPago({ open, onOpenChange, factura }: Props) {
   const ocupado = isPending || timbrandoRep;
   const footer = (
     <FooterAcciones
+      intentaTimbrarRep={esPpdTimbrada}
       ocupado={ocupado}
       timbrandoRep={timbrandoRep}
       invalido={invalido}

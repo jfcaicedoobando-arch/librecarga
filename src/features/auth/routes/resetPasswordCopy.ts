@@ -27,6 +27,9 @@ export interface CopyPantallaReset {
   intro: string;
   exito: string;
   exitoDetalle: string;
+  vencidoDetalle: string;
+  vencidoAccion: string;
+  vencidoDestino: string;
 }
 
 /**
@@ -40,11 +43,17 @@ export function copyPantalla(esInvitacion: boolean): CopyPantallaReset {
         intro: "Define la contraseña con la que entrarás a tu portal de Libre Carga.",
         exito: "Tu contraseña quedó lista",
         exitoDetalle: "Te llevaremos a tu portal…",
+        vencidoDetalle: "Pide a quien te invitó que te envíe una invitación nueva.",
+        vencidoAccion: "Volver al inicio de sesión",
+        vencidoDestino: "/login",
       }
     : {
         titulo: "Restablecer contraseña",
         intro: "Ingresa tu nueva contraseña para tu cuenta de Libre Carga.",
         exito: "Contraseña actualizada",
         exitoDetalle: "Te llevaremos al inicio de sesión…",
+        vencidoDetalle: "Solicita otro enlace para restablecer tu contraseña.",
+        vencidoAccion: "Solicitar otro enlace",
+        vencidoDestino: "/login?recuperar=1",
       };
 }

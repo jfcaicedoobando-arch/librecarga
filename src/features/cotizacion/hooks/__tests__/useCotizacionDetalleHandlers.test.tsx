@@ -5,7 +5,7 @@
  * propagación al CRM.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { createWrapper } from "@/test/utils/queryWrapper";
 
 const {
@@ -136,6 +136,7 @@ describe("useCotizacionDetalleHandlers", () => {
       { wrapper: createWrapper() },
     );
     await act(async () => { await result.current.handleCambiarEstado("Aceptada"); });
+    await waitFor(() => expect(result.current.aceptar.cargandoMoneda).toBe(false));
     await act(async () => { await result.current.aceptar.confirmar(); });
     expect(alinearMonedaOportunidadMock).not.toHaveBeenCalled();
     expect(actualizarEstadoMutateAsync).toHaveBeenCalledWith({ id: "cot-1", estado: "Aceptada" });

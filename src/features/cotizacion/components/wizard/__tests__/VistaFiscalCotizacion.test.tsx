@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { fiscalCotizacionFixture } from "@/test/fixtures/snapshotFiscalCotizacion";
 import type { ConceptoVentaCotizacion } from "../../../types";
@@ -18,6 +18,23 @@ const lineas: ConceptoVentaCotizacion[] = ["Flete", "Maniobras"].map((descripcio
 }));
 
 describe("vista fiscal de la cotización", () => {
+  it("reintenta el mismo cálculo sin editar conceptos", async () => {
+    evaluar.mockRejectedValueOnce(new Error("sin conexión"))
+      .mockResolvedValueOnce(fiscalCotizacionFixture({ cliente_id: "cliente-qa" }));
+    const client = new QueryClient();
+    const { unmount } = render(
+      <QueryClientProvider client={client}>
+        <VistaFiscalCotizacion clienteId="cliente-qa" cotizacionId="cot-qa" conceptos={lineas}>
+          {(resumen) => resumen}
+        </VistaFiscalCotizacion>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Reintentar cálculo fiscal" }));
+    expect(await screen.findByText(/230\.42/)).toBeInTheDocument();
+    expect(evaluar.mock.calls[0][0].conceptos).toEqual(evaluar.mock.calls[1][0].conceptos);
+    unmount();
+    client.clear();
+  });
   it("muestra el total agrupado y descarta una respuesta del receptor anterior", async () => {
     let finalizarAnterior!: (snapshot: unknown) => void;
     evaluar.mockImplementation(({ clienteId }) => clienteId === "cliente-anterior"

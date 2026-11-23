@@ -9,6 +9,8 @@ import { rfcReceptorFactura } from "@/lib/financial/usoCfdiFiscal";
 import { AlertTriangle, Stamp } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { usePermissions } from "@/hooks/shared/usePermissions";
+import { hasRouteAccess } from "@/lib/access/roleRouteMatrix";
 
 import { buildEstadoTimbrado } from "@/features/facturacion/utils/estadoTimbrado";
 import { useTimbrarFacturaDialog } from "@/features/facturacion/hooks/useTimbrarFacturaDialog";
@@ -37,6 +39,7 @@ function AvisoAutosave({ pendiente, error }: { pendiente: boolean; error: boolea
 
 export function DialogTimbrarFactura({ facturaId, open, onOpenChange }: Props) {
   const { factura, cliente, defaults, ambiente, emailDestino } = useTimbradoContext(facturaId);
+  const { role } = usePermissions();
   const dlg = useTimbrarFacturaDialog(factura, cliente, defaults, () => onOpenChange(false), { emailDestino, open });
   // P1 · Auditoría IVA — se necesitan los conceptos para detectar PPD + No objeto.
   const { data: conceptos } = useConceptosFactura(facturaId ?? undefined);
@@ -91,6 +94,7 @@ export function DialogTimbrarFactura({ facturaId, open, onOpenChange }: Props) {
       ) : (
         <TimbrarCompleto
           checks={checks}
+          clienteId={hasRouteAccess(role, "/clientes") ? factura.cliente_id : undefined}
           receptor={{ rfc: rfcReceptorFactura(factura.rfc_cliente, cliente?.rfc), regimen: cliente?.regimen_fiscal ?? "" }}
           usoCfdi={dlg.usoCfdi}
           setUsoCfdi={dlg.setUsoCfdi}

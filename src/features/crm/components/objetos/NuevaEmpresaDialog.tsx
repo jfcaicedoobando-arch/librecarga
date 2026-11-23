@@ -128,7 +128,7 @@ export function NuevaEmpresaDialog({ open, onOpenChange }: Props) {
           <Label htmlFor="obj-nombre">Nombre *</Label>
           <Input id="obj-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={200} autoComplete="off" />
         </div>
-        <EmpresasSimilares nombre={nombre} onElegir={cerrar} />
+        <EmpresasSimilares nombre={nombre} onElegir={cerrar} disabled={crear.isPending} />
       </FormDialogSection>
       <CamposEmpresa key={version} consulta={propiedades} obligatorias={obligatorias} adicionales={resto} renderCampo={campo} />
     </FormDialogShell>

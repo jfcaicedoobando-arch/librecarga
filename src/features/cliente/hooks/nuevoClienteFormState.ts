@@ -3,33 +3,45 @@ import { cpLooksValid, emailLooksValid, rfcLooksValid } from "@/features/cliente
 import { normalizarRazonSocial } from "@/lib/text/razonSocial";
 import type { ClienteForm } from "./useNuevoClienteController.constants";
 
-// B-024: email/teléfono/contacto son NOT NULL; el correo debe tener forma válida
-// antes de avanzar al paso 2, además de los campos fiscales obligatorios.
-export function isClienteStep1Valid(form: ClienteForm): boolean {
-  return Boolean(
-    form.nombre.trim() &&
-    rfcLooksValid(form.rfc) &&
-    cpLooksValid(form.cp) &&
-    form.regimen_fiscal.trim() &&
-    form.uso_cfdi_default.trim() &&
-    form.forma_pago_default.trim() &&
-    form.metodo_pago_default.trim() &&
-    emailLooksValid(form.email) &&
-    form.telefono.trim() &&
-    form.contacto.trim()
-  );
+const REQUERIDOS_PASO_1 = {
+  nombre: "Nombre / Razón Social",
+  rfc: "RFC",
+  cp: "Código Postal",
+  regimen_fiscal: "Régimen Fiscal SAT",
+  uso_cfdi_default: "Uso CFDI",
+  forma_pago_default: "Forma de pago",
+  metodo_pago_default: "Método de pago",
+  contacto: "Contacto",
+  email: "Correo electrónico",
+  telefono: "Teléfono",
+} as const;
+
+const VALIDAR_FORMATO = {
+  rfc: rfcLooksValid,
+  cp: cpLooksValid,
+  email: emailLooksValid,
+} as const;
+
+export function revisarPaso1Cliente(form: ClienteForm) {
+  const faltantes = (Object.keys(REQUERIDOS_PASO_1) as Array<keyof typeof REQUERIDOS_PASO_1>)
+    .filter((key) => !form[key].trim())
+    .map((key) => REQUERIDOS_PASO_1[key]);
+  const invalidos = (Object.keys(VALIDAR_FORMATO) as Array<keyof typeof VALIDAR_FORMATO>)
+    .filter((key) => Boolean(form[key].trim()) && !VALIDAR_FORMATO[key](form[key]))
+    .map((key) => REQUERIDOS_PASO_1[key]);
+  return { faltantes, invalidos };
 }
 
-/** Aplica sólo los datos extraídos no vacíos y conserva la captura manual. */
-export function mergeClienteCsf(prev: ClienteForm, datos: CsfParsedData): ClienteForm {
-  return {
-    ...prev,
-    nombre: normalizarRazonSocial(datos.nombre) || prev.nombre,
-    rfc: datos.rfc || prev.rfc,
-    cp: datos.cp || prev.cp,
-    direccion: datos.direccion || prev.direccion,
-    ciudad: datos.ciudad || prev.ciudad,
-    estado: datos.estado || prev.estado,
-    regimen_fiscal: datos.regimen_fiscal || prev.regimen_fiscal,
+/** El mismo patch actualiza el formulario y registra su procedencia. */
+export function camposExtraidosClienteCsf(datos: CsfParsedData): Partial<ClienteForm> {
+  const extraidos = {
+    nombre: normalizarRazonSocial(datos.nombre),
+    rfc: datos.rfc,
+    cp: datos.cp,
+    direccion: datos.direccion,
+    ciudad: datos.ciudad,
+    estado: datos.estado,
+    regimen_fiscal: datos.regimen_fiscal,
   };
+  return Object.fromEntries(Object.entries(extraidos).filter(([, valor]) => Boolean(valor)));
 }

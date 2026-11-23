@@ -30,7 +30,7 @@ describe("Moneda original del tarifario", () => {
     expect(within(fila).getByText("EUR", { exact: true })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: 'Moneda 40"' })).toBeVisible();
     expect(screen.queryByRole("columnheader", { name: /\(USD\)/ })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Descargar Excel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Descargar CSV" }));
     expect(exportToCsv).toHaveBeenCalledWith(
       expect.stringMatching(/\.csv$/),
       expect.arrayContaining([

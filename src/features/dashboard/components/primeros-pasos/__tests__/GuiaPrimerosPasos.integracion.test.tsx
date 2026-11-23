@@ -317,7 +317,37 @@ describe("Guía contextual conectada a permisos reales", () => {
     expect(screen.queryByRole("button", { name: "Preparar una cotización" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/ayuda");
     fireEvent.change(screen.getByRole("textbox", { name: "Buscar término, pregunta o concepto" }), { target: { value: "sin coincidencia ficticia" } });
-    expect(screen.getByText(/No hay resultados para/)).toBeInTheDocument();
+    expect(screen.getByText(/No hay preguntas que coincidan/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ver guía de primeros pasos" })).toBeInTheDocument();
   });
+});
+
+it("Inicio abre la guía por primera vez y recuerda el cierre por persona y organización", () => {
+  cambiarRol("admin");
+  const clave = "lc:guia-primeros-pasos:persona-a:empresa-a";
+  localStorage.removeItem(clave);
+  const vista = () => <MemoryRouter><GuiaPrimerosPasos abrirEnPrimeraVisita /></MemoryRouter>;
+  const primero = render(vista());
+  const trigger = screen.getByRole("button", { name: "Empieza por tu tarea" });
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Registrar un cliente" }));
+  expect(screen.getByRole("link", { name: "Abrir Clientes" })).toHaveAttribute("href", "/clientes");
+  fireEvent.click(trigger);
+  primero.unmount();
+  render(vista());
+  expect(screen.getByRole("button", { name: "Empieza por tu tarea" })).toHaveAttribute("aria-expanded", "false");
+  localStorage.removeItem(clave);
+});
+
+it("Ayuda enseña las coincidencias del glosario en el vacío de preguntas y permite limpiar", () => {
+  render(<Vista ayuda />);
+  const búsqueda = screen.getByRole("textbox", { name: "Buscar término, pregunta o concepto" });
+  fireEvent.change(búsqueda, { target: { value: "Less than Container Load" } });
+  expect(screen.getByRole("tab", { name: "Glosario (1)" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Ver coincidencias en Glosario" }));
+  expect(screen.getByText("LCL", { exact: true })).toBeVisible();
+  fireEvent.change(búsqueda, { target: { value: "frase sin coincidencias QA" } });
+  fireEvent.click(screen.getByRole("button", { name: "Limpiar búsqueda" }));
+  expect(búsqueda).toHaveFocus();
+  expect(búsqueda).toHaveValue("");
 });

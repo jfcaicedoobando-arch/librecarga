@@ -139,6 +139,29 @@ describe("EnviarProformaDialog — ocultar correos recientes", () => {
     expect(invokeMock.mock.calls[0][1].body.intento_id).toMatch(/^[\da-f-]{36}$/);
   });
 
+  it("marca y enfoca el campo de correo inválido sin hacer un envío", () => {
+    renderDialog();
+    const para = screen.getByLabelText("Para *");
+    const cc = screen.getByLabelText("CC (opcional)");
+    fireEvent.click(screen.getByRole("button", { name: "Enviar correo" }));
+    expect(para).toHaveFocus();
+    expect(para).toHaveAccessibleDescription("Ingresa al menos un destinatario.");
+    fireEvent.change(para, { target: { value: "a@x.com" } });
+    fireEvent.change(cc, { target: { value: "copia-invalida" } });
+    fireEvent.click(screen.getByRole("button", { name: "Enviar correo" }));
+    expect(cc).toHaveFocus();
+    expect(cc).toHaveAccessibleDescription("Revisa el formato de los correos en CC.");
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  it("protege una edición local cuando se pulsa Cancelar", () => {
+    renderDialog();
+    fireEvent.change(screen.getByLabelText("Para *"), { target: { value: "a@x.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.getByText("¿Descartar los cambios?")).toBeInTheDocument();
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
   it("renderiza chips de correos recientes", () => {
     renderDialog();
     expect(screen.getByText("a@x.com")).toBeInTheDocument();

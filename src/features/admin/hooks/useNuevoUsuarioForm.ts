@@ -36,7 +36,7 @@ export function useNuevoUsuarioForm() {
   const [showPassword, setShowPassword] = useState(false);
   const {
     control, setValue, getValues, getFieldState, reset: resetForm, handleSubmit,
-    formState: { errors, touchedFields, dirtyFields, isDirty: formIsDirty },
+    formState: { errors, touchedFields, dirtyFields, isSubmitted, isDirty: formIsDirty },
   } = useForm<FormInput, undefined, FormOutput>({
     resolver: zodResolver(schema), defaultValues, mode: "onBlur",
   });
@@ -82,7 +82,9 @@ export function useNuevoUsuarioForm() {
   const isDirty = formIsDirty && (
     email.trim() !== "" || Object.keys(dirtyFields).some((name) => name !== "email")
   );
-  const emailError = touched.email && email ? errors.email?.message ?? null : null;
+  const emailError = isSubmitted && !email.trim()
+    ? "Captura el correo de la persona que quieres agregar."
+    : touched.email && email ? errors.email?.message ?? null : null;
   const passwordError = touched.password && password ? errors.password?.message ?? null : null;
   const reset = () => {
     resetForm(defaultValues);

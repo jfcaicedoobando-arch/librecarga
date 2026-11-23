@@ -19,7 +19,7 @@ export function DescargarTarifarioButton({ cargando, error, hayFilas, onDownload
     <div className="flex flex-col items-start gap-1">
       <Button variant="outline" type="button" onClick={onDownload} disabled={Boolean(motivo)}
         aria-describedby={motivo ? id : undefined}>
-        <Download className="mr-1 size-4" /> Descargar Excel
+        <Download className="mr-1 size-4" /> Descargar CSV
       </Button>
       {motivo && <p id={id} className="text-label text-muted-foreground">{motivo}</p>}
     </div>

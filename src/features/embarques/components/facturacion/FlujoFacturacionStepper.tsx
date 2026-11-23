@@ -37,7 +37,7 @@ function estadoProformas(total: number, facturadas: number): Estado {
 
 function estadoFacturas(total: number, emitidas: number): Estado {
   if (total === 0) return "vacio";
-  return emitidas > 0 ? "completo" : "activo";
+  return emitidas === total ? "completo" : "activo";
 }
 
 /**

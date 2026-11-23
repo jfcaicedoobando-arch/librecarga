@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { cn } from "@/lib/utils";
 import { Hint } from "@/components/shared/Hint";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { Item as RadioCard } from "@radix-ui/react-radio-group";
 
 export type CargaMode = "manual" | "cfdi" | "pdf_ia";
 
@@ -57,8 +59,12 @@ export function OrigenDocumentoPicker({ mode, onModeChange }: Props) {
         ¿Cómo vas a capturar esta factura?
       </SectionHeading>
 
-      <div
-        role="radiogroup"
+      <RadioGroup
+        value={mode}
+        onValueChange={(value) => {
+          const opcion = OPCIONES.find((o) => o.value === value);
+          if (opcion) onModeChange(opcion.value);
+        }}
         aria-labelledby="origen-documento-titulo"
         className="grid grid-cols-1 gap-2 sm:grid-cols-3"
       >
@@ -67,11 +73,7 @@ export function OrigenDocumentoPicker({ mode, onModeChange }: Props) {
           const Icono = o.icon;
           return (
             <Hint key={o.value} label={o.ayuda}>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={activo}
-                onClick={() => onModeChange(o.value)}
+              <RadioCard value={o.value}
                 className={cn(
                   "group relative rounded-lg border p-3 text-left transition-colors",
                   "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
@@ -100,11 +102,11 @@ export function OrigenDocumentoPicker({ mode, onModeChange }: Props) {
                 <p className="mt-0.5 text-body-sm leading-snug text-muted-foreground short:hidden">
                   {o.ayuda}
                 </p>
-              </button>
+              </RadioCard>
             </Hint>
           );
         })}
-      </div>
+      </RadioGroup>
     </section>
   );
 }

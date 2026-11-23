@@ -19,9 +19,9 @@ const TIPO_DRY = {
   idsEquivalentes: ["44444444-4444-4444-4444-444444444444"],
 };
 
-vi.mock("@/features/catalogos/hooks", () => ({
-  useTiposContenedor: () => ({ data: [TIPO_DRY, TIPO_HC] }),
-}));
+const { useTiposContenedor } = vi.hoisted(() => ({ useTiposContenedor: vi.fn() }));
+
+vi.mock("@/features/catalogos/hooks", () => ({ useTiposContenedor }));
 
 import { TipoContenedorSelect } from "../TipoContenedorSelect";
 
@@ -35,12 +35,38 @@ function Campo({ value }: { value: string }) {
 }
 
 const onChange = vi.fn();
-beforeEach(() => onChange.mockReset());
+beforeEach(() => {
+  onChange.mockReset();
+  useTiposContenedor.mockReset();
+  useTiposContenedor.mockReturnValue({ data: [TIPO_DRY, TIPO_HC] });
+});
 
 describe("TipoContenedorSelect", () => {
   it("muestra el placeholder cuando el valor es vacío", () => {
     render(<Campo value="" />);
     expect(screen.getByLabelText("Tipo contenedor")).toHaveTextContent("Selecciona");
+  });
+
+  it("distingue carga, error y catálogo vacío sin reemplazar el valor guardado", () => {
+    const refetch = vi.fn();
+    useTiposContenedor.mockReturnValue({ isLoading: true });
+    const { rerender } = render(<Campo value={LEGACY_HC} />);
+    const selector = screen.getByLabelText("Tipo contenedor");
+
+    expect(selector).toBeDisabled();
+    expect(selector).toHaveTextContent("Tipo de contenedor guardado");
+    expect(selector).toHaveAccessibleDescription("Cargando tipos de contenedor…");
+
+    useTiposContenedor.mockReturnValue({ isError: true, refetch });
+    rerender(<Campo value={LEGACY_HC} />);
+    expect(selector).toHaveAccessibleDescription("No se pudo consultar el catálogo de tipos de contenedor.");
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(refetch).toHaveBeenCalledOnce();
+
+    useTiposContenedor.mockReturnValue({ data: [] });
+    rerender(<Campo value={LEGACY_HC} />);
+    expect(selector).toHaveAccessibleDescription("No hay tipos de contenedor disponibles. Consulta al responsable de Catálogos.");
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("muestra el nombre canónico cuando el valor es un duplicado legacy", () => {

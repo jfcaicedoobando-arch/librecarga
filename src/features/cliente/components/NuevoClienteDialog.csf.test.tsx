@@ -63,10 +63,36 @@ describe("NuevoClienteDialog CSF presentation", () => {
     const { container } = render(<NuevoClienteDialog open onOpenChange={vi.fn()} />);
     fill();
     await act(async () => selectOriginal(container, new File(["%PDF synthetic"], "retained.pdf", { type: "application/pdf" })));
-    expect(screen.queryByText("Prellenado desde CSF")).not.toBeInTheDocument();
+    expect(screen.getByText("PDF adjunto. Captura los datos manualmente.")).toBeInTheDocument();
+    expect(screen.queryByText("Extraído de la CSF")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Siguiente/ }));
     expect(screen.getByText("retained.pdf")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Crear cliente" })).toBeEnabled();
+  });
+
+  it("avisa de la constancia desde el inicio y explica qué falta para avanzar", () => {
+    render(<NuevoClienteDialog open onOpenChange={vi.fn()} />);
+    expect(screen.getByText(/se requiere su Constancia de Situación Fiscal.*en PDF/)).toBeInTheDocument();
+    fill();
+    const telefono = screen.getByRole("textbox", { name: "Teléfono" });
+    fireEvent.change(telefono, { target: { value: "" } });
+    const siguiente = screen.getByRole("button", { name: /Siguiente/ });
+    expect(siguiente).toBeDisabled();
+    expect(siguiente).toHaveAccessibleDescription("Completa: Teléfono.");
+    fireEvent.change(telefono, { target: { value: "5555555555" } });
+    expect(siguiente).toBeEnabled();
+  });
+
+  it("marca sólo los valores extraídos y quita su marca al editarlos", async () => {
+    mock.parse.mockResolvedValue({ rfc: "XAXX010101000" });
+    const { container } = render(<NuevoClienteDialog open onOpenChange={vi.fn()} />);
+    const ciudad = screen.getByLabelText("Ciudad");
+    fireEvent.change(ciudad, { target: { value: "Ciudad manual" } });
+    await act(async () => selectOriginal(container, new File(["%PDF"], "origen.pdf", { type: "application/pdf" })));
+    expect(ciudad).toHaveValue("Ciudad manual");
+    expect(screen.getByText("Extraído de la CSF").closest("label")).toHaveTextContent("RFC");
+    fireEvent.change(screen.getByRole("textbox", { name: /RFC/ }), { target: { value: "XEXX010101000" } });
+    expect(screen.queryByText("Extraído de la CSF")).not.toBeInTheDocument();
   });
 
   it("manual entry still requests the required PDF and disables save", () => {

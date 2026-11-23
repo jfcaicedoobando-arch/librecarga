@@ -35,7 +35,7 @@ describe("P2-7 TabCostos", () => {
 describe("P3-9 EmbarquesEmptyState", () => {
   it.each(["admin", "coordinador_logistico"])("explica el flujo desde cotización para %s", (role) => {
     permisos.role = role;
-    render(<MemoryRouter><EmbarquesEmptyState canEdit={false} onCreate={() => {}} /></MemoryRouter>);
+    render(<MemoryRouter><EmbarquesEmptyState canEdit={false} onCreate={() => {}} onBuscarCotizacion={() => {}} /></MemoryRouter>);
     expect(screen.getByText(/Los embarques se crean desde una cotización aceptada/)).toBeInTheDocument();
     expect(screen.queryByText(/no crearlos/)).toBeNull();
   });

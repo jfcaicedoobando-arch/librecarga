@@ -1,4 +1,8 @@
 import { MapPinned } from "lucide-react";
+import { Link } from "react-router";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { hasRouteAccess } from "@/lib/access/roleRouteMatrix";
 import { Card } from "@/components/ui/card";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
@@ -10,6 +14,8 @@ type EstadoFuentes = Pick<ReturnType<typeof usePuertosDeRutas>,
 
 /** El vacío sólo se presenta después de resolver ambas fuentes sin errores. */
 export function CosteoBuscarFuentes({ estado }: { estado: EstadoFuentes }) {
+  const { effectiveRole } = useAuth();
+  const puedeAbrirRutas = hasRouteAccess(effectiveRole, "/costeo/rutas");
   if (estado.isError) {
     return (
       <Card>
@@ -41,8 +47,12 @@ export function CosteoBuscarFuentes({ estado }: { estado: EstadoFuentes }) {
       <Card className="p-4" role="status">
         <EmptyStateInline
           icon={MapPinned}
-          message="Aún no hay rutas marítimas dadas de alta. Créalas en Costeo → Rutas."
+          message="Aún no hay rutas marítimas dadas de alta."
+          hint={puedeAbrirRutas ? undefined : "Pide a alguien con acceso a Costeo que registre la ruta."}
         />
+        {puedeAbrirRutas && <div className="text-center">
+          <Button asChild variant="outline" size="sm"><Link to="/costeo/rutas">Abrir rutas de Costeo</Link></Button>
+        </div>}
       </Card>
     );
   }

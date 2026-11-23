@@ -1,5 +1,5 @@
 import { Inbox, SearchX, type LucideIcon } from "lucide-react";
-import { EmptyStateInline } from "./EmptyStateInline";
+import { EmptyStateInline, type EmptyStateInlineAction } from "./EmptyStateInline";
 
 interface Props {
   filtered: boolean;
@@ -7,12 +7,13 @@ interface Props {
   message: string;
   hint?: string;
   filteredHint?: string;
+  action?: EmptyStateInlineAction;
   icon?: LucideIcon;
 }
 
 /** Vacío de una consulta exitosa: distingue filtros activos del cero de su alcance. */
 export function FilteredListEmptyState({
-  filtered, onClearFilters, message, hint, filteredHint, icon = Inbox,
+  filtered, onClearFilters, message, hint, filteredHint, action, icon = Inbox,
 }: Props) {
   return (
     <EmptyStateInline
@@ -21,7 +22,7 @@ export function FilteredListEmptyState({
       hint={filtered
         ? filteredHint ?? "Prueba otra búsqueda o limpia los filtros para ver los registros disponibles."
         : hint}
-      action={filtered ? { label: "Limpiar filtros", onClick: onClearFilters } : undefined}
+      action={filtered ? { label: "Limpiar filtros", onClick: onClearFilters } : action}
       className="py-10"
     />
   );

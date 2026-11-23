@@ -31,7 +31,8 @@ export default function CrmEmpresas() {
         description="Empresas del CRM con sus contactos y oportunidades."
         actions={canEditCrm && <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Nueva empresa</Button>}
       />
-      <ListaObjetosCrm placeholder="Buscar empresa…" rutaBase="/crm/empresas" columnas={COLUMNAS} objeto="empresa" />
+      <ListaObjetosCrm placeholder="Buscar empresa…" rutaBase="/crm/empresas" columnas={COLUMNAS} objeto="empresa"
+        onNuevaEmpresa={canEditCrm ? () => setOpen(true) : undefined} />
       <NuevoObjetoCrmDialog objeto="empresa" open={open} onOpenChange={setOpen} />
     </PageContainer>
   );

@@ -125,7 +125,7 @@ describe("useNuevoEmbarquePageController — acceso por cotización", () => {
     });
     expect(result.current.llegaConCotizacion).toBe(false);
     await waitFor(() => {
-      expect(navigateSpy).toHaveBeenCalledWith("/cotizaciones", {
+      expect(navigateSpy).toHaveBeenCalledWith("/cotizaciones?aceptadasSinEmbarque=si", {
         replace: true,
         state: { origen: "nuevo-embarque" },
       });

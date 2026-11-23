@@ -56,11 +56,13 @@ function OrigenBanner({
 }
 
 /** Pista para cuando aún no hay partidas capturadas ni leídas del documento. */
-function AvisoSinPartidas({ visible }: { visible: boolean }) {
+function AvisoSinPartidas({ visible, enBuzon }: { visible: boolean; enBuzon: boolean }) {
   if (!visible) return null;
   return (
     <p className="rounded-md border border-dashed px-3 py-4 text-center text-body-sm text-muted-foreground">
-      Sube el documento y aquí aparecerán las partidas de la factura.
+      {enBuzon
+        ? "Consulta el archivo adjunto del Buzón y captura las partidas de la factura."
+        : "Sube el documento y aquí aparecerán las partidas de la factura."}
     </p>
   );
 }
@@ -143,7 +145,7 @@ export function PasoDocumento({
       />
 
       <TotalesDesdeConceptos totales={ctl.totalesManuales} moneda={ctl.values.moneda} />
-      <AvisoSinPartidas visible={sinPartidas && (enBuzon || ctl.mode !== "manual")} />
+      <AvisoSinPartidas visible={sinPartidas && (enBuzon || ctl.mode !== "manual")} enBuzon={enBuzon} />
 
     </div>
   );

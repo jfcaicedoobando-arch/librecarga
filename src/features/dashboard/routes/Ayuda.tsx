@@ -1,22 +1,18 @@
-import { useState, useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Search, HelpCircle, BookOpen } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { GLOSARIO, MODULOS } from "./ayudaContent";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { GuiaPrimerosPasos } from "@/features/dashboard/components/primeros-pasos/GuiaPrimerosPasos";
 
-function normalizarBusqueda(texto: string): string {
-  return texto.normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase();
-}
+import { normalizarBusqueda } from "./ayudaBusqueda";
+import { AyudaPreguntas } from "./AyudaPreguntas";
 
 /**
  * Página /ayuda — onboarding y referencia rápida para el usuario final.
@@ -25,6 +21,13 @@ function normalizarBusqueda(texto: string): string {
  */
 export default function Ayuda() {
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState("faq");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const termino = normalizarBusqueda(search);
+  const limpiarBusqueda = () => {
+    setSearch("");
+    inputRef.current?.focus();
+  };
 
   const glosarioFiltrado = useMemo(() => {
     const termino = normalizarBusqueda(search);
@@ -50,6 +53,8 @@ export default function Ayuda() {
       .filter((m) => m.faqs.length > 0);
   }, [search]);
 
+  const preguntas = modulosFiltrados.reduce((suma, modulo) => suma + modulo.faqs.length, 0);
+
   return (
     <PageContainer><div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
       <PageHeader
@@ -63,6 +68,7 @@ export default function Ayuda() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              ref={inputRef}
               aria-label="Buscar término, pregunta o concepto"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -73,13 +79,13 @@ export default function Ayuda() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="faq">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="faq">
-            <HelpCircle className="h-4 w-4 mr-2" /> Preguntas frecuentes
+            <HelpCircle className="h-4 w-4 mr-2" /> Preguntas frecuentes{termino && ` (${preguntas})`}
           </TabsTrigger>
           <TabsTrigger value="glosario">
-            <BookOpen className="h-4 w-4 mr-2" /> Glosario
+            <BookOpen className="h-4 w-4 mr-2" /> Glosario{termino && ` (${glosarioFiltrado.length})`}
           </TabsTrigger>
         </TabsList>
 
@@ -108,42 +114,16 @@ export default function Ayuda() {
           {modulosFiltrados.length === 0 ? (
             <Card>
               <CardContent className="p-6">
-                <EmptyStateInline icon={HelpCircle} message={`No hay resultados para "${search}".`} />
+                <EmptyStateInline icon={HelpCircle} message={`No hay preguntas que coincidan con "${search}".`}
+                  action={{ label: "Limpiar búsqueda", onClick: limpiarBusqueda }}>
+                  {glosarioFiltrado.length > 0 && (
+                    <Button type="button" variant="link" onClick={() => setTab("glosario")}>Ver coincidencias en Glosario</Button>
+                  )}
+                </EmptyStateInline>
               </CardContent>
             </Card>
           ) : (
-            modulosFiltrados.map((modulo) => (
-              <Card key={modulo.id} id={modulo.id} className="scroll-mt-20">
-                <CardHeader>
-                  <CardTitle className="flex items-start justify-between gap-3">
-                    <div className="flex flex-col gap-1 min-w-0">
-                      <span>{modulo.titulo}</span>
-                      {modulo.audiencia && modulo.audiencia.length > 0 && (
-                        <span className="text-label font-normal text-muted-foreground">
-                          Para: {modulo.audiencia.join(" · ")}
-                        </span>
-                      )}
-                    </div>
-                    <Badge variant="secondary" className="shrink-0">{modulo.faqs.length}</Badge>
-                  </CardTitle>
-                  <p className="text-body text-muted-foreground">{modulo.resumen}</p>
-                </CardHeader>
-                <CardContent>
-                  <Accordion type="single" collapsible className="w-full">
-                    {modulo.faqs.map((faq, idx) => (
-                      <AccordionItem key={idx} value={`${modulo.id}-${idx}`}>
-                        <AccordionTrigger className="text-left text-body font-medium">
-                          {faq.pregunta}
-                        </AccordionTrigger>
-                        <AccordionContent className="text-body text-muted-foreground">
-                          {faq.respuesta}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </CardContent>
-              </Card>
-            ))
+            modulosFiltrados.map((modulo) => <AyudaPreguntas key={modulo.id} modulo={modulo} termino={termino} />)
           )}
         </TabsContent>
 
@@ -157,7 +137,10 @@ export default function Ayuda() {
             </CardHeader>
             <CardContent>
               {glosarioFiltrado.length === 0 ? (
-                <EmptyStateInline icon={BookOpen} message={`No hay términos que coincidan con "${search}".`} />
+                <EmptyStateInline icon={BookOpen} message={`No hay términos que coincidan con "${search}".`}
+                  action={{ label: "Limpiar búsqueda", onClick: limpiarBusqueda }}>
+                  {preguntas > 0 && <Button type="button" variant="link" onClick={() => setTab("faq")}>Ver preguntas con coincidencias</Button>}
+                </EmptyStateInline>
               ) : (
                 <dl className="space-y-4">
                   {glosarioFiltrado.map((g) => (

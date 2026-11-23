@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router";
+import { useLocation, useSearchParams } from "react-router";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Seo } from "@/components/shared/Seo";
 import { AuthCard } from "@/features/auth/components/AuthCard";
@@ -23,19 +23,27 @@ const SUBTITULOS_AUDIENCIA: Record<string, string> = {
 
 export default function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab: TabKey = searchParams.get("tab") === "signup" ? "signup" : "login";
-  const [tab, setTab] = useState<TabKey>(initialTab);
-  const [forgotOpen, setForgotOpen] = useState(false);
+  const { state } = useLocation();
+  const tab: TabKey = searchParams.get("tab") === "signup" ? "signup" : "login";
+  const [forgotOpen, setForgotOpen] = useState(searchParams.get("recuperar") === "1");
   const [lastEmail, setLastEmail] = useState("");
   const subtituloAudiencia = SUBTITULOS_AUDIENCIA[searchParams.get("audiencia") ?? ""];
 
   const handleTabChange = (value: string) => {
     const next = (value === "signup" ? "signup" : "login") as TabKey;
-    setTab(next);
     const params = new URLSearchParams(searchParams);
     if (next === "signup") params.set("tab", "signup");
     else params.delete("tab");
-    setSearchParams(params, { replace: true });
+    setSearchParams(params, { replace: true, state });
+  };
+
+  const cambiarRecuperacion = (open: boolean) => {
+    setForgotOpen(open);
+    if (!open && searchParams.has("recuperar")) {
+      const params = new URLSearchParams(searchParams);
+      params.delete("recuperar");
+      setSearchParams(params, { replace: true, state });
+    }
   };
 
   return (
@@ -53,15 +61,19 @@ export default function Login() {
             ?audiencia=cliente y los guards (PortalProtectedRoute /
             AgenteProtectedRoute) redirigen con la audiencia de su portal.
             La ruta destino se conserva vía location.state.from (LoginForm). */}
-        {subtituloAudiencia && (
-          <p className="text-center text-body-sm text-muted-foreground -mt-2 mb-4">
-            {subtituloAudiencia}
-          </p>
-        )}
+        {subtituloAudiencia ? (
+          <div className="space-y-4">
+            <div className="text-center text-body-sm text-muted-foreground">
+              <p className="font-medium text-foreground">{subtituloAudiencia}</p>
+              <p>¿Te invitaron? Abre el enlace recibido para activar tu acceso.</p>
+            </div>
+            <LoginForm onForgotPassword={() => setForgotOpen(true)} onEmailChange={setLastEmail} />
+          </div>
+        ) : (
         <Tabs value={tab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="login">Iniciar sesión</TabsTrigger>
-            <TabsTrigger value="signup">Crear cuenta</TabsTrigger>
+            <TabsTrigger value="signup">Crear agencia</TabsTrigger>
           </TabsList>
 
           <TabsContent value="login">
@@ -72,9 +84,10 @@ export default function Login() {
             <SignupForm />
           </TabsContent>
         </Tabs>
+        )}
       </AuthCard>
 
-      <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} defaultEmail={lastEmail} />
+      <ForgotPasswordDialog open={forgotOpen} onOpenChange={cambiarRecuperacion} defaultEmail={lastEmail} />
     </>
   );
 }

@@ -79,7 +79,7 @@ export default function SeccionRutaCotizacion({ complete }: { complete?: boolean
         {!esTerrestre && (
           <FormField label="Tipo de movimiento">
             <Select value={watch("tipoMovimiento")} onValueChange={v => setValue("tipoMovimiento", v)}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
+              <SelectTrigger aria-describedby="tipo-movimiento-tramos"><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="CY-CY">CY-CY</SelectItem>
                 <SelectItem value="CY-DR">CY-DR</SelectItem>
@@ -87,6 +87,9 @@ export default function SeccionRutaCotizacion({ complete }: { complete?: boolean
                 <SelectItem value="DR-CY">DR-CY</SelectItem>
               </SelectContent>
             </Select>
+            <p id="tipo-movimiento-tramos" className="text-body-sm text-muted-foreground">
+              Primer tramo: origen. Segundo tramo: destino. CY = terminal de contenedores. DR = puerta.
+            </p>
           </FormField>
         )}
 

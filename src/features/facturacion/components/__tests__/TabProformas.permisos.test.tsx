@@ -10,7 +10,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { proformaFixture } from "./fixtures/proforma";
 
-const permisos = { canEmitirFactura: true, canEditarProforma: false };
+const permisos = { role: "admin", canEmitirFactura: true, canEditarProforma: false };
 vi.mock("@/hooks/shared", async () => ({
   ...(await import("@/hooks/shared/useCargaExpirada")), usePermissions: () => permisos }));
 
@@ -20,8 +20,8 @@ vi.mock("../proformasColumns", () => ({
 }));
 
 vi.mock("@/components/shared/dataTable/ResponsiveDataTable", () => ({
-  ResponsiveDataTable: ({ emptyState }: { emptyState?: React.ReactNode }) => (
-    <div data-testid="tabla">{emptyState}</div>
+  ResponsiveDataTable: ({ data, emptyState }: { data: unknown[]; emptyState?: React.ReactNode }) => (
+    <div data-testid="tabla">{data.length ? null : emptyState}</div>
   ),
 }));
 vi.mock("../ProformasFiltros", () => ({ default: () => <div /> }));
@@ -103,6 +103,16 @@ describe("TabProformas — selección según permiso de emisión", () => {
     expect(screen.getByText("Sin resultados para «No existe»")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Limpiar búsqueda", { selector: "button" }));
     expect(controller.setSearch).toHaveBeenCalledWith("");
+  });
+
+  it("ofrece ir a Embarques cuando todavía no hay ninguna proforma", () => {
+    controller.filtered = [];
+    controller.proformas = [];
+    controller.counts.todas = 0;
+    controller.selectedProformas = [];
+    render(<MemoryRouter><TabProformas /></MemoryRouter>);
+    expect(screen.getByText("Aún no hay proformas")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ir a Embarques" })).toHaveAttribute("href", "/embarques");
   });
 
   it("contador/operador con emisión: incluye la casilla de selección y la acción", () => {

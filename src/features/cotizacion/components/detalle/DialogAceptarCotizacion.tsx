@@ -3,6 +3,7 @@
  * oportunidad como Ganada y resuelve en el mismo paso el choque de monedas
  * entre cotización y oportunidad.
  */
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +21,8 @@ export interface DialogAceptarCotizacionProps {
   onConfirmar: () => void;
   enviando: boolean;
   cargandoMoneda: boolean;
+  monedaNoVerificada?: boolean;
+  onReintentarMoneda?: () => void;
   tieneOportunidad: boolean;
   hayChoqueMoneda: boolean;
   monedaCotizacion: string | null;
@@ -27,7 +30,7 @@ export interface DialogAceptarCotizacionProps {
 }
 
 export function DialogAceptarCotizacion({
-  open, onOpenChange, onConfirmar, enviando, cargandoMoneda,
+  open, onOpenChange, onConfirmar, enviando, cargandoMoneda, monedaNoVerificada, onReintentarMoneda,
   tieneOportunidad, hayChoqueMoneda, monedaCotizacion, monedaOportunidad,
 }: DialogAceptarCotizacionProps) {
   const etiquetaAccion = hayChoqueMoneda
@@ -46,6 +49,13 @@ export function DialogAceptarCotizacion({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
+        {cargandoMoneda && <p role="status" className="text-body-sm">Comprobando la moneda de la oportunidad…</p>}
+        {monedaNoVerificada && (
+          <div role="alert" className="space-y-2 text-body-sm">
+            <p>No pudimos comprobar la moneda de la oportunidad.</p>
+            <Button type="button" size="sm" variant="outline" onClick={onReintentarMoneda}>Reintentar</Button>
+          </div>
+        )}
         {hayChoqueMoneda && (
           <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-body-sm text-foreground">
             La cotización está en <strong>{monedaCotizacion}</strong> y la oportunidad
@@ -57,7 +67,7 @@ export function DialogAceptarCotizacion({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={enviando}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
-            disabled={enviando || cargandoMoneda}
+            disabled={enviando || cargandoMoneda || monedaNoVerificada}
             onClick={(e) => {
               e.preventDefault();
               onConfirmar();

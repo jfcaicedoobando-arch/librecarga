@@ -18,9 +18,28 @@ import {
   parseBody,
   prepareAttachments,
   sendToRecipients,
+  type SendParsed,
 } from './helpers.ts';
 import { buildTemplateData, persistEnvio } from './persist.ts';
-import { DESTINATARIO_NO_PERMITIDO, emailsPermitidosCliente } from '../_shared/destinatarioCliente.ts';
+import { DESTINATARIO_NO_PERMITIDO, destinatariosNoPermitidos } from '../_shared/destinatarioCliente.ts';
+
+async function validarDestinatarios(
+  admin: Parameters<typeof destinatariosNoPermitidos>[0],
+  clienteId: string | null,
+  parsed: SendParsed,
+  cors: Record<string, string>,
+): Promise<Response | null> {
+  if (parsed.validRecipients.length === 0) {
+    return json(cors, { error: 'Al menos un destinatario válido es requerido' }, 400);
+  }
+  // Tanto Para como CC deben ser contactos registrados del cliente.
+  const correos = [...parsed.validRecipients.map((d) => d.email), ...parsed.ccEmails];
+  const ajenos = await destinatariosNoPermitidos(admin, clienteId, correos, []);
+  if (ajenos.length > 0) {
+    return json(cors, { error: 'Uno o más correos no pertenecen a los contactos del cliente', code: DESTINATARIO_NO_PERMITIDO }, 400);
+  }
+  return null;
+}
 
 Deno.serve(wrapEdgeHandler("enviar-factura-email", async (req) => {
   const preflight = handlePreflightStrict(req);
@@ -42,18 +61,8 @@ Deno.serve(wrapEdgeHandler("enviar-factura-email", async (req) => {
   const factura = loaded.factura;
 
   const parsed = parseBody(body);
-  if (parsed.validRecipients.length === 0) {
-    return json(cors, { error: 'Al menos un destinatario válido es requerido' }, 400);
-  }
-  // Destinatarios y copias deben ser contactos registrados del cliente.
-  const permitidos = factura.cliente_id
-    ? await emailsPermitidosCliente(authed.admin, factura.cliente_id)
-    : new Set<string>();
-  const ajenos = [...parsed.validRecipients.map((d) => d.email), ...parsed.ccEmails]
-    .filter((e) => !permitidos.has(e.trim().toLowerCase()));
-  if (ajenos.length > 0) {
-    return json(cors, { error: 'Uno o más correos no pertenecen a los contactos del cliente', code: DESTINATARIO_NO_PERMITIDO }, 400);
-  }
+  const errorDestinatarios = await validarDestinatarios(authed.admin, factura.cliente_id, parsed, cors);
+  if (errorDestinatarios) return errorDestinatarios;
 
   const resolverClient = facturapiResolverClient(authed.admin);
   const keyRes = await resolveFacturapiKey(resolverClient, factura.organization_id);

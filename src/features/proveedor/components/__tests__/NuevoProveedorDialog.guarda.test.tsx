@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import NuevoProveedorDialog from "../NuevoProveedorDialog";
 
@@ -9,7 +9,7 @@ vi.mock("@/features/proveedor/hooks", async () => {
   return { useNuevoProveedorController };
 });
 vi.mock("@/features/proveedor/services", () => ({
-  findProveedorByRfcEnOrg: vi.fn(),
+  findProveedorByRfcEnOrg: vi.fn().mockResolvedValue(null),
   ProveedorDuplicadoError: class extends Error {},
 }));
 vi.mock("@/hooks/shared", () => ({
@@ -41,5 +41,36 @@ describe("Nuevo proveedor", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Descartar" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(guardar).not.toHaveBeenCalled();
+  });
+
+  it("conserva los datos al fallar y no permite cerrar durante el alta", async () => {
+    let rechazar!: (error: Error) => void;
+    const pendiente = new Promise<void>((_resolve, reject) => { rechazar = reject; });
+    const guardar = vi.fn(() => pendiente);
+    const cerrar = vi.fn();
+    render(<QueryClientProvider client={new QueryClient()}>
+      <NuevoProveedorDialog open onOpenChange={cerrar} onSave={guardar}
+        prefill={{ nombre: "Proveedor sintético", rfc: "XAXX010101000" }} />
+    </QueryClientProvider>);
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Origen" }), { key: "Enter" });
+    fireEvent.click(await screen.findByRole("option", { name: "Nacional" }));
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Tipo" }), { key: "Enter" });
+    fireEvent.click(await screen.findByRole("option", { name: "Naviera" }));
+    fireEvent.click(screen.getByRole("button", { name: /Siguiente/ }));
+    const clabe = screen.getByRole("textbox", { name: "CLABE interbancaria" });
+    fireEvent.change(clabe, { target: { value: "000000000000000001" } });
+    fireEvent.blur(clabe);
+    expect(clabe).toHaveAccessibleDescription(/dígito verificador inválido/);
+    fireEvent.click(screen.getByRole("button", { name: "Crear proveedor" }));
+    expect(clabe).toHaveFocus();
+    expect(guardar).not.toHaveBeenCalled();
+    fireEvent.change(clabe, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Crear sin datos bancarios" }));
+    expect(screen.getByRole("dialog")).toHaveAttribute("aria-busy", "true");
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(cerrar).not.toHaveBeenCalled();
+    await act(async () => rechazar(new Error("Guardado simulado")));
+    expect(screen.getByRole("button", { name: "Crear sin datos bancarios" })).toBeEnabled();
+    expect(guardar).toHaveBeenCalledOnce();
   });
 });

@@ -1,5 +1,5 @@
-/** Carga masiva de tarifas desde CSV o Excel (mismas columnas que «Descargar Excel»). */
-import { useState } from "react";
+/** Carga masiva de tarifas desde CSV o Excel. */
+import { useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
@@ -10,6 +10,8 @@ import { fetchCosteoRutas, insertCosteoRuta } from "@/features/costeo/services/r
 import { insertTarifaConRecargos } from "@/features/costeo/services/tarifas";
 import { prepararImportacion, type ResultadoImport } from "./importarTarifas";
 import { readWorkbook } from "@/lib/xlsx/readWorkbook";
+import { exportToCsv } from "@/generators/exportCsv";
+import { ENCABEZADOS_TARIFARIO } from "./encabezadosTarifario";
 
 interface Props { open: boolean; onOpenChange: (v: boolean) => void; onDone: () => void }
 
@@ -23,6 +25,8 @@ export function ImportarTarifasDialog({ open, onOpenChange, onDone }: Props) {
   const { organizationId } = useOrganization();
   const [prep, setPrep] = useState<ResultadoImport | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [procesadas, setProcesadas] = useState<number | null>(null);
+  const importacionEnCurso = useRef(false);
   const [resultado, setResultado] = useState<{ creadas: number; errores: string[] } | null>(null);
 
   const onFile = async (file: File | undefined) => {
@@ -39,8 +43,10 @@ export function ImportarTarifasDialog({ open, onOpenChange, onDone }: Props) {
   };
 
   const importar = async () => {
-    if (!prep || !organizationId) return;
+    if (!prep || !organizationId || importacionEnCurso.current) return;
+    importacionEnCurso.current = true;
     setCargando(true);
+    setProcesadas(0);
     const rutas = new Map<string, string>();
     const errores: string[] = [];
     let creadas = 0;
@@ -55,15 +61,24 @@ export function ImportarTarifasDialog({ open, onOpenChange, onDone }: Props) {
         await insertTarifaConRecargos(organizationId, { ...t.input, ruta_id: rutaId });
         creadas += 1;
       } catch (e) { errores.push(`Fila ${t.fila}: ${msg(e)}`); }
+      setProcesadas((n) => (n ?? 0) + 1);
     }
-    setResultado({ creadas, errores }); setPrep(null); setCargando(false);
+    setResultado({ creadas, errores: [...prep.errores, ...errores] });
+    setPrep(null);
+    setCargando(false);
+    setProcesadas(null);
+    importacionEnCurso.current = false;
     if (creadas > 0) onDone();
   };
 
-  const cerrar = (v: boolean) => { if (!v) { setPrep(null); setResultado(null); } onOpenChange(v); };
+  const cerrar = (v: boolean) => {
+    if (!v && importacionEnCurso.current) return;
+    if (!v) { setPrep(null); setResultado(null); }
+    onOpenChange(v);
+  };
   const footer = (
     <>
-      <Button variant="outline" onClick={() => cerrar(false)}>Cerrar</Button>
+      <Button variant="outline" disabled={procesadas !== null} onClick={() => cerrar(false)}>Cerrar</Button>
       {prep && prep.tarifas.length > 0 && (
         <Button onClick={() => void importar()} disabled={cargando}>
           {cargando ? "Importando…" : `Importar ${prep.tarifas.length} tarifa(s)`}
@@ -75,18 +90,22 @@ export function ImportarTarifasDialog({ open, onOpenChange, onDone }: Props) {
 
   return (
     <FormDialogShell open={open} onOpenChange={cerrar} icon={Upload} title="Importar tarifas"
-      description="Sube un CSV o Excel con las columnas del archivo «Descargar Excel»." size="lg" footer={footer}>
+      description="Sube un archivo CSV o Excel con los encabezados de la plantilla." size="lg" footer={footer} busy={procesadas !== null}>
       <div className="space-y-3 text-body-sm">
         <p className="text-muted-foreground">
-          Columnas: Origen, Destino, Agente, Naviera, Tarifa 20&quot; (USD), Tarifa 40&quot; (USD), Inicio de la vigencia,
-          Término de la vigencia, Días libres de demoras, Observaciones. Origen y destino pueden ser nombre o código del puerto;
-          agente y naviera deben existir en el catálogo. Fechas en DD/MM/AAAA. Las tarifas entran en borrador hasta aprobarse, igual que al capturarlas a mano.
+          Escribe el nombre o código de cada puerto. Usa agentes y navieras del catálogo y fechas en DD/MM/AAAA.
+          Las tarifas se importan como borrador y quedan pendientes de aprobación.
         </p>
-        <input type="file" accept=".csv,.xlsx,.xls" aria-label="Archivo de tarifas" disabled={cargando}
+        <Button type="button" variant="outline" size="sm" disabled={cargando}
+          onClick={() => exportToCsv("plantilla-tarifas.csv", ENCABEZADOS_TARIFARIO, [])}>
+          Descargar plantilla CSV
+        </Button>
+        <input type="file" className="block" accept=".csv,.xlsx,.xls" aria-label="Archivo de tarifas" disabled={cargando}
           onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} />
         {cargando && !prep && <p>Leyendo archivo…</p>}
         {prep && <p>Listas para importar: <strong>{prep.tarifas.length}</strong> tarifa(s). Renglones con error: <strong>{prep.errores.length}</strong> (se omiten).</p>}
-        {resultado && <p>Se importaron <strong>{resultado.creadas}</strong> tarifa(s).</p>}
+        {procesadas !== null && prep && <p role="status">Procesadas {procesadas} de {prep.tarifas.length} tarifas.</p>}
+        {resultado && <p role="status">Tarifas importadas: <strong>{resultado.creadas}</strong>. Filas con error: <strong>{resultado.errores.length}</strong>.</p>}
         {errores.length > 0 && (
           <ul className="max-h-48 list-disc space-y-1 overflow-auto rounded-md border p-3 pl-6 text-destructive">
             {errores.slice(0, 100).map((e) => <li key={e}>{e}</li>)}

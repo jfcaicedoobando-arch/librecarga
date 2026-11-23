@@ -107,11 +107,12 @@ describe("NuevoClienteDialog save dismissal", () => {
     expect(mock.create).toHaveBeenCalledOnce();
     expect(mock.upload).toHaveBeenCalledOnce();
   });
-  it("allows confirmed discard after an upload failure has settled", async () => {
+  it("permite abrir la ficha creada al salir con la constancia pendiente", async () => {
     mock.create.mockResolvedValue({ id: "synthetic-client", organization_id: "synthetic-org" });
     mock.upload.mockRejectedValue(new Error("Synthetic upload failure"));
     const onOpenChange = vi.fn();
-    render(<NuevoClienteDialog open onOpenChange={onOpenChange} />);
+    const onAbrirCliente = vi.fn();
+    render(<NuevoClienteDialog open onOpenChange={onOpenChange} onAbrirCliente={onAbrirCliente} />);
     fill();
     await act(async () => selectOriginal(document.body, new File(["Synthetic PDF"], "synthetic.pdf", { type: "application/pdf" })));
     fireEvent.click(screen.getByRole("button", { name: /Siguiente/ }));
@@ -120,8 +121,11 @@ describe("NuevoClienteDialog save dismissal", () => {
     expect(screen.getByRole("button", { name: "Reintentar constancia" })).toBeEnabled();
     fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
     expect(screen.getByText(/El cliente ya fue creado, pero su constancia sigue pendiente/)).toBeInTheDocument();
-    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Descartar" })));
+    expect(screen.getByRole("alertdialog", { name: "¿Salir con la constancia pendiente?" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Salir sin adjuntar la constancia" })).toBeEnabled();
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Abrir ficha del cliente" })));
     expect(onOpenChange).toHaveBeenCalledOnce();
+    expect(onAbrirCliente).toHaveBeenCalledWith("synthetic-client");
     expect(mock.create).toHaveBeenCalledOnce();
   });
 

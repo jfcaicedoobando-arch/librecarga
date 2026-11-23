@@ -105,7 +105,7 @@ describe("OpcionesTarifario", () => {
   it("muestra el vacío canónico y respeta permisos de selección", async () => {
     mocks.tarifas.mockResolvedValue([]);
     montar({}, false);
-    expect(await screen.findByText(/No hay tarifas vigentes/)).toBeInTheDocument();
+    expect(await screen.findByText(/en espera de respuesta de Pricing/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Usar esta opción" })).toBeNull();
   });
 });

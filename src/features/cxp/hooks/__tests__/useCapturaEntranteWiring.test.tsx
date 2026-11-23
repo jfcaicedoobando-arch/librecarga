@@ -82,6 +82,7 @@ describe("useCapturaEntranteWiring — fallo al marcar como capturado", () => {
     });
     await act(async () => {
       result.current.reintentar();
+      result.current.reintentar();
     });
 
     expect(capturarMutateAsync).toHaveBeenCalledTimes(2);

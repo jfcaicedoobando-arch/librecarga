@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Link } from "react-router";
+import { usePermissions } from "@/hooks/shared/usePermissions";
 import { Building2, ChevronsUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -14,6 +16,25 @@ interface Props {
   disabled?: boolean;
 }
 
+function mensajeVacioEmpresas(buscando: boolean, catalogoVacio: boolean) {
+  if (buscando) return "Buscando…";
+  if (catalogoVacio) return "Aún no hay empresas registradas.";
+  return "Ninguna empresa coincide. Ajusta o limpia la búsqueda.";
+}
+
+function AltaPrimeraEmpresa() {
+  const { canEditCrm } = usePermissions();
+  if (!canEditCrm) return <p className="border-t p-3 text-body-sm">Pide el alta a alguien con permisos de edición en CRM.</p>;
+  return (
+    <div className="space-y-1 border-t p-3 text-body-sm">
+      <p>Primero da de alta la empresa en CRM → Empresas.</p>
+      <Link to="/crm/empresas" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+        Abrir Empresas en otra pestaña
+      </Link>
+    </div>
+  );
+}
+
 export function OportunidadEmpresaField({ empresa, onChange, disabled }: Props) {
   const [open, setOpen] = useState(false);
   const [texto, setTexto] = useState("");
@@ -21,6 +42,8 @@ export function OportunidadEmpresaField({ empresa, onChange, disabled }: Props) 
   const term = useDebounce(texto, 300);
   const q = useEmpresasCrm(term, pagina);
   const total = q.data?.total ?? 0;
+  const resultadoVacio = !texto.trim() && q.isSuccess && total === 0;
+  const mensajeVacio = mensajeVacioEmpresas(q.isFetching, resultadoVacio);
   return (
     <div className="space-y-1">
       <Label htmlFor="op-empresa">Empresa asociada *</Label>
@@ -40,7 +63,7 @@ export function OportunidadEmpresaField({ empresa, onChange, disabled }: Props) 
             <CommandList>
               {q.isError ? <p role="alert" className="p-3 text-body-sm text-destructive">No se pudieron cargar las empresas.</p> : (
                 <>
-                  <CommandEmpty>{q.isFetching ? "Buscando…" : "Sin resultados"}</CommandEmpty>
+                  <CommandEmpty>{mensajeVacio}</CommandEmpty>
                   <CommandGroup>
                     {(q.data?.filas ?? []).map((e) => <CommandItem key={e.id} value={e.id} disabled={q.isFetching}
                       onSelect={() => { onChange({ id: e.id, nombre: e.nombre }); setOpen(false); }}>
@@ -51,7 +74,8 @@ export function OportunidadEmpresaField({ empresa, onChange, disabled }: Props) 
               )}
             </CommandList>
           </Command>
-          <div className="flex items-center justify-between border-t p-2">
+          {resultadoVacio && !q.isFetching && <AltaPrimeraEmpresa />}
+          {total > 0 && <div className="flex items-center justify-between border-t p-2">
             <Button type="button" variant="ghost" size="icon" aria-label="Empresas anteriores"
               disabled={pagina === 0 || q.isFetching} onClick={() => setPagina((p) => p - 1)}>
               <ChevronLeft className="size-4" />
@@ -61,7 +85,7 @@ export function OportunidadEmpresaField({ empresa, onChange, disabled }: Props) 
               disabled={q.isFetching || (pagina + 1) * OBJETOS_PAGE_SIZE >= total} onClick={() => setPagina((p) => p + 1)}>
               <ChevronRight className="size-4" />
             </Button>
-          </div>
+          </div>}
         </PopoverContent>
       </Popover>
     </div>

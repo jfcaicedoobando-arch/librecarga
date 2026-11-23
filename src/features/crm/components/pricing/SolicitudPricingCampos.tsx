@@ -74,14 +74,20 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
         <CampoTexto id="pr-dim" label="Dimensions" {...d} value={datos.dimensiones} onChange={txt("dimensiones")} />
       </FormDialogSection>
       <FormDialogSection title="Ruta">
-        <CampoLista id="pr-origen" label="País de origen" required {...d} value={datos.origen}
-          opciones={paises} onChange={cambiarPais("origen", "pol")} />
-        <CampoPuerto id="pr-pol" label="Puerto de origen" {...d} pais={datos.origen} value={datos.pol}
-          puertos={puertos} excluirEtiqueta={datos.pod} onChange={(v) => set("pol", v)} />
-        <CampoLista id="pr-destino" label="País de destino" required {...d} value={datos.destino}
-          opciones={paises} onChange={cambiarPais("destino", "pod")} />
-        <CampoPuerto id="pr-pod" label="Puerto de destino" {...d} pais={datos.destino} value={datos.pod}
-          puertos={puertos} excluirEtiqueta={datos.pol} onChange={(v) => set("pod", v)} />
+        <fieldset className="col-span-full grid min-w-0 gap-3 rounded-md border p-3 sm:grid-cols-2">
+          <legend className="px-1 text-body-sm font-medium">Origen (país o puerto)</legend>
+          <CampoLista id="pr-origen" label="País de origen" {...d} value={datos.origen}
+            opciones={paises} onChange={cambiarPais("origen", "pol")} />
+          <CampoPuerto id="pr-pol" label="Puerto de origen" {...d} pais={datos.origen} value={datos.pol}
+            puertos={puertos} excluirEtiqueta={datos.pod} onChange={(v) => set("pol", v)} />
+        </fieldset>
+        <fieldset className="col-span-full grid min-w-0 gap-3 rounded-md border p-3 sm:grid-cols-2">
+          <legend className="px-1 text-body-sm font-medium">Destino (país o puerto)</legend>
+          <CampoLista id="pr-destino" label="País de destino" {...d} value={datos.destino}
+            opciones={paises} onChange={cambiarPais("destino", "pod")} />
+          <CampoPuerto id="pr-pod" label="Puerto de destino" {...d} pais={datos.destino} value={datos.pod}
+            puertos={puertos} excluirEtiqueta={datos.pol} onChange={(v) => set("pod", v)} />
+        </fieldset>
         <CampoTexto id="pr-carga" label="Fecha tentativa de carga" type="date" {...d} value={datos.fecha_tentativa_carga}
           onChange={txt("fecha_tentativa_carga")} />
         <CampoTexto id="pr-delivery" label="Delivery" {...d} value={datos.delivery} onChange={txt("delivery")} />

@@ -42,7 +42,7 @@ export function ContenidoPrimerosPasos({ resultado, onRetry }: Props) {
       <div className="space-y-3 text-body text-muted-foreground">
         <p role="status">{AVISOS[resultado.estado]}</p>
         {resultado.estado === "sin-sesion" && (
-          <Button variant="outline" size="sm" asChild><Link to="/login">Iniciar sesión</Link></Button>
+          <Button variant="outline" size="sm" asChild><Link to="/login" state={{ from: { pathname: "/ayuda" } }}>Iniciar sesión</Link></Button>
         )}
       </div>
     );

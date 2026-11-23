@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/shared/FormField";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   nombre: string; setNombre: (v: string) => void;
@@ -11,9 +12,10 @@ interface Props {
   direccion: string; setDireccion: (v: string) => void;
   email: string; setEmail: (v: string) => void;
   telefono: string; setTelefono: (v: string) => void;
+  onVerPerfilFiscal?: () => void;
 }
 
-export default function TabEmpresa({ nombre, setNombre, subtitulo, setSubtitulo, rfc, setRfc, direccion, setDireccion, email, setEmail, telefono, setTelefono }: Props) {
+export default function TabEmpresa({ nombre, setNombre, subtitulo, setSubtitulo, rfc, setRfc, direccion, setDireccion, email, setEmail, telefono, setTelefono, onVerPerfilFiscal }: Props) {
   return (
     <Card>
       <CardHeader>
@@ -30,9 +32,16 @@ export default function TabEmpresa({ nombre, setNombre, subtitulo, setSubtitulo,
         <FormField label="Subtítulo / Giro">
           <Input value={subtitulo} onChange={(e) => setSubtitulo(e.target.value)} />
         </FormField>
-        <FormField label="RFC">
-          <Input value={rfc} onChange={(e) => setRfc(e.target.value)} placeholder="XAXX010101000" />
-        </FormField>
+        <div className="space-y-1">
+          <FormField label="RFC para encabezados de PDF">
+            <Input value={rfc} onChange={(e) => setRfc(e.target.value)} placeholder="XAXX010101000" />
+          </FormField>
+          {onVerPerfilFiscal && (
+            <Button type="button" variant="link" className="h-auto p-0 text-body-sm" onClick={onVerPerfilFiscal}>
+              Ver datos fiscales del emisor en Facturación
+            </Button>
+          )}
+        </div>
         <FormField label="Email de contacto">
           <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         </FormField>

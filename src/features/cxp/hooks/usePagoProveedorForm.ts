@@ -45,7 +45,8 @@ export function usePagoProveedorForm(
 
 
   // R6-N1: cuenta bancaria de donde sale el pago (genera el movimiento bancario).
-  const { data: cuentas = [] } = useCuentasBancarias(true);
+  const consultaCuentas = useCuentasBancarias(true);
+  const cuentas = consultaCuentas.data ?? [];
 
 
   // MNY: en efectivo NO se usa cuenta bancaria (no hay salida de banco).
@@ -160,6 +161,8 @@ export function usePagoProveedorForm(
     esUsdPagadoEnMxn, showTc, excede, cruceNoSoportado, monedaDelPar,
     montoEnMonedaFactura, bloqueadoPorTc, tcNum,
     cuentas, cuentasDeMoneda, cuentaId, setCuentaId: setCuentaIdUi, requiereCuenta,
+    cuentasCargando: consultaCuentas.isLoading, cuentasError: consultaCuentas.isError,
+    reintentarCuentas: () => void consultaCuentas.refetch(),
     /** MNY: campos con precarga automática que el usuario ya tocó a mano. */
     tocados,
 
