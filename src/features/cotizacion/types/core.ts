@@ -47,6 +47,9 @@ export interface CreateCotizacionInput {
   peso_kg: number;
   /** Peso físico aéreo explícito; null significa que no fue capturado. */
   peso_fisico_kg?: number | null;
+  baterias_litio?: boolean | null;
+  known_shipper?: boolean | null;
+  tipo_aeronave?: string | null;
   volumen_m3: number;
   piezas: number;
   origen: string;
