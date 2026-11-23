@@ -3,7 +3,7 @@
  * (la base decide). Opcionales: notas, delivery, fecha tentativa y adjuntos.
  */
 import type { SolicitudPricingRow } from "./tiposPricing";
-import { requiereSubmodalidad } from "./modoPricing";
+import { faltantesCargaDetalle, requiereSubmodalidad } from "./modoPricing";
 
 type Datos = Partial<Pick<SolicitudPricingRow,
   "solicitante_id" | "fecha" | "cliente" | "servicio" | "submodalidad" | "tipo_operacion" | "incoterm" | "sector_economico" | "imo"
@@ -25,7 +25,5 @@ export function camposFaltantesSolicitud(d: Datos): string[] {
     return v == null || (typeof v === "string" && v.trim() === "");
   }).map(([, etiqueta]) => etiqueta)
     .concat(requiereSubmodalidad(d.servicio) && !d.submodalidad ? ["Submodalidad"] : [])
-    .concat(d.submodalidad === "LCL" && d.volumen_cbm == null ? ["Volumen (CBM)"] : [])
-    .concat(d.imo === true && !d.imo_clase ? ["Clase IMO"] : [])
-    .concat(d.imo === true && !d.imo_un ? ["Número UN"] : []);
+    .concat(faltantesCargaDetalle(d));
 }

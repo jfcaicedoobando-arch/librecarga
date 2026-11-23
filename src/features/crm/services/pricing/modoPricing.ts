@@ -41,3 +41,14 @@ export function pesoMedidaWM(peso: string | null | undefined, unidad: string | n
   const ton = unidad === "kg" ? n / 1000 : unidad === "t" ? n : unidad === "lb" ? (n * 0.45359237) / 1000 : null;
   return ton == null ? null : Math.max(ton, cbm);
 }
+
+/** Datos condicionales de carga que la base exige al enviar (LCL e IMO). */
+export function faltantesCargaDetalle(d: {
+  submodalidad?: string | null; volumen_cbm?: number | null; imo?: boolean | null; imo_clase?: string | null; imo_un?: string | null;
+}): string[] {
+  const f: string[] = [];
+  if (d.submodalidad === "LCL" && d.volumen_cbm == null) f.push("Volumen (CBM)");
+  if (d.imo === true && !d.imo_clase) f.push("Clase IMO");
+  if (d.imo === true && !d.imo_un) f.push("Número UN");
+  return f;
+}

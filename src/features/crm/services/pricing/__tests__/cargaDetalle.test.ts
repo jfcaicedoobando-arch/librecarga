@@ -22,3 +22,11 @@ describe("carga suelta y mercancía peligrosa", () => {
     expect(pesoMedidaWM("", "kg", 3)).toBeNull();
   });
 });
+
+describe("aviso de carga en pantalla", () => {
+  it("LCL con IMO sin datos avisa los tres faltantes", async () => {
+    const { faltantesCargaDetalle } = await import("../modoPricing");
+    expect(faltantesCargaDetalle({ submodalidad: "LCL", imo: true })).toEqual(["Volumen (CBM)", "Clase IMO", "Número UN"]);
+    expect(faltantesCargaDetalle({ submodalidad: "LCL", imo: true, volumen_cbm: 2, imo_clase: "3", imo_un: "1263" })).toEqual([]);
+  });
+});
