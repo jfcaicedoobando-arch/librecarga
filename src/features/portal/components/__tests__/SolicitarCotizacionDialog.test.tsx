@@ -13,12 +13,13 @@ const mocks = vi.hoisted(() => ({
   notifyError: vi.fn(),
   navigate: vi.fn(),
   idsRecibidos: [] as string[][],
+  pending: false,
 }));
 
 vi.mock("@/features/portal/hooks/useSolicitarCotizacion", () => ({
   useSolicitarCotizacion: (clienteIds: string[]) => {
     mocks.idsRecibidos.push(clienteIds);
-    return { mutateAsync: mocks.mutateAsync, isPending: false };
+    return { mutateAsync: mocks.mutateAsync, isPending: mocks.pending };
   },
 }));
 
@@ -70,6 +71,18 @@ describe("SolicitarCotizacionDialog (P-07)", () => {
     mocks.notifyError.mockReset();
     mocks.navigate.mockReset();
     mocks.idsRecibidos.length = 0;
+    mocks.pending = false;
+  });
+
+  it("evita cerrar el diálogo con un envío pendiente", () => {
+    mocks.pending = true;
+    const onOpenChange = vi.fn();
+    renderDialog({ onOpenChange });
+    const dialogo = screen.getByRole("dialog", { name: "Solicitar cotización" });
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled();
+    fireEvent.keyDown(dialogo, { key: "Escape" });
+    expect(dialogo).toBeVisible();
+    expect(onOpenChange).not.toHaveBeenCalled();
   });
 
   it("muestra errores de validación al intentar enviar sin origen y destino", () => {

@@ -45,6 +45,7 @@ export function DialogEnviarFacturaBranded({ open, onOpenChange, factura, esReen
       open={open}
       onOpenChange={onOpenChange}
       clienteId={factura.cliente_id ?? null}
+      soloContactosRegistrados
       titulo={esReenvio ? "Reenviar factura por correo" : "Enviar factura por correo"}
       descripcion="Se enviará un correo con la imagen de tu empresa y enlaces de descarga al PDF y XML, disponibles durante 7 días."
       buildAsuntoInicial={() => `Factura ${factura.numero}`}
@@ -67,7 +68,7 @@ export function DialogEnviarFacturaBranded({ open, onOpenChange, factura, esReen
             },
           });
           // Best-effort: guarda como preferencia del cliente los CC finales
-          // (excluyendo al usuario logueado, que se agrega automáticamente)
+          // (excluyendo la copia automática al operador si es un contacto registrado)
           // y los destinatarios manuales (los que no vienen de contactos_cliente).
           if (factura.cliente_id) {
             const userEmailLc = user?.email?.toLowerCase();

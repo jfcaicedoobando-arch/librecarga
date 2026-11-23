@@ -23,9 +23,9 @@ export default function EditarProveedorBancariosFields({ c }: { c: Controller })
 }
 
 /** Mensaje de error de campo (mismo estilo que el dialog padre). */
-function ErrorCampo({ message }: { message: string | null }) {
+function ErrorCampo({ id, message }: { id: string; message: string | null }) {
   if (!message) return null;
-  return <p className="text-body-sm text-destructive">{message}</p>;
+  return <p id={id} className="text-body-sm text-destructive">{message}</p>;
 }
 
 function FieldsNacional({ c }: { c: Controller }) {
@@ -54,14 +54,16 @@ function FieldsNacional({ c }: { c: Controller }) {
           onChange={(e) => c.setField("clabe", e.target.value.replace(/\D/g, ""))}
           onBlur={() => c.markTouched("clabe")}
           aria-invalid={!!errClabe}
+          aria-describedby={errClabe ? "prov-banc-clabe-error" : undefined}
         />
-        <ErrorCampo message={errClabe} />
+        <ErrorCampo id="prov-banc-clabe-error" message={errClabe} />
       </div>
     </>
   );
 }
 
 function FieldsInternacional({ c }: { c: Controller }) {
+  const errSwift = c.fieldErrorMessage("swift_bic");
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div className="space-y-2">
@@ -87,9 +89,10 @@ function FieldsInternacional({ c }: { c: Controller }) {
           maxLength={11}
           onChange={(e) => c.setField("swift_bic", e.target.value.toUpperCase())}
           onBlur={() => c.markTouched("swift_bic")}
-          aria-invalid={!!c.fieldErrorMessage("swift_bic")}
+          aria-invalid={!!errSwift}
+          aria-describedby={errSwift ? "prov-banc-swift-error" : undefined}
         />
-        <ErrorCampo message={c.fieldErrorMessage("swift_bic")} />
+        <ErrorCampo id="prov-banc-swift-error" message={errSwift} />
       </div>
       <div className="space-y-2 md:col-span-2">
         <Label htmlFor="prov-banc-iban">IBAN o número de cuenta</Label>

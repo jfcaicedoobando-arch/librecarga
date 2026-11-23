@@ -54,6 +54,7 @@ export function FormField({
     : isValidElement<ControlProps>(primero) ? primero.props.id : undefined;
   const controlId = htmlFor ?? idHijo ?? `field-${autoId}`;
   const errorId = `${controlId}-error`;
+  const hintId = label && hint ? `${controlId}-ayuda` : undefined;
 
   const spanClass =
     span === 2 ? "md:col-span-2"
@@ -63,7 +64,7 @@ export function FormField({
   const asociarControl = (child: React.ReactElement<ControlProps>) => cloneElement(child, {
     id: controlId,
     "aria-invalid": error ? true : child.props["aria-invalid"],
-    "aria-describedby": [child.props["aria-describedby"], error ? errorId : undefined].filter(Boolean).join(" ") || undefined,
+    "aria-describedby": [child.props["aria-describedby"], hintId, error ? errorId : undefined].filter(Boolean).join(" ") || undefined,
   });
 
   // Radix Select.Root no es un nodo DOM: ligar el label al trigger real.
@@ -82,15 +83,17 @@ export function FormField({
   return (
     <div className={cn("space-y-2", spanClass, className)}>
       {label && (
-        <Label htmlFor={controlId} className="font-medium">
-          {label}
-          {required && <span className="text-destructive ml-0.5">*</span>}
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <Label htmlFor={controlId} className="font-medium">
+            {label}
+            {required && <span className="text-destructive ml-0.5">*</span>}
+          </Label>
           {hint && (
-            <span className="text-body-sm text-muted-foreground font-normal ml-2">
+            <span id={hintId} className="text-body-sm text-muted-foreground font-normal">
               {hint}
             </span>
           )}
-        </Label>
+        </div>
       )}
       {control}
       {error && (

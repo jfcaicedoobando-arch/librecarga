@@ -729,6 +729,13 @@
       "when": 1795471827709,
       "tag": "0103_cotizacion_banderas_aereas",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1795472049712,
+      "tag": "0104_costeo_tarifa_tramos_tenant_scope",
+      "breakpoints": true
     }
   ]
 }

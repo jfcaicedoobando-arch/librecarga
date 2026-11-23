@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,6 +25,7 @@ interface Props {
   isPending: boolean;
   onSubmit: (v: LlegadaForm) => void | Promise<void>;
   onCancel: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 export function MarcarLlegadaForm({
@@ -32,11 +34,12 @@ export function MarcarLlegadaForm({
   isPending,
   onSubmit,
   onCancel,
+  onDirtyChange,
 }: Props) {
   const hoy = todayLocalISO();
   const fechaSalida = etd?.slice(0, 10);
   const salidaFutura = Boolean(fechaSalida && fechaSalida > hoy);
-  const { control, handleSubmit, formState: { errors, isValid } } = useForm<LlegadaInput, unknown, LlegadaForm>({
+  const { control, handleSubmit, formState: { errors, isValid, isDirty } } = useForm<LlegadaInput, unknown, LlegadaForm>({
     resolver: zodResolver(llegadaSchema(hoy, fechaSalida)),
     defaultValues: {
       fecha: salidaFutura ? "" : hoy,
@@ -44,6 +47,7 @@ export function MarcarLlegadaForm({
     },
     mode: "onChange",
   });
+  useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
 
   return (
     <Card>

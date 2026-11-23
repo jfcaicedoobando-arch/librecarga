@@ -20,7 +20,7 @@ export interface UseEnvioChipsResult {
   handleCcRemove: (email: string) => void;
 }
 
-export function useEnvioChips(form: EnvioFormState): UseEnvioChipsResult {
+export function useEnvioChips(form: EnvioFormState, permitidos?: ReadonlySet<string>): UseEnvioChipsResult {
   const paraChips: EmailChip[] = useMemo(() => {
     return form.destinatarios.map((d) => {
       const contacto = d.contacto_id
@@ -30,18 +30,21 @@ export function useEnvioChips(form: EnvioFormState): UseEnvioChipsResult {
         email: d.email,
         label: d.nombre ?? undefined,
         tag: contacto?.tipo ?? undefined,
-        invalid: !EMAIL_RE.test(d.email),
+        invalid: !EMAIL_RE.test(d.email) || (permitidos ? !permitidos.has(d.email.trim().toLowerCase()) : false),
       };
     });
-  }, [form.destinatarios, form.contactos]);
+  }, [form.destinatarios, form.contactos, permitidos]);
 
   const ccChips: EmailChip[] = useMemo(() => {
     return form.ccManual
       .split(/[,;\s]+/)
       .map((e) => e.trim())
       .filter(Boolean)
-      .map((e) => ({ email: e, invalid: !EMAIL_RE.test(e) }));
-  }, [form.ccManual]);
+      .map((e) => ({
+        email: e,
+        invalid: !EMAIL_RE.test(e) || (permitidos ? !permitidos.has(e.toLowerCase()) : false),
+      }));
+  }, [form.ccManual, permitidos]);
 
   const handleParaAdd = (email: string) => {
     const emailLc = email.toLowerCase();

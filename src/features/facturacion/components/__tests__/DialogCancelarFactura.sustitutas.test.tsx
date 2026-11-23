@@ -18,7 +18,10 @@ describe("consulta de sustitutas para el motivo SAT 01", () => {
   it("muestra el fallo de consulta, recupera con reintento y bloquea la selección anterior ante un nuevo fallo", async () => {
     listarSustitutas
       .mockRejectedValueOnce(new Error("Error de lectura"))
-      .mockResolvedValueOnce([{ id: "sustituta", estado: "Emitida", uuid_fiscal: "b9a30343", numero: "F-002" }])
+      .mockResolvedValueOnce([
+        { id: "sustituta", estado: "Emitida", uuid_fiscal: "b9a30343", numero: "F-002" },
+        { id: "otra", estado: "Emitida", uuid_fiscal: "a03d4413", numero: "F-003" },
+      ])
       .mockRejectedValueOnce(new Error("Error al actualizar"));
     const cliente = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
@@ -36,8 +39,13 @@ describe("consulta de sustitutas para el motivo SAT 01", () => {
     expect(confirmar).toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    const selector = await screen.findByRole("combobox", { name: "Factura sustituta timbrada" });
+    expect(selector).toHaveTextContent("Selecciona la factura sustituta");
+    expect(confirmar).toBeDisabled();
+    fireEvent.keyDown(selector, { key: "Enter" });
+    fireEvent.click(await screen.findByRole("option", { name: /^F-003/ }));
     await waitFor(() => expect(confirmar).toBeEnabled());
-    expect(screen.getByText(/F-002/)).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("CFDI que sustituirá a esta factura al confirmar: F-003");
 
     await act(async () => {
       await cliente.invalidateQueries({ queryKey: facturacion.sustitutasDe("original") });
@@ -45,5 +53,12 @@ describe("consulta de sustitutas para el motivo SAT 01", () => {
     expect(await screen.findByText("No pudimos cargar las sustitutas")).toBeVisible();
     expect(confirmar).toBeDisabled();
     expect(cancelar).not.toHaveBeenCalled();
+
+    act(() => cliente.setQueryData(facturacion.sustitutasDe("original"), [
+      { id: "sustituta", estado: "Emitida", uuid_fiscal: "b9a30343", numero: "F-002" },
+    ]));
+    expect(await screen.findByRole("combobox", { name: "Factura sustituta timbrada" }))
+      .toHaveTextContent("Selecciona la factura sustituta");
+    expect(confirmar).toBeDisabled();
   });
 });

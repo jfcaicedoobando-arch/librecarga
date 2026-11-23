@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { useEnvioDocumentoForm, type EnvioFormState } from "@/hooks/emails";
 
-const formState = {
+const formState: EnvioFormState = {
   destinatarios: [{ email: "a@b.com" }],
   ccEmails: ["yo@x.com"],
   asunto: "Asunto inicial",
@@ -9,6 +10,8 @@ const formState = {
   marcarEnviada: false,
   contactos: [],
   loadingContactos: false,
+  errorContactos: false,
+  reintentarContactos: vi.fn(),
   seleccionados: {},
   setSeleccionados: vi.fn(),
   emailManual: "",
@@ -26,7 +29,7 @@ const formState = {
 };
 
 vi.mock("@/hooks/emails/useEnvioDocumentoForm", () => ({
-  useEnvioDocumentoForm: () => formState,
+  useEnvioDocumentoForm: vi.fn(() => formState),
   EMAIL_RE: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
 }));
 
@@ -78,5 +81,39 @@ describe("EnviarDocumentoDialog", () => {
   it("muestra toggle 'marcar como enviada' cuando mostrarMarcarEnviada", () => {
     render(<EnviarDocumentoDialog {...baseProps} mostrarMarcarEnviada />);
     expect(screen.getByText(/Marcar el documento/)).toBeInTheDocument();
+  });
+
+  it("protege el envío a contactos registrados durante la consulta y al reintentar", () => {
+    const onEnviar = vi.fn();
+    const reintentarContactos = vi.fn();
+    const mockForm = vi.mocked(useEnvioDocumentoForm);
+    const conContacto = {
+      ...formState,
+      contactos: [{ id: "cl-1", nombre: "Cliente", contacto: "Cliente", email: "a@b.com", tipo: null }],
+      ccEmails: [],
+      userEmail: null,
+    };
+    mockForm.mockReturnValueOnce({ ...conContacto, loadingContactos: true });
+    const props = { ...baseProps, soloContactosRegistrados: true, onEnviar };
+    const { rerender } = render(<EnviarDocumentoDialog {...props} />);
+    const enviar = () => screen.getByRole("button", { name: "Enviar" });
+    expect(enviar()).toBeDisabled();
+
+    mockForm.mockReturnValueOnce({ ...conContacto, errorContactos: true, reintentarContactos });
+    rerender(<EnviarDocumentoDialog {...props} />);
+    expect(enviar()).toBeDisabled();
+    expect(screen.getByText("No pudimos consultar los contactos")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(reintentarContactos).toHaveBeenCalledOnce();
+
+    mockForm.mockReturnValueOnce({ ...conContacto, ccManual: "externo@x.com" });
+    rerender(<EnviarDocumentoDialog {...props} />);
+    expect(enviar()).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Retira o corrige los correos señalados");
+    expect(onEnviar).not.toHaveBeenCalled();
+
+    mockForm.mockReturnValueOnce(conContacto);
+    rerender(<EnviarDocumentoDialog {...props} />);
+    expect(enviar()).toBeEnabled();
   });
 });

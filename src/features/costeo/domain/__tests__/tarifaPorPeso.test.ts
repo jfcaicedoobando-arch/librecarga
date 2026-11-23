@@ -16,4 +16,7 @@ describe("tarifa por peso", () => {
     expect(fletePorPeso(tramos, 20, 4, 100)).toBe(100);
     expect(fletePorPeso(tramos, 300, 4, 100)).toBe(600);
   });
+  it("redondea los importes de flete según la política monetaria", () => {
+    expect(fletePorPeso([], 1, 10.075, null)).toBe(10.08);
+  });
 });

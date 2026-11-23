@@ -31,6 +31,7 @@ export default function ReportesCartera() {
   // históricos por fecha.
   const fechaCorte = useDiaNegocio();
   const [busqueda, setBusqueda] = useState("");
+  const busquedaActiva = Boolean(busqueda.trim());
 
   const { dataScope, tc, tcLoading, tcError, cxc, cxp, isLoading, isError, refetch } = useCarteraAging(fechaCorte, busqueda);
   const bloques = useMemo(() => [cxc, cxp], [cxc, cxp]);
@@ -87,7 +88,16 @@ export default function ReportesCartera() {
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               placeholder="Buscar…"
+              aria-describedby={busquedaActiva ? "cartera-alcance-busqueda" : undefined}
             />
+            {busquedaActiva && (
+              <div className="flex flex-wrap items-center gap-2">
+                <p id="cartera-alcance-busqueda" role="status" className="text-body-sm text-muted-foreground">
+                  Saldos de coincidencias. PDF y CSV usan esta misma búsqueda.
+                </p>
+                <Button variant="link" size="sm" onClick={() => setBusqueda("")}>Limpiar búsqueda</Button>
+              </div>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">
             {leyenda} {LEYENDA_VALUACION_EUR}
@@ -101,6 +111,7 @@ export default function ReportesCartera() {
         filas={cxc.filas}
         buckets={cxc.buckets}
         total={cxc.total}
+        busquedaActiva={busquedaActiva}
         isLoading={isLoading}
         isError={isError}
         onRetry={refetch}
@@ -112,6 +123,7 @@ export default function ReportesCartera() {
         filas={cxp.filas}
         buckets={cxp.buckets}
         total={cxp.total}
+        busquedaActiva={busquedaActiva}
         isLoading={isLoading}
         isError={isError}
         onRetry={refetch}

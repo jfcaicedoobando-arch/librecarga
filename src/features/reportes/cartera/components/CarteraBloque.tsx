@@ -22,13 +22,14 @@ interface Props {
   filas: FilaCartera[];
   buckets: TotalBucket[];
   total: TotalesCartera;
+  busquedaActiva?: boolean;
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
 }
 
 export function CarteraBloque({
-  titulo, etiquetaContraparte, filas, buckets, total, isLoading, isError, onRetry,
+  titulo, etiquetaContraparte, filas, buckets, total, busquedaActiva, isLoading, isError, onRetry,
 }: Props) {
   const sinResumen = isLoading || isError;
   return (
@@ -37,6 +38,7 @@ export function CarteraBloque({
         className="flex-col md:flex-row"
         actions={
           !sinResumen && <p className="text-xs text-muted-foreground">
+            {busquedaActiva && "Saldos de coincidencias · "}
             {total.conteo} factura(s) · {formatCurrency(total.mxnCorte, "MXN")} al corte ·
             {" "}dif. cambiaria {formatCurrency(total.diferencia, "MXN")}
           </p>

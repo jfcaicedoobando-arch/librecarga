@@ -45,14 +45,21 @@ const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /** Devuelve el mensaje de error bloqueante o `null` si el contacto es válido. */
 export function validarContactoProveedor(form: ContactoProveedorForm): string | null {
+  return errorContactoProveedor(form)?.mensaje ?? null;
+}
+
+export function errorContactoProveedor(form: ContactoProveedorForm): {
+  campo: "nombre" | "correo" | "medio";
+  mensaje: string;
+} | null {
   if (form.nombre.trim().length < 3) {
-    return "Captura el nombre completo del contacto (mínimo 3 caracteres).";
+    return { campo: "nombre", mensaje: "Captura el nombre completo del contacto (mínimo 3 caracteres)." };
   }
   if (form.email.trim() && !RE_EMAIL.test(form.email.trim())) {
-    return "El correo del contacto no tiene un formato válido.";
+    return { campo: "correo", mensaje: "El correo del contacto no tiene un formato válido." };
   }
   if (!form.email.trim() && !form.telefono.trim()) {
-    return "Captura al menos un medio de contacto: correo o teléfono.";
+    return { campo: "medio", mensaje: "Captura al menos un medio de contacto: correo o teléfono." };
   }
   return null;
 }

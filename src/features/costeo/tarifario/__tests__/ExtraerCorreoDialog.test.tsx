@@ -271,6 +271,27 @@ describe("ExtraerCorreoDialog", () => {
     expect(screen.getByText(/Se cargaron/)).toHaveTextContent("Se cargaron 1 tarifa(s) en borrador.");
   });
 
+  it("conserva abierto el diálogo hasta mostrar el resultado de la carga", async () => {
+    let resolver!: (value: { id: string }) => void;
+    mocks.insertarTarifa.mockReturnValueOnce(new Promise((resolve) => { resolver = resolve; }));
+    const p = props();
+    render(<ExtraerCorreoDialog {...p} />);
+    buscar();
+    fireEvent.click(await screen.findByRole("button", { name: "Cargar 1 tarifa(s) en borrador" }));
+    const dialogo = screen.getByRole("dialog", { name: "Extraer de correo" });
+    expect(dialogo).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Cargando borradores…" })).toBeDisabled();
+    const cerrar = screen.getAllByRole("button", { name: "Cerrar" });
+    expect(cerrar).toHaveLength(2);
+    expect(cerrar.find((boton) => boton.hasAttribute("disabled"))).toBeDisabled();
+    fireEvent.keyDown(dialogo, { key: "Escape" });
+    cerrar.forEach((boton) => fireEvent.click(boton));
+    expect(p.onOpenChange).not.toHaveBeenCalled();
+    await act(async () => resolver({ id: "tarifa" }));
+    expect(screen.getByText(/Se cargaron/)).toHaveTextContent("Se cargaron 1 tarifa(s) en borrador.");
+    screen.getAllByRole("button", { name: "Cerrar" }).forEach((boton) => expect(boton).toBeEnabled());
+  });
+
   it("oculta la extracción de otra organización y exige una nueva antes de importar", async () => {
     const p = props();
     const view = render(<ExtraerCorreoDialog {...p} />);

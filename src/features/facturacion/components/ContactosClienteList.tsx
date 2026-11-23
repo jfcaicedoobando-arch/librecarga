@@ -6,8 +6,9 @@
 import { User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { ContactoEnvio } from "@/features/facturacion/hooks/useContactosClienteParaEnvio";
+import type { ContactoEnvio, DatosEnvioCliente } from "@/features/facturacion/services/contactosClienteEnvio";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 
 interface ContactoItemProps {
   contacto: ContactoEnvio;
@@ -46,16 +47,20 @@ function ContactoItem({ contacto: c, seleccionado, onPick }: ContactoItemProps) 
 
 interface ContactosListProps {
   cargando: boolean;
-  contactos: ContactoEnvio[];
-  emailCliente: string | null | undefined;
+  datos: DatosEnvioCliente | undefined;
+  error: boolean;
+  reintentando: boolean;
+  onRetry: () => void;
   emailSeleccionado: string;
   onPick: (email: string) => void;
 }
 
 export function ContactosClienteList({
   cargando,
-  contactos,
-  emailCliente,
+  datos,
+  error,
+  reintentando,
+  onRetry,
   emailSeleccionado,
   onPick,
 }: ContactosListProps) {
@@ -66,7 +71,27 @@ export function ContactosClienteList({
       </div>
     );
   }
+  const contactos = datos?.contactos ?? [];
+  const emailCliente = datos?.emailCliente;
+  const consultaIncompleta = error || datos?.consultaIncompleta;
+  const aviso = consultaIncompleta && (
+    <ErrorStateInline
+      title={contactos.length > 0 || emailCliente ? "Consulta de contactos incompleta" : "No pudimos consultar los contactos"}
+      message="Reintenta para completar la consulta de correos del cliente."
+      onRetry={onRetry}
+      retrying={reintentando}
+    />
+  );
+
   if (contactos.length === 0) {
+    if (consultaIncompleta) {
+      return <>
+        {aviso}
+        {emailCliente && <Button type="button" variant="link" size="sm" onClick={() => onPick(emailCliente)}>
+          Usar correo de la ficha
+        </Button>}
+      </>;
+    }
     return (
       <p className="text-body-sm text-muted-foreground">
         Este cliente no tiene contactos con email registrados.
@@ -76,15 +101,18 @@ export function ContactosClienteList({
   }
   const seleccionadoLower = emailSeleccionado.trim().toLowerCase();
   return (
-    <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto">
-      {contactos.map((c) => (
-        <ContactoItem
-          key={c.id}
-          contacto={c}
-          seleccionado={seleccionadoLower === c.email.toLowerCase()}
-          onPick={onPick}
-        />
-      ))}
-    </div>
+    <>
+      {aviso}
+      <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto">
+        {contactos.map((c) => (
+          <ContactoItem
+            key={c.id}
+            contacto={c}
+            seleccionado={seleccionadoLower === c.email.toLowerCase()}
+            onPick={onPick}
+          />
+        ))}
+      </div>
+    </>
   );
 }

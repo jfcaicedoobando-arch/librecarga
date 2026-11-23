@@ -26,10 +26,10 @@ export function TarjetaReporte({ reporte, canEdit, onEditar, onEliminar }: Props
         <CardTitle className="text-base font-semibold leading-tight">{reporte.nombre}</CardTitle>
         {canEdit && (
           <div className="flex shrink-0 items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEditar(reporte)} aria-label="Editar reporte">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEditar(reporte)} aria-label={`Editar ${reporte.nombre}`}>
               <Pencil className="size-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEliminar(reporte)} aria-label="Eliminar reporte">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEliminar(reporte)} aria-label={`Eliminar ${reporte.nombre}`}>
               <Trash2 className="size-4" />
             </Button>
           </div>

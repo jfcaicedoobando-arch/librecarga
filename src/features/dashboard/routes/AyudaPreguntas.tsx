@@ -13,7 +13,7 @@ export function AyudaPreguntas({ modulo, termino }: { modulo: AyudaModulo; termi
   return (
     <Card id={modulo.id} className="scroll-mt-20">
       <CardHeader>
-        <CardTitle className="flex items-start justify-between gap-3">
+        <CardTitle id={`${modulo.id}-titulo`} tabIndex={-1} className="flex scroll-mt-20 items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
             <span>{modulo.titulo}</span>
             {modulo.audiencia && modulo.audiencia.length > 0 && (

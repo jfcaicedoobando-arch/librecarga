@@ -83,4 +83,21 @@ describe("useEnvioDocumentoForm", () => {
     );
     expect(result.current.ccEmails).toContain("yo@empresa.com");
   });
+
+  it.each([true, false])("en facturas respeta si el operador es contacto registrado (%s)", async (esContacto) => {
+    mocks.fetchContactos.mockResolvedValue([
+      { id: "__cliente_principal__", email: "p@x.com", contacto: "P", tipo: "principal" },
+      ...(esContacto ? [{ id: "copias", email: "Yo@Empresa.com", contacto: "Operador" }] : []),
+    ]);
+    const { result } = renderHook(
+      () => useEnvioDocumentoForm(true, "cli-1", () => "", {
+        ccInicial: ["yo@empresa.com"],
+        copiaSoloContacto: true,
+      }),
+      { wrapper: createWrapper() },
+    );
+    await waitFor(() => expect(result.current.destinatarios).toHaveLength(1));
+    expect(result.current.ccEmails).toEqual(esContacto ? ["Yo@Empresa.com"] : []);
+    expect(result.current.userEmail).toBe(esContacto ? "Yo@Empresa.com" : null);
+  });
 });

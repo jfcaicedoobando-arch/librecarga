@@ -46,7 +46,7 @@ function Chip({
       variant={activo ? "default" : "outline"}
       aria-pressed={activo}
       onClick={onClick}
-      className={cn("h-7 rounded-full px-3 text-body-sm")}
+      className={cn("h-11 rounded-full px-3 text-body-sm md:h-7")}
     >
       {children}
     </Button>

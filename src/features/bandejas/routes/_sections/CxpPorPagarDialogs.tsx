@@ -1,5 +1,5 @@
 import { DialogPagoLoteProveedor } from "@/features/cxp";
-import { ProgramarPagoDialog } from "./ProgramarPagoDialog";
+import { ProgramarPagoDialog, type FalloProgramacion } from "./ProgramarPagoDialog";
 import type { LotePagoSeleccion } from "./cxpPorPagarList";
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
   onFechaChange: (fecha: string) => void;
   isRunning: boolean;
   progreso: { hecho: number; total: number } | null;
+  fallosProgramacion: FalloProgramacion[];
   onConfirmarProgramar: () => void;
 
   lote: LotePagoSeleccion | null;
@@ -30,6 +31,7 @@ export function CxpPorPagarDialogs({
   onFechaChange,
   isRunning,
   progreso,
+  fallosProgramacion,
   onConfirmarProgramar,
   lote,
   loteOpen,
@@ -46,6 +48,7 @@ export function CxpPorPagarDialogs({
         onFechaChange={onFechaChange}
         isRunning={isRunning}
         progreso={progreso}
+        fallos={fallosProgramacion}
         onConfirmar={onConfirmarProgramar}
       />
 

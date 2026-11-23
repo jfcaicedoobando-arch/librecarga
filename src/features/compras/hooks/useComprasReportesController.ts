@@ -33,12 +33,13 @@ export function useComprasReportesController() {
     ? "Selecciona las fechas Desde y Hasta."
     : desde > hasta ? RANGO_INVERTIDO_MENSAJE : null;
 
-  const { data: rows = [], isLoading, isError, refetch } = useQuery({
+  const { data: rows = [], isPending, isError, refetch } = useQuery({
     queryKey: compras.reportes({ desde, hasta }, organizationId),
     queryFn: () => fetchFacturasReporte(desde, hasta, organizationId),
     // N-3: no consultar hasta que el contexto de organización resolvió.
     enabled: orgListo && !errorRango,
   });
+  const isLoading = !errorRango && isPending;
 
   const { data: rates } = useQuery({
     queryKey: compras.exchangeRatesDofToday(),

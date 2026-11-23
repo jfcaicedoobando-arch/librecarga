@@ -27,6 +27,7 @@ export interface DatosEnvioCliente {
   contactos: ContactoEnvio[];
   emailCliente: string | null;
   emailSugerido: string | null;
+  consultaIncompleta: boolean;
 }
 
 export async function fetchContactosClienteEnvio(
@@ -49,7 +50,7 @@ export async function fetchContactosClienteEnvio(
   ]);
 
   const contactos: ContactoEnvio[] = (
-    (contactosRes.data ?? []) as Array<{
+    (contactosRes.error ? [] : contactosRes.data ?? []) as Array<{
       id: string;
       nombre: string | null;
       email: string | null;
@@ -69,7 +70,7 @@ export async function fetchContactosClienteEnvio(
     })
     .sort((a, b) => Number(b.esFacturacion) - Number(a.esFacturacion));
 
-  const emailCliente = (clienteRes.data?.email as string | null) ?? null;
+  const emailCliente = clienteRes.error ? null : clienteRes.data?.email ?? null;
   // Orden de preferencia: contacto de facturación/cobranza > email fiscal del
   // cliente > cualquier otro contacto. El email del cliente va ANTES de un
   // contacto de otro tipo (exportador, shipper, operativo): antes se sugería el
@@ -79,7 +80,6 @@ export async function fetchContactosClienteEnvio(
     emailCliente ??
     contactos[0]?.email ??
     null;
-
-
-  return { contactos, emailCliente, emailSugerido };
+  const consultaIncompleta = Boolean(contactosRes.error || clienteRes.error);
+  return { contactos, emailCliente, emailSugerido, consultaIncompleta };
 }

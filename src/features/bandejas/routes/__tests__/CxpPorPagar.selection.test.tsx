@@ -7,7 +7,7 @@ import type { CxpPorPagarDialogs } from "../_sections/CxpPorPagarDialogs";
 import CxpPorPagar from "../CxpPorPagar";
 
 const fixture = vi.hoisted(() => ({
-  programar: vi.fn(async () => undefined),
+  programar: vi.fn(async () => ({ exitos: [] as string[], fallos: [] as Array<{ id: string; error: string }> })),
   rows: ["synthetic-a", "synthetic-b", "synthetic-c"].map((id, index) => ({
     factura_id: id, proveedor_id: "synthetic-provider", proveedor_nombre: "Proveedor sintetico",
     proveedor_origen: "agente", folio_proveedor: `SYN-${index + 1}`, embarque_id: null,
@@ -31,8 +31,11 @@ vi.mock("@/hooks/shared", async () => ({
   ...await import("@/hooks/shared/useCargaExpirada"),
 }));
 vi.mock("../_sections/CxpPorPagarDialogs", () => ({
-  CxpPorPagarDialogs: ({ isDialogOpen, onConfirmarProgramar }: ComponentProps<typeof CxpPorPagarDialogs>) =>
-    isDialogOpen ? <button onClick={onConfirmarProgramar}>Confirmar programacion simulada</button> : null,
+  CxpPorPagarDialogs: ({ isDialogOpen, fallosProgramacion, onConfirmarProgramar }: ComponentProps<typeof CxpPorPagarDialogs>) =>
+    isDialogOpen ? <>
+      <button onClick={onConfirmarProgramar}>Confirmar programacion simulada</button>
+      {fallosProgramacion.map(({ id, folio, error }) => <p key={id}>{folio} · {error}</p>)}
+    </> : null,
 }));
 
 function Location() {
@@ -119,6 +122,25 @@ describe("CxP Por pagar: seleccion de facturas", () => {
     expectCount(0);
     expect(screen.getByRole("checkbox", { name: "Seleccionar todos" })).toHaveAttribute("aria-checked", "false");
     for (const folio of ["SYN-1", "SYN-2", "SYN-3"]) expect(checkboxFor(folio)).toHaveAttribute("aria-checked", "false");
+    expectNoNavigationOrNetwork();
+  });
+
+  it("muestra el fallo y reintenta solo la factura que quedó seleccionada", async () => {
+    fixture.programar.mockClear().mockResolvedValueOnce({
+      exitos: ["synthetic-a", "synthetic-b"],
+      fallos: [{ id: "synthetic-c", error: "No se pudo programar" }],
+    });
+    show();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Seleccionar todos" }));
+    fireEvent.click(screen.getByRole("button", { name: "Programar pago (3)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar programacion simulada" }));
+    expect(await screen.findByText("SYN-3 · No se pudo programar")).toBeVisible();
+    expect(checkboxFor("SYN-1")).toHaveAttribute("aria-checked", "false");
+    expect(checkboxFor("SYN-2")).toHaveAttribute("aria-checked", "false");
+    expect(checkboxFor("SYN-3")).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar programacion simulada" }));
+    expect(fixture.programar).toHaveBeenNthCalledWith(2, ["synthetic-c"], expect.any(String));
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Programar pago/ })).not.toBeInTheDocument());
     expectNoNavigationOrNetwork();
   });
 });

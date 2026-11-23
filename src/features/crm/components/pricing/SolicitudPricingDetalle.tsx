@@ -29,6 +29,17 @@ function puedeUsarRespuesta(s: SolicitudPricingRow, userId: string | undefined, 
   return esPricing || esAutorSolicitud(s, userId);
 }
 
+function estadoConsultaRespuesta(
+  opciones: ReturnType<typeof useOpcionesPricing>,
+  tarifas: ReturnType<typeof useTarifasRespuestaPricing>,
+) {
+  return {
+    enCurso: opciones.isFetching || opciones.isPending || tarifas.isFetching || tarifas.isPending,
+    error: opciones.isError || tarifas.isError,
+    reintentar: () => { void opciones.refetch(); void tarifas.refetch(); },
+  };
+}
+
 export function SolicitudPricingDetalle({ solicitud: s }: Props) {
   const { effectiveRole, user } = useAuth();
   const { canWriteCotizaciones } = usePermissions();
@@ -36,7 +47,8 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
   const userId = user?.id;
   const [editando, setEditando] = useState(false);
   const esPricing = esRolPricing(effectiveRole);
-  const { data: opciones = [] } = useOpcionesPricing(s.id);
+  const opcionesRespuesta = useOpcionesPricing(s.id);
+  const opciones = opcionesRespuesta.data ?? [];
   const tarifasRespuesta = useTarifasRespuestaPricing(s.id, s.estado === "enviada");
   const editable = esPricing && s.estado === "enviada";
   const puedeCancelar = solicitudAbierta(s) && (esPricing || s.created_by === userId);
@@ -58,7 +70,8 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
     <div className="space-y-4">
       <AccionesSolicitudPricing solicitud={s} puedeCancelar={puedeCancelar} puedeResponder={editable}
         puedeEditar={puedeEditar} puedeCopiar={puedeElegir} onEditar={() => setEditando(true)}
-        numOpciones={opciones.length + tarifas.length} />
+        numOpciones={opciones.length + tarifas.length}
+        consultaRespuesta={estadoConsultaRespuesta(opcionesRespuesta, tarifasRespuesta)} />
       <SolicitudPricingDialog open={editando} onOpenChange={setEditando}
         oportunidadId={s.oportunidad_id ?? ""} solicitud={s} />
       <ResumenSolicitudPricing solicitud={s} />

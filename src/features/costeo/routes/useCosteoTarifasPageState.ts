@@ -1,6 +1,7 @@
 /** Estado y handlers de la página `CosteoTarifas`. */
 import { useMemo, useState, useCallback } from "react";
 import { useSearchParams } from "react-router";
+import { useOrgActiva } from "@/hooks/shared/useOrgActiva";
 import { safeLocalStorage, STORAGE_KEYS } from "@/lib/browserStorage";
 import { useCosteoTarifas, useCosteoTarifaMutations } from "@/features/costeo/hooks/useCosteoTarifas";
 import type { TarifaInput } from "@/features/costeo/services/tarifas";
@@ -25,12 +26,10 @@ function readAprobacionFromUrl(value: string | null): AprobacionFiltro {
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-function rutaIdValida(id: string | undefined): id is string {
-  return !!id && UUID_RE.test(id);
-}
 
 export function useCosteoTarifasPageState() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { organizationId } = useOrgActiva();
   const rutaIdFromUrl = searchParams.get("ruta") ?? undefined;
 
   const [estado, setEstado] = useState<EstadoFiltro>(DEFAULT_ESTADO);
@@ -53,7 +52,8 @@ export function useCosteoTarifasPageState() {
   const [open, setOpen] = useState(false);
   const [initial, setInitial] = useState<Partial<TarifaInput> | undefined>();
   const [editId, setEditId] = useState<string | undefined>();
-  const [aEliminar, setAEliminar] = useState<string | null>(null);
+  const [tarifaAEliminar, guardarTarifaAEliminar] = useState<CosteoTarifaRow | null>(null);
+  const aEliminar = tarifaAEliminar?.organization_id === organizationId ? tarifaAEliminar : null;
   const [viewMode, setViewMode] = useState<ViewMode>(readViewMode);
   const changeView = useCallback((v: ViewMode) => {
     setViewMode(v);
@@ -72,11 +72,10 @@ export function useCosteoTarifasPageState() {
 
   const { data: tarifas = [], isLoading, isError, refetch } = useCosteoTarifas(tarifaFilters);
   const { eliminar } = useCosteoTarifaMutations();
-  const catalogo = useMemo(
+  const { tarifasFiltradas, pendientesCount, programadasCount } = useMemo(
     () => seleccionarTarifasCatalogo(tarifas, { aprobacion, busqueda, soloPorVencer }, todayLocalISO()),
     [tarifas, aprobacion, busqueda, soloPorVencer],
   );
-  const { tarifasFiltradas, pendientesCount, programadasCount } = catalogo;
 
   const hasActiveFilters =
     aprobacion !== DEFAULT_APROB ||
@@ -126,6 +125,10 @@ export function useCosteoTarifasPageState() {
     [tarifas],
   );
 
+  const setAEliminar = useCallback((id: string | null) => {
+    guardarTarifaAEliminar(id ? findTarifa(id) ?? null : null);
+  }, [findTarifa]);
+
   const duplicar = useCallback((id: string) => {
     const t = findTarifa(id);
     if (!t) return;
@@ -143,7 +146,7 @@ export function useCosteoTarifasPageState() {
 
   // P2-A3: desde una ruta filtrada, "Nueva tarifa" la preselecciona.
   const nuevo = useCallback(
-    () => openFormFrom(undefined, rutaIdValida(rutaIdFromUrl) ? { ruta_id: rutaIdFromUrl } : undefined),
+    () => openFormFrom(undefined, rutaIdFromUrl && UUID_RE.test(rutaIdFromUrl) ? { ruta_id: rutaIdFromUrl } : undefined),
     [openFormFrom, rutaIdFromUrl],
   );
 

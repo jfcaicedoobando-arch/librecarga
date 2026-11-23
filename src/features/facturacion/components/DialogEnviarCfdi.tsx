@@ -3,7 +3,7 @@
  * al cliente vía FacturApi. Permite ver y elegir entre los contactos del
  * cliente antes de enviar para evitar mandarlo al destinatario equivocado.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Mail, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -54,7 +54,8 @@ export function DialogEnviarCfdi({
   const [tocado, setTocado] = useState(Boolean(emailDefault));
   const [enviando, setEnviando] = useState(false);
 
-  const { data: datosCliente, isLoading: cargandoContactos } = useContactosClienteParaEnvio(clienteId, open);
+  const { data: datosCliente, isLoading: cargandoContactos, isError, isFetching, refetch } =
+    useContactosClienteParaEnvio(clienteId, open);
 
   useEffect(() => {
     if (!open || tocado) return;
@@ -72,7 +73,6 @@ export function DialogEnviarCfdi({
   const valido = esValido(email);
   const emailSugerido = datosCliente?.emailSugerido ?? null;
   const esOverride = valido && emailSugerido !== null && email.trim().toLowerCase() !== emailSugerido.toLowerCase();
-  const contactos = useMemo(() => datosCliente?.contactos ?? [], [datosCliente]);
 
   const pickEmail = (nuevo: string) => { setEmail(nuevo); setTocado(true); };
 
@@ -145,8 +145,10 @@ export function DialogEnviarCfdi({
             </Label>
             <ContactosClienteList
               cargando={cargandoContactos}
-              contactos={contactos}
-              emailCliente={datosCliente?.emailCliente}
+              datos={datosCliente}
+              error={isError}
+              reintentando={isFetching}
+              onRetry={() => void refetch()}
               emailSeleccionado={email}
               onPick={pickEmail}
             />

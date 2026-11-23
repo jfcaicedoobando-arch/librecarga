@@ -80,14 +80,15 @@ export default function TabExportar() {
 
         {progress && (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-body-sm text-muted-foreground">
+            <div id="etapa-exportacion-configuracion" className="flex items-center justify-between text-body-sm text-muted-foreground">
               <span>
                 {progress.step} / {progress.total} · <span className="font-mono">{progress.current}</span>
                 {progress.rows > 0 ? ` (${progress.rows} filas)` : ""}
               </span>
               <span>{pct}%</span>
             </div>
-            <Progress value={pct} className="h-2" />
+            <Progress value={pct} className="h-2" aria-label="Progreso de la exportación"
+              aria-describedby="etapa-exportacion-configuracion" />
           </div>
         )}
 

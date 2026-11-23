@@ -6,6 +6,7 @@ import { buildCostosDesdeTarifa } from "@/features/cotizacion/domain/buildCostos
 import { reemplazarCostosAutoTarifa } from "@/features/cotizacion/domain/costosAutoGenerados";
 import { fetchTarifaVinculada } from "@/features/cotizacion/services/tarifaVinculada";
 import { buildCostosMultimodo } from "@/features/cotizacion/domain/buildCostosMultimodo";
+import type { TarifaMultimodoCosteo } from "@/features/cotizacion/domain/fleteMultimodo";
 import { fetchTarifaMultimodoVinculada } from "@/features/cotizacion/services/tarifaMultimodoVinculada";
 import type { CotizacionFormValues, FilaCostoLocal } from "@/features/cotizacion/types";
 import { esIncotermSinFleteVenta } from "@/features/cotizacion/utils/incotermRules";
@@ -47,6 +48,12 @@ function capturarCosteoTarifa(getValues: Args["getValues"], seleccionada?: TopTa
   return { valores, tarifaId, modo, tipoEmbarque, carga, cantidad: Math.max(1, Number(numContenedores) || 1) };
 }
 
+function identificarTarifaCosteo(multimodo: TarifaMultimodoCosteo | null, tarifa: TopTarifaRow | null) {
+  if (multimodo) return { tipo: "multimodo", tarifa: multimodo } as const;
+  if (!tarifa) throw new Error("La tarifa vinculada ya no está disponible.");
+  return { tipo: "base", tarifa } as const;
+}
+
 /** Una instancia por wizard para selección, precarga y recálculo. */
 export function useCargaCostosTarifa({ getValues, captura, markup, setFilas }: Args) {
   const [estado, setEstado] = useState<EstadoCarga>();
@@ -63,7 +70,7 @@ export function useCargaCostosTarifa({ getValues, captura, markup, setFilas }: A
   }, [firmaActual, markup]);
   useEffect(() => () => { solicitudVigente.current = null; }, []);
 
-  const cargar = useCallback(async ({ seleccionada, soloSiVacio = false }: SolicitudCarga = {}) => {
+  const cargar = useCallback(async ({ seleccionada, soloSiVacio }: SolicitudCarga = {}) => {
     const seleccion = capturarCosteoTarifa(getValues, seleccionada);
     if (!seleccion) return;
     const { valores, tarifaId, modo, tipoEmbarque, cantidad, carga } = seleccion;
@@ -74,29 +81,21 @@ export function useCargaCostosTarifa({ getValues, captura, markup, setFilas }: A
     const scope = captureAuthOperationScope();
     const vigente = () => solicitudVigente.current === solicitud && scope.isCurrent()
       && firmaTarifa(getValues(CAMPOS_COSTO_TARIFA), markupVigente.current) === solicitud.firma;
-    setEstado({ ...solicitud, fase: "cargando" });
-
-    try {
-      // Aéreo/Terrestre: precio real de la tarifa (rangos de peso, mínimo o por viaje).
-      const multimodo = modo !== "Marítimo" ? await fetchTarifaMultimodoVinculada(tarifaId) : null;
-      if (!vigente()) return;
-      // Una tarifa marítima retenida nunca genera costos en una cotización aérea o terrestre.
-      if (modo !== "Marítimo" && !multimodo) { setEstado({ ...solicitud, fase: "lista" }); return; }
-      const tarifa = multimodo ? null : seleccionada ?? await fetchTarifaVinculada(tarifaId);
-      if (!vigente()) return;
-      if (!multimodo && !tarifa) throw new Error("La tarifa vinculada ya no está disponible.");
-      const recargos = await fetchRecargosDeTarifa(tarifaId);
-      if (!vigente()) return;
-      const nuevas = multimodo
-        ? buildCostosMultimodo({ tarifa: multimodo, recargos, markup: markupCapturado, carga })
-        : buildCostosDesdeTarifa({ tarifa: tarifa!, recargos, markup: markupCapturado, cantidad, tipoEmbarque, modo });
+    const limpiarSolicitudSiCambioContexto = () => {
+      if (solicitudVigente.current === solicitud && !scope.isCurrent()) {
+        solicitudVigente.current = null;
+        setEstado(undefined);
+      }
+    };
+    const finalizarCarga = (nuevas: FilaCostoLocal[] = []) => {
       if (nuevas.length > 0) {
         setFilas(prev => vigente() && (!soloSiVacio || prev.length === 0)
           ? reemplazarCostosAutoTarifa(prev, nuevas)
           : prev);
       }
       setEstado({ ...solicitud, fase: "lista" });
-    } catch (error) {
+    };
+    const registrarFalloCarga = (error: unknown) => {
       if (!vigente()) return;
       setEstado({ ...solicitud, fase: "error" });
       notifyError(undefined, {
@@ -105,11 +104,30 @@ export function useCargaCostosTarifa({ getValues, captura, markup, setFilas }: A
         error,
         method: "COTIZACION_CARGAR_COSTOS_TARIFA",
       });
-    } finally {
-      if (solicitudVigente.current === solicitud && !scope.isCurrent()) {
-        solicitudVigente.current = null;
-        setEstado(undefined);
+    };
+    setEstado({ ...solicitud, fase: "cargando" });
+
+    try {
+      const multimodo = modo !== "Marítimo" ? await fetchTarifaMultimodoVinculada(tarifaId) : null;
+      if (!vigente()) return;
+      // Una tarifa marítima retenida nunca genera costos en una cotización aérea o terrestre.
+      if (modo !== "Marítimo" && !multimodo) {
+        finalizarCarga();
+        return;
       }
+      const tarifa = multimodo ? null : seleccionada ?? await fetchTarifaVinculada(tarifaId);
+      if (!vigente()) return;
+      const fuente = identificarTarifaCosteo(multimodo, tarifa);
+      const recargos = await fetchRecargosDeTarifa(tarifaId);
+      if (!vigente()) return;
+      const nuevas = fuente.tipo === "multimodo"
+        ? buildCostosMultimodo({ tarifa: fuente.tarifa, recargos, markup: markupCapturado, carga })
+        : buildCostosDesdeTarifa({ tarifa: fuente.tarifa, recargos, markup: markupCapturado, cantidad, tipoEmbarque, modo });
+      finalizarCarga(nuevas);
+    } catch (error) {
+      registrarFalloCarga(error);
+    } finally {
+      limpiarSolicitudSiCambioContexto();
     }
   }, [getValues, setFilas]);
 

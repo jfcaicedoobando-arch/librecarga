@@ -112,6 +112,7 @@ export function ConciliacionCuenta({ cuentaId: cuentaSolicitada, cambiarCuenta }
         estado={estado}
         onEstadoChange={setEstado}
         pendientesCount={pendientesCount}
+        pendientesCuenta={resumen.isError ? undefined : resumen.data?.pendientes}
         isAutoConciliando={isAutoConciliando}
         onConciliarExactos={handleConciliarExactos}
         onAbrirManual={abrirModalManual}

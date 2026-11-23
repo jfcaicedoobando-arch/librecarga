@@ -119,6 +119,17 @@ const REVIEWED_FORWARD_FIXES: ReadonlyArray<readonly [string, string]> = [
   ["0092_auxiliares_seleccionados_acceso_protegido.sql", "ad83fb3851f436fa2d4469126b386010eb3afed6699a83d16aa0c612921a8c79"],
   ["0093_actividad_embarque_bitacora_misma_organizacion.sql", "d52a1a33ce842b6eb7887747df3922476235fe718a652d4977690c478e7a6fff"],
   ["0094_autoridad_local_avisos_seleccionados.sql", "54b2177cafedd41c05dfb255336480896eb7bb586362d3fd7d0930be4f3a271b"],
+  // Pricing SLA and tariffs do not redefine either shipment transition modeled here.
+  ["0095_pricing_sla_horas_habiles.sql", "611bd54dbb6de477a293099f946d86bf94a5b1ff2fcab35d5bf73a319a951fc8"],
+  ["0096_pricing_submodalidad_incoterms_modo.sql", "804a63bcdce6e9aac0c126303d7fe14c7371be7189b68ca109b555fa247ad192"],
+  ["0097_pricing_plazos_por_modo.sql", "6320a8c282720b1ef4526c8f6bdee59f1b9e96a3e5d5db0ea799ab86fdb79d43"],
+  ["0098_pricing_lcl_imo_modalidad_negocio.sql", "edbf9d524ee7317c0def6cdddd6c57f865a653978e33aacb025596f5651c9bb7"],
+  ["0099_recargos_base_por_unidad_o_embarque.sql", "3ecec21d9118c5a056ba41b5fa3126984619d26706e1b2ab7ec0dabe712a4021"],
+  ["0100_tarifario_aereo_terrestre_base.sql", "6d3af90a1789af2154a484f7c4b11b5fc0973cddb3fbcf9e7dc6ff00433b478e"],
+  ["0101_tarifa_multimodo_moneda.sql", "543986869b63ec4fa25ec34426b808e73398fdf7233ae1dcf7b9df97205c02ef"],
+  ["0102_pricing_banderas_aereas.sql", "88d10454835d9bab3c0e5793ab33f3cc693bef33b15f70c5a96eb77563a317ff"],
+  ["0103_cotizacion_banderas_aereas.sql", "a3c832d6f963f47d679f5ebd459567bb70f7317012cccdbefb5576953192e1bc"],
+  ["0104_costeo_tarifa_tramos_tenant_scope.sql", "81588859e3f96db447c1c4434b602dbbd9a8ffaac829e50fb9afd7621eeaf39c"],
 ];
 
 function verificarOrdenJournal(sources: ReadonlyMap<string, string>, journal: JournalEntry[]): void {

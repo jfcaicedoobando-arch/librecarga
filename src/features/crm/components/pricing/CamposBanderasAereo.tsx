@@ -5,7 +5,7 @@
 import { CampoLista, CampoSiNo } from "./CamposPricing";
 import type { DatosSolicitud } from "./SolicitudPricingCampos";
 
-export const TIPOS_AERONAVE = [
+const TIPOS_AERONAVE = [
   { value: "PAX", label: "PAX — avión de pasajeros" },
   { value: "CAO", label: "CAO — sólo carguero" },
 ];

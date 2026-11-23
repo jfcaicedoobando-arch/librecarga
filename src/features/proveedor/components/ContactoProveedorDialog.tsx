@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { UserPlus } from "lucide-react";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
+import { FormField } from "@/components/shared/FormField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   CONTACTO_PROVEEDOR_VACIO,
   contactoAForm,
-  validarContactoProveedor,
+  errorContactoProveedor,
   type ContactoProveedor,
   type ContactoProveedorForm,
 } from "@/features/proveedor/domain/contactosProveedor";
@@ -33,12 +34,14 @@ export function ContactoProveedorDialog({
   open, onOpenChange, contacto, isPending, onGuardar,
 }: Props) {
   const [form, setForm] = useState<ContactoProveedorForm>(CONTACTO_PROVEEDOR_VACIO);
-  const [error, setError] = useState<string | null>(null);
+  const [validar, setValidar] = useState(false);
+  const error = validar ? errorContactoProveedor(form) : null;
+  const errorMedio = error?.campo === "medio" ? error.mensaje : undefined;
 
   useEffect(() => {
     if (!open) return;
     setForm(contacto ? contactoAForm(contacto) : CONTACTO_PROVEEDOR_VACIO);
-    setError(null);
+    setValidar(false);
   }, [open, contacto]);
 
   const set = <K extends keyof ContactoProveedorForm>(
@@ -48,9 +51,9 @@ export function ContactoProveedorDialog({
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const problema = validarContactoProveedor(form);
-    if (problema) { setError(problema); return; }
-    setError(null);
+    if (isPending) return;
+    if (errorContactoProveedor(form)) { setValidar(true); return; }
+    setValidar(false);
     onGuardar(form);
   };
 
@@ -69,7 +72,7 @@ export function ContactoProveedorDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button type="submit" form={FORM_ID} loading={isPending}>
+          <Button type="submit" form={FORM_ID} formNoValidate loading={isPending}>
             Guardar contacto
           </Button>
         </>
@@ -77,11 +80,10 @@ export function ContactoProveedorDialog({
     >
       <FormDialogSection title="Persona">
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="cp-nombre">Nombre</Label>
-            <Input id="cp-nombre" value={form.nombre}
+          <FormField label="Nombre" required error={error?.campo === "nombre" ? error.mensaje : undefined}>
+            <Input id="cp-nombre" aria-required="true" value={form.nombre}
               onChange={(e) => set("nombre", e.target.value)} />
-          </div>
+          </FormField>
           <div className="space-y-2">
             <Label htmlFor="cp-puesto">Puesto</Label>
             <Input id="cp-puesto" value={form.puesto}
@@ -95,16 +97,17 @@ export function ContactoProveedorDialog({
         </div>
       </FormDialogSection>
 
-      <FormDialogSection title="Medios de contacto">
+      <FormDialogSection title="Medios de contacto" description="Captura al menos correo o teléfono.">
         <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="cp-email">Correo</Label>
+          <FormField label="Correo" className="sm:col-span-2" error={error?.campo === "correo" ? error.mensaje : undefined}>
             <Input id="cp-email" type="email" value={form.email}
+              aria-describedby={errorMedio ? "cp-medio-error" : undefined}
               onChange={(e) => set("email", e.target.value)} />
-          </div>
+          </FormField>
           <div className="space-y-2">
             <Label htmlFor="cp-tel">Teléfono</Label>
             <Input id="cp-tel" value={form.telefono}
+              aria-describedby={errorMedio ? "cp-medio-error" : undefined}
               onChange={(e) => set("telefono", e.target.value)} />
           </div>
           <div className="space-y-2">
@@ -113,6 +116,7 @@ export function ContactoProveedorDialog({
               onChange={(e) => set("extension", e.target.value)} />
           </div>
         </div>
+        {errorMedio && <p id="cp-medio-error" role="alert" className="text-body-sm text-destructive">{errorMedio}</p>}
       </FormDialogSection>
 
       <FormDialogSection
@@ -129,7 +133,6 @@ export function ContactoProveedorDialog({
           <Textarea id="cp-notas" rows={3} value={form.notas}
             onChange={(e) => set("notas", e.target.value)} />
         </div>
-        {error && <p role="alert" className="mt-2 text-body text-destructive">{error}</p>}
       </FormDialogSection>
     </FormDialogShell>
   );

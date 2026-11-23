@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { VersionesCotizacionCard } from "../VersionesCotizacionCard";
 
@@ -8,11 +8,12 @@ vi.mock("@/features/cotizacion/services/versiones", () => ({ fetchVersiones, dup
 
 function mostrar() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
+  render(
     <QueryClientProvider client={client}>
       <VersionesCotizacionCard cotizacionId="cot-1" estadoActual="Aceptada" />
     </QueryClientProvider>,
   );
+  return client;
 }
 
 beforeEach(() => fetchVersiones.mockReset());
@@ -38,5 +39,20 @@ describe("Historial de versiones de cotización", () => {
     mostrar();
     await waitFor(() => expect(screen.queryByText("Historial de versiones")).not.toBeInTheDocument());
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("conserva el historial consultado si falla su actualización y permite recuperarlo", async () => {
+    const version = { id: "v1", folio: "COT-001", version_num: 1, estado_al_snapshot: "Enviada", created_at: "2026-11-20" };
+    fetchVersiones.mockResolvedValueOnce([version]).mockRejectedValueOnce(new Error("Error transitorio"))
+      .mockResolvedValueOnce([version]);
+    const client = mostrar();
+    expect(await screen.findByText("COT-001")).toBeInTheDocument();
+
+    await act(() => client.invalidateQueries());
+    expect(await screen.findByRole("alert")).toHaveTextContent("No se pudo actualizar el historial de versiones");
+    expect(screen.getByText("COT-001")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+    expect(fetchVersiones).toHaveBeenCalledTimes(3);
   });
 });

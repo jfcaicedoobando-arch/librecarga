@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -34,16 +35,18 @@ interface Props {
   isPending: boolean;
   onSubmit: (v: EtaForm) => void | Promise<void>;
   onCancel: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-export function ActualizarEtaForm({ etaActual, isPending, onSubmit, onCancel }: Props) {
+export function ActualizarEtaForm({ etaActual, isPending, onSubmit, onCancel, onDirtyChange }: Props) {
   const etaActualIso = (etaActual ?? "").slice(0, 10);
   const schema = buildEtaSchema(etaActualIso);
-  const { control, handleSubmit, formState: { errors, isValid } } = useForm<EtaForm>({
+  const { control, handleSubmit, formState: { errors, isValid, isDirty } } = useForm<EtaForm>({
     resolver: zodResolver(schema),
     defaultValues: { fecha: etaActualIso, fuente: "" },
     mode: "onChange",
   });
+  useEffect(() => onDirtyChange?.(isDirty), [isDirty, onDirtyChange]);
 
   return (
     <Card>

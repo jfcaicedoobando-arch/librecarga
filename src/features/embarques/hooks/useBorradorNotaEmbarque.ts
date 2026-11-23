@@ -6,7 +6,7 @@ import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
 import { useCreateNotaEmbarque } from "./mutations/useNotaEmbarque";
 
 /** El borrador vive en el detalle para sobrevivir al cambio de pestaña. */
-export function useBorradorNotaEmbarque(embarqueId?: string, expediente?: string | null) {
+export function useBorradorNotaEmbarque(embarqueId?: string, expediente?: string | null, hayOtraCaptura = false) {
   const { user } = useAuth();
   const crearNota = useCreateNotaEmbarque();
   const registrarActividad = useRegistrarActividad();
@@ -21,7 +21,7 @@ export function useBorradorNotaEmbarque(embarqueId?: string, expediente?: string
   const setTexto = (valor: string) => setBorrador((actual) =>
     actual.embarqueId === embarqueId ? { embarqueId, texto: valor } : actual,
   );
-  const { guardDialog, confirmarSalida } = useDirtyGuard(texto.length > 0, true);
+  const { guardDialog, confirmarSalida } = useDirtyGuard(texto.length > 0 || hayOtraCaptura, true);
 
   const enviarNota = async () => {
     const contenido = texto.trim();

@@ -3,13 +3,13 @@
  * Guarda la etiqueta "IATA — Nombre, Ciudad" como texto en POL/POD.
  */
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { buscarAeropuertos, etiquetaAeropuerto, type Aeropuerto } from "@/features/crm/services/pricing/aeropuertos";
+import { useBuscarAeropuertos } from "@/features/crm/hooks/useBuscarAeropuertos";
+import { etiquetaAeropuerto, type Aeropuerto } from "@/features/crm/services/pricing/aeropuertos";
 
 interface Props {
   id: string; label: string; value: string | null | undefined; disabled?: boolean;
@@ -24,12 +24,7 @@ export function CampoAeropuerto({ id, label, value, disabled, onChange }: Props)
     const t = setTimeout(() => setBusqueda(texto.trim()), 300);
     return () => clearTimeout(t);
   }, [texto]);
-  const { data = [], isFetching } = useQuery({
-    queryKey: ["aeropuertos", "buscar", busqueda],
-    queryFn: () => buscarAeropuertos(busqueda),
-    enabled: abierto && busqueda.length >= 2,
-    staleTime: 3_600_000,
-  });
+  const { data = [], isFetching } = useBuscarAeropuertos(busqueda, abierto);
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>

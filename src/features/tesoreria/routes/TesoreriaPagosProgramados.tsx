@@ -137,19 +137,27 @@ export default function TesoreriaPagosProgramados() {
 
       {/* B-030: filtro explícito y visible. Default: "Todas" para no ocultar
           facturas silenciosamente como hacía la RPC anterior. */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <label htmlFor="mostrar-pagos-programados" className="text-body text-muted-foreground">Mostrar:</label>
         <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroBandeja)}>
-          <SelectTrigger id="mostrar-pagos-programados" className={FILTRO_ANCHO.lg}><SelectValue /></SelectTrigger>
+          <SelectTrigger id="mostrar-pagos-programados" className={`${FILTRO_ANCHO.lg} sm:min-w-[20rem]`}
+            aria-describedby={filtro === "treinta_dias" ? "criterio-pagos-30-dias" : undefined}><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas las pendientes</SelectItem>
             <SelectItem value="programadas">Solo con pago programado</SelectItem>
-            <SelectItem value="treinta_dias">Vencen en 30 días</SelectItem>
+            <SelectItem value="treinta_dias">Pago programado o vencimiento en 30 días</SelectItem>
           </SelectContent>
         </Select>
       </div>
+      {filtro === "treinta_dias" && (
+        <p id="criterio-pagos-30-dias" className="text-body-sm text-muted-foreground">
+          Se usa la fecha de pago programado. Si no existe, se usa el vencimiento.
+        </p>
+      )}
 
-      <PagosProgramadosTablas semanas={semanas} sinFecha={sinFecha} columns={columns} onEjecutarPago={abrirDialogoPago} onAbrirFactura={abrirFactura} />
+      <PagosProgramadosTablas semanas={semanas} sinFecha={sinFecha} columns={columns}
+        onVerTodas={filtro !== "todas" ? () => setFiltro("todas") : undefined}
+        onEjecutarPago={abrirDialogoPago} onAbrirFactura={abrirFactura} />
 
       <EjecutarPagoDialog
         facturaPago={facturaPago}

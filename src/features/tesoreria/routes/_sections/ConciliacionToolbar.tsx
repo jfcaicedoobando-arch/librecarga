@@ -35,6 +35,7 @@ interface Props {
   estado: EstadoFiltro;
   onEstadoChange: (estado: EstadoFiltro) => void;
   pendientesCount: number;
+  pendientesCuenta?: number;
   isAutoConciliando: boolean;
   onConciliarExactos: () => void;
   onAbrirManual: () => void;
@@ -48,13 +49,9 @@ interface Props {
 export function ConciliacionToolbar({
   cuentas, cuentaId, cuentasLoading, cuentasError, reintentandoCuentas, onRetryCuentas,
   onCuentaChange, estado, onEstadoChange,
-  pendientesCount, isAutoConciliando, onConciliarExactos, onAbrirManual,
+  pendientesCount, pendientesCuenta, isAutoConciliando, onConciliarExactos, onAbrirManual,
   fileRef, onFile, importando, puedeCapturar,
 }: Props) {
-  const moneda = cuentas.find((c) => c.id === cuentaId)?.moneda;
-  const ayudaAuto = moneda
-    ? `Aplica la conciliación automáticamente sólo si existe una coincidencia única: misma moneda y dirección, diferencia de monto de hasta ${toleranciaMonto(moneda)} ${moneda} y de fecha de hasta ${TOLERANCIA_DIAS} días. Las coincidencias ambiguas requieren revisión manual.`
-    : "Selecciona una cuenta para revisar la tolerancia de conciliación automática.";
   return (
     <Card>
       <CardContent density="compact" className="flex flex-wrap gap-3 items-center">
@@ -85,16 +82,12 @@ export function ConciliacionToolbar({
 
         <div className="flex-1" />
 
-        <Hint label={ayudaAuto}>
-        <Button
-          variant="outline"
-          onClick={onConciliarExactos}
-          disabled={!cuentaId || isAutoConciliando || pendientesCount === 0}
-        >
-          <Sparkles className="h-4 w-4 mr-2 text-primary" />
-          {isAutoConciliando ? "Conciliando…" : "Conciliar coincidencias únicas"}
-        </Button>
-        </Hint>
+        <ConciliarCoincidencias
+          moneda={cuentas.find((c) => c.id === cuentaId)?.moneda}
+          cuentaId={cuentaId} estado={estado} pendientesCount={pendientesCount}
+          pendientesCuenta={pendientesCuenta} isAutoConciliando={isAutoConciliando}
+          onConciliarExactos={onConciliarExactos}
+        />
 
         {puedeCapturar ? (
           <>
@@ -125,6 +118,40 @@ export function ConciliacionToolbar({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+type ConciliarProps = Pick<Props, "cuentaId" | "estado" | "pendientesCount" | "pendientesCuenta"
+  | "isAutoConciliando" | "onConciliarExactos"> & { moneda?: string };
+
+function ConciliarCoincidencias({
+  moneda, cuentaId, estado, pendientesCount, pendientesCuenta, isAutoConciliando, onConciliarExactos,
+}: ConciliarProps) {
+  const filtroOcultaPendientes = (estado === "Conciliado" || estado === "Ignorado")
+    && pendientesCount === 0 && (pendientesCuenta ?? 0) > 0;
+  const ayudaAuto = moneda
+    ? `Aplica la conciliación automáticamente sólo si existe una coincidencia única: misma moneda y dirección, diferencia de monto de hasta ${toleranciaMonto(moneda)} ${moneda} y de fecha de hasta ${TOLERANCIA_DIAS} días. Las coincidencias ambiguas requieren revisión manual.`
+    : "Selecciona una cuenta para revisar la tolerancia de conciliación automática.";
+
+  return (
+    <>
+      <Hint label={ayudaAuto}>
+        <Button
+          variant="outline"
+          onClick={onConciliarExactos}
+          aria-describedby={filtroOcultaPendientes ? "conciliacion-filtro-pendientes" : undefined}
+          disabled={!cuentaId || isAutoConciliando || pendientesCount === 0}
+        >
+          <Sparkles className="h-4 w-4 mr-2 text-primary" />
+          {isAutoConciliando ? "Conciliando…" : "Conciliar coincidencias únicas"}
+        </Button>
+      </Hint>
+      {filtroOcultaPendientes && (
+        <p id="conciliacion-filtro-pendientes" className="text-body-sm text-muted-foreground">
+          Cambia el filtro a Pendientes para revisar coincidencias.
+        </p>
+      )}
+    </>
   );
 }
 

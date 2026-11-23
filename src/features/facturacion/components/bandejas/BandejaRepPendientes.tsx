@@ -7,6 +7,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReceiptText } from "lucide-react";
+import { FilteredListEmptyState } from "@/components/empty/FilteredListEmptyState";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -139,10 +140,12 @@ function BandejaRepPendientesContenido({ organizationId }: { organizationId: str
             data={paged.isStaleView ? [] : paged.rows}
             isLoading={paged.isLoading || paged.isStaleView}
             emptyState={
-              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-body text-muted-foreground px-4">
-                <ReceiptText className="h-8 w-8 opacity-40" strokeWidth={1.5} />
-                <span>Sin complementos de pago (REP) pendientes ante el SAT.</span>
-              </div>
+              <FilteredListEmptyState
+                filtered={Boolean(paged.search?.trim()) || paged.activeCount > 0}
+                onClearFilters={paged.resetAll}
+                icon={ReceiptText}
+                message="Sin complementos de pago (REP) pendientes ante el SAT."
+              />
             }
             rowKey={(r) => r.id}
             getRowHref={(r) => `/facturacion/${r.factura_id}`}

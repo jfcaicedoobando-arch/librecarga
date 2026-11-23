@@ -4,6 +4,7 @@
  * dimensiones y volumen_cbm, sin columnas nuevas.
  */
 import { useState } from "react";
+import { formatNumber } from "@/lib/formatters";
 import { aNumero } from "@/features/crm/services/pricing/tiposPricing";
 import {
   leerDimensiones, pesoTasableSolicitud, textoDimensiones, volumenBultosM3, type MedidasBultos,
@@ -36,7 +37,6 @@ export function CamposMedidasAereo({ datos, set, disabled }: Props) {
     if (vol != null) { set("volumen_cbm", vol); set("dimensiones", textoDimensiones(nm)); }
   };
   const tasable = pesoTasableSolicitud(datos.peso, datos.unidad_medida, datos.volumen_cbm);
-  const fmt = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
   return (
     <>
       {CAMPOS.map((c) => (
@@ -46,7 +46,7 @@ export function CamposMedidasAereo({ datos, set, disabled }: Props) {
       <CampoTexto id="pr-aereo-cbm" label="Volumen (CBM)" type="number" disabled={disabled} value={datos.volumen_cbm}
         onChange={(v) => { const n = aNumero(v); set("volumen_cbm", n != null && n > 0 ? n : null); }} />
       <p className="self-end pb-2 text-body-sm text-muted-foreground">
-        Peso tasable: {tasable == null ? "captura peso (kg, lb o t) y medidas" : `${fmt(tasable)} kg`}
+        Peso tasable: {tasable == null ? "captura peso (kg, lb o t) y medidas" : `${formatNumber(tasable, { maximumFractionDigits: 2 })} kg`}
       </p>
     </>
   );

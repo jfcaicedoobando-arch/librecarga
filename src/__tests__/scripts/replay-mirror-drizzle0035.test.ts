@@ -95,6 +95,16 @@ describe("bounded Drizzle0035 dynamic replay model", () => {
     "0069_isr_resico_contrato.sql",
     "0070_factura_resico_totales_agrupados.sql",
     "0071_isr_resico_cotizacion_embarque.sql",
+    "0095_pricing_sla_horas_habiles.sql",
+    "0096_pricing_submodalidad_incoterms_modo.sql",
+    "0097_pricing_plazos_por_modo.sql",
+    "0098_pricing_lcl_imo_modalidad_negocio.sql",
+    "0099_recargos_base_por_unidad_o_embarque.sql",
+    "0100_tarifario_aereo_terrestre_base.sql",
+    "0101_tarifa_multimodo_moneda.sql",
+    "0102_pricing_banderas_aereas.sql",
+    "0103_cotizacion_banderas_aereas.sql",
+    "0104_costeo_tarifa_tramos_tenant_scope.sql",
   ])("rejects a changed newly reviewed source %s", key => {
     const changed = new Map(sources);
     changed.set(key, sources.get(key)! + "\n-- altered bytes");

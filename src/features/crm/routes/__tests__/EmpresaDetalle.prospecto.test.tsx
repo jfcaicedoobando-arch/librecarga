@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { AppRole } from "@/types/appRole";
@@ -36,6 +36,7 @@ beforeEach(() => {
     created_at: "2026-10-16", created_by: "kam", organization_id: "org", lead_origen_id: null, deleted_at: null };
   state.role = "vendedor"; state.orgRole = "vendedor"; state.memberRole = "vendedor"; state.activeOrg = "org";
   state.membershipOrg = "org"; state.active = true; state.loading = false; state.pending = false;
+  state.mutate.mockReset();
   state.fetch.mockReset().mockResolvedValue({ lead: null, oportunidades: [] });
   state.membershipFetch.mockReset().mockImplementation(async () => state.memberRole
     ? { role: state.memberRole, organization_id: state.activeOrg, organizations: { activo: state.active } } : null);
@@ -48,13 +49,21 @@ function mostrar() {
 const boton = () => screen.getByRole("button", { name: "Pasar a prospecto" });
 
 describe("EmpresaDetalle: capacidad específica de pasar a prospecto", () => {
-  it("KAM propio verifica vínculos y convierte aunque canEditCrm sea falso", async () => {
+  it("KAM propio verifica vínculos y convierte al confirmar aunque canEditCrm sea falso", async () => {
     mostrar();
     await waitFor(() => expect(boton()).toBeEnabled());
     expect(state.fetch).toHaveBeenCalledExactlyOnceWith("empresa", null);
     expect(screen.queryByRole("button", { name: "Eliminar" })).not.toBeInTheDocument();
     fireEvent.click(boton());
-    expect(state.mutate).toHaveBeenCalledExactlyOnceWith("empresa");
+    const dialogo = () => within(screen.getByRole("alertdialog", { name: "¿Pasar a prospecto a Empresa KAM?" }));
+    expect(state.mutate).not.toHaveBeenCalled();
+    fireEvent.click(dialogo().getByRole("button", { name: "Conservar empresa" }));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(state.mutate).not.toHaveBeenCalled();
+
+    fireEvent.click(boton());
+    fireEvent.click(dialogo().getByRole("button", { name: "Pasar a prospecto" }));
+    expect(state.mutate).toHaveBeenCalledExactlyOnceWith("empresa", { onSuccess: expect.any(Function) });
   });
   it("no escribe al hacer clic en el botón deshabilitado de una empresa ajena", async () => {
     state.data.created_by = "otro";

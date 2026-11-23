@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { ToneBadge } from "@/components/shared/ToneBadge";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { papelMovimientoTraspaso, type TraspasoDetalle } from "@/features/tesoreria/domain/traspasoDetalle";
@@ -25,10 +26,14 @@ export function TraspasoDetalleContent({ detalle, movimientoId }: { detalle: Tra
     <ul className="space-y-2">
       {movimientos.map((m) => {
         const moneda = m.cuenta_bancaria_id === t.cuenta_origen_id ? t.moneda_origen : t.moneda_destino;
-        return <li key={m.id} className="rounded-md border p-3 space-y-1" aria-current={m.id === movimientoId ? "true" : undefined}>
+        const consultado = m.id === movimientoId;
+        return <li key={m.id} className="rounded-md border p-3 space-y-1" aria-current={consultado ? "true" : undefined}>
           <div className="flex flex-wrap justify-between gap-2">
             <strong>{papelMovimientoTraspaso(t.id, m)}</strong>
-            <StatusBadge domain="conciliacion" status={m.estado_conciliacion} />
+            <div className="flex flex-wrap items-center gap-2">
+              {consultado && <ToneBadge tone="info" size="sm">Movimiento consultado</ToneBadge>}
+              <StatusBadge domain="conciliacion" status={m.estado_conciliacion} />
+            </div>
           </div>
           <p>{formatDate(m.fecha)} · {formatCurrency(m.cargo > 0 ? -m.cargo : m.abono, moneda)}</p>
           <Link className="text-primary text-body-sm hover:underline" to={`/tesoreria/estado-cuenta?cuenta=${m.cuenta_bancaria_id}`}>Ver en su cuenta bancaria</Link>

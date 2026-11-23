@@ -78,6 +78,9 @@ export default function Ayuda() {
           </div>
         </CardContent>
       </Card>
+      <p aria-live="polite" aria-atomic="true" className="sr-only">
+        {termino ? `Preguntas frecuentes: ${preguntas} coincidencias. Glosario: ${glosarioFiltrado.length} coincidencias.` : ""}
+      </p>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
@@ -101,6 +104,7 @@ export default function Ayuda() {
                     <a
                       key={m.id}
                       href={`#${m.id}`}
+                      onClick={() => document.getElementById(`${m.id}-titulo`)?.focus({ preventScroll: true })}
                       className="inline-flex items-center px-3 py-1 text-body-sm rounded-md border border-border bg-muted/50 hover:bg-muted text-foreground transition-colors"
                     >
                       {m.titulo}

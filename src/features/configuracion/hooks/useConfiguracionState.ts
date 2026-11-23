@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useConfiguracion, useUpdateConfiguracion, type ConfigItem } from "./useConfiguracion";
+import { useOrgActiva } from "@/hooks/shared/useOrgActiva";
 
 export function getVal<T>(data: ConfigItem[] | undefined, categoria: string, clave: string, fallback: T): T {
   if (!data) return fallback;
@@ -36,37 +37,67 @@ export function buildStateFromConfig(config: ConfigItem[] | undefined): ConfigSt
   };
 }
 
-const INITIAL_STATE: ConfigState = buildStateFromConfig(undefined);
+const CLAVES_EMPRESA = {
+  nombre: "nombre",
+  subtitulo: "subtitulo",
+  rfc: "rfc",
+  direccion: "direccion_fiscal",
+  email: "email",
+  telefono: "telefono",
+} satisfies Record<keyof ConfigState, string>;
+const CAMPOS = Object.keys(CLAVES_EMPRESA) as Array<keyof ConfigState>;
+
+interface EdicionEmpresa {
+  organizationId: string | null;
+  original: ConfigState;
+  form: ConfigState;
+}
+
+function camposEditados(form: ConfigState, original: ConfigState) {
+  return CAMPOS.filter((campo) => form[campo] !== original[campo]);
+}
 
 export function useConfiguracionState() {
+  const { organizationId } = useOrgActiva();
   const { data: config, isLoading, isError, refetch } = useConfiguracion();
   const updateConfig = useUpdateConfiguracion();
-  const [s, setS] = useState<ConfigState>(INITIAL_STATE);
-  const [baseline, setBaseline] = useState<ConfigState>(INITIAL_STATE);
+  const guardada = useMemo(() => buildStateFromConfig(config), [config]);
+  const [edicion, setEdicion] = useState<EdicionEmpresa | null>(null);
+  const actual = edicion?.organizationId === organizationId ? edicion : null;
+  const s = actual?.form ?? guardada;
+  const original = actual?.original ?? guardada;
+  const cambios = camposEditados(s, original);
+  const isDirty = cambios.length > 0;
+  const cambioRemoto = isDirty && camposEditados(guardada, original).length > 0;
 
   useEffect(() => {
-    if (config) {
-      const next = buildStateFromConfig(config);
-      setS(next);
-      setBaseline(next);
-    }
-  }, [config]);
+    setEdicion((prev) => {
+      if (prev?.organizationId !== organizationId) return null;
+      return camposEditados(prev.form, prev.original).length ? prev : null;
+    });
+  }, [guardada, organizationId]);
 
   const set = <K extends keyof ConfigState>(key: K) => (value: ConfigState[K]) =>
-    setS(prev => ({ ...prev, [key]: value }));
-
-  const isDirty = JSON.stringify(s) !== JSON.stringify(baseline);
+    setEdicion((prev) => {
+      const base = prev?.organizationId === organizationId
+        ? prev
+        : { organizationId, original: guardada, form: guardada };
+      return { ...base, form: { ...base.form, [key]: value } };
+    });
 
   const handleSave = () => {
-    updateConfig.mutate([
-      { categoria: "empresa", clave: "nombre", valor: s.nombre },
-      { categoria: "empresa", clave: "subtitulo", valor: s.subtitulo },
-      { categoria: "empresa", clave: "rfc", valor: s.rfc },
-      { categoria: "empresa", clave: "direccion_fiscal", valor: s.direccion },
-      { categoria: "empresa", clave: "email", valor: s.email },
-      { categoria: "empresa", clave: "telefono", valor: s.telefono },
-    ], {
-      onSuccess: () => setBaseline(s),
+    if (!isDirty || updateConfig.isPending) return;
+    const guardadaConCambios = { ...guardada };
+    for (const campo of cambios) guardadaConCambios[campo] = s[campo];
+    updateConfig.mutate(cambios.map((campo) => ({
+      categoria: "empresa", clave: CLAVES_EMPRESA[campo], valor: s[campo],
+    })), {
+      onSuccess: () => setEdicion((prev) => {
+        if (prev?.organizationId !== organizationId) return prev;
+        const form = { ...guardadaConCambios };
+        for (const campo of camposEditados(prev.form, s)) form[campo] = prev.form[campo];
+        return { organizationId, form, original: guardadaConCambios };
+      }),
     });
   };
 
@@ -79,6 +110,8 @@ export function useConfiguracionState() {
     refetch: () => void refetch(),
     isSaving: updateConfig.isPending,
     isDirty,
+    cambioRemoto,
+    recargarGuardada: () => setEdicion(null),
     handleSave,
   };
 }

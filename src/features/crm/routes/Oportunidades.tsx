@@ -17,7 +17,7 @@ import OportunidadesDialogs from "@/features/crm/components/OportunidadesDialogs
 import NuevaOportunidadDialog from "@/features/crm/components/NuevaOportunidadDialog";
 import OportunidadesTabsView from "./OportunidadesTabsView";
 import { type OportunidadesFiltros } from "@/features/crm/components/oportunidadesFiltersTypes";
-import { parseOportunidadesUrl, serializeOportunidadesUrl, type OportunidadesUrlState } from "./oportunidadesUrlState";
+import { parseOportunidadesUrl, serializeOportunidadesUrl, URL_STATE_DEFAULT, type OportunidadesUrlState } from "./oportunidadesUrlState";
 import { useOportunidades, useEtapasPipeline, type CrmEtapaRow } from "@/features/crm/hooks";
 import { useMoverOportunidadEtapa } from "@/features/crm/hooks/useMoverOportunidadEtapa";
 import { useVendedoresDisponibles } from "@/features/crm/hooks/useOportunidadesFiltrado";
@@ -101,6 +101,14 @@ export default function Oportunidades() {
   const { exportando, exportarTodo } = useExportarOportunidades(filtrosServidor);
 
   const activos = activosFiltros(filtros);
+  const hayFiltros = [search.trim(), activos, clienteIdFiltro].some(Boolean);
+  const limpiarFiltros = () => {
+    setSearchParams((prev) => {
+      const next = serializeOportunidadesUrl({ ...URL_STATE_DEFAULT, vista: parseOportunidadesUrl(prev).vista }, prev);
+      next.delete("clienteId");
+      return next;
+    }, { replace: true });
+  };
   // UI-15: el pipeline mezcla MXN/USD/EUR; se convierte a pesos antes de sumar.
   const pipelineMxn = useMemo(
     () => sumarPipelineMxn(ops.map((o) => ({ monto: o.monto_estimado, moneda: o.moneda })), tc),
@@ -151,6 +159,7 @@ export default function Oportunidades() {
         onClickCard={(id) => navigate(`/crm/oportunidades/${id}`)}
         onNuevo={canCrearOportunidad ? (etapaId) => { setNuevaEtapaId(etapaId); setNuevaOpen(true); } : undefined}
         columnas={columnas}
+        onLimpiarFiltros={hayFiltros ? limpiarFiltros : undefined}
       />
 
       <OportunidadesDialogs

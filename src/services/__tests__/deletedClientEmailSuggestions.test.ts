@@ -168,7 +168,9 @@ describe("facturación: sugerencias sin email directo de cliente eliminado", () 
     ["otro ID", [cliente({ id: "otro-cliente" })]],
   ])("cliente %s no devuelve emailCliente ni fallback emailSugerido", async (_name, rows) => {
     db.rows.set("clientes", rows);
-    expect(await fetchContactosClienteEnvio("cliente-1")).toEqual({ contactos: [], emailCliente: null, emailSugerido: null });
+    expect(await fetchContactosClienteEnvio("cliente-1")).toEqual({
+      contactos: [], emailCliente: null, emailSugerido: null, consultaIncompleta: false,
+    });
   });
 
   it("prioriza el contacto de facturación sobre el email de cliente vivo", async () => {
@@ -241,17 +243,25 @@ describe("facturación: sugerencias sin email directo de cliente eliminado", () 
   it("conserva fallback a contactos cuando la lectura del cliente devuelve error", async () => {
     db.errors.set("clientes", new Error("Error de cliente"));
     db.rows.set("contactos_cliente", [contacto()]);
-    expect(await fetchContactosClienteEnvio("cliente-1")).toMatchObject({ emailCliente: null, emailSugerido: "contacto@example.test" });
+    expect(await fetchContactosClienteEnvio("cliente-1")).toMatchObject({
+      contactos: [{ id: "contacto-1", email: "contacto@example.test" }],
+      emailCliente: null, emailSugerido: "contacto@example.test", consultaIncompleta: true,
+    });
   });
 
   it("conserva fallback al principal cuando la lectura de contactos devuelve error", async () => {
     db.errors.set("contactos_cliente", new Error("Error de contactos"));
-    expect(await fetchContactosClienteEnvio("cliente-1")).toEqual({ contactos: [], emailCliente: "principal@example.test", emailSugerido: "principal@example.test" });
+    expect(await fetchContactosClienteEnvio("cliente-1")).toEqual({
+      contactos: [], emailCliente: "principal@example.test",
+      emailSugerido: "principal@example.test", consultaIncompleta: true,
+    });
   });
 
   it("conserva resultado vacío si ambas lecturas devuelven error", async () => {
     db.errors.set("clientes", new Error("Error de cliente"));
     db.errors.set("contactos_cliente", new Error("Error de contactos"));
-    expect(await fetchContactosClienteEnvio("cliente-1")).toEqual({ contactos: [], emailCliente: null, emailSugerido: null });
+    expect(await fetchContactosClienteEnvio("cliente-1")).toEqual({
+      contactos: [], emailCliente: null, emailSugerido: null, consultaIncompleta: true,
+    });
   });
 });

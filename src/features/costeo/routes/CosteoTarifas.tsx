@@ -85,6 +85,9 @@ export default function CosteoTarifas() {
               onFilterPorVencer={s.onFilterPorVencer}
               activeKpi={s.activeKpi}
             />
+            <p className="text-body-sm text-muted-foreground">
+              El resumen usa los filtros de vigencia, agente, contenedor y ruta. La lista también aplica búsqueda, aprobación y Por vencer.
+            </p>
 
             {s.rutaIdFromUrl && (
               <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
@@ -153,11 +156,13 @@ export default function CosteoTarifas() {
               open={!!s.aEliminar}
               onOpenChange={(o) => !o && s.setAEliminar(null)}
               title="¿Eliminar esta tarifa?"
-              description="La tarifa se eliminará permanentemente."
+              description={s.aEliminar
+                ? `${etiquetaRutaCompleta(origenDe(s.aEliminar), destinoDe(s.aEliminar))} · ${s.aEliminar.agente_nombre} · ${s.aEliminar.tipo_contenedor_nombre}. La tarifa se eliminará permanentemente.`
+                : "La tarifa se eliminará permanentemente."}
               pending={s.eliminar.isPending}
               onConfirm={() => {
                 if (s.aEliminar) {
-                  s.eliminar.mutate(s.aEliminar, { onSuccess: () => s.setAEliminar(null) });
+                  s.eliminar.mutate(s.aEliminar.id, { onSuccess: () => s.setAEliminar(null) });
                 }
               }}
             />

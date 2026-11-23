@@ -136,7 +136,7 @@ export default function PortalEmbarques() {
                           <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=closed]:-rotate-90" />
                           <Package className="h-4 w-4 text-muted-foreground" />
                           <span>{firstItem.expediente}</span>
-                          <span className="text-body-sm font-normal text-muted-foreground">· {items.length} contenedores</span>
+                          <span className="text-body-sm font-normal text-muted-foreground">· {items.length} embarques</span>
                         </div>
                         <p className="text-body-sm text-muted-foreground ml-10">{ruta}</p>
                       </div>

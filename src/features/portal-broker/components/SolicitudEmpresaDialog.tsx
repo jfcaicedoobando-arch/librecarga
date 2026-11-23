@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
 import { useSolicitarEmpresa } from "../hooks/useBrokerPortal";
 
@@ -45,7 +46,7 @@ export default function SolicitudEmpresaDialog({ brokerId, empresa, onClose }: P
       busy={m.isPending}
       footer={
         <>
-          <Button type="button" variant="outline" onClick={cerrar} disabled={m.isPending}>Cancelar</Button>
+          <FormDialogCancelarBoton onCancelar={cerrar} disabled={m.isPending} />
           <Button onClick={enviar} disabled={!valido} loading={m.isPending}>Enviar solicitud</Button>
         </>
       }

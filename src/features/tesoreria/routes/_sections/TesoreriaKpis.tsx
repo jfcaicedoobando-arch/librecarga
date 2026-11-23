@@ -80,10 +80,10 @@ export function TesoreriaKpis({ data }: Props) {
         label="Flujo neto 30 días"
         value={formatCurrencyCompact(neto, "MXN")}
         valueTooltip={formatCurrency(neto, "MXN")}
-        sublabel={neto >= 0 ? "Cobros mayores a pagos" : "Los pagos superan los cobros"}
+        sublabel={neto === 0 ? "Cobros y pagos equilibrados" : neto > 0 ? "Cobros mayores a pagos" : "Los pagos superan los cobros"}
         icon={Banknote}
         iconVariant="chip"
-        variant={neto >= 0 ? "success" : "destructive"}
+        variant={neto === 0 ? "default" : neto > 0 ? "success" : "destructive"}
         to={ROUTES.TESORERIA_FLUJO}
       />
     </div>

@@ -13,6 +13,8 @@ import type {
 } from "@/features/admin/services/usuario/portales";
 import { usePortalUsuarioColumns } from "./portalUsuariosColumns";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
+import SearchInput from "@/components/shared/SearchInput";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 
 interface Props {
   tipo: "cliente" | "agente";
@@ -23,6 +25,12 @@ export function PortalUsuariosTab({ tipo }: Props) {
   const agenteQuery = useUsuariosPortalAgente();
   const query = tipo === "cliente" ? clienteQuery : agenteQuery;
   const data = (query.data ?? []) as Array<PortalClienteUserRow | PortalAgenteUserRow>;
+  const [busqueda, setBusqueda] = useState("");
+  const termino = busqueda.trim().toLocaleLowerCase("es-MX");
+  const visibles = data.filter((u) => {
+    const entidad = "cliente_nombre" in u ? u.cliente_nombre : u.agente_nombre;
+    return [u.email, entidad].some((texto) => texto?.toLocaleLowerCase("es-MX").includes(termino));
+  });
 
   const deleteMutation = useDeletePortalUser(tipo);
   const [deleteTarget, setDeleteTarget] = useState<
@@ -56,14 +64,19 @@ export function PortalUsuariosTab({ tipo }: Props) {
         </Link>
         . Aquí puedes ver el listado y eliminar accesos.
       </p>
+      <SearchInput value={busqueda} onChange={setBusqueda} placeholder="Buscar por correo o nombre…" />
 
       <div className="rounded-md border">
         <DataTable
           columns={columns}
-          data={data}
+          data={visibles}
           isLoading={query.isLoading}
           isError={query.isError}
           onRetry={() => void query.refetch()}
+          emptyState={termino && data.length > 0 ? (
+            <EmptyStateInline message="No hay cuentas que coincidan con la búsqueda"
+              action={{ label: "Limpiar búsqueda", onClick: () => setBusqueda("") }} />
+          ) : undefined}
           emptyMessage={
             tipo === "cliente"
               ? "Aún no hay clientes con acceso al Portal Cliente."

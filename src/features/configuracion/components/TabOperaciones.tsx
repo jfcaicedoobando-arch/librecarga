@@ -25,18 +25,26 @@ export default function TabOperaciones() {
   );
   const updateConfig = useUpdateConfiguracion();
 
-  const [alertaPct, setAlertaPct] = useState<number>(alertaActual);
-  const [criticaPct, setCriticaPct] = useState<number>(criticaActual);
+  const [alerta, setAlerta] = useState(String(alertaActual));
+  const [critica, setCritica] = useState(String(criticaActual));
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     if (initialized) return;
-    setAlertaPct(Number(alertaActual));
-    setCriticaPct(Number(criticaActual));
+    setAlerta(String(alertaActual));
+    setCritica(String(criticaActual));
     setInitialized(true);
   }, [alertaActual, criticaActual, initialized]);
 
-  const valido = alertaPct >= 0 && criticaPct > alertaPct;
+  const alertaPct = Number(alerta);
+  const criticaPct = Number(critica);
+  const errorAlerta = !alerta.trim() || !Number.isFinite(alertaPct) || alertaPct < 0
+    ? "Captura un umbral de alerta mayor o igual a cero."
+    : undefined;
+  const errorCritica = !critica.trim() || !Number.isFinite(criticaPct)
+    ? "Captura el umbral crítico."
+    : !errorAlerta && criticaPct <= alertaPct ? "El umbral crítico debe ser mayor que el de alerta." : undefined;
+  const valido = !errorAlerta && !errorCritica;
 
   const handleGuardar = () => {
     if (!valido) return;
@@ -58,39 +66,33 @@ export default function TabOperaciones() {
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
           <div className="p-3 rounded-lg border">
-            <FormField label="Umbral de alerta (%)" hint="A partir de este % la varianza se marca como alerta">
+            <FormField label="Umbral de alerta (%)" hint="A partir de este % la varianza se marca como alerta" error={errorAlerta}>
               <Input
               type="number"
               min={0}
               max={100}
               step={0.5}
-              value={alertaPct}
-              onChange={(e) => setAlertaPct(Number(e.target.value))}
+              value={alerta}
+              onChange={(e) => setAlerta(e.target.value)}
                 className="w-28"
               />
             </FormField>
           </div>
 
           <div className="p-3 rounded-lg border">
-            <FormField label="Umbral crítico (%)" hint="A partir de este % la varianza se marca como crítica">
+            <FormField label="Umbral crítico (%)" hint="A partir de este % la varianza se marca como crítica" error={errorCritica}>
               <Input
               type="number"
               min={0}
               max={100}
               step={0.5}
-              value={criticaPct}
-              onChange={(e) => setCriticaPct(Number(e.target.value))}
+              value={critica}
+              onChange={(e) => setCritica(e.target.value)}
                 className="w-28"
               />
             </FormField>
           </div>
         </div>
-
-        {!valido && (
-          <p className="text-xs text-destructive">
-            El umbral crítico debe ser mayor que el de alerta.
-          </p>
-        )}
 
         <div className="flex justify-end pt-2">
           <Button onClick={handleGuardar} disabled={updateConfig.isPending || !valido}>

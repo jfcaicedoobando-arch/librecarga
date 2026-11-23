@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { History } from "lucide-react";
 import { Hint } from "@/components/shared/Hint";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { LoadingState } from "@/components/shared/states/LoadingState";
 import { formatDate } from "@/lib/formatters";
 import { useVersionesCotizacion } from "@/features/cotizacion/hooks/useCotizacionVersiones";
@@ -23,7 +24,7 @@ interface Props {
 }
 
 export function VersionesCotizacionCard({ cotizacionId, estadoActual }: Props) {
-  const { data: versiones = [], isLoading, isError, refetch } = useVersionesCotizacion(cotizacionId);
+  const { data: versiones = [], isLoading, isError, isFetching, refetch } = useVersionesCotizacion(cotizacionId);
 
   if (versiones.length === 0 && (isLoading || isError)) {
     return (
@@ -63,6 +64,14 @@ export function VersionesCotizacionCard({ cotizacionId, estadoActual }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
+        {isError && (
+          <ErrorStateInline
+            title="No se pudo actualizar el historial de versiones"
+            message="Mostramos las versiones de la última consulta."
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+        )}
         <p className="text-body-sm text-muted-foreground">
           Cada vez que la cotización pasa a <strong>Enviada</strong> se congela
           una versión inmutable con folio, conceptos y costos vigentes.

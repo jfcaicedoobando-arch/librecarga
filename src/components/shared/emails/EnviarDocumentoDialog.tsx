@@ -1,14 +1,8 @@
 /**
- * EnviarDocumentoDialog — Dialog reutilizable para envío branded al cliente.
- *
- * Rediseño (v13.300.17): unifica destinatarios y CC bajo un mismo patrón de
- * chip input (`EmailChipsField`) para dar congruencia visual e interacción
- * consistente. Los contactos del cliente se muestran como checkboxes que
- * actúan como atajos: alternan el chip correspondiente en el campo "Para".
- * El usuario logueado aparece como chip con candado en "CC" (no removible).
- *
- * Compatible con el hook `useEnvioDocumentoForm` sin cambios de API pública.
+ * Diálogo de correo con destinatarios y copias editables.
+ * La copia automática se limita a contactos registrados cuando el flujo lo exige.
  */
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Send } from "lucide-react";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import {
   useEnvioDocumentoForm,
   type EnvioFormState,
@@ -47,6 +42,7 @@ interface Props {
   loading?: boolean;
   ccInicial?: string[] | null;
   destinatariosInicial?: string[] | null;
+  soloContactosRegistrados?: boolean;
   onEnviar: (payload: EnviarDocumentoPayload, form: EnvioFormState) => Promise<void> | void;
 }
 
@@ -54,14 +50,24 @@ export function EnviarDocumentoDialog({
   open, onOpenChange, clienteId, titulo, descripcion,
   buildAsuntoInicial, mostrarMarcarEnviada, labelMarcarEnviada,
   labelBotonEnviar = "Enviar", labelBotonReenviar = "Reenviar",
-  esReenvio, loading, ccInicial, destinatariosInicial, onEnviar,
+  esReenvio, loading, ccInicial, destinatariosInicial, soloContactosRegistrados, onEnviar,
 }: Props) {
-  const form = useEnvioDocumentoForm(open, clienteId, buildAsuntoInicial, ccInicial, destinatariosInicial);
-  const chips = useEnvioChips(form);
-
-  const puedeEnviar = form.destinatarios.length > 0 && !loading;
+  const form = useEnvioDocumentoForm(open, clienteId, buildAsuntoInicial, {
+    ccInicial,
+    destinatariosManualesInicial: destinatariosInicial,
+    copiaSoloContacto: soloContactosRegistrados,
+  });
+  const permitidos = useMemo(() => soloContactosRegistrados
+    ? new Set(form.contactos.map(({ email }) => email.trim().toLowerCase()))
+    : undefined, [soloContactosRegistrados, form.contactos]);
+  const chips = useEnvioChips(form, permitidos);
+  const contactosNoDisponibles = form.loadingContactos || form.errorContactos;
+  const hayCorreosInvalidos = soloContactosRegistrados && [...chips.paraChips, ...chips.ccChips].some((chip) => chip.invalid);
+  const puedeEnviar = form.destinatarios.length > 0 && !loading
+    && !(soloContactosRegistrados && contactosNoDisponibles) && !hayCorreosInvalidos;
 
   const handleSubmit = async () => {
+    if (!puedeEnviar) return;
     await onEnviar(
       {
         destinatarios: form.destinatarios,
@@ -84,10 +90,7 @@ export function EnviarDocumentoDialog({
       size="xl"
       footer={
         <>
-          <div className="mr-auto text-body-sm text-muted-foreground">
-            {form.destinatarios.length} destinatario{form.destinatarios.length === 1 ? "" : "s"}
-            {form.ccEmails.length > 0 && <> · {form.ccEmails.length} en copia</>}
-          </div>
+          <ConteoDestinatarios destinatarios={form.destinatarios.length} copias={form.ccEmails.length} />
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
@@ -101,6 +104,9 @@ export function EnviarDocumentoDialog({
         <Label htmlFor="envio-para">
           Para <span className="text-destructive">*</span>
         </Label>
+        {soloContactosRegistrados && (
+          <p className="text-body-sm text-muted-foreground">Elige correos registrados en el cliente para Para y CC.</p>
+        )}
         <EmailChipsField
           id="envio-para"
           chips={chips.paraChips}
@@ -109,12 +115,7 @@ export function EnviarDocumentoDialog({
           ariaLabel="Destinatarios"
           placeholder="escribe un correo o marca un contacto abajo…"
         />
-        <DestinatariosPicker
-          contactos={form.contactos}
-          loadingContactos={form.loadingContactos}
-          seleccionados={form.seleccionados}
-          onToggle={(id, v) => form.setSeleccionados((s) => ({ ...s, [id]: v }))}
-        />
+        <ContactosEnvio form={form} mostrarError={soloContactosRegistrados} />
       </div>
 
       <div className="space-y-2">
@@ -122,16 +123,17 @@ export function EnviarDocumentoDialog({
         <EmailChipsField
           id="envio-cc"
           chips={chips.ccChips}
-          lockedChips={form.userEmail ? [{
-            email: form.userEmail,
-            label: `${form.userEmail} (tú)`,
-            tooltip: "Siempre se agrega tu correo",
-          }] : []}
+          lockedChips={chipCopiaPropia(form.userEmail, soloContactosRegistrados)}
           onAdd={chips.handleCcAdd}
           onRemove={chips.handleCcRemove}
           ariaLabel="Copia CC"
           placeholder="agrega correos en copia…"
         />
+        {hayCorreosInvalidos && !contactosNoDisponibles && (
+          <p role="alert" className="text-body-sm text-destructive">
+            Retira o corrige los correos señalados antes de enviar.
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -160,4 +162,37 @@ export function EnviarDocumentoDialog({
       )}
     </FormDialogShell>
   );
+}
+
+function ConteoDestinatarios({ destinatarios, copias }: { destinatarios: number; copias: number }) {
+  return (
+    <div className="mr-auto text-body-sm text-muted-foreground">
+      {destinatarios} destinatario{destinatarios === 1 ? "" : "s"}
+      {copias > 0 && <> · {copias} en copia</>}
+    </div>
+  );
+}
+
+function ContactosEnvio({ form, mostrarError }: { form: EnvioFormState; mostrarError?: boolean }) {
+  if (mostrarError && form.errorContactos) {
+    return <ErrorStateInline title="No pudimos consultar los contactos"
+      message="Reintenta para comprobar los destinatarios registrados."
+      onRetry={form.reintentarContactos} />;
+  }
+
+  return <DestinatariosPicker
+    contactos={form.contactos}
+    loadingContactos={form.loadingContactos}
+    seleccionados={form.seleccionados}
+    onToggle={(id, v) => form.setSeleccionados((s) => ({ ...s, [id]: v }))}
+  />;
+}
+
+function chipCopiaPropia(email: string | null, soloContactosRegistrados?: boolean) {
+  if (!email) return [];
+  return [{
+    email,
+    label: `${email} (tú)`,
+    tooltip: soloContactosRegistrados ? "Tu correo está registrado en el cliente" : "Siempre se agrega tu correo",
+  }];
 }

@@ -114,7 +114,7 @@ export function EjecutarPagoDialog({
       title="Registrar pago realizado"
       description={
         facturaPago
-          ? `${facturaPago.proveedor_nombre ?? "Proveedor"} · Saldo ${formatCurrency(facturaPago.saldo, facturaPago.moneda)}`
+          ? `Factura ${facturaPago.folio_proveedor || "sin folio"} · ${facturaPago.proveedor_nombre ?? "Proveedor"} · Saldo ${formatCurrency(facturaPago.saldo, facturaPago.moneda)}`
           : undefined
       }
       formId={FORM_ID}

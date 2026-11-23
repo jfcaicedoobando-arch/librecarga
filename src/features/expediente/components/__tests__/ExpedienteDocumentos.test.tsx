@@ -52,11 +52,13 @@ describe("Expediente", () => {
       return file;
     }
     const limite = 15 * 1024 * 1024;
-    render(<SubirDocumentoDialog open onOpenChange={vi.fn()} tipos={TIPOS} tiposConVencimiento={[]}
+    render(<SubirDocumentoDialog open onOpenChange={vi.fn()} tipos={TIPOS} tipoSugerido="Carta bancaria"
+      tiposConVencimiento={[]}
       descripcion="Expediente" isPending={false} onGuardar={onGuardar} />);
 
     const input = screen.getByLabelText("Archivo");
     const guardar = screen.getByRole("button", { name: "Guardar documento" });
+    expect(guardar).toBeEnabled();
     fireEvent.change(input, { target: { files: [archivo(limite + 1)] } });
     expect(input).toHaveAttribute("aria-invalid", "true");
     expect(input).toHaveAccessibleDescription(/supera los 15 MB/);
@@ -69,7 +71,10 @@ describe("Expediente", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(input).toHaveAttribute("aria-invalid", "false");
     fireEvent.click(guardar);
-    expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ archivo: valido }));
+    expect(onGuardar).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      tipo: "Carta bancaria",
+      archivo: valido,
+    }));
   });
 
   it("señala la vigencia obligatoria en su campo y limpia el error al capturarla", () => {

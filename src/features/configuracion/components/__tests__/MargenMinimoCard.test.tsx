@@ -16,7 +16,7 @@ it("deja el margen vacío sin convertirlo en cero y acepta un cero explícito", 
   const guardar = screen.getByRole("button", { name: "Guardar margen" });
   fireEvent.change(input, { target: { value: "" } });
   expect(input).toHaveValue(null);
-  expect(input).toHaveAccessibleDescription("Ingresa un margen mínimo.");
+  expect(input).toHaveAccessibleDescription("Valor por defecto: 8% Ingresa un margen mínimo.");
   expect(guardar).toBeDisabled();
   fireEvent.click(guardar);
   expect(mutate).not.toHaveBeenCalled();

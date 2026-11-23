@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Tables, TablesUpdate } from "@/types/db";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { useEditarProveedorController } from "@/features/proveedor/hooks";
 import EditarProveedorGastoFiscalFields from "./EditarProveedorGastoFiscalFields";
 import EditarProveedorBancariosFields from "./EditarProveedorBancariosFields";
@@ -41,10 +42,12 @@ export default function EditarProveedorDialog({ proveedor, open, onOpenChange, o
       title="Editar proveedor"
       description="Modifica la información fiscal y de contacto del proveedor."
       size="xl"
+      isDirty={c.isDirty}
+      busy={c.isSaving}
       headerAside={headerAside}
       footer={(
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <FormDialogCancelarBoton onCancelar={() => onOpenChange(false)} disabled={c.isSaving} />
           <Button onClick={c.handleSave} disabled={!c.isValid || c.isSaving}>
             {c.isSaving ? "Guardando…" : "Guardar"}
           </Button>

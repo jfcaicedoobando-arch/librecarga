@@ -1,7 +1,7 @@
 /**
  * Pestaña "Pricing" de la oportunidad: solicitudes de la oportunidad, alta y detalle.
  */
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,17 @@ export function PricingOportunidadTab({ oportunidadId, clienteNombre, canEdit }:
   const [abierta, setAbierta] = useState<string | null>(null);
   const [dialogo, setDialogo] = useState<{ open: boolean; solicitud: SolicitudPricingRow | null }>({ open: false, solicitud: null });
   const seleccionada = solicitudes.find((s) => s.id === abierta) ?? null;
+  const detalleId = useId();
+  const tituloDetalle = useRef<HTMLHeadingElement>(null);
+  const seleccionId = seleccionada?.id;
+  useEffect(() => {
+    if (seleccionId) tituloDetalle.current?.focus();
+  }, [seleccionId]);
+
+  const cerrarDetalle = () => {
+    document.getElementById(`${detalleId}-fila-${abierta}`)?.focus();
+    setAbierta(null);
+  };
 
   if (error) return (
     <ErrorStateInline title="No se pudieron cargar las solicitudes" message="Reintenta para consultar las solicitudes de esta oportunidad."
@@ -41,23 +52,30 @@ export function PricingOportunidadTab({ oportunidadId, clienteNombre, canEdit }:
         <Card><CardContent className="py-6 text-center text-body-sm text-muted-foreground">Aún no hay solicitudes a Pricing.</CardContent></Card>
       )}
       {solicitudes.map((s) => (
-        <button key={s.id} type="button" aria-expanded={abierta === s.id} onClick={() => setAbierta(abierta === s.id ? null : s.id)}
+        <button key={s.id} id={`${detalleId}-fila-${s.id}`} type="button" aria-expanded={abierta === s.id}
+          aria-controls={abierta === s.id ? detalleId : undefined}
+          onClick={() => { if (abierta === s.id) cerrarDetalle(); else setAbierta(s.id); }}
           className="flex w-full flex-wrap items-center gap-3 rounded-lg border bg-card p-3 text-left hover:bg-muted/50">
           <span className="font-medium">{s.folio}</span>
           <Badge variant="outline">{ETIQUETA_ESTADO_PRICING[s.estado] ?? s.estado}</Badge>
           <span className="text-body-sm text-muted-foreground">{[s.servicio, s.origen ?? s.pol, s.destino ?? s.pod].filter(Boolean).join(" · ")}</span>
-          <span className="ml-auto"><RelojPricing enviadaAt={s.enviada_at} venceAt={s.vence_at} respondidaAt={s.respondida_at} /></span>
+          <span className="ml-auto"><RelojPricing enviadaAt={s.enviada_at} venceAt={s.vence_at} respondidaAt={s.respondida_at}
+            cancelada={s.estado === "cancelada"} /></span>
         </button>
       ))}
       {seleccionada && (
-        <>
-          {seleccionada.estado === "borrador" && canEdit && (
-            <Button variant="outline" size="sm" onClick={() => setDialogo({ open: true, solicitud: seleccionada })}>
-              Editar borrador
-            </Button>
-          )}
+        <section id={detalleId} aria-labelledby={`${detalleId}-titulo`} className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 ref={tituloDetalle} id={`${detalleId}-titulo`} tabIndex={-1} className="mr-auto text-subsection">Solicitud {seleccionada.folio}</h2>
+            {seleccionada.estado === "borrador" && canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setDialogo({ open: true, solicitud: seleccionada })}>
+                Editar borrador
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={cerrarDetalle}>Cerrar detalle</Button>
+          </div>
           <SolicitudPricingDetalle solicitud={seleccionada} />
-        </>
+        </section>
       )}
       <SolicitudPricingDialog open={dialogo.open} onOpenChange={(o) => setDialogo((p) => ({ ...p, open: o }))}
         oportunidadId={oportunidadId} clienteNombre={clienteNombre} solicitud={dialogo.solicitud}

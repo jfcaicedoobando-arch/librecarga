@@ -60,7 +60,7 @@ function motivoTracking(
 ): string {
   if (!carrier.referencia) return `Captura el ${carrier.refLabel} en Resumen.`;
   if (!carrier.carrier && !carrier.esMaritimo) return "Captura la aerolínea en Resumen para consultar su sitio web.";
-  if (!carrier.esMaritimo) return "Consulta el tracking en el sitio web de la aerolínea.";
+  if (!carrier.esMaritimo) return "Consulta el sitio de la aerolínea con este MAWB.";
   if (!carrier.carrier) return "Captura la naviera en Resumen para habilitar el enlace.";
   if (isLoading) return "Consultando el enlace de tracking de la naviera…";
   if (isError) return "No se pudo consultar el enlace de tracking. Actualiza la página para reintentar.";
@@ -78,6 +78,19 @@ function resolveTrackingUrl(
   const template = row?.tracking_url_template ?? null;
   if (!template) return null;
   return template.replace("{BL}", encodeURIComponent(referencia.trim()));
+}
+
+function AbrirTracking({ esMaritimo, trackingUrl, carrier, motivoId }: {
+  esMaritimo: boolean; trackingUrl: string | null; carrier: string | null; motivoId: string;
+}) {
+  if (!esMaritimo && !trackingUrl) return null;
+  return (
+    <Button size="sm" disabled={!trackingUrl} aria-describedby={!trackingUrl ? motivoId : undefined}
+      onClick={() => trackingUrl && window.open(trackingUrl, "_blank", "noopener,noreferrer")}>
+      <ExternalLink className="h-4 w-4 mr-1" />
+      Abrir tracking de {carrier ?? (esMaritimo ? "naviera" : "aerolínea")}
+    </Button>
+  );
 }
 
 export function TrackingNavieraActions(props: Props) {
@@ -110,11 +123,6 @@ export function TrackingNavieraActions(props: Props) {
     }
   };
 
-  const handleOpen = () => {
-    if (!trackingUrl) return;
-    window.open(trackingUrl, "_blank", "noopener,noreferrer");
-  };
-
   if (!carrier && !referencia) {
     const captura = info.capturaFaltante;
     return (
@@ -128,7 +136,6 @@ export function TrackingNavieraActions(props: Props) {
   }
 
   const carrierLabel = carrier ?? (esMaritimo ? "la naviera" : "la aerolínea");
-  const carrierBtnLabel = carrier ?? (esMaritimo ? "naviera" : "aerolínea");
   const referenciaDisplay = referencia ?? "—";
   const copyLabel = copied ? "Copiado" : `Copiar ${refLabel}`;
   const CopyIcon = copied ? Check : Copy;
@@ -149,11 +156,7 @@ export function TrackingNavieraActions(props: Props) {
               <CopyIcon className="h-4 w-4 mr-1" />
               {copyLabel}
             </Button>
-            <Button size="sm" onClick={handleOpen} disabled={!trackingUrl}
-              aria-describedby={!trackingUrl ? motivoId : undefined}>
-              <ExternalLink className="h-4 w-4 mr-1" />
-              Abrir tracking de {carrierBtnLabel}
-            </Button>
+            <AbrirTracking esMaritimo={esMaritimo} trackingUrl={trackingUrl} carrier={carrier} motivoId={motivoId} />
           </div>
         </div>
         {!trackingUrl && <p id={motivoId} className="text-body-sm text-muted-foreground">

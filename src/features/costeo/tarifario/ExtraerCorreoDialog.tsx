@@ -45,24 +45,25 @@ interface AccionesProps {
   tarifasPreparadas: number | undefined;
   importado: boolean;
   cargando: boolean;
+  importando: boolean;
   seleccionadas: number;
   onCerrar: () => void;
   onBuscar: () => void;
   onImportar: () => void;
 }
 
-function ExtraerCorreoAcciones({ tarifasPreparadas, importado, cargando, seleccionadas, onCerrar, onBuscar, onImportar }: AccionesProps) {
+function ExtraerCorreoAcciones({ tarifasPreparadas, importado, cargando, importando, seleccionadas, onCerrar, onBuscar, onImportar }: AccionesProps) {
   return (
     <>
-      <Button variant="outline" onClick={onCerrar}>Cerrar</Button>
+      <Button variant="outline" disabled={importando} onClick={onCerrar}>Cerrar</Button>
       {!importado && !tarifasPreparadas && (
-        <Button onClick={onBuscar} disabled={cargando}>
+        <Button onClick={onBuscar} disabled={cargando || importando}>
           {cargando ? "Leyendo correos…" : tarifasPreparadas === 0 ? "Volver a buscar" : "Buscar tarifas en el correo"}
         </Button>
       )}
       {!!tarifasPreparadas && (
-        <Button onClick={onImportar} disabled={cargando || seleccionadas === 0}>
-          {cargando ? "Guardando…" : `Cargar ${seleccionadas} tarifa(s) en borrador`}
+        <Button onClick={onImportar} disabled={cargando || importando || seleccionadas === 0}>
+          {importando ? "Cargando borradores…" : `Cargar ${seleccionadas} tarifa(s) en borrador`}
         </Button>
       )}
     </>
@@ -74,6 +75,7 @@ export function ExtraerCorreoDialog({ open, onOpenChange, onDone }: Props) {
   const [extraccion, setEstado] = useState<Estado | null>(null);
   const estado = deOrganizacion(extraccion, organizationId);
   const [cargando, setCargando] = useState(false);
+  const [importando, setImportando] = useState(false);
   const [seleccion, setSeleccion] = useState<Set<number>>(new Set());
   const [resultadoImport, setResultado] = useState<{ organizationId: string; creadas: number; errores: string[] } | null>(null);
   const resultado = deOrganizacion(resultadoImport, organizationId);
@@ -129,14 +131,20 @@ export function ExtraerCorreoDialog({ open, onOpenChange, onDone }: Props) {
   };
 
   const importar = async () => {
-    if (!estado || !organizationId) return;
-    setCargando(true);
-    const res = await guardarSeleccionadas(organizationId, seleccion, estado.prep.tarifas);
-    setResultado({ ...res, organizationId }); setEstado(null); setCargando(false);
-    if (res.creadas > 0) onDone();
+    if (!estado || !organizationId || importando) return;
+    setImportando(true);
+    try {
+      const res = await guardarSeleccionadas(organizationId, seleccion, estado.prep.tarifas);
+      setResultado({ ...res, organizationId }); setEstado(null);
+      if (res.creadas > 0) onDone();
+    } finally { setImportando(false); }
   };
 
-  const cerrar = (v: boolean) => { if (!v) { setEstado(null); setResultado(null); setFaltantes(null); } onOpenChange(v); };
+  const cerrar = (v: boolean) => {
+    if (!v && importando) return;
+    if (!v) { setEstado(null); setResultado(null); setFaltantes(null); }
+    onOpenChange(v);
+  };
   const tarifasPreparadas = estado?.prep.tarifas.length;
   const sinTarifas = tarifasPreparadas === 0;
   const mostrarAltas = Boolean(resultado) || sinTarifas;
@@ -146,6 +154,7 @@ export function ExtraerCorreoDialog({ open, onOpenChange, onDone }: Props) {
       tarifasPreparadas={tarifasPreparadas}
       importado={Boolean(resultado)}
       cargando={cargando}
+      importando={importando}
       seleccionadas={seleccion.size}
       onCerrar={() => cerrar(false)}
       onBuscar={() => void extraer()}
@@ -154,7 +163,7 @@ export function ExtraerCorreoDialog({ open, onOpenChange, onDone }: Props) {
   );
 
   return (
-    <FormDialogShell open={open} onOpenChange={cerrar} icon={Mail} title="Extraer de correo"
+    <FormDialogShell open={open} onOpenChange={cerrar} busy={importando} icon={Mail} title="Extraer de correo"
       description="Lee el correo más reciente de cada agente (Longsail, Golden, Oriental y Rainbow) y prepara las tarifas. Entran en borrador hasta aprobarse, igual que al capturarlas a mano."
       size="lg" footer={footer}>
       <div className="space-y-3 text-body-sm">

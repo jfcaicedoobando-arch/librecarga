@@ -166,8 +166,7 @@ export function CotizacionWizardSteps({ w, clientes, catalogoClientes, esMaritim
             modo={modo}
             incoterm={incoterm}
             tipo={tipo}
-            totalUSD={w.totalUSD}
-            totalMXN={w.totalMXN}
+            totales={{ usd: w.totalUSD, mxn: w.totalMXN }}
             esEdicion={w.isEditMode}
             banderasAereas={banderasAereas}
             accionesEdicion={{

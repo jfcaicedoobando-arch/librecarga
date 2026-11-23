@@ -33,6 +33,7 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Factu
   const { canEmitirFactura } = usePermissions();
   const consultaPendiente = t.isLoading || t.isError;
   const selection = useRowSelection();
+  const idsVisibles = useMemo(() => new Set(t.data.map(({ id }) => id)), [t.data]);
   const dateId = useId();
   const columnsConSeleccion = useMemo(
     () => [buildSelectionColumn<Factura>(), ...t.columns],
@@ -127,6 +128,8 @@ export function TabFacturasEmitidas({ filtros: f, tabla: t, acciones: a }: Factu
         <>
           <FacturasMasivasToolbar
             selectedIds={selection.selectedIds}
+            visibleIds={idsVisibles}
+            revisandoFilas={consultaPendiente}
             onClear={selection.clear}
             onMarked={selection.remove}
           />

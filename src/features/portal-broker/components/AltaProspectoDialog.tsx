@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
 import { contactoVacio, empresaVacia, validarAlta } from "../domain/altaProspecto";
 import { useAltaProspectoBroker } from "../hooks/useBrokerPortal";
@@ -49,7 +50,7 @@ export default function AltaProspectoDialog({ brokerId, open, nombreInicial, onC
       footer={
         <>
           {problema && <span className="mr-auto text-body-sm text-muted-foreground">{problema}</span>}
-          <Button type="button" variant="outline" onClick={cerrar} disabled={m.isPending}>Cancelar</Button>
+          <FormDialogCancelarBoton onCancelar={cerrar} disabled={m.isPending} />
           <Button onClick={guardar} disabled={!!problema} loading={m.isPending}>Registrar</Button>
         </>
       }

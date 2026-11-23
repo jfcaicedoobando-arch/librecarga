@@ -3,10 +3,9 @@
  * Cada tab expone un badge con el conteo — sólo se muestra si > 0.
  * Los tonos ("warn", "danger") comunican urgencia sin ruido.
  */
-import { Info } from "lucide-react";
+import { useId } from "react";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useHuecoFacturacionCount } from "@/features/facturacion/hooks";
 import { useBandejaConteos } from "@/features/facturacion/hooks/useBandejas";
 import { useProformasListasCount } from "@/features/facturacion/hooks/useProformasListas";
@@ -39,7 +38,7 @@ const GROUP_FIRST: Record<GroupId, BandejaId> = {
   historico: "emitidas",
 };
 
-// Sólo mantenemos tooltip en los tabs con criterio técnico no evidente.
+// Sólo mostramos ayuda en las bandejas con criterio técnico no evidente.
 // El resto usa un label auto-descriptivo (ley de Miller: menos ruido cognitivo).
 const DEFS: Def[] = [
   { id: "embarques-sin-factura", label: "Embarques sin factura", hint: "Embarques cuyo contenedor ya llegó (ETA ≤ hoy) y aún no tienen CFDI. Necesitan factura para tener la papelería completa al cruzar aduana. Puede que falte generar la proforma o convertirla a factura.", tone: "warn", group: "preparar" },
@@ -93,8 +92,10 @@ export function BandejaTabs({ activeBandeja, onSelect }: {
 }) {
   const { counts, error, tieneDatoAnterior, actualizando, reintentar } = useBandejaBadgeConteos();
   const groups: GroupId[] = ["preparar", "cobrar", "historico"];
+  const ayudaId = useId();
 
   const activeGroup = DEFS.find((d) => d.id === activeBandeja)?.group ?? "preparar";
+  const definiciones = DEFS.filter((d) => d.group === activeGroup);
   return (
     <div className="space-y-0.5">
       <div className="flex flex-wrap gap-1 px-1 pt-1" aria-label="Etapa de facturación">
@@ -112,7 +113,7 @@ export function BandejaTabs({ activeBandeja, onSelect }: {
         ))}
       </div>
       <TabsList variant="underline" aria-label={`Bandejas de ${GROUP_LABELS[activeGroup]}`} className="flex h-auto flex-wrap items-stretch gap-2 border-b-0 px-1">
-        {DEFS.filter((d) => d.group === activeGroup).map((d) => {
+        {definiciones.map((d) => {
           const count = d.id === "emitidas" || d.id === "notas" || d.id === "reps" ? 0 : counts[d.id];
           return (
             <TabsTrigger
@@ -120,6 +121,7 @@ export function BandejaTabs({ activeBandeja, onSelect }: {
               value={d.id}
               variant="underline"
               className="px-2 py-1.5 data-[state=active]:text-primary"
+              aria-describedby={d.hint ? `${ayudaId}-${d.id}` : undefined}
             >
               <span className="flex items-center gap-1.5">
                 {d.label}
@@ -128,34 +130,17 @@ export function BandejaTabs({ activeBandeja, onSelect }: {
                     {count}
                   </span>
                 )}
-                {d.hint && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Info: ${d.label}`}
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => e.stopPropagation()}
-                        className="inline-flex"
-                      >
-                        <Info className="h-3 w-3 opacity-60 hover:opacity-100" />
-                      </span>
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="bottom"
-                        collisionPadding={12}
-                        className="max-w-sm text-body-sm leading-relaxed whitespace-normal"
-                      >
-                        {d.hint}
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
               </span>
             </TabsTrigger>
           );
         })}
       </TabsList>
+      {definiciones.map((d) => d.hint && (
+        <p key={d.id} id={`${ayudaId}-${d.id}`}
+          className={d.id === activeBandeja ? "px-3 text-body-sm text-muted-foreground" : "sr-only"}>
+          {d.hint}
+        </p>
+      ))}
       {error && (
         <div role="alert" className="flex flex-wrap items-center gap-2 px-3 py-2 text-body-sm text-destructive">
           <span>{tieneDatoAnterior
