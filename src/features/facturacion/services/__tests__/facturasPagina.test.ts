@@ -4,7 +4,7 @@ const mock = await vi.hoisted(async () => {
   return createSupabaseMock();
 });
 vi.mock("@/integrations/supabase/client", () => ({ supabase: mock.supabase }));
-import { fetchFacturasPagina, fetchClientesFacturas } from "../facturasPagina";
+import { fetchFacturasPagina, fetchClientesFacturas, fetchFacturasParaExportar } from "../facturasPagina";
 import { facturas } from "../../queryKeys";
 const ROW = {
   id: "f-101", numero: "F-101", cliente_nombre: "ACME", expediente: "E-1",
@@ -13,7 +13,7 @@ const ROW = {
   ambiente: "sandbox", acuse_cancelacion_status: null, cancellation_status: null,
   enviada_cliente_at: null, proformas: null,
 };
-beforeEach(() => { mock.rpcCalls.length = 0; mock.resetResults(); });
+beforeEach(() => { mock.rpcCalls.length = 0; mock.supabase.rpc.mockClear(); mock.resetResults(); });
 describe("Emitidas: filtros antes de paginar", () => {
   it("mantiene cliente exacto independiente de búsqueda, estado y rango inclusivo", async () => {
     mock.setRpcResult("facturas_listado_pagina", { data: { rows: [ROW], count: 201 }, error: null });
@@ -46,5 +46,43 @@ describe("Emitidas: filtros antes de paginar", () => {
     await expect(fetchFacturasPagina({ organizationId: "org" })).rejects.toThrow();
     mock.setRpcResult("facturas_clientes_listado", { data: [null], error: null });
     await expect(fetchClientesFacturas("org")).rejects.toThrow();
+  });
+});
+
+describe("Exportación de todos los resultados filtrados", () => {
+  const scope = { organizationId: "org", assertCurrent: vi.fn(), isCurrent: () => true };
+  const primeraPagina = Array.from({ length: 500 }, (_, index) => ({ ...ROW, id: `factura-${index}` }));
+
+  it("recorre las páginas con los mismos filtros y conserva el orden de servidor", async () => {
+    mock.supabase.rpc
+      .mockResolvedValueOnce({ data: { rows: primeraPagina, count: 501 }, error: null })
+      .mockResolvedValueOnce({ data: { rows: [ROW], count: 501 }, error: null });
+    const filtros = { search: "F-", estado: "Emitida", clienteNombre: "ACME", fechaDesde: "2026-01-01", fechaHasta: "2026-01-31" };
+    const result = await fetchFacturasParaExportar(filtros, scope);
+    expect(result.map(({ id }) => id)).toEqual([...primeraPagina.map(({ id }) => id), ROW.id]);
+    const args = { p_organization_id: "org", p_search: "F-", p_estado: "Emitida", p_cliente_nombre: "ACME",
+      p_fecha_desde: "2026-01-01", p_fecha_hasta: "2026-01-31", p_limit: 500 };
+    expect(mock.supabase.rpc).toHaveBeenNthCalledWith(1, "facturas_listado_pagina", { ...args, p_offset: 0 });
+    expect(mock.supabase.rpc).toHaveBeenNthCalledWith(2, "facturas_listado_pagina", { ...args, p_offset: 500 });
+  });
+
+  it.each([
+    { rows: [], count: 501 },
+    { rows: [ROW], count: 502 },
+    { rows: [primeraPagina[0]], count: 501 },
+  ])("rechaza una exportación parcial o inconsistente", async (segundaPagina) => {
+    mock.supabase.rpc
+      .mockResolvedValueOnce({ data: { rows: primeraPagina, count: 501 }, error: null })
+      .mockResolvedValueOnce({ data: segundaPagina, error: null });
+    await expect(fetchFacturasParaExportar({}, scope)).rejects.toThrow(/cambió durante la exportación/);
+  });
+
+  it("detiene la lectura si cambia de organización mientras espera una página", async () => {
+    mock.supabase.rpc.mockResolvedValueOnce({ data: { rows: primeraPagina, count: 501 }, error: null });
+    const assertCurrent = vi.fn().mockImplementationOnce(() => undefined).mockImplementation(() => {
+      throw new Error("Cambió la organización");
+    });
+    await expect(fetchFacturasParaExportar({}, { ...scope, assertCurrent })).rejects.toThrow("Cambió la organización");
+    expect(mock.supabase.rpc).toHaveBeenCalledTimes(1);
   });
 });

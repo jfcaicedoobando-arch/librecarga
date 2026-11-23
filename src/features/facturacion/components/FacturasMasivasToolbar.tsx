@@ -21,8 +21,11 @@ export function FacturasMasivasToolbar({ selectedIds, onClear, onMarked }: Props
     return reenviarEmail();
   };
 
+  if (count === 0 && !busy) return null;
+
   return (
-    <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 border rounded-md">
+    <div role="group" aria-label="Acciones sobre facturas seleccionadas"
+      className="flex flex-wrap items-center gap-2 px-3 py-2 bg-muted/50 border rounded-md">
       <span className="text-body font-medium">
         {count} seleccionada{count === 1 ? "" : "s"}
       </span>

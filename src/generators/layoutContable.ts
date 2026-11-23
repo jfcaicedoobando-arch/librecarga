@@ -9,6 +9,7 @@
  */
 import { exportToCsv } from "@/generators/exportCsv";
 import { fetchLayoutContableData, type FacturaListItem } from "@/features/facturacion/services";
+import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
 import { todayLocalISO } from "@/lib/date/today";
 import { notifyWarning } from "@/lib/ui/appFeedback";
 
@@ -35,12 +36,16 @@ const HEADERS = [
 /**
  * Descarga un layout contable CSV con los IDs de factura recibidos.
  */
-export async function exportarLayoutContable(facturas: FacturaListItem[]): Promise<void> {
+export async function exportarLayoutContable(
+  facturas: FacturaListItem[],
+  scope = captureAuthOperationScope(),
+): Promise<void> {
   if (facturas.length === 0) return;
 
   const { facturas: full, rfcByClienteId } = await fetchLayoutContableData(
-    facturas.map((f) => f.id),
+    facturas.map((f) => f.id), scope,
   );
+  scope.assertCurrent();
 
   // v13.821.7 — Avisar si hay facturas en moneda extranjera con TC inválido (null/0/1).
   const invalidas = full.filter((f) => f.moneda !== "MXN" && (!f.tipo_cambio || Number(f.tipo_cambio) <= 1));

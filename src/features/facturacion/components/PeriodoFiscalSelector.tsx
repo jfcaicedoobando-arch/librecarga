@@ -5,9 +5,7 @@
  * Mes pasado, Este trimestre, Ejercicio, Todo) y aplica el rango sobre
  * `useFacturacionDateRange` (que ya sincroniza con la URL).
  *
- * NO bloquea captura ni valida cierre contable — es sólo filtro visual.
- * El cierre "duro" de período fiscal quedó fuera de alcance por
- * decisión de producto.
+ * El período filtra la fecha de emisión del historial de Emitidas.
  */
 import { useId, useMemo } from "react";
 import { Calendar } from "lucide-react";
@@ -88,13 +86,13 @@ export function PeriodoFiscalSelector({ desdeIso, hastaIso, onChange }: Props) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-none">
       <label htmlFor={id} className="flex items-center gap-2 text-body-sm text-muted-foreground">
         <Calendar className="h-4 w-4" aria-hidden />
         Periodo de emisión
       </label>
       <Select value={preset} onValueChange={handleChange}>
-        <SelectTrigger id={id} className="h-8 w-[190px] text-body">
+        <SelectTrigger id={id} className="h-9 w-full text-body sm:w-[220px]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

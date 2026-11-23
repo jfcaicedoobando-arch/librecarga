@@ -1,6 +1,6 @@
 /** Tarjeta móvil de /facturacion muestra folio, cliente, vencimiento y monto. */
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { FacturaEmitidaMobileCard } from "../FacturaEmitidaMobileCard";
 import type { Factura } from "@/features/facturacion/routes/facturacionColumns";
 
@@ -24,10 +24,22 @@ function factura(overrides: Partial<Factura> = {}): Factura {
 
 describe("FacturaEmitidaMobileCard", () => {
   it("muestra folio, cliente, vencimiento, estado y monto", () => {
-    render(<FacturaEmitidaMobileCard factura={factura()} />);
+    render(<FacturaEmitidaMobileCard factura={factura()} seleccionada={false} onSeleccionar={vi.fn()} />);
     expect(screen.getByText("F-0001")).toBeInTheDocument();
     expect(screen.getByText("Cliente Uno")).toBeInTheDocument();
     expect(screen.getByText(/Emitida/)).toBeInTheDocument();
     expect(screen.getByText(/1,000\.00|1000\.00/)).toBeInTheDocument();
+  });
+
+  it("selecciona desde la casilla sin delegar el clic a la navegación de fila", () => {
+    const onSeleccionar = vi.fn();
+    const { rerender } = render(<FacturaEmitidaMobileCard factura={factura()} seleccionada={false} onSeleccionar={onSeleccionar} />);
+    const checkbox = screen.getByRole("checkbox", { name: "Seleccionar factura F-0001" });
+    expect(checkbox).toHaveAttribute("data-no-row-nav");
+    expect(checkbox).not.toBeChecked();
+    fireEvent.click(checkbox);
+    expect(onSeleccionar).toHaveBeenCalledOnce();
+    rerender(<FacturaEmitidaMobileCard factura={factura()} seleccionada onSeleccionar={onSeleccionar} />);
+    expect(checkbox).toBeChecked();
   });
 });

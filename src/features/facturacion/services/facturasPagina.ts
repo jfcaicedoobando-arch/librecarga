@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
 import { unwrap } from "@/lib/supabase/response";
 import { fromDb } from "@/lib/supabase/cast";
 import type { FacturasListadoFilters, FacturasListadoResult } from "./facturasCrud";
@@ -22,6 +23,33 @@ export async function fetchFacturasPagina(f: FacturasPaginaFilters): Promise<Fac
   }));
   const result = fromDb(data, facturasPaginaSchema);
   return { data: result.rows, count: result.count };
+}
+
+export async function fetchFacturasParaExportar(
+  filtros: Omit<FacturasPaginaFilters, "organizationId" | "page" | "pageSize">,
+  scope: ReturnType<typeof captureAuthOperationScope>,
+) {
+  const { organizationId } = scope;
+  if (!organizationId) throw new Error("Selecciona una organización para exportar facturas.");
+  const pageSize = 500;
+  const facturas: FacturasListadoResult["data"] = [];
+  const ids = new Set<string>();
+  let total: number | undefined;
+  for (let page = 0; ; page++) {
+    scope.assertCurrent();
+    const { data, count } = await fetchFacturasPagina({ ...filtros, organizationId, page, pageSize });
+    scope.assertCurrent();
+    total ??= count;
+    if (total !== count || data.length !== Math.min(pageSize, total - facturas.length)) {
+      throw new Error("El listado cambió durante la exportación. Actualiza e inténtalo de nuevo.");
+    }
+    for (const factura of data) {
+      if (ids.has(factura.id)) throw new Error("El orden de las facturas cambió durante la exportación.");
+      ids.add(factura.id);
+      facturas.push(factura);
+    }
+    if (facturas.length === total) return facturas;
+  }
 }
 
 export async function fetchClientesFacturas(organizationId: string | null): Promise<string[]> {

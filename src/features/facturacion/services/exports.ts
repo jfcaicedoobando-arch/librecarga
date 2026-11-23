@@ -9,6 +9,8 @@
  * v8.205.0 — P0.4 auditoría arquitectónica.
  */
 import { supabase } from "@/integrations/supabase/client";
+import type { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
+import { chunkIds } from "@/lib/supabase/chunkedIn";
 import { fetchEstadoCuenta, type FacturaEstadoCuenta } from "../estadoCuenta/services/estadoCuenta";
 
 export interface LayoutContableRow {
@@ -32,33 +34,46 @@ export interface LayoutContableData {
 }
 
 /**
- * Carga las facturas indicadas + el RFC de sus clientes en una sola operación.
+ * Carga por lotes las facturas indicadas y conserva el orden del listado.
  * Devuelve un DTO listo para que el generador CSV mapee filas sin hacer I/O.
  */
-export async function fetchLayoutContableData(facturaIds: string[]): Promise<LayoutContableData> {
+export async function fetchLayoutContableData(
+  facturaIds: string[],
+  scope: ReturnType<typeof captureAuthOperationScope>,
+): Promise<LayoutContableData> {
   if (facturaIds.length === 0) return { facturas: [], rfcByClienteId: new Map() };
-
-  const { data: rows, error } = await supabase
-    .from("facturas")
-    .select(
-      "numero, fecha_emision, subtotal, iva, total, moneda, tipo_cambio, expediente, referencia_bl, estado, cliente_id, cliente_nombre",
-    )
-    .in("id", facturaIds)
-    .is("deleted_at", null);
-  if (error) throw error;
-
-  const facturas = (rows ?? []) as LayoutContableRow[];
-  const clienteIds = Array.from(
-    new Set(facturas.map((r) => r.cliente_id).filter((x): x is string => !!x)),
-  );
+  const { organizationId } = scope;
+  if (!organizationId) throw new Error("Selecciona una organización para exportar el layout.");
+  const facturas: LayoutContableRow[] = [];
+  for (const lote of chunkIds(facturaIds)) {
+    scope.assertCurrent();
+    const { data: rows, error } = await supabase
+      .from("facturas")
+      .select("id, numero, fecha_emision, subtotal, iva, total, moneda, tipo_cambio, expediente, referencia_bl, estado, cliente_id, cliente_nombre")
+      .eq("organization_id", organizationId)
+      .in("id", lote)
+      .is("deleted_at", null);
+    scope.assertCurrent();
+    if (error) throw error;
+    const porId = new Map((rows ?? []).map((fila) => [fila.id, fila]));
+    for (const id of lote) {
+      const fila = porId.get(id);
+      if (!fila) throw new Error("No se pudieron cargar todas las facturas del layout. Actualiza e inténtalo de nuevo.");
+      facturas.push(fila);
+    }
+  }
+  const clienteIds = facturas.flatMap(({ cliente_id }) => cliente_id ? [cliente_id] : []);
 
   const rfcByClienteId = new Map<string, string>();
-  if (clienteIds.length > 0) {
+  for (const lote of chunkIds(clienteIds)) {
+    scope.assertCurrent();
     const { data: clientes, error: cErr } = await supabase
       .from("clientes")
       .select("id, rfc")
-      .in("id", clienteIds)
+      .eq("organization_id", organizationId)
+      .in("id", lote)
       .is("deleted_at", null);
+    scope.assertCurrent();
     if (cErr) throw cErr;
     for (const c of clientes ?? []) {
       if (c.rfc) rfcByClienteId.set(c.id, c.rfc);

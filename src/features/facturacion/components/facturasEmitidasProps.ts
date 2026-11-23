@@ -53,6 +53,8 @@ interface FacturasEmitidasTabla {
 interface FacturasEmitidasAcciones {
   exportarFacturasCsv: () => void;
   exportarLayoutContable: () => void;
+  exportando: boolean;
+  exportacionDeshabilitada: boolean;
   onCreateNew?: () => void;
 }
 
