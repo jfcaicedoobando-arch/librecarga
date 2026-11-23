@@ -28,6 +28,15 @@ function Navegacion() {
 }
 
 describe("BandejaTabs", () => {
+  it("conserva Vencidas al volver a pulsar Cobrar", () => {
+    render(<Navegacion />);
+    fireEvent.click(screen.getByRole("button", { name: "Cobrar" }));
+    fireEvent.mouseDown(screen.getByRole("tab", { name: /^Vencidas/ }), { button: 0, ctrlKey: false });
+    expect(screen.getByTestId("active")).toHaveTextContent("vencidas");
+    fireEvent.click(screen.getByRole("button", { name: "Cobrar", pressed: true }));
+    expect(screen.getByTestId("active")).toHaveTextContent("vencidas");
+  });
+
   it("mantiene las nueve bandejas accesibles en tres etapas compactas", () => {
     render(<Navegacion />);
     expect(screen.getByRole("tab", { name: /por timbrar/i })).toBeInTheDocument();

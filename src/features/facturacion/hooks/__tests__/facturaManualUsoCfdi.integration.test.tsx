@@ -113,6 +113,8 @@ describe("Nueva factura manual → formulario → submit → mutación real", ()
     const { result, onClose, client } = setup();
     expect(result.current.puedeGuardar).toBe(true);
     expect(result.current.puedeTimbrar).toBe(false);
+    expect(result.current.faltantesTimbrar).toContain("datos fiscales del cliente (RFC · CP · régimen)");
+    expect(result.current.faltantesTimbrar.join(" ")).not.toContain("no es compatible con el régimen fiscal");
     await act(() => result.current.handleSubmit(false));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(mocks.crear).toHaveBeenCalledOnce();

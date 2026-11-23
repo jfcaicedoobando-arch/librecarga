@@ -1,5 +1,4 @@
 import { useCallback, useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router";
 import { useUpdateEmbarque } from "@/features/embarques/hooks/useEmbarques";
 import { useContactosCliente } from "@/features/cliente/hooks/useClientes";
 import { useDatosEditarEmbarque } from "./useDatosEditarEmbarque";
@@ -19,10 +18,11 @@ import { ERROR_CODES } from "@/lib/domain/errorCatalog";
 import { useMargenMinimo } from "@/features/configuracion/hooks/useMargenMinimo";
 import { puedeAutorizarMargenBajo } from "@/lib/domain/margenMinimo";
 import type { PropuestaRevisionFiscalEmbarque } from "../services/evaluacionFiscalEmbarque";
+import { useVolverAlDetalleEmbarque } from "./useNavegacionEdicionEmbarque";
 
 /** Carga e hidrata el embarque y coordina el guardado del formulario. */
 export function useEditarEmbarqueWizard(id: string | undefined) {
-  const navigate = useNavigate();
+  const volverAlDetalle = useVolverAlDetalleEmbarque(id);
   const { user, effectiveRole } = useAuth();
   const margenMinimoPct = useMargenMinimo();
 
@@ -154,7 +154,7 @@ export function useEditarEmbarqueWizard(id: string | undefined) {
         updateEmbarque,
         registrarActividad,
         setCurrentStep,
-        navigate,
+        volverAlDetalle,
         margenMinimoPct,
         puedeAutorizarMargen: puedeAutorizarMargenBajo(effectiveRole),
         signal: operacion.signal,
@@ -188,7 +188,7 @@ export function useEditarEmbarqueWizard(id: string | undefined) {
     isPending: guardando || updateEmbarque.isPending,
     revisionFiscal,
     responderRevisionFiscal,
-    navigate,
+    volverAlDetalle,
     conceptosForm,
     validateStep,
     validationErrors,

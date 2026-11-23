@@ -175,8 +175,8 @@ describe("AUD141 counter and real table contract", () => {
     );
     expect(screen.getByText("Vencido (1)")).toBeInTheDocument();
     expect(screen.getByText("EUR1")).toBeInTheDocument();
-    expect(screen.getByText(/facturas vencidas/)).toHaveTextContent(
-      "Mostrando 1 de 1 facturas vencidas",
+    expect(screen.getByText(/factura(?:s)? vencida(?:s)?/)).toHaveTextContent(
+      "Mostrando 1 de 1 factura vencida",
     );
   });
   it("permite abrir y contraer la tendencia sin ocultar los indicadores", () => {
@@ -204,8 +204,8 @@ describe("AUD141 counter and real table contract", () => {
     expect(screen.getByText("P20")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Cambiar bandeja"));
     await waitFor(() =>
-      expect(screen.getByText(/facturas vencidas/)).toHaveTextContent(
-        "Mostrando 2 de 2 facturas vencidas",
+      expect(screen.getByText(/factura(?:s)? vencida(?:s)?/)).toHaveTextContent(
+        "Mostrando 1–2 de 2 facturas vencidas",
       ),
     );
     expect(screen.getByText("V0")).toBeInTheDocument();
@@ -226,8 +226,8 @@ describe("AUD141 counter and real table contract", () => {
     render(<BandejaVencidas />, { wrapper: wrapper() });
     expect(screen.queryByText("DUST")).toBeNull();
     expect(screen.getByText("CENT")).toBeInTheDocument();
-    expect(screen.getByText(/facturas vencidas/)).toHaveTextContent(
-      "Mostrando 1 de 1 facturas vencidas",
+    expect(screen.getByText(/factura(?:s)? vencida(?:s)?/)).toHaveTextContent(
+      "Mostrando 1 de 1 factura vencida",
     );
   });
 });

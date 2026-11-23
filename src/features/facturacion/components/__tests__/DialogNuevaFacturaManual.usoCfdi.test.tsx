@@ -27,6 +27,33 @@ beforeEach(() => {
 });
 
 describe("Nueva factura manual: receptor y acciones visibles", () => {
+  it("pide el cliente antes de evaluar compatibilidad y explica el bloqueo por total cero", () => {
+    const client = new QueryClient();
+    render(<QueryClientProvider client={client}><DialogNuevaFacturaManual open onOpenChange={vi.fn()} /></QueryClientProvider>);
+    expect(screen.getByRole("status")).toHaveTextContent("Falta: cliente");
+    expect(screen.getByRole("combobox", { name: "Uso CFDI" })).toHaveAttribute("aria-invalid", "false");
+    expect(screen.queryByText(/no es compatible con el régimen fiscal/)).not.toBeInTheDocument();
+
+    fireEvent.keyDown(screen.getByRole("combobox", { name: /Cliente/ }), { key: "ArrowDown" });
+    fireEvent.click(screen.getByRole("option", { name: /Cliente genérico/ }));
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Uso CFDI" }), { key: "ArrowDown" });
+    fireEvent.click(screen.getByRole("option", { name: /S01/ }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Descripción del concepto 1" }), { target: { value: "Servicio" } });
+    expect(screen.getByText("El total debe ser mayor a cero.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardar borrador" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Crear y timbrar" })).toBeDisabled();
+
+    const precio = screen.getByRole("textbox", { name: "Precio unitario del concepto 1" });
+    fireEvent.change(precio, { target: { value: "100" } });
+    fireEvent.blur(precio);
+    expect(screen.queryByText("El total debe ser mayor a cero.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardar borrador" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Crear y timbrar" })).toBeEnabled();
+    expect(mocks.crear).not.toHaveBeenCalled();
+    expect(mocks.emitir).not.toHaveBeenCalled();
+    client.clear();
+  });
+
   it("muestra G03/616 inválido, permite borrador y sólo habilita timbrado tras elegir S01", async () => {
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     const onOpenChange = vi.fn();

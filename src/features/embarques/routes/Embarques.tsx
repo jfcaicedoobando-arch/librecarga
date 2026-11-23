@@ -43,7 +43,7 @@ export default function Embarques() {
     search, filterModo, filterEstado, filterCliente, filterOperador, filterAlerta,
     fechaDesde, fechaHasta, page, pageSize,
     sortKey, sortDir, handleSortChange,
-    setSearch, setFilterModo, setFilterEstado, setFilterCliente, setFilterOperador, setFilterAlerta,
+    setSearch, applyFilters, setFilterModo, setFilterEstado, setFilterCliente, setFilterOperador, setFilterAlerta,
     setFechaDesde, setFechaHasta, setPage, setPageSize, limpiarFiltros,
     filtered, expedientesCount, totalPages, totalCount, alertasResumen,
     alertasError, refetchAlertas,
@@ -118,6 +118,7 @@ export default function Embarques() {
                 search={search}
                 onSearchChange={setSearch}
                 onClearAll={limpiarFiltros}
+                onApplyFilters={applyFilters}
                 filterModo={filterModo}
                 onFilterModoChange={setFilterModo}
                 filterEstado={filterEstado}

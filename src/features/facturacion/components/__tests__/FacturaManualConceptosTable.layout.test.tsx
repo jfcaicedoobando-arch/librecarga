@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { FacturaManualConceptosTable } from "../FacturaManualConceptosTable";
+import { INITIAL_CONCEPTOS } from "../../hooks/facturaManualFormDefaults";
 
 vi.mock("@/features/configuracion", () => ({ useIvaFronteraHabilitada: () => false }));
 
@@ -14,5 +16,20 @@ describe("FacturaManualConceptosTable · importe visible", () => {
     expect(importe).toHaveClass("whitespace-nowrap");
     expect(importe).not.toHaveClass("truncate");
     expect(importe.closest(".sm\\:col-span-4")).toBeTruthy();
+  });
+
+  it("enfoca la descripción del concepto recién agregado", () => {
+    function Captura() {
+      const [conceptos, setConceptos] = useState(INITIAL_CONCEPTOS);
+      return <FacturaManualConceptosTable conceptos={conceptos} moneda="MXN" onChange={setConceptos} />;
+    }
+
+    render(<Captura />);
+    const agregar = screen.getByRole("button", { name: "Agregar concepto" });
+    agregar.focus();
+    fireEvent.click(agregar);
+    expect(screen.getByRole("textbox", { name: "Descripción del concepto 2" })).toHaveFocus();
+    fireEvent.click(agregar);
+    expect(screen.getByRole("textbox", { name: "Descripción del concepto 3" })).toHaveFocus();
   });
 });

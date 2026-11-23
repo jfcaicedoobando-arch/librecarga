@@ -1,4 +1,4 @@
-import { useParams } from "react-router";
+import { useLocation, useParams } from "react-router";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { useState } from "react";
 
@@ -50,7 +50,8 @@ const TABS_LEGACY: Record<string, (typeof TABS_VALIDOS)[number]> = {
 export default function EmbarqueDetalle() {
   const { id } = useParams();
   const { canEdit } = usePermissions();
-  const { activeTab, setActiveTab } = useTabsParam(TABS_VALIDOS, "resumen", "tab", TABS_LEGACY);
+  const { state } = useLocation();
+  const { activeTab, setActiveTab } = useTabsParam(TABS_VALIDOS, "resumen", "tab", TABS_LEGACY, state);
 
   const { embarque, isLoading, error, refetch } = useEmbarqueResumen(id);
   const expediente = embarque?.expediente;

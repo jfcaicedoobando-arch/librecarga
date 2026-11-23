@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ const requisitoContactosId = "emb-contactos-requisito";
 
 export function BloqueClienteContactos({ clientes, clienteNombre, contactos, errors, esBorrador }: Props) {
   const { register, watch, setValue } = useFormContext<EmbarqueFormValues>();
+  const id = useId();
   const shipper = watch('shipper');
   const consignatario = watch('consignatario');
 
@@ -44,11 +46,13 @@ export function BloqueClienteContactos({ clientes, clienteNombre, contactos, err
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <LabelHeredable field="modo" getter={(c) => c.modo}>Modo de Transporte *</LabelHeredable>
+          <LabelHeredable field="modo" getter={(c) => c.modo} htmlFor={`${id}-modo`}>Modo de Transporte *</LabelHeredable>
           <Controller name="modo" render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
               <SelectTrigger
+                id={`${id}-modo`}
                 aria-invalid={errors.modo ? true : undefined}
+                aria-describedby={errors.modo ? `${id}-modo-error` : undefined}
                 className={cn(errors.modo && 'border-destructive')}
               >
                 <SelectValue placeholder="Seleccionar modo" />
@@ -56,14 +60,16 @@ export function BloqueClienteContactos({ clientes, clienteNombre, contactos, err
               <SelectContent>{MODOS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
             </Select>
           )} />
-          {errors.modo && <p className="text-body-sm text-destructive">{errors.modo}</p>}
+          {errors.modo && <p id={`${id}-modo-error`} className="text-body-sm text-destructive">{errors.modo}</p>}
         </div>
         <div className="space-y-2">
-          <LabelHeredable field="tipo" getter={(c) => c.tipo}>Tipo de Operación *</LabelHeredable>
+          <LabelHeredable field="tipo" getter={(c) => c.tipo} htmlFor={`${id}-tipo`}>Tipo de Operación *</LabelHeredable>
           <Controller name="tipo" render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
               <SelectTrigger
+                id={`${id}-tipo`}
                 aria-invalid={errors.tipo ? true : undefined}
+                aria-describedby={errors.tipo ? `${id}-tipo-error` : undefined}
                 className={cn(errors.tipo && 'border-destructive')}
               >
                 <SelectValue placeholder="Seleccionar tipo" />
@@ -71,14 +77,16 @@ export function BloqueClienteContactos({ clientes, clienteNombre, contactos, err
               <SelectContent>{TIPOS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
             </Select>
           )} />
-          {errors.tipo && <p className="text-body-sm text-destructive">{errors.tipo}</p>}
+          {errors.tipo && <p id={`${id}-tipo-error`} className="text-body-sm text-destructive">{errors.tipo}</p>}
         </div>
         <div className="space-y-2">
-          <LabelHeredable field="clienteId" getter={(c) => c.cliente_id}>Cliente *</LabelHeredable>
+          <LabelHeredable field="clienteId" getter={(c) => c.cliente_id} htmlFor={`${id}-cliente`}>Cliente *</LabelHeredable>
           <Controller name="clienteId" render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
               <SelectTrigger
+                id={`${id}-cliente`}
                 aria-invalid={errors.clienteId ? true : undefined}
+                aria-describedby={errors.clienteId ? `${id}-cliente-error` : undefined}
                 className={cn(errors.clienteId && 'border-destructive')}
               >
                 <SelectValue placeholder="Seleccionar cliente" />
@@ -86,14 +94,16 @@ export function BloqueClienteContactos({ clientes, clienteNombre, contactos, err
               <SelectContent>{clientes.map(c => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
             </Select>
           )} />
-          {errors.clienteId && <p className="text-body-sm text-destructive">{errors.clienteId}</p>}
+          {errors.clienteId && <p id={`${id}-cliente-error`} className="text-body-sm text-destructive">{errors.clienteId}</p>}
         </div>
         <div className="space-y-2">
-          <LabelHeredable field="incoterm" getter={(c) => c.incoterm}>Incoterm *</LabelHeredable>
+          <LabelHeredable field="incoterm" getter={(c) => c.incoterm} htmlFor={`${id}-incoterm`}>Incoterm *</LabelHeredable>
           <Controller name="incoterm" render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
               <SelectTrigger
+                id={`${id}-incoterm`}
                 aria-invalid={errors.incoterm ? true : undefined}
+                aria-describedby={errors.incoterm ? `${id}-incoterm-error` : undefined}
                 className={cn(errors.incoterm && 'border-destructive')}
               >
                 <SelectValue placeholder="Seleccionar" />
@@ -101,7 +111,7 @@ export function BloqueClienteContactos({ clientes, clienteNombre, contactos, err
               <SelectContent>{INCOTERMS.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent>
             </Select>
           )} />
-          {errors.incoterm && <p className="text-body-sm text-destructive">{errors.incoterm}</p>}
+          {errors.incoterm && <p id={`${id}-incoterm-error`} className="text-body-sm text-destructive">{errors.incoterm}</p>}
         </div>
       </div>
 

@@ -21,9 +21,15 @@ describe("AUD51: advertencia junto a la forma de pago", () => {
   });
 
   it("PPD conserva 99 y no permite escoger una forma real por accidente", () => {
-    render(<FacturaManualDatosFiscales value={INITIAL_FISCAL} onChange={vi.fn()} />);
+    const { rerender } = render(<FacturaManualDatosFiscales value={INITIAL_FISCAL} onChange={vi.fn()} />);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Forma de pago" })).toBeDisabled();
-    expect(screen.getByRole("combobox", { name: "Forma de pago" })).toHaveTextContent("99");
+    const formaPago = screen.getByRole("combobox", { name: "Forma de pago" });
+    expect(formaPago).toBeDisabled();
+    expect(formaPago).toHaveTextContent("99");
+    expect(formaPago).toHaveAccessibleDescription("Con PPD, el sistema fija la forma de pago en 99 - Por definir.");
+
+    rerender(<FacturaManualDatosFiscales value={{ ...INITIAL_FISCAL, metodoPago: "PUE", formaPago: "03" }} onChange={vi.fn()} />);
+    expect(formaPago).toBeEnabled();
+    expect(screen.queryByText(/Con PPD, el sistema fija/)).not.toBeInTheDocument();
   });
 });

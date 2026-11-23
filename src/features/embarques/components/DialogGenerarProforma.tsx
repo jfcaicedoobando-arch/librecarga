@@ -8,6 +8,7 @@ import { AvisoTcRequerido } from "./proforma/AvisoTcRequerido";
 import { ProformaDialogFooter } from "./proforma/ProformaDialogFooter";
 import type { Tables } from "@/types/db";
 import type { FiltroContenedor } from "@/features/embarques/domain/conceptosPorContenedor";
+import { useDestinoEdicionEmbarque } from "../hooks/useNavegacionEdicionEmbarque";
 
 type ConceptoVenta = Tables<'conceptos_venta'>;
 type EmbarqueRow = Tables<'embarques'>;
@@ -25,6 +26,7 @@ interface Props {
 
 export function DialogGenerarProforma({ open, onOpenChange, embarque, conceptosPendientes, initialFiltroContenedor = 'todos', initialNotas = '', initialConceptoIds }: Props) {
   const navigate = useNavigate();
+  const edicion = useDestinoEdicionEmbarque(embarque.id, 3);
   const c = useDialogGenerarProformaController(
     open, embarque, conceptosPendientes, () => onOpenChange(false),
     { initialFiltroContenedor, initialNotas, initialConceptoIds },
@@ -64,7 +66,7 @@ export function DialogGenerarProforma({ open, onOpenChange, embarque, conceptosP
           pendientesIva={c.pendientesIva}
           onEditarConceptos={() => {
             onOpenChange(false);
-            navigate(`/embarques/${embarque.id}/editar?step=3`);
+            navigate(edicion.to, { state: edicion.state });
           }}
         />
       ) : (

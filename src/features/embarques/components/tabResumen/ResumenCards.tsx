@@ -7,6 +7,7 @@ import { DetailRow } from "../DetailRow";
 import { FechaConOriginal } from "./FechaConOriginal";
 import { RutaMaritimo, RutaAereo, RutaTerrestre } from "./RutaPorModo";
 import type { EmbarqueRow } from "@/features/embarques/hooks";
+import { useDestinoEdicionEmbarque } from "../../hooks/useNavegacionEdicionEmbarque";
 
 const PLACEHOLDER = "—";
 
@@ -66,13 +67,14 @@ function BotonCapturarFecha({
   embarqueId: string;
 }) {
   const navigate = useNavigate();
+  const edicion = useDestinoEdicionEmbarque(embarqueId);
   return (
     <Button
       type="button"
       variant="link"
       size="sm"
       className="h-auto p-0 text-body-sm font-normal text-primary hover:no-underline"
-      onClick={() => navigate(`/embarques/${embarqueId}/editar`)}
+      onClick={() => navigate(edicion.to, { state: edicion.state })}
     >
       <Plus className="h-3 w-3 mr-1" /> Capturar {campo}
     </Button>
@@ -81,6 +83,7 @@ function BotonCapturarFecha({
 
 function BannerCaptureFechas({ embarqueId }: { embarqueId: string }) {
   const navigate = useNavigate();
+  const edicion = useDestinoEdicionEmbarque(embarqueId);
   return (
     <div className="flex items-center justify-between gap-2 rounded-md border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-body-sm">
       <span className="text-muted-foreground">
@@ -91,7 +94,7 @@ function BannerCaptureFechas({ embarqueId }: { embarqueId: string }) {
         variant="link"
         size="sm"
         className="h-auto p-0 text-body-sm font-medium text-primary hover:no-underline"
-        onClick={() => navigate(`/embarques/${embarqueId}/editar`)}
+        onClick={() => navigate(edicion.to, { state: edicion.state })}
       >
         Capturar fechas
       </Button>

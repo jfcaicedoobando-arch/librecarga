@@ -14,6 +14,7 @@ export function useTabsParam<T extends string>(
   defaultTab: T,
   paramName = "tab",
   legacyMap?: Record<string, T>,
+  navigationState?: unknown,
 ): { activeTab: T; setActiveTab: (v: string) => void } {
   const [searchParams, setSearchParams] = useSearchParams();
   const param = searchParams.get(paramName);
@@ -28,17 +29,17 @@ export function useTabsParam<T extends string>(
     const next = new URLSearchParams(searchParams);
     if (legacyTarget === defaultTab) next.delete(paramName);
     else next.set(paramName, legacyTarget);
-    setSearchParams(next, { replace: true });
-  }, [legacyTarget, searchParams, setSearchParams, defaultTab, paramName]);
+    setSearchParams(next, { replace: true, state: navigationState });
+  }, [legacyTarget, searchParams, setSearchParams, defaultTab, paramName, navigationState]);
 
   const setActiveTab = useCallback(
     (v: string) => {
       const next = new URLSearchParams(searchParams);
       if (v === defaultTab) next.delete(paramName);
       else next.set(paramName, v);
-      setSearchParams(next, { replace: true });
+      setSearchParams(next, { replace: true, state: navigationState });
     },
-    [searchParams, setSearchParams, defaultTab, paramName],
+    [searchParams, setSearchParams, defaultTab, paramName, navigationState],
   );
 
   return { activeTab, setActiveTab };

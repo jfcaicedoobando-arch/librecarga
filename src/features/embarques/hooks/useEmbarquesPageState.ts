@@ -17,7 +17,7 @@ export function useEmbarquesPageState() {
   const { organizationId, orgListo } = useOrgFilter();
   const {
     search, debouncedSearch, filters, alerta: filterAlerta, page, pageSize, sortKey, sortDir,
-    DEFAULT_PAGE_SIZE, setSearch, setFilter, setAlerta,
+    DEFAULT_PAGE_SIZE, setSearch, setFilter, setAlerta, applyFilters,
     setPageRaw, setPageSizeRaw, setSortKeyRaw, setSortDirRaw,
   } = useEmbarquesFilters();
   const {
@@ -55,7 +55,7 @@ export function useEmbarquesPageState() {
 
   return {
     search, filterModo, filterEstado, filterCliente, filterOperador, filterAlerta,
-    fechaDesde, fechaHasta, page, pageSize, debouncedSearch, sortKey, sortDir, setSearch,
+    fechaDesde, fechaHasta, page, pageSize, debouncedSearch, sortKey, sortDir, setSearch, applyFilters,
     ...actions,
     embarques, filtered: embarques, totalCount, expedientesCount: totalCount,
     totalPages,

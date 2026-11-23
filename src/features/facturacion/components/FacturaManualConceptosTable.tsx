@@ -6,6 +6,7 @@
  * navy, así que aquí ya no rendereamos el pie de totales.
  */
 import { Plus, Trash2 } from "lucide-react";
+import { useLayoutEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumericInput } from "@/components/shared/NumericInput";
@@ -32,10 +33,19 @@ export function FacturaManualConceptosTable({ conceptos, moneda, onChange }: Pro
   // habilitado la opción se deshabilita aquí (el servidor sigue siendo la
   // autoridad y rechaza el timbrado, fail-closed).
   const fronteraHabilitada = useIvaFronteraHabilitada();
+  const descripcionUltimoConcepto = useRef<HTMLInputElement>(null);
+  const cantidadTrasAgregar = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    if (cantidadTrasAgregar.current !== conceptos.length) return;
+    cantidadTrasAgregar.current = null;
+    descripcionUltimoConcepto.current?.focus();
+  }, [conceptos.length]);
+
   const update = (idx: number, patch: Partial<ConceptoManualInput>) => {
     onChange(conceptos.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
   };
   const add = () => {
+    cantidadTrasAgregar.current = conceptos.length + 1;
     onChange([
       ...conceptos,
       { descripcion: "", cantidad: 1, precio_unitario: 0, clave_sat: "78101800", tipo_iva: "gravado_16" },
@@ -74,6 +84,7 @@ export function FacturaManualConceptosTable({ conceptos, moneda, onChange }: Pro
                 <div className="min-w-0 sm:col-span-8">
                   <label className="block text-label text-muted-foreground mb-1" htmlFor={`concepto-descripcion-${idx}`}>Descripción</label>
                   <Input
+                    ref={idx === conceptos.length - 1 ? descripcionUltimoConcepto : undefined}
                     id={`concepto-descripcion-${idx}`}
                     value={c.descripcion}
                     onChange={(e) => update(idx, { descripcion: e.target.value })}

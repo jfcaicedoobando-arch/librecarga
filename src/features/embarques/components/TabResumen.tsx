@@ -14,6 +14,7 @@ import { SeccionContenedoresReadonly } from "./contenedores/SeccionContenedoresR
 import { CargaConsolidadaCard } from "./contenedores/CargaConsolidadaCard";
 import { OrigenLclManualCard } from "./OrigenLclManualCard";
 import { Button } from "@/components/ui/button";
+import { useDestinoEdicionEmbarque } from "../hooks/useNavegacionEdicionEmbarque";
 
 interface Props {
   embarque: EmbarqueRow;
@@ -101,6 +102,7 @@ export function TabResumen({ embarque }: Props) {
 
 /** Campo de "Partes" con estado vacío accionable hacia la edición del embarque. */
 function ParteCampo({ label, valor, embarqueId }: { label: string; valor?: string | null; embarqueId: string }) {
+  const edicion = useDestinoEdicionEmbarque(embarqueId);
   // Razón social / shipper: literal capturado (no se reescriben siglas).
   const texto = (valor ?? "").trim();
   return (
@@ -112,7 +114,7 @@ function ParteCampo({ label, valor, embarqueId }: { label: string; valor?: strin
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground italic">Sin capturar</span>
           <Button variant="link" size="sm" asChild className="h-auto p-0 text-body-sm font-medium">
-            <Link to={`/embarques/${embarqueId}/editar`} className="inline-flex items-center gap-1">
+            <Link {...edicion} className="inline-flex items-center gap-1">
               <Pencil className="h-3 w-3" />
               Capturar
             </Link>

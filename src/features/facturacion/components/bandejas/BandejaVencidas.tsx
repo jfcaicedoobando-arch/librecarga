@@ -93,6 +93,11 @@ export function BandejaVencidas() {
     },
   });
 
+  const inicio = paged.page * paged.pageSize + 1;
+  const fin = inicio + paged.rows.length - 1;
+  const rangoVisible = paged.rows.length === 0 ? "0"
+    : inicio === fin ? String(inicio) : `${inicio}–${fin}`;
+
   return (
     <BandejaShell
       isError={isError}
@@ -114,7 +119,12 @@ export function BandejaVencidas() {
           </SelectContent>
         </Select>
       }
-      counter={<>Mostrando <strong className="text-foreground">{paged.filteredCount}</strong> de {filas.length} facturas vencidas</>}
+      counter={isLoading || isError ? null : (
+        <>
+          Mostrando <strong className="text-foreground">{rangoVisible}</strong> de {paged.filteredCount} {paged.filteredCount === 1 ? "factura vencida" : "facturas vencidas"}
+          {paged.filteredCount !== filas.length && <span> · {filas.length} sin filtros</span>}
+        </>
+      )}
     >
       <Card>
         <CardContent className="p-0">

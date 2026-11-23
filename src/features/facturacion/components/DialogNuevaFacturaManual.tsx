@@ -70,13 +70,13 @@ function ClienteFacturaManualFields({ clientes, consultaClientes, cliente, clien
 
 export function DialogNuevaFacturaManual({ open, onOpenChange }: Props) {
   const {
-    clientes, consultaClientes, cliente, clienteIncompleto, onClienteChange,
+    clientes, consultaClientes, cliente, receptor, clienteIncompleto, onClienteChange,
     fiscal, updateFiscal, tasaIva,
     conceptos, setConceptos,
     notas, setNotas,
     isDirty, reset,
     creditoAlerta, setCreditoAlerta,
-    puedeGuardar, puedeTimbrar, faltantesTimbrar,
+    puedeGuardar, puedeTimbrar, faltantesTimbrar, totalCero,
     handleSubmit, onConfirmarExceso, isPending,
   } = useFacturaManualForm(open, () => onOpenChange(false));
 
@@ -118,7 +118,7 @@ export function DialogNuevaFacturaManual({ open, onOpenChange }: Props) {
 
         <FormDialogSection flat title="Datos fiscales">
           <FacturaManualDatosFiscales
-            receptor={{ rfc: cliente?.rfc ?? "", regimen: cliente?.regimen_fiscal ?? "" }}
+            receptor={receptor}
             value={fiscal} onChange={updateFiscal} diasReadonly={!!cliente}
             diasReadonlyReason={cliente ? "Los días de crédito se toman del perfil del cliente. Cámbialos en el detalle del cliente." : undefined}
           />
@@ -155,6 +155,7 @@ export function DialogNuevaFacturaManual({ open, onOpenChange }: Props) {
                 {formatCurrency(totales.total, fiscal.moneda)}
               </span>
             </div>
+            {totalCero && <p className="text-body-sm">El total debe ser mayor a cero.</p>}
           </div>
         </div>
 

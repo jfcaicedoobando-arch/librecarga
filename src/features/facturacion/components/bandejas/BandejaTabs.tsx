@@ -105,7 +105,7 @@ export function BandejaTabs({ activeBandeja, onSelect }: {
             variant={activeGroup === group ? "secondary" : "ghost"}
             size="sm"
             aria-pressed={activeGroup === group}
-            onClick={() => onSelect(GROUP_FIRST[group])}
+            onClick={() => { if (group !== activeGroup) onSelect(GROUP_FIRST[group]); }}
           >
             {GROUP_LABELS[group]}
           </Button>

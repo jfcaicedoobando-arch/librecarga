@@ -10,7 +10,7 @@ import { useTasaIVA } from "@/features/catalogos/hooks/useTasaIVA";
 import { useFacturaManualSubmit } from "./useFacturaManualSubmit";
 import { useClientesFiscalOpts } from "@/features/facturacion/hooks/useClientesFiscalOpts";
 import {
-  INITIAL_CONCEPTOS, INITIAL_FISCAL, facturaManualIsDirty, serieForMoneda, useFaltantesTimbrar, validarUsoClienteManual,
+  INITIAL_CONCEPTOS, INITIAL_FISCAL, facturaManualIsDirty, faltantesParaTimbrarManual, serieForMoneda, validarUsoClienteManual,
 } from "@/features/facturacion/hooks/facturaManualFormDefaults";
 
 export { serieForMoneda };
@@ -67,14 +67,15 @@ export function useFacturaManualForm(open: boolean, onClose?: () => void) {
   const totalEstimado = sumarSubtotales(conceptos, (c) => ({
     cantidad: Number(c.cantidad), precioUnitario: Number(c.precio_unitario),
   }));
+  const totalPositivo = totalEstimado > 0;
+  const totalCero = conceptosValidos && !totalPositivo;
   // M-14: banda de plausibilidad del T/C (sólo cuando la factura no es en MXN).
   const tcFueraDeBanda = fiscal.moneda === "MXN" ? null : validarTcMxn(fiscal.tipoCambio);
   const puedeGuardar =
-    !!cliente && conceptosValidos && fiscal.tipoCambio > 0 && totalEstimado > 0 && !tcFueraDeBanda;
+    !!cliente && conceptosValidos && fiscal.tipoCambio > 0 && totalPositivo && !tcFueraDeBanda;
   const errorFormaMetodo = validarFormaMetodoPago(fiscal.formaPago, fiscal.metodoPago)[0]?.message;
-  const issuesUso = validarUsoClienteManual(cliente, fiscal.usoCfdi);
+  const { receptor, issues: issuesUso, avisos: avisosUso } = validarUsoClienteManual(cliente, fiscal.usoCfdi);
   const puedeTimbrar = puedeGuardar && !clienteIncompleto && !errorFormaMetodo && issuesUso.length === 0;
-  const faltantesTimbrar = useFaltantesTimbrar(cliente, conceptosValidos, fiscal);
 
 
   const reset = () => {
@@ -112,6 +113,7 @@ export function useFacturaManualForm(open: boolean, onClose?: () => void) {
     clientes,
     consultaClientes,
     cliente,
+    receptor,
     onClienteChange,
     fiscal,
     updateFiscal,
@@ -125,7 +127,11 @@ export function useFacturaManualForm(open: boolean, onClose?: () => void) {
     clienteIncompleto,
     puedeGuardar,
     puedeTimbrar,
-    faltantesTimbrar: [...faltantesTimbrar, ...issuesUso.map((i) => i.message), ...(tcFueraDeBanda ? ["tipo de cambio plausible"] : [])],
+    faltantesTimbrar: faltantesParaTimbrarManual({
+      tieneCliente: !!cliente, clienteIncompleto, conceptosValidos, totalCero,
+      tipoCambio: fiscal.tipoCambio, tcFueraDeBanda, errorFormaMetodo, avisosUso,
+    }),
+    totalCero,
     tcFueraDeBanda,
 
     ...submit,
