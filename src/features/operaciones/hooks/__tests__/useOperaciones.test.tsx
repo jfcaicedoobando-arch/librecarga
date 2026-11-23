@@ -45,6 +45,17 @@ describe('useOperaciones Hooks', () => {
     const { result } = renderHook(() => useOperacionesPageController(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.totalAlertas).toBe(3);
+    expect(result.current.balancePct).toBe(60);
+  });
+
+  it('no calcula el balance sin salidas del mes', async () => {
+    mockFetchStats.mockResolvedValue({
+      ...mockData, historicoGlobal: [{ mes: 'Jan', creadas: 0, llegadas: 3 }],
+    });
+    const { result } = renderHook(() => useOperacionesPageController(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.llegadasEsteMes).toBe(3);
+    expect(result.current.balancePct).toBeNull();
   });
 
   it('useOperacionesPageController handles operator filter', async () => {

@@ -13,6 +13,18 @@ const props = {
 };
 
 describe("Más filtros en Libro de pagos", () => {
+  it("distingue las dos fechas y cada filtro del panel por su nombre accesible", () => {
+    render(<LibroPagosToolbar {...props} filtros={FILTROS_LIBRO_PAGOS_INICIALES} />);
+    expect(screen.getByRole("textbox", { name: "Desde" })).toHaveValue("01/10/2026");
+    expect(screen.getByRole("textbox", { name: "Hasta" })).toHaveValue("31/10/2026");
+
+    const panel = screen.getByText("Más filtros").closest("details")!;
+    panel.open = true;
+    for (const name of ["Cuenta bancaria", "Moneda", "Medio de pago", "Conciliación", "Complemento"]) {
+      expect(within(panel).getByRole("combobox", { name })).toBeInTheDocument();
+    }
+  });
+
   it("cuenta sólo los filtros dentro del panel y actualiza el indicador al quitarlos", () => {
     const basicos: FiltrosLibroPagos = { ...FILTROS_LIBRO_PAGOS_INICIALES, vista: "recibidos", texto: "cliente" };
     const avanzados: FiltrosLibroPagos = {

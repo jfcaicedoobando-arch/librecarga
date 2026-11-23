@@ -54,9 +54,6 @@ const DEFAULT_FILTERS = {
 type CotizacionFilters = Record<keyof typeof DEFAULT_FILTERS, string>;
 
 const SORTABLE_KEYS = Object.keys(SORT_KEY_TO_COLUMN);
-const KPIS_VACIOS = { total: 0, aceptadas: 0, rechazadas: 0, tasa: "0.0" };
-const CONTEOS_VACIOS = { clientes: 0, prospectos: 0, todas: 0 };
-
 function normalizarSegmento(valor: string): SegmentoCotizacion {
   return valor === "prospectos" || valor === "todas" ? valor : "clientes";
 }
@@ -127,11 +124,12 @@ export function useCotizacionesPageController() {
   // COT-NEW-01: los conteos comparten el filtro de vigencia con la tabla.
   const incluirInactivas = lista.filters.incluirInactivas === "si";
   const agregadosQueryKey = ["cotizaciones", "agregados", organizationId, segmento, incluirInactivas];
-  const { data: agregados } = useQuery({
+  const consultaAgregados = useQuery({
     queryKey: agregadosQueryKey,
     queryFn: () => fetchCotizacionAgregados(organizationId, segmento, incluirInactivas),
     staleTime: staleTimes.MEDIUM,
   });
+  const agregados = consultaAgregados.isError ? undefined : consultaAgregados.data;
 
   const filtrosActuales = aFiltrosSql(organizationId, lista.search, lista.filters);
 
@@ -145,7 +143,10 @@ export function useCotizacionesPageController() {
     paginated: lista.rows,
     /** Total del servidor (ya no es el largo del array en memoria). */
     total: lista.count,
-    kpis: agregados?.kpis ?? KPIS_VACIOS,
+    kpis: agregados?.kpis,
+    errorAgregados: consultaAgregados.isError,
+    consultandoAgregados: consultaAgregados.isFetching,
+    reintentarAgregados: consultaAgregados.refetch,
     canEdit,
     // filtros
     search: lista.search,
@@ -155,7 +156,7 @@ export function useCotizacionesPageController() {
     incluirInactivas: lista.filters.incluirInactivas === "si",
     soloAceptadasSinEmbarque,
     segmento,
-    segmentoConteos: agregados?.segmentoConteos ?? CONTEOS_VACIOS,
+    segmentoConteos: agregados?.segmentoConteos,
     totalAceptadasSinEmbarque: agregados?.totalAceptadasSinEmbarque ?? 0,
     page: lista.page,
     pageSize: lista.pageSize,

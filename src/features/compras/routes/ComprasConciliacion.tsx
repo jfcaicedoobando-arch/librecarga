@@ -22,6 +22,7 @@ import { formatCurrency } from "@/lib/formatters";
 import { buildConciliacionColumns } from "./_sections/conciliacionColumns";
 import { ConciliacionDetalleSheet } from "./_sections/ConciliacionDetalleSheet";
 import { ErrorState } from "@/components/shared/states/ErrorState";
+import { FilteredListEmptyState } from "@/components/empty/FilteredListEmptyState";
 import { ResultadoTruncadoError } from "@/lib/supabase/assertNotTruncated";
 import {
   useComprasConciliacionController,
@@ -37,6 +38,13 @@ export default function ComprasConciliacion() {
   } = useComprasConciliacionController();
 
   const columns = useMemo(() => buildConciliacionColumns(), []);
+  const hayFiltros = estado !== "todos" || moneda !== "todas" || Boolean(search.trim());
+
+  const limpiarFiltros = () => {
+    setEstado("todos");
+    setMoneda("todas");
+    setSearch("");
+  };
 
   return (
     <PageContainer width="wide">
@@ -111,7 +119,13 @@ export default function ComprasConciliacion() {
             columns={columns}
             data={rows}
             isLoading={isLoading}
-            emptyMessage="No hay embarques con conceptos de costo para conciliar."
+            emptyState={(
+              <FilteredListEmptyState
+                filtered={hayFiltros}
+                onClearFilters={limpiarFiltros}
+                message="No hay embarques con conceptos de costo para conciliar."
+              />
+            )}
             rowKey={(r) => `${r.embarque_id}-${r.moneda}`}
             onRowClick={(row) => setDetalle(row)}
             stickyHeader

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router";
 import { useDuplicarCotizacion } from "@/features/cotizacion/hooks/useCotizacionVersiones";
 import { Plus } from "lucide-react";
 import { FloatingActionButton } from "@/components/shared/FloatingActionButton";
-import { CotizacionesKpis } from "@/features/cotizacion/components/CotizacionesKpis";
+import { CotizacionesIndicadores } from "@/features/cotizacion/components/CotizacionesKpis";
 import { Card, CardContent } from "@/components/ui/card";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { CotizacionMobileCard } from "@/features/cotizacion/components/CotizacionMobileCard";
@@ -81,10 +81,14 @@ export default function Cotizaciones() {
       />
 
       <CotizacionesBannerOrigen
-        hayAceptadas={(c.kpis?.aceptadas ?? 0) > 0}
+        hayAceptadas={c.kpis && c.kpis.aceptadas > 0}
         onNuevaCotizacion={c.canEdit ? c.irANueva : undefined}
       />
-      <CotizacionesKpis {...c.kpis} segmento={c.segmento} />
+      <CotizacionesIndicadores
+        kpis={c.kpis} segmento={c.segmento}
+        isError={c.errorAgregados} isFetching={c.consultandoAgregados}
+        onRetry={() => void c.reintentarAgregados()}
+      />
 
       <SegmentoTabs
         value={c.segmento}

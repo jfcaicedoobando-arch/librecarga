@@ -8,14 +8,15 @@ const consulta = vi.hoisted(() => ({ useProveedoresPaginados: vi.fn() }));
 vi.mock("@/features/proveedor/hooks", () => consulta);
 
 describe("ProveedorTable", () => {
-  it("permite reintentar un error con los filtros actuales y ofrece crear sólo tras cargar un vacío real", () => {
+  it("reintenta un error con los filtros actuales y explica un vacío de los filtros", () => {
     const refetch = vi.fn();
     const onTotalChange = vi.fn();
+    const limpiar = vi.fn();
     consulta.useProveedoresPaginados.mockReturnValue({ isError: true, refetch });
     const vista = () => (
       <MemoryRouter>
         <ProveedorTable origen="Nacional" search="" onSelect={vi.fn()} onTotalChange={onTotalChange}
-          canCreate onCreateNew={vi.fn()} />
+          onLimpiarFiltros={limpiar} canCreate onCreateNew={vi.fn()} />
       </MemoryRouter>
     );
     const { rerender } = render(vista(), { wrapper: createWrapper() });
@@ -29,7 +30,25 @@ describe("ProveedorTable", () => {
     consulta.useProveedoresPaginados.mockReturnValue({ isError: false, data: { data: [], count: 0 } });
     rerender(vista());
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByText("Crear proveedor", { selector: "button" })).toBeInTheDocument();
+    expect(screen.getByText("Sin proveedores con estos filtros")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Crear proveedor" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
+    expect(limpiar).toHaveBeenCalledOnce();
     expect(onTotalChange).toHaveBeenCalledWith(0);
+  });
+
+  it("ofrece crear el primer proveedor sólo con un directorio vacío y sin filtros", () => {
+    const crear = vi.fn();
+    consulta.useProveedoresPaginados.mockReturnValue({ data: { data: [], count: 0 } });
+    render(
+      <MemoryRouter>
+        <ProveedorTable origen="todos" search="" onSelect={vi.fn()} onLimpiarFiltros={vi.fn()} canCreate onCreateNew={crear} />
+      </MemoryRouter>,
+      { wrapper: createWrapper() },
+    );
+    expect(screen.getByText("Aún no hay proveedores")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Limpiar filtros" })).toBeNull();
+    fireEvent.click(screen.getByText("Crear proveedor", { selector: "button" }));
+    expect(crear).toHaveBeenCalledOnce();
   });
 });

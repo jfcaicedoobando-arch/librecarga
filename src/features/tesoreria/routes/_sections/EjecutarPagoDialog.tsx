@@ -15,9 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { FormDialogFooter } from "@/components/shared/FormDialogFooter";
 import { formatCurrency } from "@/lib/formatters";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 
 import type { FacturaProgramable } from "@/features/tesoreria/domain/pagosProgramados";
 import type { CuentaBancaria } from "@/features/tesoreria/services";
+import type { useCuentasBancarias } from "@/features/tesoreria/hooks/useTesoreriaCuentas";
 
 export interface FormPago {
   cuentaBancariaId: string;
@@ -28,10 +30,13 @@ export interface FormPago {
   tipoCambio?: number | null;
 }
 
+type ConsultaCuentas = Pick<ReturnType<typeof useCuentasBancarias>, "isLoading" | "isError" | "isFetching" | "refetch">;
+
 interface Props {
   facturaPago: FacturaProgramable | null;
   onClose: () => void;
   cuentasCompatibles: CuentaBancaria[];
+  consultaCuentas: ConsultaCuentas;
   form: FormPago;
   setField: <K extends keyof FormPago>(key: K, value: FormPago[K]) => void;
   onEjecutar: () => void;
@@ -40,13 +45,60 @@ interface Props {
 
 const FORM_ID = "form-ejecutar-pago";
 
+function cuentaElegible(consulta: ConsultaCuentas, cuentas: CuentaBancaria[], cuentaId: string) {
+  return !consulta.isError && !consulta.isLoading && cuentas.some((cuenta) => cuenta.id === cuentaId);
+}
+
+function CampoCuenta({ cuentas, consulta, moneda, value, onChange }: {
+  cuentas: CuentaBancaria[];
+  consulta: ConsultaCuentas;
+  moneda?: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const sinOpciones = consulta.isLoading || consulta.isError || cuentas.length === 0;
+  return (
+    <div className="sm:col-span-2 space-y-1">
+      <Label htmlFor="pago-cuenta">Cuenta bancaria *</Label>
+      <Select value={value} onValueChange={onChange} disabled={sinOpciones}>
+        <SelectTrigger id="pago-cuenta" aria-describedby={sinOpciones ? "pago-cuenta-estado" : undefined}>
+          <SelectValue placeholder="Selecciona cuenta…" />
+        </SelectTrigger>
+        <SelectContent>
+          {cuentas.map((c) => (
+            <SelectItem key={c.id} value={c.id}>{c.banco} · {c.alias} ({c.moneda})</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {sinOpciones && (
+        <div id="pago-cuenta-estado">
+          {consulta.isError ? (
+            <ErrorStateInline
+              title="No pudimos cargar las cuentas bancarias"
+              message="Reintenta para consultar las cuentas de esta moneda."
+              onRetry={() => void consulta.refetch()}
+              retrying={consulta.isFetching}
+            />
+          ) : (
+            <p role="status" className="text-body-sm text-muted-foreground">
+              {consulta.isLoading ? "Cargando cuentas bancarias…" : `Sin cuentas en ${moneda}.`}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function EjecutarPagoDialog({
-  facturaPago, onClose, cuentasCompatibles, form, setField, onEjecutar, isPending,
+  facturaPago, onClose, cuentasCompatibles, consultaCuentas, form, setField, onEjecutar, isPending,
 }: Props) {
   const efectivo = esPagoEfectivo(form.metodoPago);
   const hoy = todayLocalISO();
+  const moneda = facturaPago?.moneda ?? "MXN";
   const errores = erroresPagoProgramado(form, facturaPago ?? { moneda: "MXN" }, hoy);
-  const puedeEjecutar = !!facturaPago && Object.keys(errores).length === 0;
+  const cuentaValida = cuentaElegible(consultaCuentas, cuentasCompatibles, form.cuentaBancariaId);
+  const puedeEjecutar = !!facturaPago && Object.keys(errores).length === 0 && (efectivo || cuentaValida);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -79,20 +131,17 @@ export function EjecutarPagoDialog({
       }
     >
       <p className="sm:col-span-2 text-body-sm text-muted-foreground">Registra un pago ya realizado y aplícalo a la factura. El ERP no envía dinero al banco.</p>
-      {efectivo ? <p className="sm:col-span-2 text-body-sm text-muted-foreground">Efectivo: se registra sin cuenta ni movimiento bancario.</p> : <div className="sm:col-span-2">
-        <Label htmlFor="pago-cuenta">Cuenta bancaria *</Label>
-        <Select value={form.cuentaBancariaId} onValueChange={(v) => setField("cuentaBancariaId", v)}>
-          <SelectTrigger id="pago-cuenta"><SelectValue placeholder="Selecciona cuenta…" /></SelectTrigger>
-          <SelectContent>
-            {cuentasCompatibles.length === 0
-              ? <SelectItem value="__sin" disabled>Sin cuentas en {facturaPago?.moneda}</SelectItem>
-              : cuentasCompatibles.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.banco} · {c.alias} ({c.moneda})</SelectItem>
-              ))
-            }
-          </SelectContent>
-        </Select>
-      </div>}
+      {efectivo ? (
+        <p className="sm:col-span-2 text-body-sm text-muted-foreground">Efectivo: se registra sin cuenta ni movimiento bancario.</p>
+      ) : (
+        <CampoCuenta
+          cuentas={cuentasCompatibles}
+          consulta={consultaCuentas}
+          moneda={moneda}
+          value={form.cuentaBancariaId}
+          onChange={(valor) => setField("cuentaBancariaId", valor)}
+        />
+      )}
       <div>
         <Label htmlFor="pago-fecha">Fecha *</Label>
         <DatePickerMx id="pago-fecha" value={form.fecha} onChange={(v) => setField("fecha", v)} className="w-full" min={facturaPago?.fecha_emision ?? undefined} max={hoy} errorText={errores.fecha} />
@@ -104,7 +153,7 @@ export function EjecutarPagoDialog({
           id="pago-monto"
           value={form.monto}
           onChange={(n: number) => setField("monto", n)}
-          currency={facturaPago?.moneda}
+          currency={moneda}
           aria-invalid={!!errores.monto}
           aria-describedby={errores.monto ? "pago-monto-error" : undefined}
         />
@@ -121,7 +170,7 @@ export function EjecutarPagoDialog({
           </SelectContent>
         </Select>
       </div>
-      <PagoProgramadoTipoCambio moneda={facturaPago?.moneda ?? "MXN"} monto={form.monto}
+      <PagoProgramadoTipoCambio moneda={moneda} monto={form.monto}
         tipoCambio={form.tipoCambio} error={errores.tipoCambio} onChange={(v) => setField("tipoCambio", v)} />
       <div>
         <Label htmlFor="pago-referencia">Referencia</Label>

@@ -39,12 +39,13 @@ export default function TesoreriaPagosProgramados() {
     cuentaBancariaId: "", fecha: todayLocalISO(), monto: 0, metodoPago: "Transferencia", referencia: "",
   });
 
-  const { data: cuentas = [] } = useCuentasBancarias();
+  const consultaCuentas = useCuentasBancarias();
+  const cuentas = consultaCuentas.data;
   const ejecutarPago = useEjecutarPagoProgramado();
   const requestIdRef = useRef<string | null>(null);
 
   const cuentasCompatibles = useMemo(
-    () => cuentas.filter((c) => c.moneda === facturaPago?.moneda),
+    () => (cuentas ?? []).filter((c) => c.moneda === facturaPago?.moneda),
     [cuentas, facturaPago],
   );
 
@@ -151,6 +152,7 @@ export default function TesoreriaPagosProgramados() {
         facturaPago={facturaPago}
         onClose={() => setFacturaPago(null)}
         cuentasCompatibles={cuentasCompatibles}
+        consultaCuentas={consultaCuentas}
         form={form}
         setField={setField}
         onEjecutar={handleEjecutar}

@@ -47,4 +47,20 @@ describe("LibroPagosMobileCard", () => {
     expect(screen.getByText("F-1")).toBeInTheDocument();
     expect(screen.getByText(/500\.00/)).toBeInTheDocument();
   });
+
+  it.each([
+    ["  Cancelado ", true, "REP · Cancelado", "Conciliación · Conciliado"],
+    [null, false, "REP · Pendiente", "Conciliación · Pendiente"],
+    ["NoAplica", false, "REP · No aplica", "Conciliación · Pendiente"],
+  ] as const)("aplica los mismos estados REP y conciliación que la tabla", (estado_rep, conciliado, rep, banco) => {
+    render(<LibroPagosMobileCard row={pago({ estado_rep, conciliado })} />);
+    expect(screen.getByText(rep)).toBeVisible();
+    expect(screen.getByText(banco)).toBeVisible();
+  });
+
+  it("distingue un ajuste sin conciliación y sin REP de cobro", () => {
+    const { container } = render(<LibroPagosMobileCard row={pago({ tipo: "pago", es_ajuste: true })} />);
+    expect(screen.getByText("Conciliación · No aplica")).toBeVisible();
+    expect(container.querySelector('[data-domain="rep"]')).not.toBeInTheDocument();
+  });
 });

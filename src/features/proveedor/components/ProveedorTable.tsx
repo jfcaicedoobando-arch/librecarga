@@ -20,11 +20,12 @@ interface Props {
   origen?: "Nacional" | "Extranjero" | "todos";
   onSelect: (id: string) => void;
   onTotalChange?: (total: number) => void;
+  onLimpiarFiltros: () => void;
   canCreate?: boolean;
   onCreateNew?: () => void;
 }
 
-export function ProveedorTable({ tipo, search, origen, onSelect, onTotalChange, canCreate, onCreateNew }: Props) {
+export function ProveedorTable({ tipo, search, origen, onSelect, onTotalChange, onLimpiarFiltros, canCreate, onCreateNew }: Props) {
   const { page, setPage, pageSize, setPageSize, resetPage } = useListPageState({}, 100, [50, 100, 200, 500]);
   const debouncedSearch = useDebounce(search, 300);
 
@@ -43,6 +44,7 @@ export function ProveedorTable({ tipo, search, origen, onSelect, onTotalChange, 
   const proveedores = resultado?.data ?? [];
   const totalCount = resultado?.count ?? 0;
   const totalPages = Math.ceil(totalCount / pageSize);
+  const hayFiltros = Boolean(search.trim() || tipo || (origen && origen !== "todos"));
 
   useEffect(() => {
     if (!isError) onTotalChange?.(totalCount);
@@ -68,13 +70,16 @@ export function ProveedorTable({ tipo, search, origen, onSelect, onTotalChange, 
           columns={proveedorColumns}
           data={proveedores}
           isLoading={isLoading && proveedores.length === 0}
-          emptyMessage="Sin proveedores registrados"
+          emptyMessage={hayFiltros ? "Sin proveedores con estos filtros" : "Sin proveedores registrados"}
           emptyState={
             <EmptyState
               icon={Truck}
-              title={search ? "No se encontraron proveedores" : "Aún no hay proveedores"}
-              description={search ? "Ajusta la búsqueda e intenta de nuevo." : "Registra tu primer proveedor para llevar el control de compras y gastos."}
-              primaryAction={canCreate && onCreateNew ? { label: "Crear proveedor", onClick: onCreateNew } : undefined}
+              title={hayFiltros ? "Sin proveedores con estos filtros" : "Aún no hay proveedores"}
+              description={hayFiltros
+                ? "Ajusta la búsqueda o limpia los filtros para volver al directorio."
+                : "Registra tu primer proveedor para llevar el control de compras y gastos."}
+              primaryAction={!hayFiltros && canCreate && onCreateNew ? { label: "Crear proveedor", onClick: onCreateNew } : undefined}
+              secondaryAction={hayFiltros ? { label: "Limpiar filtros", onClick: onLimpiarFiltros } : undefined}
             />
           }
           onRowClick={(p) => onSelect(p.id)}

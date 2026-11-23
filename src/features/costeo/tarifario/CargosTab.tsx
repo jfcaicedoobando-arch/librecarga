@@ -1,7 +1,7 @@
 /** Vistas 2 y 3 del tarifario: cargos FOB de agentes / cargos locales por naviera. */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 import { costeo } from "../queryKeys";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useTasaIVA } from "@/features/catalogos/hooks/useTasaIVA";
 import { montoConIva } from "./ivaCargo";
 import { archivarCargo, listarCargos, type CargoTarifario, type TipoCargo } from "./cargosService";
 import { CargoFormDialog } from "./CargoFormDialog";
+import { DescargarTarifarioButton } from "./DescargarTarifarioButton";
 
 interface Props { tipo: TipoCargo; orgId: string | null; puedeEditar: boolean }
 
@@ -60,8 +61,9 @@ export function CargosTab({ tipo, orgId, puedeEditar }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={descargar}><Download className="mr-1 size-4" /> Descargar Excel</Button>
+      <div className="flex flex-wrap items-start justify-end gap-2">
+        <DescargarTarifarioButton cargando={q.isFetching} error={q.isError} hayFilas={filas.length > 0}
+          onDownload={descargar} />
         {puedeEditar && orgId && <Button onClick={() => setEditando("nuevo")}><Plus className="mr-1 size-4" /> Nuevo cargo</Button>}
       </div>
       <DataTable columns={columns} data={filas} rowKey={(c) => c.id} isLoading={q.isLoading}

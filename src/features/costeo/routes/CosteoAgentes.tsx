@@ -125,6 +125,7 @@ export default function CosteoAgentes() {
       <CosteoAgentesTable
         agentes={agentesFiltrados}
         isLoading={isLoading}
+        onLimpiarBusqueda={agentes.length > 0 && search.trim() ? () => setSearch("") : undefined}
         onEditar={abrirEditar}
         onEliminar={setAEliminar}
         onInvitarPortal={(a) => setInvitarAgente(a)}

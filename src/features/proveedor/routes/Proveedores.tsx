@@ -94,6 +94,7 @@ export default function Proveedores() {
         search={search}
         origen={origen}
         onSelect={(id) => navigate(`/proveedores/${id}`)}
+        onLimpiarFiltros={() => { setSearch(""); limpiarFiltros(); }}
         canCreate={canEdit}
         onCreateNew={() => setNuevoOpen(true)}
       />

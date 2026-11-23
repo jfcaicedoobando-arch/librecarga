@@ -49,7 +49,7 @@ export function useOperacionesPageController() {
   }, [operadorChart, operadores, global]);
 
   const balancePct =
-    creadasEsteMes > 0 ? Math.round((llegadasEsteMes / creadasEsteMes) * 100) : 100;
+    creadasEsteMes > 0 ? Math.round((llegadasEsteMes / creadasEsteMes) * 100) : null;
 
   const contPct =
     global.totalContenedores > 0

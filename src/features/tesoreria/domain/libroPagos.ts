@@ -26,6 +26,15 @@ export function etiquetaTipoPagoLibro(pago: Pick<PagoLibro, "tipo" | "es_ajuste"
   return pago.es_ajuste ? "Ajuste no monetario" : TIPO_PAGO_LABELS[pago.tipo];
 }
 
+/** Normaliza el estado crudo del REP al vocabulario del dominio `rep`. */
+export function estadoRepCanonico(crudo: string | null | undefined): string {
+  const estado = normalizarTextoPago(crudo ?? "");
+  if (estado === "noaplica") return "No aplica";
+  if (estado === "timbrado") return "Timbrado";
+  if (estado === "cancelado") return "Cancelado";
+  return "Pendiente";
+}
+
 /**
  * MNY-07: un cobro con REP cancelado ya no representa dinero cobrado vigente
  * (mismo canon que el saldo/estado de la factura). La fila se conserva en la

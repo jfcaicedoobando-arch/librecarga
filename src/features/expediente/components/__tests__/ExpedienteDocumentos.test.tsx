@@ -71,4 +71,29 @@ describe("Expediente", () => {
     fireEvent.click(guardar);
     expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ archivo: valido }));
   });
+
+  it("señala la vigencia obligatoria en su campo y limpia el error al capturarla", () => {
+    const onGuardar = vi.fn();
+    render(<SubirDocumentoDialog open onOpenChange={vi.fn()} tipos={TIPOS} tipoSugerido="Carta bancaria"
+      tiposConVencimiento={["Carta bancaria"]} descripcion="Expediente" isPending={false} onGuardar={onGuardar} />);
+
+    const archivo = new File(["PDF simulado"], "doc.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText("Archivo"), { target: { files: [archivo] } });
+    const campo = screen.getByRole("textbox", { name: "Vigente hasta" });
+    const guardar = screen.getByRole("button", { name: "Guardar documento" });
+    fireEvent.click(guardar);
+    expect(campo).toHaveAttribute("aria-invalid", "true");
+    expect(campo).toHaveAccessibleDescription(/La fecha de vencimiento es obligatoria/);
+    expect(onGuardar).not.toHaveBeenCalled();
+
+    const futura = new Date();
+    futura.setDate(futura.getDate() + 14);
+    fireEvent.change(campo, { target: { value: futura.toLocaleDateString("es-MX", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+    }) } });
+    fireEvent.blur(campo);
+    expect(campo).not.toHaveAttribute("aria-invalid");
+    fireEvent.click(guardar);
+    expect(onGuardar).toHaveBeenCalledOnce();
+  });
 });

@@ -66,7 +66,7 @@ describe("TabCostos · acción «Cargar costos»", () => {
     consulta.mockReturnValue(respuesta([], false));
     rerender(tab(true));
     expect(screen.getByText("Sin costos directos del embarque")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Cargar costos" })).toBeEnabled();
+    expect(screen.getByText("Cargar costos", { selector: "button" })).toBeEnabled();
   });
 
   it("muestra la tasa USD usada sin redondearla a dos decimales", () => {

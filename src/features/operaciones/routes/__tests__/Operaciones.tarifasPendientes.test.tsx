@@ -12,7 +12,7 @@ const mockController = {
     totalEnPuerto: 0, activasHoy: 0,
   },
   hoyStr: "hoy", chartData: [],
-  creadasEsteMes: 0, llegadasEsteMes: 0, balancePct: 0, contPct: 0, totalAlertas: 0,
+  creadasEsteMes: 0, llegadasEsteMes: 0, balancePct: null, contPct: 0, totalAlertas: 0,
 };
 vi.mock("@/features/operaciones/hooks", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/features/operaciones/hooks")>();
@@ -61,4 +61,13 @@ describe("Operaciones - tarjeta Tarifas pendientes", () => {
     expect(screen.queryByText("No se pudo cargar")).not.toBeInTheDocument();
     expect(screen.queryByText("5")).not.toBeInTheDocument();
   });
+});
+
+it("explica el balance sin ETD y distingue el alcance del operador y la cifra global", () => {
+  mockUseTarifasPendientes.mockReturnValue({ data: 0 });
+  renderPage();
+  expect(screen.getByText("Sin ETD este mes")).toBeVisible();
+  expect(screen.queryByRole("progressbar", { name: "Balance ETD/llegadas" })).not.toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "Operador de la tendencia" })).toBeVisible();
+  expect(screen.getByText("Activas hoy · toda la organización")).toBeVisible();
 });
