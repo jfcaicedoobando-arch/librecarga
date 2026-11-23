@@ -6,7 +6,7 @@
 -- el flujo financiero) debe defender el invariante: la cuenta debe existir,
 -- estar ACTIVA y ser de la MISMA organización de la factura.
 --
---   · CASO 1 (negativo): cuenta de OTRA organización → LC_PAGO_CUENTA_OTRA_ORG
+--   · CASO 1 (negativo, service_role): cuenta de OTRA organización → LC_PAGO_CUENTA_OTRA_ORG
 --     y no queda pago ni movimiento.
 --   · CASO 2 (negativo): cuenta inactiva → LC_PAGO_CUENTA_INACTIVA.
 --   · CASO 3 (positivo): cuenta propia y activa → el pago se registra.
@@ -14,7 +14,7 @@
 --     defensa en profundidad (misma org y activa).
 --
 -- Ejecución manual:
---   psql "$SUPABASE_DB_URL" -f supabase/tests/n8_pago_proveedor_cuenta_valida.sql
+--   Ejecutar sobre la base efímera preparada para pruebas.
 -- =============================================================
 
 BEGIN;
@@ -62,6 +62,11 @@ BEGIN
   VALUES (v_org, 'N8 PROPIA INACTIVA', 'MXN'::public.moneda, false) RETURNING id INTO v_cta_off;
   INSERT INTO public.cuentas_bancarias (organization_id, alias, moneda, activa)
   VALUES (v_org2, 'N8 OTRA ORG', 'MXN'::public.moneda, true) RETURNING id INTO v_cta_otra;
+
+  -- El servicio sí puede ver ambas cuentas. La RPC debe validar la empresa
+  -- de la factura incluso cuando ambas cuentas son visibles para el llamador.
+  PERFORM set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  PERFORM set_config('role', 'service_role', true);
 
   -- ── CASO 1 · cuenta de otra organización.
   BEGIN

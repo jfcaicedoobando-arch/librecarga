@@ -4,6 +4,7 @@
 import { defineColumns } from "@/components/shared/DataTable";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { PagoProveedorRow } from "@/features/compras/services/pagosGlobal";
+import { AJUSTE_NO_MONETARIO } from "@/features/compras/ajustePagoCopy";
 
 export function buildPagosColumns() {
   return defineColumns<PagoProveedorRow>([
@@ -33,8 +34,8 @@ export function buildPagosColumns() {
     },
     {
       id: "metodo",
-      header: "Método",
-      accessorFn: (r) => r.metodo_pago,
+      header: "Método o tipo",
+      accessorFn: (r) => r.es_ajuste ? AJUSTE_NO_MONETARIO : r.metodo_pago,
     },
     {
       id: "referencia",

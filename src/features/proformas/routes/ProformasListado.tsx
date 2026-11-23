@@ -26,23 +26,31 @@ function parseEstado(valor: string | null): FiltroEstadoProforma {
 }
 
 export default function ProformasListado() {
-  useDocumentTitle("Proformas");
-  const [searchParams] = useSearchParams();
-  const estadoInicial = parseEstado(searchParams.get("estado"));
-  const porEmitir = estadoInicial === "aceptada";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const estado = parseEstado(searchParams.get("estado"));
+  const porEmitir = estado === "aceptada";
+  const titulo = porEmitir ? "Proformas por emitir" : "Proformas";
+  useDocumentTitle(titulo);
+
+  const cambiarEstado = (value: FiltroEstadoProforma) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === "todas") next.delete("estado");
+    else next.set("estado", value);
+    if (next.toString() !== searchParams.toString()) setSearchParams(next);
+  };
 
   return (
     <PageContainer width="wide">
       <PageHeader
         icon={<FileSpreadsheet className="h-6 w-6 text-primary" />}
-        title={porEmitir ? "Proformas por emitir" : "Proformas"}
+        title={titulo}
         description={
           porEmitir
             ? "Proformas aprobadas —por el cliente o internamente— que aún no se han convertido en factura."
             : "Listado completo de proformas generadas. Filtra por estado, busca por número/expediente/cliente y convierte a factura."
         }
       />
-      <TabProformas key={estadoInicial} estadoInicial={estadoInicial} />
+      <TabProformas estadoControlado={{ value: estado, onChange: cambiarEstado }} />
     </PageContainer>
   );
 }

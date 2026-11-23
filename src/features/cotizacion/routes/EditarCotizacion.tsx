@@ -32,7 +32,7 @@ export default function EditarCotizacion() {
   const { data: clientes = [] } = useClientesForSelect();
   const { data: cotizacion, isLoading, isError, refetch } = useCotizacion(id);
   useRegisterBreadcrumbLabel(id, cotizacion?.folio);
-  const { data: costos, isLoading: costosLoading } = useCotizacionCostos(id);
+  const { data: costos, isLoading: costosLoading, refetch: refetchCostos } = useCotizacionCostos(id);
 
   if (isLoading || costosLoading) {
     return <PageContainer><DetailSkeleton sections={1} /></PageContainer>;
@@ -66,11 +66,21 @@ export default function EditarCotizacion() {
     );
   }
 
+  if (costos === undefined) {
+    return (
+      <PageContainer>
+        <ErrorState
+          title="No pudimos cargar los costos de la cotización"
+          onRetry={() => void refetchCostos()}
+        />
+      </PageContainer>
+    );
+  }
 
   return (
     <EditarCotizacionForm
       cotizacion={cotizacion}
-      costos={costos ?? []}
+      costos={costos}
       clientes={clientes}
       navigate={navigate}
       toast={toast}

@@ -1,0 +1,10 @@
+REVOKE EXECUTE ON FUNCTION public._resolver_proveedor_por_nombre(uuid, text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public._refact_reps_bloqueantes(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public._assert_receptor_fiscal_valido(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public._calcular_demoras_montos_contenedor(uuid, uuid, uuid, integer, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public._resolver_proveedor_por_nombre(uuid, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public._refact_reps_bloqueantes(uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public._assert_receptor_fiscal_valido(uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public._calcular_demoras_montos_contenedor(uuid, uuid, uuid, integer, text) TO service_role;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE public.auditoria_snapshots FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.auditoria_snapshots TO service_role;

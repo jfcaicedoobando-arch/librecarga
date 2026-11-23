@@ -20,7 +20,7 @@ const SAMPLE = [
   },
   {
     id: "p2", fecha_pago: "2026-06-05", monto: "500", moneda: "USD",
-    tipo_cambio_usd: "17.5", metodo_pago: "Transferencia", referencia: null,
+    tipo_cambio_usd: "17.5", metodo_pago: "Transferencia", referencia: null, es_ajuste: true,
     cuenta_bancaria_id: null, proveedor_factura_id: "f2",
     proveedor_facturas: {
       folio_interno: "FP-000002", folio_proveedor: "B-200", total: "500",
@@ -47,6 +47,7 @@ describe("listarPagosProveedorGlobal", () => {
       proveedor_nombre: "ACME SA",
     });
     expect(rows[1].tipo_cambio_usd).toBe(17.5);
+    expect(rows.map((row) => row.es_ajuste)).toEqual([false, true]);
   });
 
   // M-4 (auditoría v14): proveedor y búsqueda se filtran server-side (antes

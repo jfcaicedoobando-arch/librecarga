@@ -7,6 +7,8 @@ import { pathToFileURL } from 'node:url';
 const DIR = 'scripts/ci/drizzle-history';
 const COMMIT = 'ec96cf2e4bbb4443be463f1496da0189df2d1bef';
 const ARCHIVE = `archive/${COMMIT}`;
+const AUTHORITY_PREIMAGES = 'preconditions/authority-0092-0094.sql';
+const AUTHORITY_PREIMAGES_SHA256 = 'f44cca1dbe2e9fecb0202920c3a95f9061a58155fb424957a2bed354e54b23f5';
 // Explicit historical order: the archived idx 22 predates the current idx 22.
 export const HISTORY = [
   { file: '0021_refacturar_proforma_rpc.sql', sha256: '8f5c299f5c593fe398e620056d8a2971a9f9ed4e90940310df173023fa9572e5', eligibleName: '20261026184800_replay_refacturar_proforma_rpc.sql' },
@@ -74,6 +76,18 @@ export const HISTORY = [
   { file: '0080_isr_resico_timbrado_notas.sql', sha256: 'fe4f54521ba3e3d057e401cbf4608a5cc7d57e49cb040f1000940880c410e4d4', eligibleName: '20261116000000_isr_resico_timbrado_notas.sql' },
   { file: '0081_isr_resico_timbrado_rep.sql', sha256: '8d3027e3b135952bfd035470929b63f77ac82f07b719e17b22781f009a210a21', eligibleName: '20261116000100_isr_resico_timbrado_rep.sql' },
   { file: '0082_isr_resico_reemplazo.sql', sha256: 'af04b637e4ad3918e3ec0e4143c34bee3a4d902e1a039c91ebe017df9ef2f4fb', eligibleName: '20261116000200_isr_resico_reemplazo.sql' },
+  { file: '0083_selected_security_internal_helpers_snapshot_writes.sql', sha256: '60296254ddc720ad9274b2b02159299456cb550121729dd4ca077c5332608f5d', eligibleName: '20261120010000_replay_selected_security_internal_helpers_snapshot_writes.sql' },
+  { file: '0084_brokers_tabulador_comisiones.sql', sha256: '4398728bdeebc6531f5802ab90e36dd2979bd70c9f02ae85f537f262e14d5e48', eligibleName: '20261120010100_replay_brokers_tabulador_comisiones.sql' },
+  { file: '0085_broker_alta_prospecto_propiedades_empresa.sql', sha256: '053f6b4451d3a09db4709689809b1ea79626a20549dea21fcc1b4b156a61aa38', eligibleName: '20261120010200_replay_broker_alta_prospecto_propiedades_empresa.sql' },
+  { file: '0086_empresa_prospecto_externo.sql', sha256: '96941879ff2d3bc1a7e99c1fcd046a9309df757d54d5b7449ea85bd514e08e75', eligibleName: '20261120010300_replay_empresa_prospecto_externo.sql' },
+  { file: '0087_oportunidad_vendedor_externo.sql', sha256: 'fc4517a9f841603d94f63e429a164cccdb569d1fd7332504432caa0f53f43bfe', eligibleName: '20261120010400_replay_oportunidad_vendedor_externo.sql' },
+  { file: '0088_oportunidad_vendedor_externo_guard_null.sql', sha256: 'f32350bb0c10024ea0d01a1a44cf16a43b99f0affea43317810ff105b3584f32', eligibleName: '20261120010500_replay_oportunidad_vendedor_externo_guard_null.sql' },
+  { file: '0089_brokers_comision_exclusiva_sin_kam.sql', sha256: '2144d011267284843d8ce8c9ea46896bed523d1346962fe981582397ed6916f3', eligibleName: '20261120010600_replay_brokers_comision_exclusiva_sin_kam.sql' },
+  { file: '0090_lectores_membresias_y_libro_respetan_rls.sql', sha256: '70fc855d14638ef45bbf16cc61afb5538f51da01db6a1508b629cf03ac3cf59e', eligibleName: '20261120010700_replay_lectores_membresias_y_libro_respetan_rls.sql' },
+  { file: '0091_demoras_y_pago_detalle_acceso_protegido.sql', sha256: '6cd632a9dee6233f43e4c5d606b560bfb7c172298ebac71306d096a0d586faf0', eligibleName: '20261120010800_replay_demoras_y_pago_detalle_acceso_protegido.sql' },
+  { file: '0092_auxiliares_seleccionados_acceso_protegido.sql', sha256: 'ad83fb3851f436fa2d4469126b386010eb3afed6699a83d16aa0c612921a8c79', eligibleName: '20261120010900_replay_auxiliares_seleccionados_acceso_protegido.sql' },
+  { file: '0093_actividad_embarque_bitacora_misma_organizacion.sql', sha256: 'd52a1a33ce842b6eb7887747df3922476235fe718a652d4977690c478e7a6fff', eligibleName: '20261120011000_replay_actividad_embarque_bitacora_misma_organizacion.sql' },
+  { file: '0094_autoridad_local_avisos_seleccionados.sql', sha256: '54b2177cafedd41c05dfb255336480896eb7bb586362d3fd7d0930be4f3a271b', eligibleName: '20261120011100_replay_autoridad_local_avisos_seleccionados.sql' },
 ];
 const ARCHIVED_METADATA = [
   [`${ARCHIVE}/meta/0022_snapshot.json`, '002a1cff39197fe3431f23193a4229e1c845cbcd0ab5eaa074efded812b0081d'],
@@ -88,6 +102,7 @@ function pinned(root, file, expected) {
 
 function rejectEligibleCopies(root) {
   const forbidden = new Set(HISTORY.map(item => item.sha256));
+  forbidden.add(AUTHORITY_PREIMAGES_SHA256);
   const dir = path.join(root, 'supabase/migrations');
   for (const file of fs.readdirSync(dir).filter(file => file.endsWith('.sql'))) {
     if (forbidden.has(hash(fs.readFileSync(path.join(dir, file))))) {
@@ -126,7 +141,10 @@ export function readIsolatedDrizzleReplay(root = process.cwd()) {
 
 export function listIsolatedHistory(root = process.cwd()) {
   readIsolatedDrizzleReplay(root);
-  return HISTORY.map(item => `${DIR}/${item.file}`);
+  pinned(root, AUTHORITY_PREIMAGES, AUTHORITY_PREIMAGES_SHA256);
+  return HISTORY.flatMap(({ file }) => file.startsWith('0092_')
+    ? [`${DIR}/${AUTHORITY_PREIMAGES}`, `${DIR}/${file}`]
+    : [`${DIR}/${file}`]);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

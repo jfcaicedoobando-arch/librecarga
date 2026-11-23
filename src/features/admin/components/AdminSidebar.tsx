@@ -75,7 +75,7 @@ export function AdminSidebar() {
                           className="hover:bg-sidebar-accent/50 focus-visible:ring-2 focus-visible:ring-ring"
                           activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary"
                         >
-                          <item.icon className="h-4 w-4" />
+                          <item.icon className="size-4" />
                           {!collapsed && <span>{item.title}</span>}
                         </NavLink>
                       </SidebarMenuButton>
@@ -116,11 +116,11 @@ export function AdminSidebar() {
             <DropdownMenuLabel className="truncate">{user?.email}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled>
-              <User className="h-4 w-4 mr-2" /> Mi perfil
+              <User className="size-4 mr-2" /> Mi perfil
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
-              <LogOut className="h-4 w-4 mr-2" /> Cerrar sesión
+              <LogOut className="size-4 mr-2" /> Cerrar sesión
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

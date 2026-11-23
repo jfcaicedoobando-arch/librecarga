@@ -9,7 +9,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useProformas, type ProformaConFactura, type ProformaRow } from "@/features/embarques/hooks/useProformas";
 import { useDescargarProformaPdf } from "@/features/embarques/hooks/useDescargarProformaPdf";
-import { useTabProformasState, type FiltroEstadoProforma } from "./useTabProformasState";
+import { useTabProformasState, type EstadoProformaControlado, type FiltroEstadoProforma } from "./useTabProformasState";
 import { totalesListadoProforma } from "@/features/proformas/domain";
 
 function isConvertible(p: ProformaConFactura): boolean {
@@ -31,6 +31,7 @@ function isConvertible(p: ProformaConFactura): boolean {
 export function useTabProformasController(opts?: {
   isInRange?: (fecha: string | null | undefined) => boolean;
   estadoInicial?: FiltroEstadoProforma;
+  estadoControlado?: EstadoProformaControlado;
 }) {
   const [proformaAFacturar, setProformaAFacturar] = useState<ProformaRow | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -38,7 +39,7 @@ export function useTabProformasController(opts?: {
   const { data: proformas = [], isLoading, isError, refetch } = useProformas();
   const { descargar, downloadingId } = useDescargarProformaPdf();
 
-  const state = useTabProformasState(proformas, opts?.isInRange, opts?.estadoInicial);
+  const state = useTabProformasState(proformas, opts?.isInRange, opts?.estadoInicial, opts?.estadoControlado);
   const {
     filtered, paginated, counts, totalPages,
     search, filtroEstado, filtroCliente, filtroOperador, fechaDesde, fechaHasta,

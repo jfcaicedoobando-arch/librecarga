@@ -24,7 +24,7 @@ const KPIS: KpiDef[] = [
 ];
 
 interface Props {
-  values: Record<KpiKey, number>;
+  values: Record<KpiKey, number | null>;
 }
 
 export function PortalKpiGrid({ values }: Props) {
@@ -38,7 +38,7 @@ export function PortalKpiGrid({ values }: Props) {
           iconVariant="chip"
           variant={kpi.variant}
           label={kpi.label}
-          value={values[kpi.key]}
+          value={values[kpi.key] ?? "N/D"}
           className="hover:border-accent/30"
         />
       ))}

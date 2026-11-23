@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link } from "react-router";
 import { FileSpreadsheet, Landmark } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { Button } from "@/components/ui/button";
@@ -7,21 +7,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 
 import { PageHeader } from "@/components/shared/PageHeader";
-import {
-  type MovimientoManualInput,
-} from "@/features/tesoreria/domain/movimientoManual";
+import type { MovimientoManualInput } from "@/features/tesoreria/domain/movimientoManual";
 import { useCuentasBancarias, useMovimientos, useConciliarPago, useConciliacionResumen, useRegistrarMovimientoManual, useSaldosCuentas } from "@/features/tesoreria/hooks";
 import { useAutoConciliarExactos } from "@/features/tesoreria/hooks/useAutoConciliarExactos";
 import { ResumenConciliacionCards } from "@/features/tesoreria/components/ResumenConciliacionCards";
 import { PanelConciliacionMovimiento } from "@/features/tesoreria/components/PanelConciliacionMovimiento";
-import type { MovimientoBBVA } from "@/features/tesoreria/services";
-
-
 import { PageContainer } from "@/components/shared/PageContainer";
 import { VirtualDataTable } from "@/components/shared/VirtualDataTable";
 import { crearMovimientoColumns } from "./_sections/movimientoColumns";
 import { DetallePagoSheet } from "@/features/tesoreria/components/DetallePagoSheet";
-import type { RefPago } from "@/features/tesoreria/domain/pagoDetalle";
 import { MovimientoManualDialog } from "./_sections/MovimientoManualDialog";
 import { ConciliacionToolbar } from "./_sections/ConciliacionToolbar";
 import { usePermissions } from "@/hooks/shared/usePermissions";
@@ -29,32 +23,21 @@ import { useFiltroUrl } from "@/hooks/shared/useFiltroUrl";
 import { useImportarEstadoCuenta } from "@/features/tesoreria/hooks/useImportarEstadoCuenta";
 import { usePayloadRequestId, scopeDePayload } from "@/lib/idempotency";
 import { ImportacionRevisionDialog } from "@/features/tesoreria/components/ImportacionRevisionDialog";
+import { useCuentaConciliacion } from "@/features/tesoreria/hooks/useCuentaConciliacion";
 
 const ESTADOS_MOVIMIENTO = ["Pendiente", "Conciliado", "Ignorado", "todos"] as const;
-
-
 
 export default function TesoreriaConciliacion() {
   const { data: cuentas = [] } = useCuentasBancarias();
   const { canCapturarMovimientoBancario } = usePermissions();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [cuentaId, setCuentaIdState] = useState<string>(searchParams.get("cuenta") ?? "");
-  const setCuentaId = (id: string) => {
-    setCuentaIdState(id);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (id) next.set("cuenta", id); else next.delete("cuenta");
-      return next;
-    }, { replace: true });
-  };
+  const { cuentaId, cambiarCuenta, movimientoSeleccionado, panelKey, setSeleccion, cerrarMovimiento, refPago, setRefPago } =
+    useCuentaConciliacion();
   // M8 (Ola 8): el estado del movimiento también viaja en la URL.
   const [estado, setEstado] = useFiltroUrl<"Pendiente" | "Conciliado" | "Ignorado" | "todos">(
     "estado",
     ESTADOS_MOVIMIENTO,
     "Pendiente",
   );
-  const [sel, setSel] = useState<MovimientoBBVA | null>(null);
-  const [refPago, setRefPago] = useState<RefPago | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualForm, setManualForm] = useState<Partial<MovimientoManualInput>>({
     tipo: "cargo",
@@ -71,7 +54,7 @@ export default function TesoreriaConciliacion() {
   const registrarManual = useRegistrarMovimientoManual();
   const importacion = useImportarEstadoCuenta(cuentaId);
   const monedaCuenta = cuentas.find((c) => c.id === cuentaId)?.moneda ?? "MXN";
-  const columns = useMemo(() => crearMovimientoColumns(setRefPago, monedaCuenta), [monedaCuenta]);
+  const columns = useMemo(() => crearMovimientoColumns(setRefPago, monedaCuenta), [setRefPago, monedaCuenta]);
   const { isAutoConciliando, handleConciliarExactos } = useAutoConciliarExactos(movs, conciliarPago.mutateAsync);
 
   const abrirModalManual = () => {
@@ -116,12 +99,10 @@ export default function TesoreriaConciliacion() {
           </Button>
         }
       />
-
-
       <ConciliacionToolbar
         cuentas={cuentas}
         cuentaId={cuentaId}
-        onCuentaChange={setCuentaId}
+        onCuentaChange={cambiarCuenta}
         estado={estado}
         onEstadoChange={setEstado}
         pendientesCount={pendientesCount}
@@ -158,8 +139,8 @@ export default function TesoreriaConciliacion() {
               columns={columns}
               data={movs}
               rowKey={(m) => m.id}
-              onRowClick={setSel}
-              rowClassName={(m) => (sel?.id === m.id ? "bg-accent/10" : "")}
+              onRowClick={setSeleccion}
+              rowClassName={(m) => (movimientoSeleccionado?.id === m.id ? "bg-accent/10" : "")}
               isLoading={isLoading}
               isError={movsError}
               onRetry={() => void refetchMovs()}
@@ -168,7 +149,12 @@ export default function TesoreriaConciliacion() {
             />
           </div>
           <div className="lg:col-span-1">
-            <PanelConciliacionMovimiento movimiento={sel} onClose={() => setSel(null)} moneda={monedaCuenta} />
+            <PanelConciliacionMovimiento
+              key={panelKey}
+              movimiento={movimientoSeleccionado}
+              onClose={cerrarMovimiento}
+              moneda={monedaCuenta}
+            />
           </div>
         </div>
         </>

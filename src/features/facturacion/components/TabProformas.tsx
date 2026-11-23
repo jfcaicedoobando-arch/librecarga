@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { exportToCsv } from "@/generators/exportCsv";
 import { useTabProformasController, type FiltroEstadoProforma } from "@/features/facturacion/hooks";
+import type { EstadoProformaControlado } from "@/features/facturacion/hooks/useTabProformasState";
 import { buildProformasColumns } from "./proformasColumns";
 import ProformasFiltros from "./ProformasFiltros";
 import { usePermissions } from "@/hooks/shared";
@@ -20,11 +21,12 @@ import { useProformasListadoTable } from "@/features/facturacion/hooks/useProfor
 import { ProformasFusionToolbar } from "./ProformasFusionToolbar";
 import { ProformasConsolidacionToolbar } from "./ProformasConsolidacionToolbar";
 
-export function TabProformas({ isInRange, estadoInicial }: {
+export function TabProformas({ isInRange, estadoInicial, estadoControlado }: {
   isInRange?: (fecha: string | null | undefined) => boolean;
   estadoInicial?: FiltroEstadoProforma;
+  estadoControlado?: EstadoProformaControlado;
 }) {
-  const c = useTabProformasController({ isInRange, estadoInicial });
+  const c = useTabProformasController({ isInRange, estadoInicial, estadoControlado });
   const { canEmitirFactura, canEditarProforma } = usePermissions();
   const { selectedIds, toggleSelected, isConvertible } = c;
   const haySeleccionFiscal = c.selectedProformas.some((p) => p.evaluacion_fiscal != null);
