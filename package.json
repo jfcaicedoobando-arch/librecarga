@@ -103,7 +103,7 @@
     "@react-pdf/renderer": "4.9.0",
     "@sentry/core": "11.12.0",
     "@sentry/react": "11.12.0",
-    "@supabase/supabase-js": "2.119.0",
+    "@supabase/supabase-js": "2.119.2",
     "@tanstack/query-sync-storage-persister": "5.107.1",
     "@tanstack/react-query": "5.107.1",
     "@tanstack/react-query-persist-client": "5.107.1",
