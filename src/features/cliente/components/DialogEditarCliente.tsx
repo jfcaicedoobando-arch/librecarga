@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useId } from "react";
 import { notifySuccess } from "@/lib/ui/appFeedback";
 import { AlertCircle, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ interface Props {
 
 export default function DialogEditarCliente({ open, onOpenChange, cliente, onSave, isSaving }: Props) {
   const { canConfigurarAutorizacionCliente } = usePermissions();
+  const fiscalId = useId();
   const [form, setForm] = useState<ClienteData>(cliente);
   const [csfFileName, setCsfFileName] = useState<string | null>(null);
   const [parsingCsf, setParsingCsf] = useState(false);
@@ -123,9 +124,9 @@ export default function DialogEditarCliente({ open, onOpenChange, cliente, onSav
         <TextField label="RFC" field="rfc" form={form} setForm={setForm} />
         <TextField label="Código Postal" field="cp" form={form} setForm={setForm} />
         <div>
-          <Label>Régimen Fiscal SAT<span className="text-destructive ml-0.5">*</span></Label>
-          <Select value={form.regimen_fiscal || undefined} onValueChange={(v) => setForm((p) => ({ ...p, regimen_fiscal: v }))}>
-            <SelectTrigger className="mt-1"><SelectValue placeholder="Selecciona régimen" /></SelectTrigger>
+          <Label htmlFor={`${fiscalId}-regimen`}>Régimen Fiscal SAT<span aria-hidden="true" className="text-destructive ml-0.5">*</span></Label>
+          <Select required value={form.regimen_fiscal || undefined} onValueChange={(v) => setForm((p) => ({ ...p, regimen_fiscal: v }))}>
+            <SelectTrigger id={`${fiscalId}-regimen`} className="mt-1"><SelectValue placeholder="Selecciona régimen" /></SelectTrigger>
             <SelectContent>
               {REGIMENES_FISCALES_SAT.map((r) => (
                 <SelectItem key={r.clave} value={r.clave}>{r.clave} — {r.descripcion}</SelectItem>
@@ -134,9 +135,9 @@ export default function DialogEditarCliente({ open, onOpenChange, cliente, onSav
           </Select>
         </div>
         <div>
-          <Label>Uso CFDI por defecto</Label>
+          <Label htmlFor={`${fiscalId}-cfdi`}>Uso CFDI por defecto</Label>
           <Select value={form.uso_cfdi_default || undefined} onValueChange={(v) => setForm((p) => ({ ...p, uso_cfdi_default: v }))}>
-            <SelectTrigger className="mt-1"><SelectValue placeholder="Selecciona uso CFDI" /></SelectTrigger>
+            <SelectTrigger id={`${fiscalId}-cfdi`} className="mt-1"><SelectValue placeholder="Selecciona uso CFDI" /></SelectTrigger>
             <SelectContent>
               {USOS_CFDI_SAT.map((u) => (
                 <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>

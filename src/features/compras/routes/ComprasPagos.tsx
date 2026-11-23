@@ -39,6 +39,7 @@ export default function ComprasPagos() {
   } = useComprasPagosController();
 
   const columns = useMemo(() => buildPagosColumns(), []);
+  const valorKpi = (valor: number | string) => isError ? "No disponible" : valor;
 
   return (
     <PageContainer width="wide">
@@ -55,10 +56,10 @@ export default function ComprasPagos() {
 
       {!errorRango && (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-          <KpiCard label="Registros en el período" value={String(rows.length)} icon={ListFilter} />
-          <KpiCard label="Total pagado MXN" value={formatCurrency(totalMxn, "MXN")} icon={Banknote} />
-          <KpiCard label="Total pagado USD" value={formatCurrency(totalUsd, "USD")} icon={Coins} />
-          <KpiCard label="Total pagado EUR" value={formatCurrency(totalEur, "EUR")} icon={Euro} />
+          <KpiCard label="Registros en el período" value={valorKpi(rows.length)} loading={isLoading} icon={ListFilter} />
+          <KpiCard label="Total pagado MXN" value={valorKpi(formatCurrency(totalMxn, "MXN"))} loading={isLoading} icon={Banknote} />
+          <KpiCard label="Total pagado USD" value={valorKpi(formatCurrency(totalUsd, "USD"))} loading={isLoading} icon={Coins} />
+          <KpiCard label="Total pagado EUR" value={valorKpi(formatCurrency(totalEur, "EUR"))} loading={isLoading} icon={Euro} />
         </div>
       )}
 
@@ -84,9 +85,9 @@ export default function ComprasPagos() {
             </Select>
           </div>
           <div className="space-y-1">
-            <Label>Método de pago</Label>
+            <Label htmlFor="p-metodo">Método de pago</Label>
             <Select value={metodoPago} onValueChange={setMetodoPago}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="p-metodo"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
                 {metodosDisponibles.map((m) => (

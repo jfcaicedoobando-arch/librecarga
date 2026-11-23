@@ -111,3 +111,44 @@ describe("Moneda de los listados globales de Compras", () => {
     expect(await screen.findByText(formatCurrency(30, "EUR"))).toBeInTheDocument();
   });
 });
+
+describe("Resumen y métodos de Compras Pagos", () => {
+  function mostrarPagos(searchParams: string) {
+    render(
+      <MemoryRouter>
+        <NuqsTestingAdapter hasMemory searchParams={searchParams}>
+          <ComprasPagos />
+        </NuqsTestingAdapter>
+      </MemoryRouter>,
+      { wrapper: createWrapper() },
+    );
+  }
+
+  it("reserva el cero para la respuesta vacía después de reintentar", async () => {
+    mocks.pagos.mockRejectedValueOnce(new Error("error de lectura")).mockResolvedValueOnce([]);
+    mostrarPagos("");
+    expect(screen.getByText("Total pagado EUR")).toBeVisible();
+    expect(screen.queryByText(formatCurrency(0, "EUR"))).not.toBeInTheDocument();
+    const retry = await screen.findByRole("button", { name: "Reintentar" });
+    expect(screen.getAllByText("No disponible")).toHaveLength(4);
+    fireEvent.click(retry);
+    expect(await screen.findByText(formatCurrency(0, "EUR"))).toBeVisible();
+  });
+
+  it("obtiene los otros métodos con los mismos filtros y conserva el seleccionado aunque falte en el resultado", async () => {
+    vi.clearAllMocks();
+    const cheque = { ...pago, id: "pago-cheque", moneda: "EUR", metodo_pago: "Cheque" };
+    mocks.pagos.mockImplementation(async ({ metodoPago }) => metodoPago === "Cheque" || !metodoPago ? [cheque] : []);
+    mostrarPagos("?desde=2026-10-01&hasta=2026-10-31&moneda=EUR&metodo=Transferencia&q=Proveedor");
+    const metodo = screen.getByRole("combobox", { name: "Método de pago" });
+    expect(metodo).toHaveTextContent("Transferencia");
+    const alcance = { moneda: "EUR", desde: "2026-10-01", hasta: "2026-10-31", search: "Proveedor" };
+    await waitFor(() => expect(mocks.pagos).toHaveBeenCalledWith(alcance, "org-test"));
+    expect(mocks.pagos).toHaveBeenCalledWith({ ...alcance, metodoPago: "Transferencia" }, "org-test");
+    fireEvent.keyDown(metodo, { key: "ArrowDown" });
+    fireEvent.keyDown(await screen.findByRole("option", { name: "Cheque" }), { key: "Enter" });
+    expect(await screen.findByText("Proveedor demo")).toBeVisible();
+    expect(mocks.pagos).toHaveBeenLastCalledWith({ ...alcance, metodoPago: "Cheque" }, "org-test");
+    expect(mocks.pagos.mock.calls.filter(([filtros]) => !filtros.metodoPago)).toHaveLength(1);
+  });
+});

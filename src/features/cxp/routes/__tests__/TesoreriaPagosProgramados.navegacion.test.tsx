@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes, useLocation, useParams } from "react-router";
+import { NuqsAdapter } from "nuqs/adapters/react-router/v8";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DocumentoTabs } from "@/components/shared/documento/DocumentoTabs";
 import { FacturaProveedorHeader } from "../../components/detalle/FacturaProveedorHeader";
@@ -32,7 +33,8 @@ function factura(id: string, over: Partial<FacturaCxP> = {}): FacturaCxP {
     ...over,
   };
 }
-const facturas = [factura("FP8"), factura("FP12"), factura("FP-pendiente", { estado_aprobacion: "pendiente" })];
+const facturas = [factura("FP8"), factura("FP12"),
+  factura("FP-pendiente", { estado_aprobacion: "pendiente", fecha_programada_pago: "2026-10-08" })];
 
 function Destino() {
   const { id } = useParams();
@@ -52,11 +54,13 @@ function RutaActual() {
 function montar(url = "/tesoreria/pagos-programados?origen=revision") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<QueryClientProvider client={client}><TooltipProvider><MemoryRouter initialEntries={[url]}>
-    <RutaActual />
-    <Routes>
-      <Route path="/tesoreria/pagos-programados" element={<TesoreriaPagosProgramados />} />
-      <Route path="/compras/facturas/:id" element={<Destino />} />
-    </Routes>
+    <NuqsAdapter>
+      <RutaActual />
+      <Routes>
+        <Route path="/tesoreria/pagos-programados" element={<TesoreriaPagosProgramados />} />
+        <Route path="/compras/facturas/:id" element={<Destino />} />
+      </Routes>
+    </NuqsAdapter>
   </MemoryRouter></TooltipProvider></QueryClientProvider>);
 }
 
@@ -87,5 +91,30 @@ describe("56: Programar pago abre la fecha en datos fiscales y conserva el orige
     montar("/compras/facturas/FP12?tab=fiscal");
     expect(screen.getByRole("link", { name: "Volver a Facturas de proveedor" })).toHaveAttribute("href", "/compras/facturas");
     expect(screen.getByLabelText("Fecha programada de pago")).not.toHaveFocus();
+  });
+
+  it("Mostrar se restaura desde el enlace y se conserva al volver de la factura", async () => {
+    const origen = "/tesoreria/pagos-programados?origen=revision&mostrar=programadas";
+    montar(origen);
+    const revisar = await screen.findByRole("button", { name: "Revisar aprobación" });
+    expect(screen.getByRole("combobox", { name: /Mostrar/ })).toHaveTextContent("Solo con pago programado");
+    expect(screen.queryByRole("button", { name: "Programar pago" })).not.toBeInTheDocument();
+    fireEvent.click(revisar);
+    const volver = screen.getByRole("link", { name: "Volver a Pagos programados" });
+    expect(volver).toHaveAttribute("href", origen);
+    fireEvent.click(volver);
+    expect(await screen.findByRole("combobox", { name: /Mostrar/ })).toHaveTextContent("Solo con pago programado");
+    expect(screen.getByTestId("ruta")).toHaveTextContent(origen);
+    expect(mocks.pagar).not.toHaveBeenCalled();
+  });
+
+  it("escribe el filtro en la URL y conserva los demás parámetros", async () => {
+    montar("/tesoreria/pagos-programados?origen=revision&mostrar=desconocido");
+    const mostrar = await screen.findByRole("combobox", { name: /Mostrar/ });
+    expect(mostrar).toHaveTextContent("Todas las pendientes");
+    fireEvent.keyDown(mostrar, { key: "ArrowDown" });
+    fireEvent.keyDown(await screen.findByRole("option", { name: "Solo con pago programado" }), { key: "Enter" });
+    await waitFor(() => expect(screen.getByTestId("ruta")).toHaveTextContent("?origen=revision&mostrar=programadas"));
+    expect(screen.queryByRole("button", { name: "Programar pago" })).not.toBeInTheDocument();
   });
 });

@@ -20,7 +20,9 @@ vi.mock("../proformasColumns", () => ({
 }));
 
 vi.mock("@/components/shared/dataTable/ResponsiveDataTable", () => ({
-  ResponsiveDataTable: () => <div data-testid="tabla" />,
+  ResponsiveDataTable: ({ emptyState }: { emptyState?: React.ReactNode }) => (
+    <div data-testid="tabla">{emptyState}</div>
+  ),
 }));
 vi.mock("../ProformasFiltros", () => ({ default: () => <div /> }));
 const consolidar = vi.fn().mockResolvedValue({ id: "consolidada" });
@@ -50,6 +52,7 @@ const controller = {
   clientesDisponibles: [],
   operadoresDisponibles: [],
   clearFiltros: vi.fn(),
+  proformas: [proforma],
   filtered: [proforma],
   paginated: [proforma],
   counts: { todas: 1 },
@@ -82,9 +85,24 @@ describe("TabProformas — selección según permiso de emisión", () => {
     permisos.canEmitirFactura = true;
     permisos.canEditarProforma = false;
     controller.selectedProformas = [proforma];
+    controller.proformas = [proforma];
+    controller.filtered = [proforma];
+    controller.search = "";
+    controller.counts.todas = 1;
+    controller.setSearch.mockClear();
     controller.seleccionFueraDeFiltros = 0;
     controller.quitarSeleccionFueraDeFiltros.mockClear();
     consolidar.mockClear();
+  });
+
+  it("permite limpiar la búsqueda desde el panel aunque el conteo filtrado sea cero", () => {
+    controller.search = "No existe";
+    controller.filtered = [];
+    controller.counts.todas = 0;
+    render(<TabProformas />);
+    expect(screen.getByText("Sin resultados para «No existe»")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Limpiar búsqueda", { selector: "button" }));
+    expect(controller.setSearch).toHaveBeenCalledWith("");
   });
 
   it("contador/operador con emisión: incluye la casilla de selección y la acción", () => {

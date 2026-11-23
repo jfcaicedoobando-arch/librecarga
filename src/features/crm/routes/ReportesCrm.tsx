@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { BarChart3 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { LoadingState } from "@/components/shared/states/LoadingState";
 import EmptyState from "@/components/empty/EmptyState";
 import { useDocumentTitle, usePermissions } from "@/hooks/shared";
 import { useReportesDeTablero, useTablerosCrm } from "@/features/crm/hooks/useReportesCrm";
@@ -18,11 +19,12 @@ import { ReportesDialogs, type DlgReporteState, type DlgTableroState } from "@/f
 export default function CrmReportes() {
   useDocumentTitle("Reportes del CRM");
   const { isSuperAdmin } = usePermissions();
-  const { data: tableros = [], isLoading } = useTablerosCrm();
+  const { data: tableros = [], isLoading, isError, refetch } = useTablerosCrm();
+  const tablerosPendientes = isLoading || isError;
   const [tableroId, setTableroId] = useState<string | null>(null);
   const activoId = tableroId ?? tableros[0]?.id ?? null;
   const activo = useMemo(() => tableros.find((t) => t.id === activoId) ?? null, [tableros, activoId]);
-  const { data: reportes = [] } = useReportesDeTablero(activoId);
+  const consultaReportes = useReportesDeTablero(activoId);
 
   const [dlgTablero, setDlgTablero] = useState<DlgTableroState>({ open: false, tablero: null });
   const [dlgReporte, setDlgReporte] = useState<DlgReporteState>({ open: false, reporte: null });
@@ -50,9 +52,16 @@ export default function CrmReportes() {
         }
       />
 
-      {isLoading && <p className="py-12 text-center text-body text-muted-foreground">Cargando tableros…</p>}
+      {tablerosPendientes && (
+        <LoadingState
+          label="Cargando tableros…"
+          error={isError}
+          errorLabel="No se pudieron cargar los tableros."
+          onRetry={() => void refetch()}
+        />
+      )}
 
-      {!isLoading && tableros.length === 0 && (
+      {!tablerosPendientes && tableros.length === 0 && (
         <EmptyState
           icon={BarChart3}
           title="Aún no hay tableros"
@@ -65,7 +74,10 @@ export default function CrmReportes() {
         <TableroContenido
           tableros={tableros}
           activoId={activoId}
-          reportes={reportes}
+          reportes={consultaReportes.data ?? []}
+          isLoading={consultaReportes.isLoading}
+          isError={consultaReportes.isError}
+          onRetry={() => void consultaReportes.refetch()}
           isSuperAdmin={isSuperAdmin}
           onSeleccionarTablero={setTableroId}
           onEditarReporte={(rep) => setDlgReporte({ open: true, reporte: rep })}

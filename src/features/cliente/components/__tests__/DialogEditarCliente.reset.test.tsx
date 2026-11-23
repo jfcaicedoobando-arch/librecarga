@@ -68,3 +68,20 @@ describe("DialogEditarCliente | reinicio del formulario", () => {
     );
   });
 });
+
+describe("DialogEditarCliente | datos fiscales", () => {
+  it("anuncia Régimen Fiscal SAT y Uso CFDI por nombre y conserva la etiqueta al elegir un valor", async () => {
+    render(<DialogEditarCliente open onOpenChange={vi.fn()} cliente={base} onSave={vi.fn()} isSaving={false} />);
+
+    const regimen = screen.getByRole("combobox", { name: "Régimen Fiscal SAT" });
+    const usoCfdi = screen.getByRole("combobox", { name: "Uso CFDI por defecto" });
+    expect(regimen).toHaveAttribute("aria-required", "true");
+    expect(usoCfdi).not.toHaveAttribute("aria-required", "true");
+
+    fireEvent.keyDown(regimen, { key: "ArrowDown" });
+    fireEvent.keyDown(await screen.findByRole("option", { name: /^626/ }), { key: "Enter" });
+
+    expect(screen.getByRole("combobox", { name: "Régimen Fiscal SAT" })).toHaveTextContent("626");
+    expect(screen.getByRole("combobox", { name: "Uso CFDI por defecto" })).toHaveTextContent("G03");
+  });
+});

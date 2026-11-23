@@ -13,7 +13,8 @@ import { puedeEjecutarPago, type FacturaProgramable } from "@/features/tesoreria
 import { COL_W } from "@/components/shared/dataTable/columnWidths";
 
 
-export type FiltroBandeja = "todas" | "programadas" | "treinta_dias";
+export const FILTROS_BANDEJA = ["todas", "programadas", "treinta_dias"] as const;
+export type FiltroBandeja = (typeof FILTROS_BANDEJA)[number];
 
 /** Filtra la lista completa de facturas programables según el filtro explícito del usuario. */
 export function filtrarProgramables(data: FacturaProgramableRow[], filtro: FiltroBandeja): FacturaProgramable[] {

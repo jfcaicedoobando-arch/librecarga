@@ -1,4 +1,5 @@
 import { useDocumentTitle } from "@/hooks/shared/useDocumentTitle";
+import { useFiltroUrl } from "@/hooks/shared/useFiltroUrl";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -19,7 +20,7 @@ import { erroresPagoProgramado } from "@/features/tesoreria/domain/pagoProgramad
 import { esPagoEfectivo } from "@/features/tesoreria/domain/conciliacionPago";
 import { EjecutarPagoDialog, type FormPago } from "./_sections/EjecutarPagoDialog";
 import { PagosProgramadosTablas } from "./_sections/PagosProgramadosTablas";
-import { buildPagosProgramadosColumns, filtrarProgramables, type FiltroBandeja } from "./_sections/pagosProgramadosColumns";
+import { buildPagosProgramadosColumns, filtrarProgramables, FILTROS_BANDEJA, type FiltroBandeja } from "./_sections/pagosProgramadosColumns";
 import { FILTRO_ANCHO } from "@/lib/ui/filterWidths";
 
 export default function TesoreriaPagosProgramados() {
@@ -33,7 +34,7 @@ export default function TesoreriaPagosProgramados() {
   });
 
   // Filtro EXPLÍCITO del usuario — por defecto se muestra todo.
-  const [filtro, setFiltro] = useState<FiltroBandeja>("todas");
+  const [filtro, setFiltro] = useFiltroUrl("mostrar", FILTROS_BANDEJA, "todas");
   const [facturaPago, setFacturaPago] = useState<FacturaProgramable | null>(null);
   const [form, setForm] = useState<FormPago>({
     cuentaBancariaId: "", fecha: todayLocalISO(), monto: 0, metodoPago: "Transferencia", referencia: "",
@@ -135,9 +136,9 @@ export default function TesoreriaPagosProgramados() {
       {/* B-030: filtro explícito y visible. Default: "Todas" para no ocultar
           facturas silenciosamente como hacía la RPC anterior. */}
       <div className="flex items-center gap-2">
-        <span className="text-body text-muted-foreground">Mostrar:</span>
+        <label htmlFor="mostrar-pagos-programados" className="text-body text-muted-foreground">Mostrar:</label>
         <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroBandeja)}>
-          <SelectTrigger className={FILTRO_ANCHO.lg}><SelectValue /></SelectTrigger>
+          <SelectTrigger id="mostrar-pagos-programados" className={FILTRO_ANCHO.lg}><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas las pendientes</SelectItem>
             <SelectItem value="programadas">Solo con pago programado</SelectItem>

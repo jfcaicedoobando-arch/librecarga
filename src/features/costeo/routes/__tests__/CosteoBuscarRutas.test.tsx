@@ -104,6 +104,18 @@ async function chooseRoute() {
 }
 
 describe("CosteoBuscar — puertos de rutas registradas", () => {
+  it("asocia la fecha a su etiqueta y explica la consulta al dejarla vacía", async () => {
+    render(<CosteoBuscar />, { wrapper: createWrapper() });
+    await chooseRoute();
+
+    const fecha = screen.getByRole("textbox", { name: "Fecha de vigencia" });
+    expect(fecha).toHaveAccessibleDescription("Si se deja vacía, se consulta la fecha de hoy.");
+    fireEvent.change(fecha, { target: { value: "17/10/2026" } });
+    expect(fixtures.top).toHaveBeenLastCalledWith(expect.objectContaining({ fecha: "2026-10-17" }));
+    fireEvent.change(fecha, { target: { value: "" } });
+    expect(fixtures.top).toHaveBeenLastCalledWith(expect.objectContaining({ fecha: "" }));
+  });
+
   it("ofrece sólo orígenes y destinos registrados activos, sin duplicados ni invertir la ruta", async () => {
     render(<CosteoBuscar />, { wrapper: createWrapper() });
     expect(screen.getByLabelText("Puerto de destino")).toBeDisabled();

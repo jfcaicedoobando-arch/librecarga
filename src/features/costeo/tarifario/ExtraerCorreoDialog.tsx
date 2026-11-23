@@ -41,6 +41,34 @@ function deOrganizacion<T extends { organizationId: string }>(valor: T | null, o
   return valor?.organizationId === organizationId ? valor : null;
 }
 
+interface AccionesProps {
+  tarifasPreparadas: number | undefined;
+  importado: boolean;
+  cargando: boolean;
+  seleccionadas: number;
+  onCerrar: () => void;
+  onBuscar: () => void;
+  onImportar: () => void;
+}
+
+function ExtraerCorreoAcciones({ tarifasPreparadas, importado, cargando, seleccionadas, onCerrar, onBuscar, onImportar }: AccionesProps) {
+  return (
+    <>
+      <Button variant="outline" onClick={onCerrar}>Cerrar</Button>
+      {!importado && !tarifasPreparadas && (
+        <Button onClick={onBuscar} disabled={cargando}>
+          {cargando ? "Leyendo correos…" : tarifasPreparadas === 0 ? "Volver a buscar" : "Buscar tarifas en el correo"}
+        </Button>
+      )}
+      {!!tarifasPreparadas && (
+        <Button onClick={onImportar} disabled={cargando || seleccionadas === 0}>
+          {cargando ? "Guardando…" : `Cargar ${seleccionadas} tarifa(s) en borrador`}
+        </Button>
+      )}
+    </>
+  );
+}
+
 export function ExtraerCorreoDialog({ open, onOpenChange, onDone }: Props) {
   const { organizationId } = useOrganization();
   const [extraccion, setEstado] = useState<Estado | null>(null);
@@ -109,20 +137,20 @@ export function ExtraerCorreoDialog({ open, onOpenChange, onDone }: Props) {
   };
 
   const cerrar = (v: boolean) => { if (!v) { setEstado(null); setResultado(null); setFaltantes(null); } onOpenChange(v); };
-  const mostrarAltas = Boolean(resultado) || estado?.prep.tarifas.length === 0;
+  const tarifasPreparadas = estado?.prep.tarifas.length;
+  const sinTarifas = tarifasPreparadas === 0;
+  const mostrarAltas = Boolean(resultado) || sinTarifas;
   const errores = erroresVisibles(resultado, estado);
   const footer = (
-    <>
-      <Button variant="outline" onClick={() => cerrar(false)}>Cerrar</Button>
-      {!estado && !resultado && (
-        <Button onClick={() => void extraer()} disabled={cargando}>{cargando ? "Leyendo correos…" : "Buscar tarifas en el correo"}</Button>
-      )}
-      {estado && estado.prep.tarifas.length > 0 && (
-        <Button onClick={() => void importar()} disabled={cargando || seleccion.size === 0}>
-          {cargando ? "Guardando…" : `Cargar ${seleccion.size} tarifa(s) en borrador`}
-        </Button>
-      )}
-    </>
+    <ExtraerCorreoAcciones
+      tarifasPreparadas={tarifasPreparadas}
+      importado={Boolean(resultado)}
+      cargando={cargando}
+      seleccionadas={seleccion.size}
+      onCerrar={() => cerrar(false)}
+      onBuscar={() => void extraer()}
+      onImportar={() => void importar()}
+    />
   );
 
   return (
@@ -135,7 +163,11 @@ export function ExtraerCorreoDialog({ open, onOpenChange, onDone }: Props) {
           <>
             <TarifasPorProveedor tarifas={estado.prep.tarifas} proveedorDe={estado.proveedorDe} nombreAgenteDe={estado.nombreAgenteDe}
               puertos={estado.puertos} navieras={estado.navieras} />
-            <p>Listas para cargar: <strong>{estado.prep.tarifas.length}</strong> tarifa(s). Renglones con error: <strong>{estado.prep.errores.length}</strong> (se omiten).</p>
+            {sinTarifas && estado.prep.errores.length === 0 ? (
+              <p role="status">No se encontraron tarifas para preparar en el correo.</p>
+            ) : (
+              <p>Listas para cargar: <strong>{tarifasPreparadas}</strong> tarifa(s). Renglones con error: <strong>{estado.prep.errores.length}</strong> (se omiten).</p>
+            )}
             <ConflictosTarifasLista tarifas={estado.prep.tarifas} conflictos={estado.conflictos} seleccion={seleccion}
               onToggle={(i, v) => setSeleccion((s) => { const n = new Set(s); if (v) n.add(i); else n.delete(i); return n; })} />
           </>

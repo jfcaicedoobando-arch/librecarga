@@ -48,13 +48,24 @@ export default function TesoreriaPagos() {
   const visibles = useMemo(() => filtrarPagos(pagos, filtros), [pagos, filtros]);
   const totales = useMemo(() => totalesLibroPagos(visibles), [visibles]);
   const columns = useMemo(() => libroPagosColumns(), []);
+  const cuentaActiva = cuentas.find((cuenta) => cuenta.id === filtros.cuentaId);
 
   return (
     <PageContainer>
       <PageHeader
         title="Pagos"
         description="Cobros, pagos a proveedores, anticipos y sus devoluciones en un solo lugar"
-        actions={<LibroPagosExportButtons pagos={visibles} rango={rango} totales={totales} organizationId={organizationId} />}
+        actions={
+          <LibroPagosExportButtons
+            pagos={visibles}
+            rango={rango}
+            totales={totales}
+            organizationId={organizationId}
+            filtros={filtros}
+            totalPeriodo={pagos.length}
+            cuentaActiva={cuentaActiva?.alias}
+          />
+        }
       />
 
       <Tabs

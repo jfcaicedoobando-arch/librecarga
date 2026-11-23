@@ -5,6 +5,7 @@ import { CalendarClock, MapPin } from "lucide-react";
 import { useRegistrarEventoTracking } from "@/features/embarques/hooks/mutations/useRegistrarEventoTracking";
 import { DocumentosTrackingPendientesError } from "@/features/embarques/services/registrarEventoTracking";
 import { getErrorMessage } from "@/lib/errors";
+import { formatDate } from "@/lib/formatters";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 import { ActualizarEtaForm } from "./ActualizarEtaForm";
 import { MarcarLlegadaForm } from "./MarcarLlegadaForm";
@@ -31,6 +32,7 @@ export function TrackingNuevoEventoForm({
 }: Props) {
   const [modo, setModo] = useState<Modo>("menu");
   const { registrar, isPending } = useRegistrarEventoTracking();
+  const llegadaRegistrada = fechaLlegadaRealActual?.slice(0, 10);
   const transportista = modoTransporte === "Marítimo" ? "la naviera" : modoTransporte === "Aéreo" ? "la aerolínea" : "el transportista";
 
   async function guardar(accion: "eta" | "llegada", fecha: string, ubicacion: string) {
@@ -52,7 +54,7 @@ export function TrackingNuevoEventoForm({
     }
   }
 
-  if (modo === "menu") {
+  if (modo === "menu" || (modo === "llegada" && llegadaRegistrada)) {
     return (
       <Card>
         <CardHeader className="pb-3">
@@ -75,13 +77,16 @@ export function TrackingNuevoEventoForm({
           <button
             type="button"
             onClick={() => setModo("llegada")}
-            className="flex w-full items-start gap-3 rounded-lg border p-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            disabled={Boolean(llegadaRegistrada)}
+            className="flex w-full items-start gap-3 rounded-lg border p-4 text-left transition-colors enabled:hover:bg-muted/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed"
           >
             <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div>
               <div className="font-medium text-body">Registrar llegada real</div>
               <div className="text-body-sm text-muted-foreground mt-1">
-                Registra cuándo llegó la carga. Desde En Tránsito o En Proceso pasa a Arribo; en etapas posteriores compatibles conserva su estado.
+                {llegadaRegistrada
+                  ? `Llegada registrada el ${formatDate(llegadaRegistrada)}.`
+                  : "Registra cuándo llegó la carga. Desde En Tránsito o En Proceso pasa a Arribo; en etapas posteriores compatibles conserva su estado."}
               </div>
             </div>
           </button>
@@ -108,7 +113,6 @@ export function TrackingNuevoEventoForm({
 
   return (
     <MarcarLlegadaForm
-      fechaLlegadaActual={fechaLlegadaRealActual ?? null}
       destinoDefault={destinoDefault ?? ""}
       isPending={isPending}
       onCancel={() => setModo("menu")}

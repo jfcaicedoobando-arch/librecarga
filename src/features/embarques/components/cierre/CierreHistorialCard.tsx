@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { History } from "lucide-react";
 import { formatFechaHora } from "@/lib/formatters";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 
 export interface CierreLogEntry {
   id: string;
@@ -21,7 +22,13 @@ export interface CierreLogEntry {
   origen?: "log" | "bitacora";
 }
 
-export function CierreHistorialCard({ log }: { log: CierreLogEntry[] }) {
+interface Props {
+  log: CierreLogEntry[];
+  isLoading: boolean;
+  falloConsulta?: { reintentando: boolean; reintentar: () => void };
+}
+
+export function CierreHistorialCard({ log, isLoading, falloConsulta }: Props) {
   return (
     <Card>
       <CardHeader>
@@ -29,10 +36,22 @@ export function CierreHistorialCard({ log }: { log: CierreLogEntry[] }) {
           <History className="h-4 w-4" /> Historial de cierres
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        {log.length === 0 ? (
+      <CardContent className="space-y-3">
+        {falloConsulta && (
+          <ErrorStateInline
+            title="No se pudo cargar el historial de cierres"
+            message={log.length > 0 ? "Se muestran los movimientos de la última consulta exitosa." : "Reintenta para consultar los cierres y reaperturas."}
+            onRetry={falloConsulta.reintentar}
+            retrying={falloConsulta.reintentando}
+          />
+        )}
+        {isLoading && (
+          <p role="status" className="text-body text-muted-foreground">Cargando historial de cierres…</p>
+        )}
+        {!isLoading && !falloConsulta && log.length === 0 && (
           <EmptyStateInline icon={History} message="Sin movimientos." className="py-4" />
-        ) : (
+        )}
+        {log.length > 0 && (
           <ul className="space-y-2">
             {log.map((entry) => (
               <li key={entry.id} className="rounded-md border p-3 text-body">

@@ -34,29 +34,44 @@ export function useComprasPagosController() {
   const [search, setSearch] = useTextoUrl("q");
   const { organizationId, orgListo } = useOrgFilter();
   const errorRango = desde && hasta && desde > hasta ? RANGO_INVERTIDO_MENSAJE : null;
+  const filtrosBase = {
+    desde,
+    hasta,
+    moneda: moneda === "todas" ? undefined : moneda,
+    search: search.trim() || undefined,
+  };
+  const consultaHabilitada = orgListo && !errorRango;
 
   const { data: rows = [], isLoading, isError, refetch } = useQuery({
     queryKey: compras.pagosGlobal({ desde, hasta, moneda, metodoPago, search }, organizationId),
     queryFn: () =>
       listarPagosProveedorGlobal(
         {
-          desde,
-          hasta,
-          moneda: moneda === "todas" ? undefined : moneda,
+          ...filtrosBase,
           metodoPago: metodoPago === "todos" ? undefined : metodoPago,
-          search: search.trim() || undefined,
         },
         organizationId,
       ),
     // N-3: no consultar hasta que el contexto de organización resolvió.
-    enabled: orgListo && !errorRango,
+    enabled: consultaHabilitada,
   });
 
+  // Las opciones usan el mismo alcance que "Todos", sin el propio filtro de método.
+  const { data: pagosTodosMetodos } = useQuery({
+    queryKey: compras.pagosGlobal({ desde, hasta, moneda, metodoPago: "todos", search }, organizationId),
+    queryFn: () => listarPagosProveedorGlobal(filtrosBase, organizationId),
+    enabled: consultaHabilitada && metodoPago !== "todos",
+    staleTime: 30_000,
+  });
+  const pagosParaMetodos = metodoPago === "todos" ? rows : pagosTodosMetodos;
   const metodosDisponibles = useMemo(() => {
     const set = new Set<string>();
-    rows.forEach((r) => r.metodo_pago && set.add(r.metodo_pago));
+    pagosParaMetodos?.forEach((pago) => {
+      if (pago.metodo_pago) set.add(pago.metodo_pago);
+    });
+    if (metodoPago !== "todos") set.add(metodoPago);
     return Array.from(set).sort();
-  }, [rows]);
+  }, [pagosParaMetodos, metodoPago]);
 
   const totalMxn = rows.filter((r) => r.moneda === "MXN" && !r.es_ajuste).reduce((a, r) => a + r.monto, 0);
   const totalUsd = rows.filter((r) => r.moneda === "USD" && !r.es_ajuste).reduce((a, r) => a + r.monto, 0);
@@ -99,7 +114,7 @@ export function useComprasPagosController() {
   return {
     desde, setDesde, hasta, setHasta, errorRango,
     moneda, setMoneda, metodoPago, setMetodoPago, search, setSearch,
-    rows, isLoading, isError, refetch,
+    rows, isLoading: !orgListo || isLoading, isError, refetch,
     metodosDisponibles, totalMxn, totalUsd, totalEur,
     handleExport,
   };

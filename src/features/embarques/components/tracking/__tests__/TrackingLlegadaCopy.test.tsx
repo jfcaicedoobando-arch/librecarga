@@ -26,6 +26,20 @@ function abrir() {
 }
 
 describe("explicación de llegada real y efectos existentes", () => {
+  it("muestra la fecha registrada y mantiene disponible la actualización de ETA", () => {
+    render(
+      <TrackingNuevoEventoForm embarqueId="emb-ficticio" fechaLlegadaRealActual="2026-10-06" onClose={vi.fn()} />,
+      { wrapper: createWrapper() },
+    );
+    const llegada = screen.getByRole("button", { name: /Registrar llegada real/ });
+    expect(llegada).toBeDisabled();
+    expect(llegada).toHaveTextContent("Llegada registrada el 06/10/2026.");
+    fireEvent.click(llegada);
+    expect(screen.queryByLabelText("Fecha de llegada real *")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Actualizar ETA/ })).toBeEnabled();
+    expect(fx.rpc).not.toHaveBeenCalled();
+  });
+
   it("anticipa requisitos y conserva el payload de fecha real y el evento", async () => {
     const onClose = abrir();
     expect(screen.getByText(/Completa los documentos pendientes/)).toHaveTextContent("igual o posterior a la salida estimada (ETD)");

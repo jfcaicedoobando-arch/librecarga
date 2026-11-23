@@ -106,7 +106,7 @@ export default function PortalEmbarques() {
         />
       ) : (
         <div className="grid gap-3">
-          {grouped.map(([expediente, items]) => {
+          {grouped.map(([key, items]) => {
             if (items.length === 1) {
               const e = items[0];
               return <EmbarqueCard key={e.id} e={e} />;
@@ -119,7 +119,7 @@ export default function PortalEmbarques() {
             const firstItem = items[0];
             const ruta = `${getOrigen(firstItem)} → ${getDestino(firstItem)}`;
             return (
-              <Collapsible key={expediente} defaultOpen={!isMobile}>
+              <Collapsible key={key} defaultOpen={!isMobile}>
                 <Card className="border-dashed bg-muted/30 overflow-hidden">
                   <CollapsibleTrigger className="w-full cursor-pointer group">
                     <CardContent className="p-3 flex items-center justify-between">
@@ -127,7 +127,7 @@ export default function PortalEmbarques() {
                         <div className="flex items-center gap-2 text-body font-bold text-foreground">
                           <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=closed]:-rotate-90" />
                           <Package className="h-4 w-4 text-muted-foreground" />
-                          <span>{expediente}</span>
+                          <span>{firstItem.expediente}</span>
                           <span className="text-body-sm font-normal text-muted-foreground">· {items.length} contenedores</span>
                         </div>
                         <p className="text-body-sm text-muted-foreground ml-10">{ruta}</p>

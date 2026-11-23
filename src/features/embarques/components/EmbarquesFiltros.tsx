@@ -19,6 +19,10 @@ import { labelEstadoEmbarque } from "@/features/embarques/constants/estadoEmbarq
 import { formatDate } from "@/lib/formatters";
 import { rangoLabel } from "@/lib/ui/rangoFechasCopy";
 
+const ESTADOS_FILTRO = ESTADOS_EMBARQUE.flatMap((estado) =>
+  estado === "Arribo" ? ["En Proceso", estado] : [estado],
+);
+
 interface ClienteOption { id: string; nombre: string }
 
 interface Props {
@@ -118,7 +122,7 @@ export default function EmbarquesFiltros(props: Props) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos los estados</SelectItem>
-              {ESTADOS_EMBARQUE.map((e) => <SelectItem key={e} value={e}>{labelEstadoEmbarque(e)}</SelectItem>)}
+              {ESTADOS_FILTRO.map((e) => <SelectItem key={e} value={e}>{labelEstadoEmbarque(e)}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filterCliente} onValueChange={onFilterClienteChange}>

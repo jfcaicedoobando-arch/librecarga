@@ -57,7 +57,7 @@ export function useComprasConciliacionController() {
   return {
     estado, setEstado, moneda, setMoneda, search, setSearch,
     detalle, setDetalle,
-    rows, isLoading, isError, error, refetch,
+    rows, isLoading: !orgListo || isLoading, isError, error, refetch,
     kpis,
   };
 }

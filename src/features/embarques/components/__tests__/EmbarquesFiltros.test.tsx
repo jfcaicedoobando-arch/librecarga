@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { withNuqsTestingAdapter } from "nuqs/adapters/testing";
 import { describe, expect, it, vi } from "vitest";
 import { useEmbarquesFilters } from "../../hooks/useEmbarquesFilters";
@@ -86,5 +86,19 @@ describe("EmbarquesFiltros", () => {
 
     expect(panel.getByLabelText("ETD desde")).toBe(panel.getByRole("textbox", { name: "ETD desde" }));
     expect(panel.getByLabelText("ETA hasta")).toBe(panel.getByRole("textbox", { name: "ETA hasta" }));
+  });
+
+  it("permite filtrar por En Proceso y conserva el valor en la URL", async () => {
+    viewport.movil = false;
+    const actualizarUrl = vi.fn<(evento: { searchParams: URLSearchParams }) => void>();
+    render(<Listado />, { wrapper: withNuqsTestingAdapter({ hasMemory: true, onUrlUpdate: actualizarUrl }) });
+
+    const estado = screen.getByRole("combobox", { name: "Estado del embarque" });
+    fireEvent.keyDown(estado, { key: "Enter" });
+    fireEvent.click(await screen.findByRole("option", { name: "En Proceso" }));
+
+    expect(estado).toHaveTextContent("En Proceso");
+    expect(screen.getByRole("button", { name: "Quitar Estado: En Proceso" })).toBeInTheDocument();
+    await waitFor(() => expect(actualizarUrl.mock.lastCall?.[0].searchParams.get("estado")).toBe("En Proceso"));
   });
 });

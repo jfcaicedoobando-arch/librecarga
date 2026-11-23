@@ -40,6 +40,7 @@ interface Props {
   resumen: ResumenPdf;
   filas: FilaLibroPagosExport[];
   emisor?: EmisorInfo;
+  alcance?: { totalPeriodo: number; filtros: string[] };
 }
 
 const COL_FECHA = { width: 62, flexGrow: 0, flexShrink: 0 } as const;
@@ -66,7 +67,7 @@ function paymentRowCanFlow(row: FilaLibroPagosExport): boolean {
   return Object.values(row).some(value => textRowBudget(value, 3) > 180);
 }
 
-export function LibroPagosDocument({ resumen, filas, emisor }: Props) {
+export function LibroPagosDocument({ resumen, filas, emisor, alcance }: Props) {
   const summaryCanFlow = [resumen.cobrado, resumen.pagado, resumen.devuelto ?? "—", resumen.neto, resumen.conteo]
     .some(value => textRowBudget(value, 12) > 66);
   const resumenFinal = (
@@ -88,6 +89,12 @@ export function LibroPagosDocument({ resumen, filas, emisor }: Props) {
             Cobros de clientes, pagos a proveedores, anticipos y devoluciones
           </Text>
           <Text style={styles.contextText}>Periodo {resumen.periodo}</Text>
+          {alcance && (
+            <>
+              <Text style={styles.contextText}>{filas.length} de {alcance.totalPeriodo} pagos del periodo</Text>
+              {alcance.filtros.length > 0 && <Text style={styles.contextText}>Filtros aplicados: {alcance.filtros.join(" · ")}</Text>}
+            </>
+          )}
           <Text style={styles.contextText}>
             Importes en MXN al TC guardado; devoluciones al TC del anticipo original
           </Text>

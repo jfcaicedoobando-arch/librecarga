@@ -72,7 +72,7 @@ export function usePortalEmbarquesController() {
   const grouped = useMemo(() => {
     const map = new Map<string, typeof filtered>();
     filtered.forEach((e) => {
-      const key = e.expediente || "S/N";
+      const key = e.expediente?.trim() ? `expediente:${e.expediente}` : `embarque:${e.id}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(e);
     });
