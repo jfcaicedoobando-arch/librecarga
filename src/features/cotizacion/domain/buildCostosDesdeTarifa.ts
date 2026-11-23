@@ -47,7 +47,7 @@ export function monedaRecargo(r: Pick<CosteoTarifaRecargo, "moneda" | "concepto"
 }
 
 /** Filas de costo derivadas de los recargos de la tarifa (B-073: con linkage). */
-function filasDesdeRecargos({
+export function filasDesdeRecargos({
   recargos,
   tarifaId,
   proveedor,
