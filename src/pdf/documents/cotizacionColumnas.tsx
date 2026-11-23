@@ -11,6 +11,7 @@ import { calcularTotales } from "@/generators/cotizacion/conceptosTables";
 import { styles } from "../theme/styles";
 import type { PdfColumn } from "../components/DataTable";
 import type { TotalesMoneda } from "../components/TotalesBox";
+import { conceptoConCodigo } from "@/features/costeo/domain/catalogoCargos/conceptoConCodigo";
 import { etiquetaTratamientoFila } from "@/lib/financial/etiquetaTratamientoFila";
 
 /**
@@ -38,7 +39,7 @@ function columnasIva(moneda: string, tasaIva: number, fiscal = false): PdfColumn
 export function columnasUSD(tasaIva: number, hayIva: boolean, fiscal = false): PdfColumn<ConceptoVentaCotizacion>[] {
   const base: PdfColumn<ConceptoVentaCotizacion>[] = [
     { key: "descripcion", title: "Descripción", hyphenate: false, cellStyle: styles.cellDesc,
-      render: (r) => r.descripcion },
+      render: (r) => conceptoConCodigo(r.descripcion) },
     { key: "tratamiento", title: "Trat. IVA", cellStyle: styles.cellTreatment,
       render: (r) => etiquetaTratamientoFila(r) },
     { key: "unidad", title: "Unidad", cellStyle: { width: 68, fontSize: 9 } as never,
@@ -57,7 +58,7 @@ export function columnasUSD(tasaIva: number, hayIva: boolean, fiscal = false): P
  */
 export function columnasMXN(tasaIva: number, hayIva: boolean, fiscal = false): PdfColumn<ConceptoVentaCotizacion>[] {
   const base: PdfColumn<ConceptoVentaCotizacion>[] = [
-    { key: "descripcion", title: "Descripción", hyphenate: false, cellStyle: styles.cellDesc, render: (r) => r.descripcion },
+    { key: "descripcion", title: "Descripción", hyphenate: false, cellStyle: styles.cellDesc, render: (r) => conceptoConCodigo(r.descripcion) },
     { key: "tratamiento", title: "Trat. IVA", cellStyle: styles.cellTreatment,
       render: (r) => etiquetaTratamientoFila(r) },
     { key: "unidad", title: "Unidad", cellStyle: { width: 68, fontSize: 9 } as never,

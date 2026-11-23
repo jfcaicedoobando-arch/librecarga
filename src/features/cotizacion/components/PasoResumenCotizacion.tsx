@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/formatters";
 import type { ConceptoVentaCotizacion } from "@/features/cotizacion/types";
 import { itemsBanderasAereas, type BanderasAereas } from "@/features/cotizacion/domain/banderasAereas";
 import ResumenPL from "@/features/cotizacion/components/ResumenPL";
+import CargosResumenCotizacion from "@/features/cotizacion/components/CargosResumenCotizacion";
 
 interface TotalesPL {
   totalCosto: number;
@@ -91,6 +92,8 @@ export default function PasoResumenCotizacion({
           </div>
         ))}
       </WizardSection>
+
+      <CargosResumenCotizacion conceptos={conceptosVenta ?? []} />
 
       <WizardSection title="Totales de la cotización"
         actions={accionesEdicion && <Button type="button" variant="outline" size="sm" disabled={accionesEdicion.bloqueado} onClick={accionesEdicion.editarConceptos}>Editar conceptos</Button>}>
