@@ -53,7 +53,12 @@ export function FacturaManualDatosFiscales({ value, onChange, diasReadonly, dias
     if (tc && tc > 0) onChange({ tipoCambio: tc });
   }, value.fechaEmision);
   const requiereTc = value.moneda !== "MXN";
+  const formaFijada = value.metodoPago === "PPD";
   const errorFormaMetodo = validarFormaMetodoPago(value.formaPago, value.metodoPago)[0]?.message;
+  const descripcionForma = [
+    formaFijada && "factura-manual-forma-ayuda",
+    errorFormaMetodo && "factura-manual-forma-error",
+  ].filter(Boolean).join(" ") || undefined;
   const monedas: MonedaManual[] = ["MXN", "USD", "EUR"];
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -100,8 +105,8 @@ export function FacturaManualDatosFiscales({ value, onChange, diasReadonly, dias
       <UsoCfdiIngresoSelect receptor={receptor} value={value.usoCfdi} onChange={(usoCfdi) => onChange({ usoCfdi })} />
       <div className="space-y-1.5">
         <Label htmlFor="factura-manual-forma-pago">Forma de pago</Label>
-        <Select value={value.formaPago} onValueChange={(v) => onChange({ formaPago: v })} disabled={value.metodoPago === "PPD"}>
-          <SelectTrigger id="factura-manual-forma-pago" aria-invalid={!!errorFormaMetodo} aria-describedby={errorFormaMetodo ? "factura-manual-forma-error" : undefined}>
+        <Select value={value.formaPago} onValueChange={(v) => onChange({ formaPago: v })} disabled={formaFijada}>
+          <SelectTrigger id="factura-manual-forma-pago" aria-invalid={!!errorFormaMetodo} aria-describedby={descripcionForma}>
             <SelectValue placeholder="Elige la forma de pago real" />
           </SelectTrigger>
           <SelectContent>
@@ -109,6 +114,7 @@ export function FacturaManualDatosFiscales({ value, onChange, diasReadonly, dias
               .map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
           </SelectContent>
         </Select>
+        {formaFijada && <p id="factura-manual-forma-ayuda" className="text-label text-muted-foreground">Con PPD, el sistema fija la forma de pago en 99 - Por definir.</p>}
         {errorFormaMetodo && <p id="factura-manual-forma-error" role="alert" className="text-label text-destructive">{errorFormaMetodo}</p>}
       </div>
       <div className="space-y-1.5">

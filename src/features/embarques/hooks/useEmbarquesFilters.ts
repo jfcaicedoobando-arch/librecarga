@@ -2,6 +2,7 @@
  * Estado de filtros y ordenamiento para la página de embarques (extraído de
  * `useEmbarquesPageState` para reducir complejidad).
  */
+import { useCallback } from "react";
 import {
   useQueryState,
   useQueryStates,
@@ -32,19 +33,29 @@ export type EmbarqueAlertaFiltro =
   | "cierre_operativo"
   | "admin_pendiente";
 
+export const EMBARQUES_SECONDARY_FILTER_DEFAULTS = {
+  modo: "todos", operador: "todos", fechaDesde: "", fechaHasta: "",
+};
+
+export const EMBARQUES_FILTER_DEFAULTS = {
+  estado: "todos", cliente: "todos", ...EMBARQUES_SECONDARY_FILTER_DEFAULTS,
+};
+
+export type EmbarquesFilterValues = typeof EMBARQUES_FILTER_DEFAULTS;
+
 export function useEmbarquesFilters() {
   const [search, setSearchRaw] = useQueryState("q", parseAsString.withDefault(""));
-  const [filters, setFilters] = useQueryStates({
-    modo: parseAsString.withDefault("todos"),
-    estado: parseAsString.withDefault("todos"),
-    cliente: parseAsString.withDefault("todos"),
-    operador: parseAsString.withDefault("todos"),
-
-    fechaDesde: parseAsString.withDefault(""),
-    fechaHasta: parseAsString.withDefault(""),
+  const [{ page: pageFromUrl, ...filters }, setFiltersAndPage] = useQueryStates({
+    modo: parseAsString.withDefault(EMBARQUES_FILTER_DEFAULTS.modo),
+    estado: parseAsString.withDefault(EMBARQUES_FILTER_DEFAULTS.estado),
+    cliente: parseAsString.withDefault(EMBARQUES_FILTER_DEFAULTS.cliente),
+    operador: parseAsString.withDefault(EMBARQUES_FILTER_DEFAULTS.operador),
+    fechaDesde: parseAsString.withDefault(EMBARQUES_FILTER_DEFAULTS.fechaDesde),
+    fechaHasta: parseAsString.withDefault(EMBARQUES_FILTER_DEFAULTS.fechaHasta),
+    page: parseAsInteger.withDefault(0),
   });
   const [alerta, setAlertaRaw] = useQueryState("alerta", ALERTA_PARSER);
-  const [pageFromUrl, setPageRaw] = useQueryState("page", parseAsInteger.withDefault(0));
+  const setPageRaw = useCallback((value: number | null) => setFiltersAndPage({ page: value }), [setFiltersAndPage]);
   const [pageSizeFromUrl, setPageSizeRaw] = useQueryState(
     "ps",
     parseAsInteger.withDefault(DEFAULT_PAGE_SIZE),
@@ -57,8 +68,14 @@ export function useEmbarquesFilters() {
   const debouncedSearch = useDebounce(search, 300);
 
   const setFilter = (key: keyof typeof filters, value: string, defaultValue: string) => {
-    setFilters({ [key]: value === defaultValue ? null : value });
-    setPageRaw(null);
+    void setFiltersAndPage({ [key]: value === defaultValue ? null : value, page: null });
+  };
+
+  const applyFilters = (next: Partial<EmbarquesFilterValues>) => {
+    const keys = Object.keys(next) as (keyof EmbarquesFilterValues)[];
+    if (keys.some((key) => next[key] !== filters[key])) {
+      void setFiltersAndPage({ ...next, page: null });
+    }
   };
 
   return {
@@ -73,6 +90,7 @@ export function useEmbarquesFilters() {
     DEFAULT_PAGE_SIZE,
     setSearch: (v: string) => { setSearchRaw(v || null); setPageRaw(null); },
     setFilter,
+    applyFilters,
     setAlerta: (v: EmbarqueAlertaFiltro) => {
       setAlertaRaw(v === "todos" ? null : v);
       setPageRaw(null);

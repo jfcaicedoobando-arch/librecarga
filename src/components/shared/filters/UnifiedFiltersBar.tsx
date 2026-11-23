@@ -4,7 +4,7 @@
  * Componen: search + slots `primary` (selects visibles) + botón Sheet
  * (`secondary`) + chips activos con botón "Limpiar todo".
  */
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { X } from "lucide-react";
 import SearchInput from "@/components/shared/SearchInput";
 import { MobileFiltersSheet } from "@/components/shared/MobileFiltersSheet";
@@ -14,6 +14,7 @@ import { useIsMobile } from "@/hooks/shared";
 import { cn } from "@/lib/utils";
 import type { ChipItem } from "@/hooks/shared";
 
+const QUITAR_FILTRO_CLASS = "ml-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full hover:bg-background/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export interface UnifiedFiltersBarProps {
   search: string;
@@ -62,6 +63,15 @@ export function UnifiedFiltersBar({
 }: UnifiedFiltersBarProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const isMobile = useIsMobile();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const chipsRef = useRef<HTMLDivElement>(null);
+
+  const quitarChip = (event: MouseEvent<HTMLButtonElement>, quitar: () => void) => {
+    const botones = Array.from(chipsRef.current?.querySelectorAll<HTMLButtonElement>("[data-quitar-filtro]") ?? []);
+    const siguiente = botones[botones.indexOf(event.currentTarget) + 1];
+    (siguiente ?? searchRef.current)?.focus();
+    quitar();
+  };
 
   const hasChips = chips.length > 0 || Boolean(search);
 
@@ -74,6 +84,7 @@ export function UnifiedFiltersBar({
             completo y los selects `primary` se mueven al panel de filtros. */}
         <div className="w-full min-w-0 flex-1 md:w-auto md:max-w-sm">
           <SearchInput
+            ref={searchRef}
             value={search}
             onChange={onSearchChange}
             placeholder={searchPlaceholder}
@@ -107,15 +118,16 @@ export function UnifiedFiltersBar({
       </div>
 
       {hasChips ? (
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div ref={chipsRef} className="flex flex-wrap items-center gap-1.5">
           {search ? (
             <Badge variant="secondary" className="gap-1">
               <span>Búsqueda: {search}</span>
               <button
                 type="button"
                 aria-label="Quitar búsqueda"
-                onClick={() => onSearchChange("")}
-                className="ml-0.5 rounded-full p-0.5 hover:bg-background/60"
+                data-quitar-filtro
+                onClick={(event) => quitarChip(event, () => onSearchChange(""))}
+                className={QUITAR_FILTRO_CLASS}
               >
                 <X className="h-3 w-3" aria-hidden />
               </button>
@@ -127,8 +139,9 @@ export function UnifiedFiltersBar({
               <button
                 type="button"
                 aria-label={`Quitar ${chip.label}`}
-                onClick={chip.onRemove}
-                className="ml-0.5 rounded-full p-0.5 hover:bg-background/60"
+                data-quitar-filtro
+                onClick={(event) => quitarChip(event, chip.onRemove)}
+                className={QUITAR_FILTRO_CLASS}
               >
                 <X className="h-3 w-3" aria-hidden />
               </button>

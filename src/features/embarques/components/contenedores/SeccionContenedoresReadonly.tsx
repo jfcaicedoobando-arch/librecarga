@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router";
+import { useDestinoEdicionEmbarque } from "../../hooks/useNavegacionEdicionEmbarque";
 import { PackageOpen, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,8 @@ export function SeccionContenedoresReadonly({ embarqueId }: Props) {
     useContenedoresEmbarque(embarqueId);
   const { data: tiposContenedor = [] } = useTiposContenedor();
 
-  const irAEditar = () => navigate(`/embarques/${embarqueId}/editar?step=2`);
+  const edicion = useDestinoEdicionEmbarque(embarqueId, 2);
+  const irAEditar = () => navigate(edicion.to, { state: edicion.state });
 
   const lista = contenedores as Contenedor[];
   // v13.823.341 — un renglón sin número no es un contenedor operativo: el

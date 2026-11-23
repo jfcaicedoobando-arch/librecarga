@@ -3,7 +3,6 @@
  * calcula el diff para bitácora y ejecuta la mutación. Extraído para que el
  * hook orquestador quede enfocado en el estado de hidratación del wizard.
  */
-import type { NavigateFunction } from "react-router";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 import { labelExpediente } from "@/lib/domain/labelExpediente";
 import { getErrorMessage } from "@/lib/errors";
@@ -44,7 +43,7 @@ interface Deps {
   updateEmbarque: ReturnType<typeof useUpdateEmbarque>;
   registrarActividad: ReturnType<typeof useRegistrarActividad>;
   setCurrentStep: (step: number) => void;
-  navigate: NavigateFunction;
+  volverAlDetalle: () => void;
   /** Regla de margen mínimo (los totales se convierten a USD al guardar). */
   margenMinimoPct: number;
   puedeAutorizarMargen: boolean;
@@ -122,7 +121,7 @@ export async function ejecutarGuardarEmbarque(deps: Deps): Promise<void> {
     buildEmbarquePayload, buildConceptosVentaPayload, buildConceptosCostoPayload,
     contactos, selectedClienteNombre, userEmail,
     conceptosVenta, conceptosCosto, conceptosVentaDb, conceptosCostoDb, proveedoresDb,
-    updateEmbarque, registrarActividad, setCurrentStep, navigate, signal,
+    updateEmbarque, registrarActividad, setCurrentStep, volverAlDetalle, signal,
   } = deps;
   if (!id || !embarque) return;
   try {
@@ -192,7 +191,7 @@ export async function ejecutarGuardarEmbarque(deps: Deps): Promise<void> {
     });
 
     notifySuccess(undefined, { title: "Embarque actualizado", description: `${labelExpediente(embarque.expediente, embarque.id)} guardado correctamente.` });
-    navigate(`/embarques/${id}`);
+    volverAlDetalle();
   } catch (err: unknown) {
     notificarErrorAlGuardar(err, signal);
   }

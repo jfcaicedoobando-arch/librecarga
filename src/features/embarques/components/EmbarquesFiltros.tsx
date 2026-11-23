@@ -1,11 +1,11 @@
 /**
  * Filtros de Embarques — migrado a `<UnifiedFiltersBar>` (Oleada 1).
  *
- * Primary (siempre visible): Estado + Cliente.
+ * Primary: Estado + Cliente, dentro del panel en móvil.
  * Secondary (Sheet): Modo, Operador, ETD desde, ETA hasta.
  * Chips activos generados de los valores actuales del filtro.
  */
-import { useId } from "react";
+import { useId, useState } from "react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -16,6 +16,9 @@ import type { ChipItem } from "@/hooks/shared/useTableFilters";
 import { ModoIcon } from "@/components/shared/ModoIcon";
 import { ESTADOS_EMBARQUE, MODOS_TRANSPORTE } from "@/features/embarques/constants/embarqueConstants";
 import { labelEstadoEmbarque } from "@/features/embarques/constants/estadoEmbarqueLabels";
+import {
+  EMBARQUES_FILTER_DEFAULTS, EMBARQUES_SECONDARY_FILTER_DEFAULTS, type EmbarquesFilterValues,
+} from "@/features/embarques/hooks/useEmbarquesFilters";
 import { formatDate } from "@/lib/formatters";
 import { rangoLabel } from "@/lib/ui/rangoFechasCopy";
 
@@ -29,6 +32,7 @@ interface Props {
   search: string;
   onSearchChange: (v: string) => void;
   onClearAll: () => void;
+  onApplyFilters: (values: Partial<EmbarquesFilterValues>) => void;
   filterModo: string;
   onFilterModoChange: (v: string) => void;
   filterEstado: string;
@@ -51,13 +55,29 @@ export default function EmbarquesFiltros(props: Props) {
   const etdId = `${idFechas}-etd`;
   const etaId = `${idFechas}-eta`;
   const {
-    search, onSearchChange, onClearAll,
+    search, onSearchChange, onClearAll, onApplyFilters,
     filterModo, filterEstado, filterCliente, filterOperador,
     fechaDesde, fechaHasta,
     onFilterModoChange, onFilterEstadoChange, onFilterClienteChange,
     onFilterOperadorChange, onFechaDesdeChange, onFechaHastaChange,
     clientes, operadores,
   } = props;
+
+  const aplicados = {
+    modo: filterModo, estado: filterEstado, cliente: filterCliente,
+    operador: filterOperador, fechaDesde, fechaHasta,
+  };
+  const [borrador, setBorrador] = useState(aplicados);
+  const setBorradorCampo = (key: keyof EmbarquesFilterValues, value: string) =>
+    setBorrador((prev) => ({ ...prev, [key]: value }));
+  const defaultsPanel = isMobile ? EMBARQUES_FILTER_DEFAULTS : EMBARQUES_SECONDARY_FILTER_DEFAULTS;
+  const clavesPanel = Object.keys(defaultsPanel) as (keyof EmbarquesFilterValues)[];
+  const cuentaActivosPanel = (values: EmbarquesFilterValues) =>
+    clavesPanel.filter((key) => values[key] !== EMBARQUES_FILTER_DEFAULTS[key]).length;
+  const aplicarBorrador = () => {
+    const seleccion = Object.fromEntries(clavesPanel.map((key) => [key, borrador[key]]));
+    onApplyFilters(seleccion);
+  };
 
   // Chips activos (UnifiedFiltersBar maneja search aparte)
   const chips: ChipItem[] = [];
@@ -81,27 +101,36 @@ export default function EmbarquesFiltros(props: Props) {
     chips.push({ key: "hasta", label: `ETA hasta: ${formatDate(fechaHasta)}`, onRemove: () => onFechaHastaChange("") });
   }
 
-  const secondaryCount = [filterModo !== "todos", filterOperador !== "todos", !!fechaDesde, !!fechaHasta]
-    .filter(Boolean).length;
-
-  // v13.823.341 — la selección dentro del panel de filtros es temporal:
-  // sólo "Aplicar" la persiste; cerrar (X, Esc o clic fuera) la descarta.
-  const snapshot = () => ({
-    modo: filterModo, estado: filterEstado, cliente: filterCliente,
-    operador: filterOperador, desde: fechaDesde, hasta: fechaHasta,
-  });
-  const restore = (foto: unknown) => {
-    const f = foto as ReturnType<typeof snapshot>;
-    onFilterModoChange(f.modo); onFilterEstadoChange(f.estado);
-    onFilterClienteChange(f.cliente); onFilterOperadorChange(f.operador);
-    onFechaDesdeChange(f.desde); onFechaHastaChange(f.hasta);
-  };
-
-  const clearSheet = () => {
-    onFilterModoChange("todos"); onFilterEstadoChange("todos");
-    onFilterClienteChange("todos"); onFilterOperadorChange("todos");
-    onFechaDesdeChange(""); onFechaHastaChange("");
-  };
+  const primarios = (
+    valores: Pick<EmbarquesFilterValues, "estado" | "cliente">,
+    onEstadoChange: (v: string) => void,
+    onClienteChange: (v: string) => void,
+  ) => (
+    <>
+      <Select value={valores.estado} onValueChange={onEstadoChange}>
+        <SelectTrigger className="w-[170px]" aria-label="Estado del embarque">
+          <SelectValue placeholder="Estado" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todos">Todos los estados</SelectItem>
+          {ESTADOS_FILTRO.map((e) => <SelectItem key={e} value={e}>{labelEstadoEmbarque(e)}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Select value={valores.cliente} onValueChange={onClienteChange}>
+        <SelectTrigger className="w-[210px]" aria-label="Cliente">
+          <SelectValue placeholder="Cliente" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todos">Todos los clientes</SelectItem>
+          {clientes.map((c) => (
+            <SelectItem key={c.id} value={c.id}>
+              {c.nombre}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </>
+  );
 
   return (
     <UnifiedFiltersBar
@@ -109,41 +138,18 @@ export default function EmbarquesFiltros(props: Props) {
       onSearchChange={onSearchChange}
       searchPlaceholder="Buscar por expediente, cliente o mercancía…"
       chips={chips}
-      activeCount={isMobile ? chips.length : secondaryCount}
+      activeCount={cuentaActivosPanel(aplicados)}
       onClearAll={onClearAll}
-      onSheetClearAll={clearSheet}
-      snapshot={snapshot}
-      restore={restore}
-      primary={
-        <>
-          <Select value={filterEstado} onValueChange={onFilterEstadoChange}>
-            <SelectTrigger className="w-[170px]" aria-label="Estado del embarque">
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los estados</SelectItem>
-              {ESTADOS_FILTRO.map((e) => <SelectItem key={e} value={e}>{labelEstadoEmbarque(e)}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterCliente} onValueChange={onFilterClienteChange}>
-            <SelectTrigger className="w-[210px]" aria-label="Cliente">
-              <SelectValue placeholder="Cliente" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los clientes</SelectItem>
-              {clientes.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </>
-      }
+      onSheetOpenChange={(open) => { if (open) setBorrador(aplicados); }}
+      onApply={aplicarBorrador}
+      onSheetClearAll={() => setBorrador((prev) => ({ ...prev, ...defaultsPanel }))}
+      sheetActiveCount={cuentaActivosPanel(borrador)}
+      primary={primarios(aplicados, onFilterEstadoChange, onFilterClienteChange)}
+      sheetPrimary={primarios(borrador, (v) => setBorradorCampo("estado", v), (v) => setBorradorCampo("cliente", v))}
       secondary={
         <div className="space-y-4">
           <FieldGroup label="Modo de transporte">
-            <Select value={filterModo} onValueChange={onFilterModoChange}>
+            <Select value={borrador.modo} onValueChange={(v) => setBorradorCampo("modo", v)}>
               <SelectTrigger className="w-full" aria-label="Modo de transporte">
                 <SelectValue placeholder="Modo" />
               </SelectTrigger>
@@ -160,7 +166,7 @@ export default function EmbarquesFiltros(props: Props) {
             </Select>
           </FieldGroup>
           <FieldGroup label="Operador">
-            <Select value={filterOperador} onValueChange={onFilterOperadorChange}>
+            <Select value={borrador.operador} onValueChange={(v) => setBorradorCampo("operador", v)}>
               <SelectTrigger className="w-full" aria-label="Operador">
                 <SelectValue placeholder="Operador" />
               </SelectTrigger>
@@ -171,10 +177,10 @@ export default function EmbarquesFiltros(props: Props) {
             </Select>
           </FieldGroup>
           <FieldGroup label={rangoLabel("ETD", "desde")} htmlFor={etdId}>
-            <DatePickerMx id={etdId} value={fechaDesde} onChange={onFechaDesdeChange} className="w-full" />
+            <DatePickerMx id={etdId} value={borrador.fechaDesde} onChange={(v) => setBorradorCampo("fechaDesde", v)} className="w-full" />
           </FieldGroup>
           <FieldGroup label={rangoLabel("ETA", "hasta")} htmlFor={etaId}>
-            <DatePickerMx id={etaId} value={fechaHasta} onChange={onFechaHastaChange} className="w-full" />
+            <DatePickerMx id={etaId} value={borrador.fechaHasta} onChange={(v) => setBorradorCampo("fechaHasta", v)} className="w-full" />
           </FieldGroup>
         </div>
       }

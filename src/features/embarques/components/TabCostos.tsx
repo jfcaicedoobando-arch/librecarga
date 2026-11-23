@@ -7,6 +7,7 @@ import { formatCurrency, formatPercent, formatTipoCambio } from "@/lib/formatter
 import { claseTonoMargen, UMBRAL_MARGEN_OPERATIVO } from "@/lib/ui/margen";
 import { useContenedoresEmbarque } from "@/features/embarques/hooks";
 import { useReconciliacionEmbarque } from "@/features/embarques/hooks/useReconciliacionEmbarque";
+import { useDestinoEdicionEmbarque } from "../hooks/useNavegacionEdicionEmbarque";
 
 import { ConceptosCostoCard } from "./costos/ConceptosCostoCard";
 import { AnticiposEmbarqueCard } from "./costos/AnticiposEmbarqueCard";
@@ -51,6 +52,7 @@ export function TabCostos({
   tipoCambioUsd, tipoCambioEur, monedasExtranjeras = [],
 }: Props) {
   const navigate = useNavigate();
+  const edicion = useDestinoEdicionEmbarque(embarqueId, 3);
   const { data: contenedores = [] } = useContenedoresEmbarque(embarqueId);
   const costos = useReconciliacionEmbarque(embarqueId);
 
@@ -76,7 +78,7 @@ export function TabCostos({
   ];
 
   const irACargarCostos = canEditCostos && embarqueId
-    ? { label: "Cargar costos", onClick: () => navigate(`/embarques/${embarqueId}/editar?step=3`) }
+    ? { label: "Cargar costos", onClick: () => navigate(edicion.to, { state: edicion.state }) }
     : undefined;
 
   return (

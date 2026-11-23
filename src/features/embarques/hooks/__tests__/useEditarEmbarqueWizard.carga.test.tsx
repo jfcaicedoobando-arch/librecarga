@@ -11,7 +11,7 @@ const m = vi.hoisted(() => ({
 const venta = { id: "v1", descripcion: "Flete", cantidad: 1, precio_unitario: 1000, total: 1000, moneda: "MXN", contenedor_id: null };
 const costo = { id: "c1", concepto: "Costo", monto: 400, moneda: "MXN", proveedor_id: "p1", contenedor_id: null };
 
-vi.mock("react-router", () => ({ useNavigate: () => m.navegar }));
+vi.mock("../useNavegacionEdicionEmbarque", () => ({ useVolverAlDetalleEmbarque: () => m.navegar }));
 vi.mock("@/lib/contexts/AuthContext", () => ({ useAuth: () => ({ user: { email: "qa@example.invalid" }, effectiveRole: "admin" }) }));
 vi.mock("../useEmbarques", () => ({
   useEmbarque: () => m.consultas.embarque,
@@ -82,6 +82,7 @@ describe("edición segura tras cargar todos los datos", () => {
     act(() => result.current.methods.setValue("notas", "Cambio administrativo"));
     await act(() => result.current.handleSave());
     expect(m.guardar).toHaveBeenCalledOnce();
+    expect(m.navegar).toHaveBeenCalledOnce();
     expect(m.guardar).toHaveBeenCalledWith(expect.objectContaining({
       conceptosVenta: [expect.objectContaining({ id: "v1" })],
       conceptosCosto: [expect.objectContaining({ id: "c1", proveedor_id: "p1" })],

@@ -1,8 +1,10 @@
+import type { Ref } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface SearchInputProps {
+  ref?: Ref<HTMLInputElement>;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -20,6 +22,7 @@ interface SearchInputProps {
  * de foco canónicos de `Input`; solo agrega el icono de lupa.
  */
 export default function SearchInput({
+  ref,
   value,
   onChange,
   placeholder = "Buscar…",
@@ -42,6 +45,7 @@ export default function SearchInput({
     <div className={cn("relative", className)}>
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
+        ref={ref}
         type="search"
         placeholder={placeholder}
         aria-label={ariaLabel ?? placeholder}

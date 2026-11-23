@@ -9,6 +9,7 @@ import { ReabrirEmbarqueButton } from "./header/ReabrirEmbarqueButton";
 import { CancelarEmbarqueDialog } from "./header/CancelarEmbarqueDialog";
 import { MenuMasAccionesEmbarque } from "./header/MenuMasAccionesEmbarque";
 import { usePermissions } from "@/hooks/shared/usePermissions";
+import { useDestinoEdicionEmbarque } from "../hooks/useNavegacionEdicionEmbarque";
 import { CIERRE_RESTRINGIDO_COPY } from "./cierre/cierrePermisoCopy";
 
 /** Identidad y permisos del embarque (auditoría 2026-08-18, punto 7). */
@@ -101,8 +102,9 @@ export function EmbarqueDetalleHeaderActions({
   const puedeEliminar = !esTerminal && !tieneDeudaPendiente && canEliminarEmbarque;
   const [cancelarOpen, setCancelarOpen] = useState(false);
   const navigate = useNavigate();
+  const edicion = useDestinoEdicionEmbarque(embarqueId);
   const goEditar = () => {
-    const salir = () => navigate(`/embarques/${embarqueId}/editar`);
+    const salir = () => navigate(edicion.to, { state: edicion.state });
     if (confirmarSalida) confirmarSalida(salir);
     else salir();
   };

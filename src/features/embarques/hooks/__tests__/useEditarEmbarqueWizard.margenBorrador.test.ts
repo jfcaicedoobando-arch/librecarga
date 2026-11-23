@@ -19,7 +19,7 @@ function deps(estado = 'Borrador'): Deps {
     conceptosCosto: [{ monto: 9445, moneda: 'USD' }],
     conceptosVentaDb: [], conceptosCostoDb: [], contactos: [], proveedoresDb: [],
     updateEmbarque: { mutateAsync: m.update }, registrarActividad: { mutate: vi.fn() },
-    setCurrentStep: vi.fn(), navigate: vi.fn(), margenMinimoPct: 9, puedeAutorizarMargen: false,
+    setCurrentStep: vi.fn(), volverAlDetalle: vi.fn(), margenMinimoPct: 9, puedeAutorizarMargen: false,
     signal: new AbortController().signal, solicitarRevisionFiscal: vi.fn(),
   } as unknown as Deps;
 }
@@ -33,7 +33,7 @@ describe('guardar borrador de 3.62% con mínimo 9%', () => {
     expect(m.update).toHaveBeenCalledOnce();
     expect(m.update.mock.calls[0][0]).toMatchObject({ id: 'emb-1', expectedUpdatedAt: '2026-11-20' });
     expect(m.notifyError).not.toHaveBeenCalled();
-    expect(input.navigate).toHaveBeenCalledWith('/embarques/emb-1');
+    expect(input.volverAlDetalle).toHaveBeenCalledOnce();
   });
   it('sin candidata aplicada NO libera el candado de margen', async () => {
     m.consultar.mockResolvedValue(null);

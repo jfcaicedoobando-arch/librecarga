@@ -37,7 +37,7 @@ export default function EditarEmbarque() {
   const {
     embarque, isLoading, isError, errorCarga, refetch, methods, currentStep, setCurrentStep,
     clientes, proveedoresDb, contactos, selectedCliente,
-    handleMsdsUpload, handleSave, isPending, revisionFiscal, responderRevisionFiscal, navigate, conceptosForm,
+    handleMsdsUpload, handleSave, isPending, revisionFiscal, responderRevisionFiscal, volverAlDetalle, conceptosForm,
     validateStep, cotizacionVinculada, cotizacionesAceptadas,
   } = useEditarEmbarqueWizard(id);
   useRegisterBreadcrumbLabel(id, embarque?.expediente);
@@ -98,7 +98,7 @@ export default function EditarEmbarque() {
   }
 
   if (!canEdit) {
-    return <Navigate to={`/embarques/${id}`} replace />;
+    return <Navigate to={`/embarques/${id}`} replace state={{ from: "/embarques" }} />;
   }
 
   if (!embarque) {
@@ -127,7 +127,7 @@ export default function EditarEmbarque() {
               se pueden editar. Un administrador debe reabrirlo desde la pestaña
               «Cierre» del detalle para volver a modificarlo.
             </p>
-            <Button variant="outline" size="sm" onClick={() => navigate(`/embarques/${id}`)}>
+            <Button variant="outline" size="sm" onClick={volverAlDetalle}>
               Ir al detalle del embarque
             </Button>
           </AlertDescription>
@@ -150,7 +150,7 @@ export default function EditarEmbarque() {
         totalSteps={totalSteps}
         isPending={isPending}
         saveLabel="Guardar Cambios"
-        onBack={() => navigate(`/embarques/${id}`)}
+        onBack={volverAlDetalle}
         onFinish={handleSave}
         // R257-05: los conceptos de costo/venta viven en `useConceptosForm`
         // (useState fuera de RHF), así que `formState.isDirty` no los detecta.
