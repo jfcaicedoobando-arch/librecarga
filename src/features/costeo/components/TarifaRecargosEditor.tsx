@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import { MoneyInput } from "@/components/shared/MoneyInput";
 import { Label } from "@/components/ui/label";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select, SelectContent, SelectGroup, SelectLabel, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import type { TarifaRecargoInput } from "@/features/costeo/services/tarifas";
 
 import {
-  ETIQUETA_BASE_RECARGO, baseSugerida, conceptosRecargoPorModo, type ModoRecargo,
+  ETIQUETA_BASE_RECARGO, baseSugerida, conceptosRecargoPorModo, gruposConceptosRecargo, type ModoRecargo,
 } from "@/features/costeo/domain/conceptosRecargo";
 
 interface Props {
@@ -61,8 +61,14 @@ export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false, 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {conceptosRecargoPorModo(modo, r.concepto).map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                {r.concepto && !conceptosRecargoPorModo(modo).includes(r.concepto) && (
+                  <SelectItem value={r.concepto}>{r.concepto}</SelectItem>
+                )}
+                {gruposConceptosRecargo(modo).map((g) => (
+                  <SelectGroup key={g.grupo}>
+                    <SelectLabel>{g.nombre}</SelectLabel>
+                    {g.conceptos.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>

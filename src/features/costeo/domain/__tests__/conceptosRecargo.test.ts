@@ -1,18 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { baseSugerida, conceptosRecargoPorModo } from "../conceptosRecargo";
+import { baseSugerida, conceptosRecargoPorModo, gruposConceptosRecargo } from "../conceptosRecargo";
+import { CATALOGO_CARGOS, codigoDeConcepto } from "../catalogoCargos";
 
-describe("catálogo de recargos por modo", () => {
-  it("cada modo sugiere sus conceptos", () => {
-    expect(conceptosRecargoPorModo("Aéreo")).toContain("AWB");
-    expect(conceptosRecargoPorModo("Terrestre")).toContain("Cruce fronterizo");
-    expect(conceptosRecargoPorModo("Marítimo")).toContain("BAF");
+describe("catálogo único de cargos", () => {
+  it("tiene códigos únicos con formato GRUPO-CONCEPTO", () => {
+    const codigos = CATALOGO_CARGOS.map((c) => c.codigo);
+    expect(new Set(codigos).size).toBe(codigos.length);
+    expect(codigos.every((c) => /^[A-Z]{3}-[A-Z]{2,4}$/.test(c))).toBe(true);
+    expect(codigos.length).toBe(117);
+  });
+  it("ofrece recargos por modo con código y sin fletes base", () => {
+    expect(conceptosRecargoPorModo("Marítimo")).toContain("SUR-BAF · Recargo por combustible marítimo");
+    expect(conceptosRecargoPorModo("Aéreo")).toContain("SUR-FSA · Recargo por combustible aéreo");
+    expect(conceptosRecargoPorModo("Aéreo")).not.toContain("SUR-BAF · Recargo por combustible marítimo");
+    expect(conceptosRecargoPorModo("Marítimo").some((c) => c.startsWith("FRT-OF"))).toBe(false);
+    expect(gruposConceptosRecargo("Terrestre").map((g) => g.grupo)).toContain("INL");
   });
   it("conserva un concepto previo fuera del catálogo", () => {
     expect(conceptosRecargoPorModo("Marítimo", "Fumigación")[0]).toBe("Fumigación");
   });
-  it("BL y AWB se sugieren por embarque; BAF por unidad", () => {
-    expect(baseSugerida("BL")).toBe("por_embarque");
+  it("sugiere la base de cobro del catálogo y de textos previos", () => {
+    expect(baseSugerida("DOC-BL · Emisión de BL")).toBe("por_embarque");
+    expect(baseSugerida("SUR-BAF · Recargo por combustible marítimo")).toBe("por_unidad");
     expect(baseSugerida("AWB")).toBe("por_embarque");
     expect(baseSugerida("BAF")).toBe("por_unidad");
+  });
+  it("lee el código de un texto guardado", () => {
+    expect(codigoDeConcepto("SUR-BAF · Recargo por combustible marítimo")).toBe("SUR-BAF");
+    expect(codigoDeConcepto("BAF")).toBeNull();
   });
 });

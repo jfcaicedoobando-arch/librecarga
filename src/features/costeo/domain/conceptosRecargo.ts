@@ -1,27 +1,30 @@
 /**
- * Catálogo de conceptos de recargo sugeridos por modo de transporte y base de cobro.
- * Sólo sugiere: un concepto previo fuera del catálogo se conserva tal cual.
+ * Conceptos de recargo por modo, tomados del catálogo único de cargos.
+ * Un concepto previo fuera del catálogo (p. ej. "BAF") se conserva tal cual.
  */
 import type { BaseRecargo } from "@/features/costeo/types";
+import { cargoPorCodigo, codigoDeConcepto, etiquetaCargo, recargosPorGrupo, type ModoCargo } from "./catalogoCargos";
 
-export type ModoRecargo = "Marítimo" | "Aéreo" | "Terrestre";
+export type ModoRecargo = ModoCargo;
 
-const CATALOGO: Record<ModoRecargo, string[]> = {
-  "Marítimo": ["BAF", "LSS", "ISPS", "THC Origen", "THC Destino", "BL", "Despacho", "Cargos en Origen", "Cargos en Destino", "Otro"],
-  "Aéreo": ["FSC (combustible)", "SSC (seguridad)", "Manejo", "AWB", "Cargos en Origen", "Cargos en Destino", "Otro"],
-  "Terrestre": ["FSC (combustible)", "Maniobras", "Cruce fronterizo", "Custodia", "Estadía", "Otro"],
-};
+/** Conceptos de textos anteriores al catálogo que se cobran una vez por embarque. */
+const POR_EMBARQUE_PREVIOS = new Set(["BL", "Despacho", "AWB", "Cruce fronterizo", "Custodia"]);
 
-/** Conceptos que normalmente se cobran una vez por embarque. */
-const POR_EMBARQUE = new Set(["BL", "Despacho", "AWB", "Cruce fronterizo", "Custodia"]);
+export interface GrupoConceptos { grupo: string; nombre: string; conceptos: string[] }
+
+export function gruposConceptosRecargo(modo: ModoRecargo = "Marítimo"): GrupoConceptos[] {
+  return recargosPorGrupo(modo).map((g) => ({ grupo: g.grupo, nombre: g.nombre, conceptos: g.cargos.map(etiquetaCargo) }));
+}
 
 export function conceptosRecargoPorModo(modo: ModoRecargo = "Marítimo", actual?: string | null): string[] {
-  const lista = CATALOGO[modo] ?? CATALOGO["Marítimo"];
+  const lista = gruposConceptosRecargo(modo).flatMap((g) => g.conceptos);
   return actual && !lista.includes(actual) ? [actual, ...lista] : lista;
 }
 
 export function baseSugerida(concepto: string): BaseRecargo {
-  return POR_EMBARQUE.has(concepto) ? "por_embarque" : "por_unidad";
+  const cargo = cargoPorCodigo(codigoDeConcepto(concepto));
+  if (cargo) return cargo.porEmbarque ? "por_embarque" : "por_unidad";
+  return POR_EMBARQUE_PREVIOS.has(concepto) ? "por_embarque" : "por_unidad";
 }
 
 export const ETIQUETA_BASE_RECARGO: Record<BaseRecargo, string> = {
