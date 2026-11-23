@@ -19,3 +19,13 @@ describe("modo y submodalidad de Pricing", () => {
     expect(camposFaltantesSolicitud({ servicio: "Marítimo", submodalidad: "FCL" })).toContain("Tipo de contenedor");
   });
 });
+
+import { horasPlazo } from "../modoPricing";
+describe("plazos por modo (horas hábiles)", () => {
+  it("Marítimo 36/48, Aéreo 12/24, Terrestre 24/48 y baja sin contador", () => {
+    expect([horasPlazo("media", "Marítimo"), horasPlazo("alta", "Marítimo")]).toEqual([36, 48]);
+    expect([horasPlazo("media", "Aéreo"), horasPlazo("alta", "Aéreo")]).toEqual([12, 24]);
+    expect([horasPlazo("media", "Terrestre"), horasPlazo("alta", "Terrestre")]).toEqual([24, 48]);
+    expect(horasPlazo("baja", "Aéreo")).toBeNull();
+  });
+});

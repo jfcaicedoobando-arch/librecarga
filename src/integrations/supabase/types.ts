@@ -10998,6 +10998,10 @@ export type Database = {
       }
       _crm_pricing_es_gerente_ops: { Args: { p_org: string }; Returns: boolean }
       _crm_pricing_horas: { Args: { p_complejidad: string }; Returns: number }
+      _crm_pricing_horas_modo: {
+        Args: { p_complejidad: string; p_servicio: string }
+        Returns: number
+      }
       _crm_pricing_sumar_horas_habiles: {
         Args: { p_horas: number; p_inicio: string }
         Returns: string

@@ -27,8 +27,8 @@ export type ComplejidadPricing = "baja" | "media" | "alta";
 
 export const ETIQUETA_COMPLEJIDAD: Record<ComplejidadPricing, string> = {
   baja: "Cotización estándar (sin contador)",
-  media: "Nueva ruta/agente/Incoterm (36 h hábiles)",
-  alta: "Especial, proyecto o multimodal (48 h hábiles)",
+  media: "Nueva ruta/agente/Incoterm",
+  alta: "Especial, proyecto o multimodal",
 };
 export const ETIQUETA_TIPO_SOLICITUD: Record<string, string> = {
   nuevas_tarifas: "Nuevas tarifas con otros agentes", nueva_ruta: "Nueva ruta sin agentes identificados",

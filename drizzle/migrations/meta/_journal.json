@@ -680,6 +680,13 @@
       "when": 1795462095516,
       "tag": "0096_pricing_submodalidad_incoterms_modo",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1795462615012,
+      "tag": "0097_pricing_plazos_por_modo",
+      "breakpoints": true
     }
   ]
 }
