@@ -16,6 +16,8 @@ export interface TarifaRecargoInput {
   moneda?: string;
   incluido_en_total?: boolean;
   base?: "por_unidad" | "por_embarque";
+  minimo?: number | null;
+  proveedor?: string | null;
 }
 
 export interface TarifaInput {
@@ -96,6 +98,8 @@ export function recargosParaRpc(recargos: TarifaRecargoInput[]) {
       monto: Number(r.monto) || 0,
       incluido_en_total: r.incluido_en_total ?? true,
       base: r.base === "por_embarque" ? "por_embarque" : "por_unidad",
+      minimo: Number(r.minimo) > 0 ? Number(r.minimo) : null,
+      proveedor: r.proveedor?.trim() || null,
     }));
 }
 

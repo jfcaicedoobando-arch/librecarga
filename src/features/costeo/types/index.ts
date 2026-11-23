@@ -79,6 +79,10 @@ export interface CosteoTarifaRecargo {
   incluido_en_total: boolean;
   /** por_unidad: × contenedores/unidades; por_embarque: una sola vez. */
   base?: BaseRecargo;
+  /** Cobro mínimo del recargo en su moneda; null = sin mínimo. */
+  minimo?: number | null;
+  /** Proveedor que cobra el recargo; null = el de la tarifa. */
+  proveedor?: string | null;
 }
 
 export type BaseRecargo = "por_unidad" | "por_embarque";

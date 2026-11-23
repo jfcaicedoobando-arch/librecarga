@@ -23,7 +23,7 @@ const SELECT = `
     puerto_origen:puertos!costeo_rutas_puerto_origen_id_fkey(name, code, country),
     puerto_destino:puertos!costeo_rutas_puerto_destino_id_fkey(name, code, country)
   ),
-  recargos:costeo_tarifa_recargos(id, tarifa_id, concepto, lado, monto, moneda, incluido_en_total, base)
+  recargos:costeo_tarifa_recargos(id, tarifa_id, concepto, lado, monto, moneda, incluido_en_total, base, minimo, proveedor)
 `;
 
 /** Puerto con identidad completa (Etapa 2): nombre + UN/LOCODE + país. */

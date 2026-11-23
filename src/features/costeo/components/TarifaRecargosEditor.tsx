@@ -5,6 +5,7 @@
 import { Button } from "@/components/ui/button";
 import { MoneyInput } from "@/components/shared/MoneyInput";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectGroup, SelectLabel, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -50,7 +51,8 @@ export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false, 
       )}
 
       {value.map((r, i) => (
-        <div key={i} className="grid grid-cols-12 gap-2 items-end">
+        <div key={i} className="space-y-2 rounded-md border border-border p-2">
+        <div className="grid grid-cols-12 gap-2 items-end">
           <div className="col-span-3">
             <Label htmlFor={`recargo-concepto-${i}`} className="sr-only">{`Concepto del recargo ${i + 1}`}</Label>
             <Select value={r.concepto} onValueChange={(v) => update(i, { concepto: v, base: baseSugerida(v) })}>
@@ -128,6 +130,21 @@ export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false, 
               <Trash2 className="size-4 text-destructive" />
             </Button>
           </div>
+        </div>
+        <div className="grid grid-cols-12 gap-2">
+          <div className="col-span-4">
+            <Label htmlFor={`recargo-minimo-${i}`} className="text-body-sm text-muted-foreground">Mínimo (opcional)</Label>
+            <MoneyInput id={`recargo-minimo-${i}`} value={r.minimo ?? 0} currency="USD"
+              onChange={(n: number) => update(i, { minimo: n > 0 ? n : null })}
+              aria-label={`Mínimo del recargo ${i + 1}`} />
+          </div>
+          <div className="col-span-8">
+            <Label htmlFor={`recargo-proveedor-${i}`} className="text-body-sm text-muted-foreground">Proveedor (vacío = el de la tarifa)</Label>
+            <Input id={`recargo-proveedor-${i}`} value={r.proveedor ?? ""} maxLength={200}
+              onChange={(e) => update(i, { proveedor: e.target.value })}
+              aria-label={`Proveedor del recargo ${i + 1}`} />
+          </div>
+        </div>
         </div>
       ))}
     </div>

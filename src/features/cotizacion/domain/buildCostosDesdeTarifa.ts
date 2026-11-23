@@ -46,6 +46,14 @@ export function monedaRecargo(r: Pick<CosteoTarifaRecargo, "moneda" | "concepto"
   throw new Error(`El recargo ${r.concepto} está en ${m}; las cotizaciones sólo manejan USD y MXN. Corrige la tarifa antes de cotizar.`);
 }
 
+/** Diferencia para llegar al mínimo del recargo (0 si el cargo real ya lo alcanza). */
+export function ajusteMinimoRecargo(minimo: number | null | undefined, monto: number, cantidad: number): number {
+  const min = Number(minimo ?? 0);
+  if (!(min > 0)) return 0;
+  const diferencia = roundMoney(min - roundMoney(monto * cantidad));
+  return diferencia > 0 ? diferencia : 0;
+}
+
 /** Filas de costo derivadas de los recargos de la tarifa (B-073: con linkage). */
 export function filasDesdeRecargos({
   recargos,
@@ -69,11 +77,13 @@ export function filasDesdeRecargos({
     const moneda = monedaRecargo(r);
     const porEmbarque = r.base === "por_embarque";
     const ladoTxt = r.lado ? ` (${r.lado})` : "";
+    const cantidad = porEmbarque ? 1 : qty;
+    const proveedorFila = r.proveedor?.trim() || proveedor;
     filas.push({
       concepto: `${r.concepto}${ladoTxt}`,
       moneda,
-      proveedor,
-      cantidad: porEmbarque ? 1 : qty,
+      proveedor: proveedorFila,
+      cantidad,
       costo_unitario: monto,
       precio_venta: aplicarMarkup(monto, markup),
       unidad_medida: porEmbarque ? "embarque" : unidad,
@@ -83,6 +93,16 @@ export function filasDesdeRecargos({
       costeo_tarifa_id: tarifaId,
       costeo_tarifa_recargo_id: r.id ?? null,
     });
+    const ajuste = ajusteMinimoRecargo(r.minimo, monto, cantidad);
+    if (ajuste > 0) {
+      // Fila aparte y sin linaje: la revalidación compara cada recargo contra su monto unitario.
+      filas.push({
+        concepto: `Ajuste a mínimo · ${r.concepto}${ladoTxt}`, moneda, proveedor: proveedorFila,
+        cantidad: 1, costo_unitario: ajuste, precio_venta: aplicarMarkup(ajuste, markup),
+        unidad_medida: "embarque", aplica_iva: false, notas: NOTA_AUTO_TARIFA,
+        costeo_tarifa_id: null, costeo_tarifa_recargo_id: null,
+      });
+    }
   }
   return filas;
 }

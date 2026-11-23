@@ -102,6 +102,8 @@ export function buildInitialFromTarifa(t: TarifaRow): Partial<TarifaInput> {
       moneda: r.moneda ?? "USD",
       incluido_en_total: r.incluido_en_total ?? true,
       base: r.base === "por_embarque" ? "por_embarque" : "por_unidad",
+      minimo: r.minimo == null ? null : Number(r.minimo),
+      proveedor: r.proveedor ?? null,
     })),
   };
 }

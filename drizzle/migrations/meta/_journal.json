@@ -743,6 +743,13 @@
       "when": 1795472916678,
       "tag": "0105_tarifa_aerea_escalas_reorden",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1795474812257,
+      "tag": "0106_recargo_minimo_proveedor",
+      "breakpoints": true
     }
   ]
 }

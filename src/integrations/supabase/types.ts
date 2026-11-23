@@ -2417,9 +2417,11 @@ export type Database = {
           id: string
           incluido_en_total: boolean
           lado: string
+          minimo: number | null
           moneda: string
           monto: number
           organization_id: string
+          proveedor: string | null
           tarifa_id: string
         }
         Insert: {
@@ -2429,9 +2431,11 @@ export type Database = {
           id?: string
           incluido_en_total?: boolean
           lado: string
+          minimo?: number | null
           moneda?: string
           monto?: number
           organization_id: string
+          proveedor?: string | null
           tarifa_id: string
         }
         Update: {
@@ -2441,9 +2445,11 @@ export type Database = {
           id?: string
           incluido_en_total?: boolean
           lado?: string
+          minimo?: number | null
           moneda?: string
           monto?: number
           organization_id?: string
+          proveedor?: string | null
           tarifa_id?: string
         }
         Relationships: [
