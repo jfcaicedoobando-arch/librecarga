@@ -43,6 +43,7 @@ export function usePrefillTarifaAerea(
     const hasta = new Date(y, m - 1, d, 23, 59, 59, 999);
     const validez = form.getValues("validezPropuesta");
     if (validez && validez > hasta) form.setValue("validezPropuesta", hasta, OPTS);
+    form.setValue("banderasAereas", p.banderasAereas, OPTS);
     form.setValue("tarifaId", p.tarifaId, OPTS); // al final: dispara la carga automática de costos
   }, [activo, q.data, q.isError, q.error, form]);
 }

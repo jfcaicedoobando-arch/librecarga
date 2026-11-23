@@ -128,7 +128,8 @@ const REVIEWED_FORWARD_FIXES: ReadonlyArray<readonly [string, string]> = [
   ["0100_tarifario_aereo_terrestre_base.sql", "6d3af90a1789af2154a484f7c4b11b5fc0973cddb3fbcf9e7dc6ff00433b478e"],
   ["0101_tarifa_multimodo_moneda.sql", "543986869b63ec4fa25ec34426b808e73398fdf7233ae1dcf7b9df97205c02ef"],
   ["0102_pricing_banderas_aereas.sql", "88d10454835d9bab3c0e5793ab33f3cc693bef33b15f70c5a96eb77563a317ff"],
-  ["0103_costeo_tarifa_tramos_tenant_scope.sql", "81588859e3f96db447c1c4434b602dbbd9a8ffaac829e50fb9afd7621eeaf39c"],
+  ["0103_cotizacion_banderas_aereas.sql", "a3c832d6f963f47d679f5ebd459567bb70f7317012cccdbefb5576953192e1bc"],
+  ["0104_costeo_tarifa_tramos_tenant_scope.sql", "81588859e3f96db447c1c4434b602dbbd9a8ffaac829e50fb9afd7621eeaf39c"],
 ];
 
 function verificarOrdenJournal(sources: ReadonlyMap<string, string>, journal: JournalEntry[]): void {

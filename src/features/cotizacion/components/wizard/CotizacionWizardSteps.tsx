@@ -56,6 +56,7 @@ export function CotizacionWizardSteps({ w, clientes, catalogoClientes, esMaritim
   const dimensionesLCL = useWatch({ control, name: "dimensionesLCL" });
   const pesoKg = useWatch({ control, name: "pesoKg" });
   const modo = useWatch({ control, name: "modo" });
+  const banderasAereas = useWatch({ control, name: "banderasAereas" });
   const incoterm = useWatch({ control, name: "incoterm" });
   const tipo = useWatch({ control, name: "tipo" });
 
@@ -168,6 +169,7 @@ export function CotizacionWizardSteps({ w, clientes, catalogoClientes, esMaritim
             totalUSD={w.totalUSD}
             totalMXN={w.totalMXN}
             esEdicion={w.isEditMode}
+            banderasAereas={banderasAereas}
             accionesEdicion={{
               editarDatos: () => w.setCurrentStep(1),
               editarConceptos: () => w.setCurrentStep(3),

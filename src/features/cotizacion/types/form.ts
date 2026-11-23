@@ -67,6 +67,8 @@ export interface CotizacionFormValues {
   dimensionesLCL: DimensionLCL[];
   dimensionesAereas: DimensionAerea[];
   pesoKg: number;
+  /** Aéreo: copia de las banderas de la solicitud de Pricing. */
+  banderasAereas?: import("@/features/cotizacion/domain/banderasAereas").BanderasAereas | null;
   volumenM3: number;
   piezas: number;
   tipoUnidad: string;

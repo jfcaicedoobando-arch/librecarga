@@ -1,3 +1,4 @@
+import { columnasBanderasAereas } from "@/features/cotizacion/domain/banderasAereas";
 /**
  * Partes puras del payload de datos generales (Paso 1) de una cotización.
  * Extraído de `cotizacion.ts` (Power-of-10 #4: archivos ≤200 líneas). Sin
@@ -67,6 +68,7 @@ export function partesMercancia(v: CotizacionFormValues) {
     sector_economico: v.sectorEconomico,
     dimensiones_aereas: (esAereo ? v.dimensionesAereas : []) as DimensionAerea[],
     peso_fisico_kg: esAereo && v.pesoKg > 0 ? v.pesoKg : null,
+    ...columnasBanderasAereas(esAereo, v.banderasAereas),
     // BL-COT-04: fuera del marítimo no hay contenedores; antes se persistía el
     // 1 que inventaba el formulario y llegaba al embarque como hijo vacío.
     num_contenedores: v.modo === "Marítimo" ? v.numContenedores : 0,

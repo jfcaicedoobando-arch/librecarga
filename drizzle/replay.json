@@ -810,10 +810,18 @@
     "scope": "isolated-ci"
   },
   {
-    "file": "0103_costeo_tarifa_tramos_tenant_scope.sql",
+    "file": "0103_cotizacion_banderas_aereas.sql",
+    "sha256": "a3c832d6f963f47d679f5ebd459567bb70f7317012cccdbefb5576953192e1bc",
+    "replays": [
+      "0103_cotizacion_banderas_aereas.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0104_costeo_tarifa_tramos_tenant_scope.sql",
     "sha256": "81588859e3f96db447c1c4434b602dbbd9a8ffaac829e50fb9afd7621eeaf39c",
     "replays": [
-      "0103_costeo_tarifa_tramos_tenant_scope.sql"
+      "0104_costeo_tarifa_tramos_tenant_scope.sql"
     ],
     "scope": "isolated-ci"
   }

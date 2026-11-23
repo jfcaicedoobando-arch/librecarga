@@ -7,6 +7,7 @@ import type { TipoContenedorCatalogo } from "@/lib/domain/tipoContenedor";
 import { KeyValueGrid } from "../components/KeyValueGrid";
 import { DataTable, type PdfColumn } from "../components/DataTable";
 import { sanitizePdfText } from "../text/sanitizePdfText";
+import { itemsBanderasAereas } from "@/features/cotizacion/domain/banderasAereas";
 import { esIncotermSinFleteVenta, esIncotermConSeguroIncluido } from "@/features/cotizacion/utils/incotermRules";
 
 interface Props {
@@ -109,6 +110,7 @@ export { SeccionProspecto };
 
 /** Sección Datos Generales + Mercancía + descripciones propias + dimensiones. */
 export function SeccionDatosYMercancia({ c, tiposContenedor = [] }: PropsConCatalogo) {
+  const aereas = c.modo === "Aéreo" ? itemsBanderasAereas(c) : [];
   return (
     <>
       <View wrap={false}>
@@ -119,6 +121,12 @@ export function SeccionDatosYMercancia({ c, tiposContenedor = [] }: PropsConCata
         <Text style={[styles.h3, { marginTop: 10 }]}>Mercancía</Text>
         <KeyValueGrid items={buildMercancia(c, tiposContenedor)} columns={3} />
       </View>
+      {aereas.length > 0 && (
+        <View wrap={false}>
+          <Text style={[styles.h3, { marginTop: 10 }]}>Condiciones de transporte aéreo</Text>
+          <KeyValueGrid items={aereas} columns={3} />
+        </View>
+      )}
       {c.descripcion_mercancia?.trim() ? (
         <>
           <Text style={{ ...styles.label, marginTop: 6 }} minPresenceAhead={24}>Descripción de la mercancía</Text>
