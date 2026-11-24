@@ -57,11 +57,11 @@ export function EnviarProformaDialog({ open, onOpenChange, proforma }: Props) {
   const ccRef = useRef<HTMLInputElement>(null);
   const [errorCorreo, setErrorCorreo] = useState<ErrorCorreoProforma | null>(null);
   const [envio, setEnvio] = useState<{ resultado: EnviarProformaEmailResult; vars: EnviarProformaVars } | null>(null);
-  const { data: memoria } = useDestinatariosSugeridos(proforma.cliente_id);
+  const consultaSugerencias = useDestinatariosSugeridos(proforma.cliente_id);
   const { ocultos, isOculto, ocultar, restaurar, restaurarVarios } = useEmailsOcultos(proforma.cliente_id);
 
-  const sugerenciasVisibles = (memoria?.sugerencias ?? []).filter((e) => !isOculto(e));
-  const [paraInicial, ccInicial] = destinatariosIniciales(memoria?.ultimo);
+  const sugerenciasVisibles = (consultaSugerencias.data?.sugerencias ?? []).filter((e) => !isOculto(e));
+  const [paraInicial, ccInicial] = destinatariosIniciales(consultaSugerencias.data?.ultimo);
 
   useEffect(() => {
     if (!open) {
@@ -171,7 +171,7 @@ export function EnviarProformaDialog({ open, onOpenChange, proforma }: Props) {
             <CampoCorreoProforma campo="to" ref={paraRef} error={errorCorreo} value={destinatarios}
               onChange={(valor) => editarEmail("to", valor)} />
             <DestinatariosRecientesChips
-              sugerencias={sugerenciasVisibles}
+              sugerencias={sugerenciasVisibles} consulta={consultaSugerencias}
               ocultos={ocultos}
               onAgregar={(e) => agregarEmail("to", e)}
               onOcultar={ocultar}

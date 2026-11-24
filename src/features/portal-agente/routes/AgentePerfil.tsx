@@ -68,6 +68,7 @@ export default function AgentePerfil() {
             id="agente-nueva-password"
             type="password"
             value={password}
+            disabled={pending}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"
             aria-invalid={passwordCorta || undefined}
@@ -79,6 +80,9 @@ export default function AgentePerfil() {
         <Button onClick={cambiarPassword} disabled={pending || password.length < MIN_PASSWORD}>
           {pending ? "Guardando…" : "Actualizar contraseña"}
         </Button>
+        <p role="status" className="text-body-sm text-muted-foreground empty:sr-only">
+          {pending ? "Actualizando contraseña…" : ""}
+        </p>
       </Card>
     </div>
   );

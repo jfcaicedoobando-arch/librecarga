@@ -56,7 +56,7 @@ export interface AccionesEmbarqueCallbacks {
   onReabrir: (motivo: string) => void;
   onIrACierre: () => void;
   onIrADocumentos: () => void;
-  onCancelar: (motivo: string) => Promise<void> | void;
+  onCancelar: (motivo: string) => Promise<boolean>;
 }
 
 interface Props {
@@ -162,6 +162,7 @@ export function EmbarqueDetalleHeaderActions({
         />
       )}
       <CancelarEmbarqueDialog
+        key={embarqueId}
         open={cancelarOpen}
         onOpenChange={setCancelarOpen}
         expediente={expediente}

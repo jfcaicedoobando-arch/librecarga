@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({ mobile: false, handleDownload: vi.fn() }));
 
 vi.mock("@/hooks/shared", () => ({ useIsMobile: () => mocks.mobile }));
 vi.mock("@/features/portal/hooks", () => ({
-  usePortalDocumentDownload: () => ({ downloadingId: null, handleDownload: mocks.handleDownload }),
+  usePortalDocumentDownload: () => ({ downloadingIds: new Set(), handleDownload: mocks.handleDownload }),
 }));
 
 const factura = {
@@ -27,5 +27,6 @@ describe("PortalEmbarqueDocumentos", () => {
     fireEvent.click(screen.getByRole("button", { name: "Descargar Factura comercial" }));
     expect(mocks.handleDownload).toHaveBeenCalledExactlyOnceWith(factura.archivo, factura.id);
     expect(screen.queryByRole("button", { name: "Descargar Orden de compra" })).not.toBeInTheDocument();
+    expect(screen.getByText("Sin archivo disponible")).toBeInTheDocument();
   });
 });

@@ -48,11 +48,11 @@ export function ComprasPorAprobarBulkBar({
             {validablesCount} validable(s) en SAT
           </span>
         )}
-        {ocupado && activo && (
-          <span className="ml-2 text-accent">
-            Procesando {activo.hecho}/{activo.total}…
-          </span>
-        )}
+        <span role="status" aria-atomic="true">
+          {ocupado && activo && <span className="ml-2 text-accent">
+            {satRunning ? "Validando en SAT" : "Aprobando"} {activo.hecho} de {activo.total}…
+          </span>}
+        </span>
       </p>
       <div className="flex items-center gap-2">
         <Hint

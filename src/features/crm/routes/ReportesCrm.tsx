@@ -22,8 +22,8 @@ export default function CrmReportes() {
   const { data: tableros = [], isLoading, isError, refetch } = useTablerosCrm();
   const tablerosPendientes = isLoading || isError;
   const [tableroId, setTableroId] = useState<string | null>(null);
-  const activoId = tableroId ?? tableros[0]?.id ?? null;
-  const activo = useMemo(() => tableros.find((t) => t.id === activoId) ?? null, [tableros, activoId]);
+  const activo = useMemo(() => tableros.find((t) => t.id === tableroId) ?? tableros[0] ?? null, [tableros, tableroId]);
+  const activoId = activo?.id ?? null;
   const consultaReportes = useReportesDeTablero(activoId);
 
   const [dlgTablero, setDlgTablero] = useState<DlgTableroState>({ open: false, tablero: null });

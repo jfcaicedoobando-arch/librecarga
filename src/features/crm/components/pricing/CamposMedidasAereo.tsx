@@ -3,9 +3,10 @@
  * mixta. Suma volumen (CBM) y muestra el peso tasable (mayor entre peso real y
  * 167 kg/m³). Guarda en cantidad, dimensiones y volumen_cbm, sin columnas nuevas.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatNumber } from "@/lib/formatters";
 import { aNumero } from "@/features/crm/services/pricing/tiposPricing";
 import {
   leerDimensionesLineas, pesoTasableSolicitud, textoDimensionesLineas, totalBultos, volumenLineasM3, type MedidasBultos,
@@ -30,11 +31,16 @@ export function CamposMedidasAereo({ datos, set, disabled }: Props) {
     const l = leerDimensionesLineas(datos.dimensiones);
     return l.length === 1 && l[0].bultos == null ? [{ ...VACIA, bultos: datos.cantidad ?? null }] : l;
   });
+  const dimensionesDerivadas = useRef(textoDimensionesLineas(ls) !== null);
+  const volumenManual = useRef(datos.volumen_cbm != null && datos.volumen_cbm !== volumenLineasM3(ls));
   const aplicar = (nl: MedidasBultos[]) => {
     setLs(nl);
     set("cantidad", totalBultos(nl));
     const vol = volumenLineasM3(nl);
-    if (vol != null) { set("volumen_cbm", vol); set("dimensiones", textoDimensionesLineas(nl)); }
+    const dimensiones = textoDimensionesLineas(nl);
+    if (dimensiones !== null || dimensionesDerivadas.current) set("dimensiones", dimensiones);
+    dimensionesDerivadas.current = dimensiones !== null;
+    if (!volumenManual.current) set("volumen_cbm", vol);
   };
   const cambiar = (i: number, k: keyof MedidasBultos, v: string) => {
     const n = aNumero(v);
@@ -42,7 +48,6 @@ export function CamposMedidasAereo({ datos, set, disabled }: Props) {
     aplicar(ls.map((l, j) => (j === i ? { ...l, [k]: val } : l)));
   };
   const tasable = pesoTasableSolicitud(datos.peso, datos.unidad_medida, datos.volumen_cbm);
-  const fmt = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 2 });
   return (
     <>
       {ls.map((l, i) => (
@@ -59,15 +64,20 @@ export function CamposMedidasAereo({ datos, set, disabled }: Props) {
       ))}
       {!disabled && (
         <div className="col-span-full">
-          <Button type="button" variant="outline" size="sm" onClick={() => setLs([...ls, VACIA])}>
+          <Button type="button" variant="outline" size="sm" onClick={() => aplicar([...ls, VACIA])}>
             <Plus className="mr-1 size-4" /> Agregar bultos de otra medida
           </Button>
         </div>
       )}
       <CampoTexto id="pr-aereo-cbm" label="Volumen total (CBM)" type="number" disabled={disabled} value={datos.volumen_cbm}
-        onChange={(v) => { const n = aNumero(v); set("volumen_cbm", n != null && n > 0 ? n : null); }} />
+        onChange={(v) => {
+          const n = aNumero(v);
+          const manual = n != null && n > 0 ? n : null;
+          volumenManual.current = manual !== null;
+          set("volumen_cbm", manual);
+        }} />
       <p className="self-end pb-2 text-body-sm text-muted-foreground">
-        Peso tasable: {tasable == null ? "captura peso (kg, lb o t) y medidas" : `${fmt(tasable)} kg`}
+        Peso tasable: {tasable == null ? "captura peso (kg, lb o t) y medidas" : `${formatNumber(tasable, { maximumFractionDigits: 2 })} kg`}
       </p>
     </>
   );

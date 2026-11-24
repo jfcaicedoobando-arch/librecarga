@@ -115,7 +115,7 @@ export function useNuevaCotizacionPageController() {
   });
   // Pricing aéreo: tarifa sugerida + peso real y volumen de la solicitud.
   const tarifaAerea = searchParams.get("tarifaAerea");
-  usePrefillTarifaAerea(w.form, organizationId, tarifaAerea, searchParams.get("solicitud"),
+  const prefillTarifa = usePrefillTarifaAerea(w.form, organizationId, tarifaAerea, searchParams.get("solicitud"),
     Boolean(tarifaAerea) && !w.cotizacionId && !restaurando && !pendienteBorrador);
   // Clientes especiales: el tarifario manda el cliente junto con la tarifa nueva.
   usePrefillClienteTarifa(w.form, searchParams.get("cliente"), prefillPricing.estado === "aplicado");
@@ -156,6 +156,7 @@ export function useNuevaCotizacionPageController() {
 
   return {
     w: { ...w, isPending: w.isPending || borradorBloqueaEdicion },
+    prefillTarifa,
     plantillaId: searchParams.get("plantilla"),
     clientes,
     catalogoClientes,

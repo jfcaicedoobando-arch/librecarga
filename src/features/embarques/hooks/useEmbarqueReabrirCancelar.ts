@@ -74,7 +74,7 @@ export function useEmbarqueReabrirCancelar(
 
   const handleCancelar = useCallback(
     async (motivo: string) => {
-      if (!embarque || !id) return;
+      if (!embarque || !id) return false;
       try {
         await avanzarEstado.mutateAsync({
           embarqueId: id,
@@ -91,6 +91,7 @@ export function useEmbarqueReabrirCancelar(
           detalles: { estado_anterior: embarque.estado, motivo },
         });
         notifySuccess(undefined, { title: "Embarque cancelado", description: motivo });
+        return true;
       } catch (err: unknown) {
         notifyError(undefined, {
           title: "No se pudo cancelar el embarque",
@@ -98,6 +99,7 @@ export function useEmbarqueReabrirCancelar(
           error: err,
           method: "HANDLE_CANCELAR_EMBARQUE",
         });
+        return false;
       }
     },
     [embarque, id, avanzarEstado, usuarioEmail, registrarActividad, reqIdCancelar],

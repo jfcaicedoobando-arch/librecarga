@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { esEmailValido, normalizarEmail } from "./usuario/emailUsuario";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,9 @@ interface Props {
  */
 export default function CrearMiembroOrgDialog({ open, onOpenChange, organizationId, onCreated }: Props) {
   const [email, setEmail] = useState("");
+  const [mostrarErrorCorreo, setMostrarErrorCorreo] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const correoInvalido = mostrarErrorCorreo && !esEmailValido(email);
   const [password, setPassword] = useState(() => generarPassword(12));
   const [role, setRole] = useState<AppRole>("coordinador_logistico");
 
@@ -34,6 +38,7 @@ export default function CrearMiembroOrgDialog({ open, onOpenChange, organization
 
   const reset = () => {
     setEmail("");
+    setMostrarErrorCorreo(false);
     setPassword(generarPassword(12));
     setRole("coordinador_logistico");
   };
@@ -44,9 +49,14 @@ export default function CrearMiembroOrgDialog({ open, onOpenChange, organization
   };
 
   const handleSubmit = async () => {
-    if (!email || !password) return;
+    if (!password || loading) return;
+    if (!esEmailValido(email)) {
+      setMostrarErrorCorreo(true);
+      emailRef.current?.focus();
+      return;
+    }
     try {
-      await createMember.mutateAsync({ organizationId, email, password, role });
+      await createMember.mutateAsync({ organizationId, email: normalizarEmail(email), password, role });
       handleClose(false);
       onCreated();
     } catch {
@@ -75,13 +85,21 @@ export default function CrearMiembroOrgDialog({ open, onOpenChange, organization
         <div className="space-y-1.5">
           <Label htmlFor="crear-miembro-email">Email</Label>
           <Input
+            ref={emailRef}
             id="crear-miembro-email"
+            aria-invalid={correoInvalido || undefined}
+            aria-describedby={correoInvalido ? "crear-miembro-email-error" : undefined}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="usuario@empresa.com"
             autoComplete="off"
           />
+          {correoInvalido && (
+            <p id="crear-miembro-email-error" role="alert" className="text-body-sm text-destructive">
+              Captura un correo válido, como usuario@empresa.com.
+            </p>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="crear-miembro-password">Contraseña temporal</Label>

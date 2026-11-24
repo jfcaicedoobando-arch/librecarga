@@ -45,11 +45,13 @@ describe("AUD99/121 · pantalla de pagos en móvil", () => {
   });
 
   it.each([
-    ["Ajuste no monetario", "Proveedor ajuste", "ajuste", "Importe ajustado", "MXN 1.00"],
-    ["Pago a proveedor", "Proveedor pago", "ordinario", "Monto", "MXN 116.00"],
-  ])("%s tiene nombre accesible correcto y abre el mismo registro", (tipo, contraparte, id, etiquetaMonto, monto) => {
+    { tipo: "Ajuste no monetario", contraparte: "Proveedor ajuste", id: "ajuste",
+      etiquetaMonto: "Importe ajustado", monto: "MXN 1.00", referencia: "FP-AJUSTE" },
+    { tipo: "Pago a proveedor", contraparte: "Proveedor pago", id: "ordinario",
+      etiquetaMonto: "Monto", monto: "MXN 116.00", referencia: "Cierre sin pago: condonacion" },
+  ])("$tipo tiene nombre accesible correcto y abre el mismo registro", ({ tipo, contraparte, id, etiquetaMonto, monto, referencia }) => {
     render(<MemoryRouter><TesoreriaPagos /></MemoryRouter>);
-    const row = screen.getByRole("button", { name: `Ver detalle: ${tipo} · ${contraparte}` });
+    const row = screen.getByRole("button", { name: `Ver detalle: ${tipo} · ${contraparte} · ${referencia}` });
     expect(within(row).getByText(tipo)).toBeVisible();
     expect(within(row).getByText(etiquetaMonto)).toBeVisible();
     expect(within(row).getByText(monto)).toBeVisible();
@@ -60,6 +62,18 @@ describe("AUD99/121 · pantalla de pagos en móvil", () => {
     fireEvent.click(row);
     expect(state.sheet).toHaveBeenLastCalledWith(expect.objectContaining({ ref_pago: { tipo: "pago", id } }), undefined);
     expect(state.pagos.map((p) => p.monto)).toEqual([1, 116]);
+  });
+
+  it("distingue por referencia dos pagos a la misma contraparte", () => {
+    const pago = state.pagos[1];
+    state.pagos = [
+      { ...pago, id: "pago-1", referencia: "Transferencia 1" },
+      { ...pago, id: "pago-2", referencia: "Transferencia 2" },
+    ];
+    render(<MemoryRouter><TesoreriaPagos /></MemoryRouter>);
+    expect(screen.getByRole("button", { name: /Proveedor pago · Transferencia 1/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Proveedor pago · Transferencia 2/ }));
+    expect(state.sheet).toHaveBeenLastCalledWith(expect.objectContaining({ ref_pago: { tipo: "pago", id: "pago-2" } }), undefined);
   });
 
   it("exporta el alcance del filtro, sólo las filas visibles y sus mismos totales", async () => {

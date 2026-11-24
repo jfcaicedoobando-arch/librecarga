@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import type { DocumentoEmbarqueRow } from "@/features/embarques/types/embarque";
 import { TabDocumentos } from "../TabDocumentos";
@@ -26,12 +26,12 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-function setup(archivo: string | null, canEdit = true) {
+function setup(archivo: string | null, canEdit = true, onDelete?: (doc: DocumentoEmbarqueRow) => Promise<boolean>) {
   const onUpload = vi.fn();
   const onDownload = vi.fn();
   const props = {
     embarqueId: "embarque-fixture", documentos: [documento(archivo)], canEdit,
-    uploadingDocId: null, downloadingDocId: null, onUpload, onDownload,
+    uploadingDocId: null, downloadingDocId: null, onUpload, onDownload, onDelete,
   };
   const view = render(<MemoryRouter><TabDocumentos {...props} /></MemoryRouter>);
   return { ...view, onUpload, onDownload, props };
@@ -47,28 +47,30 @@ describe("documentos: primera carga y reemplazo confirmado", () => {
   it("sube el primer archivo directamente, sin una confirmación de reemplazo", () => {
     const { onUpload } = setup(null);
     const file = new File(["contenido-ficticio"], "primer-bl.pdf");
-    chooseFile("Subir archivo", [file]);
+    chooseFile("Subir archivo de BL Master", [file]);
     expect(onUpload).toHaveBeenCalledExactlyOnceWith("documento-fixture", file);
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
   it("cancelar conserva el adjunto; sólo confirmar una selección posterior inicia la carga", () => {
-    const { onUpload, onDownload } = setup("embarques/fixture/bl-anterior.pdf");
+    const archivoAnterior = "embarques/fixture/doc/123456789abc-bl-anterior.pdf";
+    const { onUpload, onDownload } = setup(archivoAnterior);
     const descartado = new File(["descartado"], "bl-descartado.pdf");
-    chooseFile("Reemplazar archivo", [descartado]);
+    chooseFile("Reemplazar archivo de BL Master", [descartado]);
     const dialog = screen.getByRole("alertdialog", { name: "¿Reemplazar archivo?" });
     expect(dialog).toHaveTextContent("BL Master");
     expect(dialog).toHaveTextContent(descartado.name);
-    expect(dialog).toHaveTextContent("El archivo anterior dejará de estar disponible");
+    expect(dialog).toHaveTextContent("Se reemplazará “bl-anterior.pdf”");
+    expect(dialog).not.toHaveTextContent("123456789abc");
     expect(onUpload).not.toHaveBeenCalled();
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }));
     expect(onUpload).not.toHaveBeenCalled();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Descargar" }));
-    expect(onDownload).toHaveBeenCalledExactlyOnceWith("embarques/fixture/bl-anterior.pdf", "documento-fixture");
+    fireEvent.click(screen.getByRole("button", { name: "Descargar BL Master" }));
+    expect(onDownload).toHaveBeenCalledExactlyOnceWith(archivoAnterior, "documento-fixture");
 
     const confirmado = new File(["confirmado"], "bl-confirmado.pdf");
-    chooseFile("Reemplazar archivo", [confirmado]);
+    chooseFile("Reemplazar archivo de BL Master", [confirmado]);
     fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Reemplazar archivo" }));
     expect(onUpload).toHaveBeenCalledExactlyOnceWith("documento-fixture", confirmado);
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
@@ -76,20 +78,34 @@ describe("documentos: primera carga y reemplazo confirmado", () => {
 
   it("salir del selector sin archivo no solicita confirmación ni inicia la carga", () => {
     const { onUpload } = setup("embarques/fixture/bl-anterior.pdf");
-    chooseFile("Reemplazar archivo", []);
+    chooseFile("Reemplazar archivo de BL Master", []);
     expect(onUpload).not.toHaveBeenCalled();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
   it("no confirma un reemplazo si deja de estar habilitada la edición", () => {
     const { onUpload, props, rerender } = setup("embarques/fixture/bl-anterior.pdf");
-    chooseFile("Reemplazar archivo", [new File(["fixture"], "bl-nuevo.pdf")]);
+    chooseFile("Reemplazar archivo de BL Master", [new File(["fixture"], "bl-nuevo.pdf")]);
     rerender(<MemoryRouter><TabDocumentos {...props} canEdit={false} /></MemoryRouter>);
     const dialog = screen.getByRole("alertdialog");
     expect(within(dialog).getByRole("button", { name: "Reemplazar archivo" })).toBeDisabled();
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }));
     expect(onUpload).not.toHaveBeenCalled();
-    expect(screen.queryByRole("button", { name: "Reemplazar archivo" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Descargar" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Reemplazar archivo de BL Master" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Descargar BL Master" })).toBeEnabled();
   });
+});
+
+it("conserva la confirmación del documento si falla eliminarlo y permite reintentar", async () => {
+  const archivo = "embarques/fixture/bl.pdf";
+  const onDelete = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+  setup(archivo, true, onDelete);
+  fireEvent.click(screen.getByRole("button", { name: "Eliminar BL Master" }));
+  const dialog = screen.getByRole("alertdialog", { name: "¿Eliminar documento?" });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Eliminar" }));
+  expect(await within(dialog).findByRole("alert")).toHaveTextContent("Vuelve a intentar");
+  expect(dialog).toHaveTextContent("BL Master");
+  fireEvent.click(within(dialog).getByRole("button", { name: "Eliminar" }));
+  await waitFor(() => expect(dialog).not.toBeInTheDocument());
+  expect(onDelete.mock.calls).toEqual([[documento(archivo)], [documento(archivo)]]);
 });

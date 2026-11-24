@@ -115,6 +115,7 @@ export function RespuestaClienteManualDialog({
       }
       size="md"
       footer={footer}
+      busy={loading}
     >
       <div className="space-y-2">
         <Label htmlFor="motivo-manual">

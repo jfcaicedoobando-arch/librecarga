@@ -24,9 +24,10 @@ interface Props {
   mostrarErrores?: boolean;
   /** Modo de la tarifa: define los conceptos sugeridos. */
   modo?: ModoRecargo;
+  moneda?: string;
 }
 
-export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false, modo = "Marítimo" }: Props) {
+export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false, modo = "Marítimo", moneda = "USD" }: Props) {
   const update = (i: number, patch: Partial<TarifaRecargoInput>) => {
     onChange(value.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
   };
@@ -40,7 +41,7 @@ export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false, 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <Label>Recargos (USD)</Label>
+        <Label>Recargos ({moneda})</Label>
         <Button type="button" size="sm" variant="outline" onClick={add}>
           <Plus className="size-3.5 mr-1" /> Agregar recargo
         </Button>
@@ -81,8 +82,8 @@ export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false, 
               id={`recargo-monto-${i}`}
               value={r.monto}
               onChange={(n: number) => update(i, { monto: n })}
-              currency="USD"
-              aria-label={`Monto del recargo ${i + 1} en USD`}
+              currency={moneda}
+              aria-label={`Monto del recargo ${i + 1} en ${moneda}`}
               aria-invalid={mostrarErrores && !(Number(r.monto) > 0) ? true : undefined}
               aria-describedby={mostrarErrores && !(Number(r.monto) > 0) ? `recargo-monto-err-${i}` : undefined}
             />
@@ -134,9 +135,9 @@ export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false, 
         <div className="grid grid-cols-12 gap-2">
           <div className="col-span-4">
             <Label htmlFor={`recargo-minimo-${i}`} className="text-body-sm text-muted-foreground">Mínimo (opcional)</Label>
-            <MoneyInput id={`recargo-minimo-${i}`} value={r.minimo ?? 0} currency="USD"
+            <MoneyInput id={`recargo-minimo-${i}`} value={r.minimo ?? 0} currency={moneda}
               onChange={(n: number) => update(i, { minimo: n > 0 ? n : null })}
-              aria-label={`Mínimo del recargo ${i + 1}`} />
+              aria-label={`Mínimo del recargo ${i + 1} en ${moneda}`} />
           </div>
           <div className="col-span-8">
             <Label htmlFor={`recargo-proveedor-${i}`} className="text-body-sm text-muted-foreground">Proveedor (vacío = el de la tarifa)</Label>

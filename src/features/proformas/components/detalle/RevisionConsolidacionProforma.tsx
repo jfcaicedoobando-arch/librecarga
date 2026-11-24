@@ -10,6 +10,9 @@ export function RevisionConsolidacionProforma({ proforma }: { proforma: Proforma
   const ajuste = leerAjusteConsolidacion(proforma);
   if (!ajuste) return null;
   const activa = proforma.estado_proforma === "pendiente" && proforma.estado_cliente !== "rechazada";
+  const estadoHistorico = proforma.estado_proforma === "pendiente"
+    ? proforma.estado_cliente
+    : proforma.estado_proforma;
 
   return (
     <Card className="mb-4">
@@ -36,6 +39,11 @@ export function RevisionConsolidacionProforma({ proforma }: { proforma: Proforma
         {ajuste.pendiente && activa && (
           <p className="text-body-sm text-muted-foreground">
             Se requiere aprobación de Contabilidad o Administración antes de enviar la proforma.
+          </p>
+        )}
+        {ajuste.pendiente && !activa && (
+          <p className="text-body-sm text-muted-foreground">
+            Ajuste pendiente en el histórico. Estado de la proforma: {estadoHistorico}.
           </p>
         )}
         {!ajuste.pendiente && <p className="text-body-sm">Ajuste aprobado.</p>}

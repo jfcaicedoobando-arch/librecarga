@@ -5,12 +5,15 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { clickFueraDelDialogo, esperarTickRadix } from "@/test/helpers/dialogOutsideClick";
 import { DialogRegistrarPago } from "../DialogRegistrarPago";
 
-const mocks = vi.hoisted(() => ({ submit: vi.fn(), isPending: false, timbrandoRep: false }));
+const mocks = vi.hoisted(() => ({
+  submit: vi.fn(), isPending: false, timbrandoRep: false, saldo: 116 as number | undefined, cargandoSaldo: false,
+}));
 vi.mock("@/features/catalogos/hooks", () => ({ useExchangeRates: () => ({ data: { usdMxn: 20, eurMxn: 22 } }) }));
 vi.mock("@/features/facturacion/hooks", () => ({ usePagosFactura: () => ({ data: [] }) }));
 vi.mock("@/features/tesoreria/hooks", () => ({ useCuentasBancarias: () => ({ data: [] }) }));
 vi.mock("@/features/facturacion/hooks/useSaldoFactura", () => ({
-  useNotasCreditoAplicadas: () => ({ data: [] }), useSaldoFacturaServidor: () => ({ data: 116 }),
+  useNotasCreditoAplicadas: () => ({ data: [] }),
+  useSaldoFacturaServidor: () => ({ data: mocks.saldo, isLoading: mocks.cargandoSaldo }),
 }));
 vi.mock("@/features/facturacion/hooks/useRegistrarPagoSubmit", () => ({
   useRegistrarPagoSubmit: (onSuccess: () => void) => ({
@@ -54,7 +57,26 @@ function capturar() {
   fireEvent.change(screen.getByLabelText("Notas"), { target: { value: "Captura sin guardar" } });
 }
 
-beforeEach(() => { mocks.isPending = false; mocks.timbrandoRep = false; mocks.submit.mockClear(); });
+beforeEach(() => {
+  Object.assign(mocks, { isPending: false, timbrandoRep: false, saldo: 116, cargandoSaldo: false });
+  mocks.submit.mockClear();
+});
+
+it("distingue el saldo en consulta, el estimado y el confirmado", () => {
+  mocks.saldo = undefined;
+  mocks.cargandoSaldo = true;
+  const pago = <TooltipProvider><DialogRegistrarPago open factura={factura} onOpenChange={vi.fn()} /></TooltipProvider>;
+  const { rerender } = render(pago);
+  expect(screen.getByText("Consultando saldo…")).toBeInTheDocument();
+  expect(screen.queryByText("Saldo estimado:")).not.toBeInTheDocument();
+  mocks.cargandoSaldo = false;
+  rerender(<TooltipProvider><DialogRegistrarPago open factura={factura} onOpenChange={vi.fn()} /></TooltipProvider>);
+  expect(screen.getByText("Saldo estimado:")).toBeInTheDocument();
+  mocks.saldo = 42;
+  rerender(<TooltipProvider><DialogRegistrarPago open factura={factura} onOpenChange={vi.fn()} /></TooltipProvider>);
+  expect(screen.getByText("Saldo:")).toHaveTextContent("Saldo: MXN 42.00");
+  expect(mocks.submit).not.toHaveBeenCalled();
+});
 
 describe("61: cierre de Registrar pago conserva captura hasta descartar", () => {
   it.each(rutas)("%s pide confirmación; continuar conserva datos y descartar cierra una vez", async (ruta) => {

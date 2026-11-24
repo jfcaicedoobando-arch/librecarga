@@ -18,7 +18,12 @@ describe("TablaFlujoSemanal - saldo disponible", () => {
         monto_original: 95, tipo_cambio_aplicado: 20, monto_mxn: 1900,
       }],
     }]} />);
-    fireEvent.click(screen.getByRole("button", { name: /Expandir detalle de la semana/ }));
+    const semanaControl = screen.getByRole("button", { name: /Expandir detalle de la semana/ });
+    expect(semanaControl.tagName).toBe("BUTTON");
+    expect(semanaControl.closest("tr")).not.toHaveAttribute("role", "button");
+    expect(semanaControl).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(semanaControl);
+    expect(semanaControl).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText(/95\.00.*TC documento USD\/MXN 20\.0000/)).toBeInTheDocument();
     expect(screen.getAllByText(/1,900/)).toHaveLength(2);
   });

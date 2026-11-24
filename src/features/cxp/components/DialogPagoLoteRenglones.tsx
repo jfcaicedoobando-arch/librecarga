@@ -24,7 +24,7 @@ export function DialogPagoLoteRenglones({ facturas, renglones, moneda, onMontoCh
   const montoDe = (id: string) => renglones.find((r) => r.factura_id === id)?.monto ?? 0;
 
   return (
-    <LoteRenglonesTable minWidthClassName="min-w-[620px]">
+    <LoteRenglonesTable minWidthClassName="min-w-[620px]" etiquetaSaldoFinal="Saldo previsto">
 
           {facturas.map((f, i) => {
             const monto = montoDe(f.factura_id);
@@ -65,10 +65,10 @@ export function DialogPagoLoteRenglones({ facturas, renglones, moneda, onMontoCh
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
                     {liquidada && (
-                      <Badge variant="outline" className="text-label">Liquidada</Badge>
+                      <Badge variant="outline" className="text-label">Quedará liquidada</Badge>
                     )}
                     {parcial && (
-                      <Badge variant="secondary" className="text-label">Parcial</Badge>
+                      <Badge variant="secondary" className="text-label">Pago parcial propuesto</Badge>
                     )}
                     <span className="tabular-nums text-muted-foreground">
                       {formatCurrency(queda, moneda)}

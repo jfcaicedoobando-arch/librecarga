@@ -25,9 +25,14 @@ describe("FacturaManualConceptosTable · importe visible", () => {
     }
 
     render(<Captura />);
+    const eliminar = screen.getByRole("button", { name: "Eliminar concepto 1" });
+    expect(eliminar).toBeDisabled();
+    expect(eliminar).toHaveAccessibleDescription("La factura requiere al menos un concepto.");
     const agregar = screen.getByRole("button", { name: "Agregar concepto" });
     agregar.focus();
     fireEvent.click(agregar);
+    expect(eliminar).toBeEnabled();
+    expect(screen.queryByText("La factura requiere al menos un concepto.")).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Descripción del concepto 2" })).toHaveFocus();
     fireEvent.click(agregar);
     expect(screen.getByRole("textbox", { name: "Descripción del concepto 3" })).toHaveFocus();

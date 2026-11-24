@@ -9,6 +9,7 @@ import { GuardarPlantillaDialog } from "@/features/cotizacion/components/wizard/
 import { PlantillaSelectorPaso1 } from "@/features/cotizacion/components/wizard/PlantillaSelectorPaso1";
 import { OpcionesPricingCotizacion } from "@/features/cotizacion/components/wizard/OpcionesPricingCotizacion";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useNuevaCotizacionPageController } from "./useNuevaCotizacionPageController";
 
 export default function NuevaCotizacion() {
@@ -25,7 +26,7 @@ function NuevaCotizacionScope() {
     conflictoExterno, descartarConflicto,
     conflictoSello, resincronizando, handleResincronizar, recargarPorConflictoSello,
     flushDraft, savedId, cerrarSuccess, closeSuccessAndGoTo,
-    guardarPlantillaOpen, setGuardarPlantillaOpen, irAlListado,
+    guardarPlantillaOpen, setGuardarPlantillaOpen, irAlListado, prefillTarifa,
   } = useNuevaCotizacionPageController();
 
   return (
@@ -63,6 +64,17 @@ function NuevaCotizacionScope() {
         />
       )}
 
+      {w.currentStep === 1 && prefillTarifa && (
+        <PageContainer noSpacing className="max-w-6xl pt-4">
+          {prefillTarifa.estado === "error" ? (
+            <ErrorStateInline title="No se pudo cargar la tarifa de Pricing"
+              message="Reintenta para aplicar la tarifa elegida. La captura actual se conserva."
+              onRetry={prefillTarifa.reintentar} retrying={prefillTarifa.reintentando} />
+          ) : (
+            <p role="status" className="text-body-sm text-muted-foreground">Cargando tarifa de Pricing…</p>
+          )}
+        </PageContainer>
+      )}
       {w.currentStep === 1 && !w.cotizacionId && <OpcionesPricingCotizacion form={w.form} />}
 
       <CotizacionWizardLayout

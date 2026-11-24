@@ -42,9 +42,9 @@ export function OpcionesTarifarioAereo({ solicitud: s, puedeCotizar }: { solicit
               <span className="text-muted-foreground">Vuelo: </span>{textoEscalas(t.escalas)}
               {t.transit_time_dias != null && ` · ${t.transit_time_dias} días`}</div>
             <div><span className="text-muted-foreground">Precio por kg: </span>{formatCurrency(t.flete_base, t.moneda)}<br />
-              <span className="text-muted-foreground">Mínimo: </span>{t.minimo == null ? "—" : formatCurrency(t.minimo, t.moneda)}</div>
+              <span className="text-muted-foreground">Mínimo por embarque: </span>{t.minimo == null ? "—" : formatCurrency(t.minimo, t.moneda)}</div>
             <div className="md:col-span-1"><span className="text-muted-foreground">Rangos: </span>
-              {t.tramos.length === 0 ? "—" : t.tramos.map((r) => `+${r.desde_kg}: ${formatCurrency(r.precio, t.moneda)}`).join(" · ")}</div>
+              {t.tramos.length === 0 ? "—" : t.tramos.map((r) => `Desde ${r.desde_kg} kg: ${formatCurrency(r.precio, t.moneda)}/kg`).join(" · ")}</div>
             <div><span className="text-muted-foreground">Vigencia hasta: </span>{formatDate(t.vigente_hasta)}</div>
             {puedeCotizar && (
               <div className="md:col-span-4">

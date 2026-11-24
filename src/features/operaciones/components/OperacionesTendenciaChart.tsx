@@ -7,6 +7,7 @@
 import {
   LineChart,
   Line,
+  Legend,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -35,6 +36,7 @@ export default function OperacionesTendenciaChart({ data }: Props) {
         <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
         <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
         <RechartsTooltip content={<ChartTooltip />} />
+        <Legend />
         <Line
           type="monotone"
           dataKey="creadas"
@@ -48,6 +50,7 @@ export default function OperacionesTendenciaChart({ data }: Props) {
           dataKey="llegadas"
           name="Llegadas"
           stroke="hsl(var(--kpi-success))"
+          strokeDasharray="6 4"
           strokeWidth={2}
           dot={{ r: 4, fill: "hsl(var(--kpi-success))" }}
         />

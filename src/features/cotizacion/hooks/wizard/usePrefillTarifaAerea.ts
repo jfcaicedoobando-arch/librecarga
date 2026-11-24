@@ -5,9 +5,15 @@ import type { UseFormReturn } from "react-hook-form";
 import type { CotizacionFormValues } from "@/features/cotizacion/types";
 import { cotizaciones } from "@/features/cotizacion/queryKeys";
 import { fetchPrefillTarifaAerea } from "@/features/cotizacion/services/prefillTarifaAerea";
-import { notifyError } from "@/lib/ui/appFeedback";
 
 const OPTS = { shouldDirty: true, shouldValidate: true } as const;
+
+function acotarVigencia(form: UseFormReturn<CotizacionFormValues>, vigenteHasta: string) {
+  const [y, m, d] = vigenteHasta.split("-").map(Number);
+  const hasta = new Date(y, m - 1, d, 23, 59, 59, 999);
+  const validez = form.getValues("validezPropuesta");
+  if (validez && validez > hasta) form.setValue("validezPropuesta", hasta, OPTS);
+}
 
 export function usePrefillTarifaAerea(
   form: UseFormReturn<CotizacionFormValues>, organizationId: string | null | undefined,
@@ -21,12 +27,7 @@ export function usePrefillTarifaAerea(
     enabled: activo, retry: false,
   });
   useEffect(() => {
-    if (!activo || hecho.current) return;
-    if (q.isError) {
-      hecho.current = true;
-      notifyError(undefined, { title: "No se pudo abrir la tarifa", error: q.error, method: "COTIZACION_PREFILL_TARIFA_AEREA" });
-      return;
-    }
+    if (!activo || hecho.current || q.isError) return;
     const p = q.data;
     if (!p) return;
     hecho.current = true;
@@ -41,11 +42,14 @@ export function usePrefillTarifaAerea(
     if (p.pesoKg != null) form.setValue("pesoKg", p.pesoKg, OPTS);
     if (p.volumenM3 != null) form.setValue("volumenM3", p.volumenM3, OPTS);
     if (p.commodity && !form.getValues("descripcionMercancia")) form.setValue("descripcionMercancia", p.commodity, OPTS);
-    const [y, m, d] = p.vigenteHasta.split("-").map(Number);
-    const hasta = new Date(y, m - 1, d, 23, 59, 59, 999);
-    const validez = form.getValues("validezPropuesta");
-    if (validez && validez > hasta) form.setValue("validezPropuesta", hasta, OPTS);
+    acotarVigencia(form, p.vigenteHasta);
     if (p.modo === "Aéreo") form.setValue("banderasAereas", p.banderasAereas, OPTS);
     form.setValue("tarifaId", p.tarifaId, OPTS); // al final: dispara la carga automática de costos
-  }, [activo, q.data, q.isError, q.error, form]);
+  }, [activo, q.data, q.isError, form]);
+
+  if (!activo || q.data) return null;
+  if (q.isError) {
+    return { estado: "error", reintentando: q.isFetching, reintentar: () => void q.refetch() } as const;
+  }
+  return { estado: "cargando" } as const;
 }

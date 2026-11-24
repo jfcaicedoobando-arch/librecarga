@@ -56,12 +56,10 @@ const FORM_ID = "form-registrar-pago";
 
 export function DialogRegistrarPago({ open, onOpenChange, factura }: Props) {
   const cuentas = useCuentasBancarias();
-  const { data: pagosPrevios = [] } = usePagosFactura(factura?.id);
-  const { data: notasAplicadas = [] } = useNotasCreditoAplicadas(factura?.id);
-  // N9: el saldo cobrable lo calcula la BD (notas de crédito ya convertidas a
-  // la moneda de la factura); así el diálogo no propone un importe que el
-  // servidor rechazaría por sobrepago.
-  const { data: saldoServidor } = useSaldoFacturaServidor(factura?.id);
+  const { data: pagosPrevios = [], isLoading: cargandoPagos } = usePagosFactura(factura?.id);
+  const { data: notasAplicadas = [], isLoading: cargandoNotas } = useNotasCreditoAplicadas(factura?.id);
+  // El saldo canónico incluye las notas de crédito en la moneda de la factura.
+  const { data: saldoServidor, isLoading: cargandoSaldo } = useSaldoFacturaServidor(factura?.id);
   const { submit, isPending, timbrandoRep } = useRegistrarPagoSubmit(() => onOpenChange(false), { facturaId: factura?.id, open });
 
   // A1: canon `saldoFactura` (pagos + NC). Se pasa el ESTADO para que las
@@ -139,7 +137,8 @@ export function DialogRegistrarPago({ open, onOpenChange, factura }: Props) {
   };
 
   const headerAside = (
-    <ResumenSaldo total={factura.total} pagado={totalPagado} saldo={saldo} moneda={factura.moneda} />
+    <ResumenSaldo total={factura.total} pagado={totalPagado} saldo={saldo} moneda={factura.moneda}
+      consultas={{ cargandoSaldo, cargandoPagos, cargandoNotas, saldoServidor }} />
   );
 
   // YG-04: hay datos capturados que se perderían al cerrar el modal. Se compara

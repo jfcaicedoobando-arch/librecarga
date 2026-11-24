@@ -71,6 +71,7 @@ export interface ValidarPagoInput {
 export interface ResultadoValidacionPago {
   error: string | null;
   avisos: string[];
+  campoError?: "monto" | "fecha";
 }
 
 const TOLERANCIA = 0.01;
@@ -130,14 +131,17 @@ export function validarPagoProveedor(a: ValidarPagoInput): ResultadoValidacionPa
       avisos,
     };
   }
+  const errorMonto = validarMonto(a);
+  if (errorMonto !== null) return { error: errorMonto, avisos, campoError: "monto" };
+  const errorFecha = validarFechas(a);
+  if (errorFecha !== null) return { error: errorFecha, avisos, campoError: "fecha" };
+
   const error =
-    validarMonto(a) ??
-    validarFechas(a) ??
     validarTipoCambio(a, factura) ??
     validarCuenta(a) ??
-    validarDiferenciaCambiaria(a) ??
-    (a.montoEnMonedaFactura > disponible + TOLERANCIA
-      ? `El monto excede el saldo pendiente (${factura.moneda})`
-      : null);
+    validarDiferenciaCambiaria(a);
+  if (error === null && a.montoEnMonedaFactura > disponible + TOLERANCIA) {
+    return { error: `El monto excede el saldo pendiente (${factura.moneda})`, avisos, campoError: "monto" };
+  }
   return { error, avisos };
 }

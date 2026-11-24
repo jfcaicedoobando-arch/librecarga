@@ -3,10 +3,12 @@
  * Permite navegar, ligar uno existente y quitar el vínculo (no borra el registro).
  */
 import { Link } from "react-router";
+import { useState } from "react";
 import { X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 import { useRelacionCrm, useVinculoCrm, type Relacion } from "@/features/crm/hooks/useObjetosCrm";
 import type { TipoVinculo } from "@/features/crm/services/vinculosCrm";
 import { BuscadorObjetoCrm } from "./BuscadorObjetoCrm";
@@ -30,6 +32,8 @@ export function VinculosCard({ titulo, relacion, duenoId, rutaBase, edicion, can
   const { data = [], isLoading, isError, isFetching, refetch } = useRelacionCrm(relacion, duenoId);
   const vinculo = useVinculoCrm();
   const editable = canEdit && !!edicion;
+  const [idAQuitar, setIdAQuitar] = useState<string | null>(null);
+  const seleccion = data.find((registro) => registro.id === idAQuitar);
 
   return (
     <Card>
@@ -75,7 +79,7 @@ export function VinculosCard({ titulo, relacion, duenoId, rutaBase, edicion, can
                   size="icon" variant="ghost" className="h-7 w-7"
                   aria-label={`Quitar vínculo con ${r.nombre}`}
                   disabled={vinculo.isPending}
-                  onClick={() => vinculo.mutate({ tipo: edicion.tipo, ...edicion.par(r.id), quitar: true })}
+                  onClick={() => setIdAQuitar(r.id)}
                 >
                   <X className="size-4" />
                 </Button>
@@ -83,6 +87,22 @@ export function VinculosCard({ titulo, relacion, duenoId, rutaBase, edicion, can
             </li>
           ))}
         </ul>
+        <ConfirmActionDialog
+          open={editable && !!seleccion}
+          onOpenChange={(open) => { if (!open && !vinculo.isPending) setIdAQuitar(null); }}
+          title={`¿Quitar el vínculo con ${seleccion?.nombre ?? ""}?`}
+          description="Se quitará el vínculo de esta ficha. El registro vinculado se conserva."
+          confirmLabel="Quitar vínculo"
+          cancelLabel="Conservar vínculo"
+          variant="destructive"
+          isPending={vinculo.isPending}
+          onConfirm={() => {
+            if (!editable || !seleccion || vinculo.isPending) return;
+            vinculo.mutate({ tipo: edicion.tipo, ...edicion.par(seleccion.id), quitar: true }, {
+              onSuccess: () => setIdAQuitar(null),
+            });
+          }}
+        />
       </CardContent>
     </Card>
   );

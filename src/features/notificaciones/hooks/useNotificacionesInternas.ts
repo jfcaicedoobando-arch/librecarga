@@ -64,5 +64,6 @@ export function useNotificacionesInternas() {
     noLeidas,
     marcarLeida: marcarLeidaMut.mutate,
     marcarTodasLeidas: marcarTodasMut.mutate,
+    marcandoTodasLeidas: marcarTodasMut.isPending,
   };
 }

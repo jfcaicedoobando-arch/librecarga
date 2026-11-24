@@ -22,7 +22,7 @@ interface Props {
 const PRESETS: Array<{ id: PresetRango; label: string }> = [
   { id: "30d", label: "30 días" },
   { id: "mes", label: "Este mes" },
-  { id: "trimestre", label: "Trimestre" },
+  { id: "trimestre", label: "Este trimestre" },
   { id: "anio", label: "Este año" },
   { id: "historico", label: "Histórico" },
 ];
@@ -45,6 +45,7 @@ export function EstadoCuentaFilters({
             key={p.id}
             size="sm"
             className="h-8"
+            aria-pressed={presetActivo === p.id}
             variant={presetActivo === p.id ? "default" : "outline"}
             onClick={() => onPreset(p.id)}
           >

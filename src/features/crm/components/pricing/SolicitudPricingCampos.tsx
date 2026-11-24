@@ -89,8 +89,10 @@ export function SolicitudPricingCampos({ datos, set, disabled }: Props) {
         <CampoTexto id="pr-commodity" label="Commodity" {...d} value={datos.commodity} onChange={txt("commodity")} />
         <CampoLista id="pr-type" label="Tipo de contenedor" {...d} value={datos.tipo_carga}
           opciones={opcionesContenedor} onChange={(v) => set("tipo_carga", v)} />
-        <CampoTexto id="pr-qty" label="Quantity" type="number" {...d} value={datos.cantidad}
-          onChange={(v) => { const n = aNumero(v); set("cantidad", n != null && n > 0 ? Math.trunc(n) : null); }} />
+        {!aereo && (
+          <CampoTexto id="pr-qty" label="Quantity" type="number" {...d} value={datos.cantidad}
+            onChange={(v) => { const n = aNumero(v); set("cantidad", n != null && n > 0 ? Math.trunc(n) : null); }} />
+        )}
         <CampoSiNo id="pr-estibable" label="Estibable" {...d} value={datos.estibable} onChange={(v) => set("estibable", v)} />
         <CampoTexto id="pr-peso" label="Weight" {...d} value={datos.peso} onChange={txt("peso")} />
         <CampoLista id="pr-unidad-medida" label="Units of measurement" {...d} value={datos.unidad_medida}

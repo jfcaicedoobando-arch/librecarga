@@ -9,7 +9,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   expediente: string;
   isPending: boolean;
-  onConfirm: (motivo: string) => Promise<void> | void;
+  onConfirm: (motivo: string) => Promise<boolean>;
 }
 
 /**
@@ -18,10 +18,15 @@ interface Props {
  */
 export function CancelarEmbarqueDialog({ open, onOpenChange, expediente, isPending, onConfirm }: Props) {
   const [motivo, setMotivo] = useState("");
+  const [fallo, setFallo] = useState(false);
   return (
     <ConfirmActionDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(abierto) => {
+        if (isPending) return;
+        setFallo(false);
+        onOpenChange(abierto);
+      }}
       title={`Cancelar embarque ${expediente}`}
       description="Esta acción marca el embarque como Cancelado y detiene el flujo operativo. Documenta el motivo para trazabilidad."
       variant="destructive"
@@ -33,7 +38,12 @@ export function CancelarEmbarqueDialog({ open, onOpenChange, expediente, isPendi
       confirmDisabled={motivo.trim().length < 5}
       size="md"
       onConfirm={async () => {
-        await onConfirm(motivo.trim());
+        if (isPending) return;
+        setFallo(false);
+        if (!await onConfirm(motivo.trim())) {
+          setFallo(true);
+          return;
+        }
         onOpenChange(false);
         setMotivo("");
       }}
@@ -46,7 +56,11 @@ export function CancelarEmbarqueDialog({ open, onOpenChange, expediente, isPendi
           onChange={(e) => setMotivo(e.target.value)}
           placeholder="Ej. Cliente canceló la operación por falta de stock en origen."
           rows={3}
+          disabled={isPending}
         />
+        {fallo && <p role="alert" className="text-body-sm text-destructive">
+          No se pudo cancelar el embarque. Tu motivo sigue aquí. Vuelve a intentar.
+        </p>}
       </div>
     </ConfirmActionDialog>
   );

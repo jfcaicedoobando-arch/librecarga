@@ -60,7 +60,7 @@ export function OrgMembersCard({ members, loading, onAddClick, onChangeRole, onR
         const isLegacy = (LEGACY_ROLES as readonly string[]).includes(currentRole);
         return (
           <Select value={currentRole} onValueChange={(val) => onChangeRole(m.id, val as AppRole)}>
-            <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[200px]" aria-label={`Cambiar rol de ${m.email ?? m.user_id}`}><SelectValue /></SelectTrigger>
             <SelectContent>
               {ASSIGNABLE_ROLE_GROUPS.map((group) => (
                 <SelectGroup key={group.label}>
@@ -88,7 +88,7 @@ export function OrgMembersCard({ members, loading, onAddClick, onChangeRole, onR
           variant="ghost"
           size="icon"
           className="min-h-11 min-w-11 md:h-8 md:w-8 md:min-h-0 md:min-w-0 text-destructive hover:text-destructive"
-          aria-label="Eliminar miembro"
+          aria-label={`Eliminar miembro ${row.original.email ?? row.original.user_id}`}
           onClick={() => setMemberAEliminar(row.original)}
         >
           <Trash2 className="h-4 w-4" />

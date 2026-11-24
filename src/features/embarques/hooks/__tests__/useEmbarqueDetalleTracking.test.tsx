@@ -125,15 +125,20 @@ describe("useEmbarqueDetalleTracking", () => {
     expect(mockCreateLink).not.toHaveBeenCalled();
   });
 
-  it("no afirma que se copió si el portapapeles falla después de crear", async () => {
+  it("ofrece copia manual del enlace ya creado si falla el portapapeles", async () => {
     mockFetchLinks.mockResolvedValue([]);
     mockCreateLink.mockResolvedValue({ id: "tl-1", embarque_id: "e-1", token: "tok-xyz", expires_at: "2030-01-15T18:20:45Z" });
     clipboardWriteMock.mockRejectedValue(new Error("Portapapeles bloqueado"));
     const { result } = renderHook(() => useEmbarqueDetalleTracking("e-1"), { wrapper: createWrapper() });
     await act(async () => { await result.current.handleCompartirTracking(); });
     expect(mockCreateLink).toHaveBeenCalledTimes(1);
-    expect(result.current.avisoEnlace).toBeNull();
+    expect(result.current.avisoEnlace).toEqual({
+      expiresAt: "2030-01-15T18:20:45Z",
+      urlParaCopiar: `${window.location.origin}/tracking/tok-xyz`,
+    });
     expect(mockDeleteLink).not.toHaveBeenCalled();
+    await act(async () => { await result.current.handleRevocarTracking(); });
+    expect(mockDeleteLink).toHaveBeenCalledExactlyOnceWith({ linkId: "tl-1", embarqueId: "e-1" });
   });
 
   it("cierra el aviso al cambiar de embarque y no lo recupera al regresar", async () => {

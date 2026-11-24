@@ -6,13 +6,23 @@ import { formatCurrency } from "@/lib/formatters";
 import { useFormDialogCerrar } from "@/components/shared/formDialogCloseContext";
 
 export function ResumenSaldo({
-  total, pagado, saldo, moneda,
-}: { total: number; pagado: number; saldo: number; moneda: string }) {
+  total, pagado, saldo, moneda, consultas,
+}: {
+  total: number; pagado: number; saldo: number; moneda: string;
+  consultas: { cargandoSaldo?: boolean; cargandoPagos?: boolean; cargandoNotas?: boolean; saldoServidor?: number | null };
+}) {
+  const estimado = !Number.isFinite(consultas.saldoServidor);
+  const consultando = consultas.cargandoSaldo || (estimado && (consultas.cargandoPagos || consultas.cargandoNotas));
   return (
     <div className="text-body-sm text-muted-foreground space-y-0.5">
       <div>Total: <strong className="text-foreground">{formatCurrency(total, moneda)}</strong></div>
-      <div>Pagado: <strong className="text-foreground">{formatCurrency(pagado, moneda)}</strong></div>
-      <div>Saldo: <strong className={saldo > 0 ? "text-warning" : "text-success"}>{formatCurrency(saldo, moneda)}</strong></div>
+      {!consultas.cargandoPagos && <div>Pagado: <strong className="text-foreground">{formatCurrency(pagado, moneda)}</strong></div>}
+      <div role="status">
+        {consultando ? "Consultando saldo…" : <>
+          {estimado ? "Saldo estimado: " : "Saldo: "}
+          <strong className={saldo > 0 ? "text-warning" : "text-success"}>{formatCurrency(saldo, moneda)}</strong>
+        </>}
+      </div>
     </div>
   );
 }

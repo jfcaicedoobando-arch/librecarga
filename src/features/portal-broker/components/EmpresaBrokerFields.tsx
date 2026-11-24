@@ -3,7 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { TRANSPORTES, type EmpresaBroker } from "../domain/altaProspecto";
+import { TRANSPORTES, type EmpresaBroker, type ProblemaAlta } from "../domain/altaProspecto";
 
 type Texto = Exclude<keyof EmpresaBroker, "transporte">;
 const CAMPOS: { k: Texto; label: string }[] = [
@@ -23,23 +23,31 @@ const CAMPOS: { k: Texto; label: string }[] = [
 interface Props {
   value: EmpresaBroker;
   onChange: (v: EmpresaBroker) => void;
+  problema: ProblemaAlta | null;
 }
 
-export default function EmpresaBrokerFields({ value, onChange }: Props) {
+export default function EmpresaBrokerFields({ value, onChange, problema }: Props) {
   const toggle = (t: string, on: boolean) =>
     onChange({ ...value, transporte: on ? [...value.transporte, t] : value.transporte.filter((x) => x !== t) });
 
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
-        {CAMPOS.map((f) => (
-          <div key={f.k} className="space-y-1.5">
-            <Label htmlFor={`emp-${f.k}`}>{f.label}</Label>
-            <Input id={`emp-${f.k}`} value={value[f.k]} onChange={(e) => onChange({ ...value, [f.k]: e.target.value })} />
-          </div>
-        ))}
+        {CAMPOS.map((f) => {
+          const id = `emp-${f.k}`;
+          const mensaje = problema?.campo === f.k ? problema.mensaje : undefined;
+          return (
+            <div key={f.k} className="space-y-1.5">
+              <Label htmlFor={id}>{f.label}</Label>
+              <Input id={id} value={value[f.k]} onChange={(e) => onChange({ ...value, [f.k]: e.target.value })}
+                aria-required={f.k === "nombre" || f.k === "pais" || undefined}
+                aria-invalid={mensaje ? true : undefined} aria-describedby={mensaje ? `${id}-error` : undefined} />
+              {mensaje && <p id={`${id}-error`} className="text-body-sm text-destructive">{mensaje}</p>}
+            </div>
+          );
+        })}
       </div>
-      <fieldset className="space-y-1.5">
+      <fieldset className="space-y-1.5" aria-describedby={problema?.campo === "transporte" ? "broker-transporte-error" : undefined}>
         <legend className="text-body-sm font-medium">Tipo de transporte *</legend>
         <div className="flex flex-wrap gap-4">
           {TRANSPORTES.map((t) => (
@@ -49,6 +57,7 @@ export default function EmpresaBrokerFields({ value, onChange }: Props) {
             </label>
           ))}
         </div>
+        {problema?.campo === "transporte" && <p id="broker-transporte-error" className="text-body-sm text-destructive">{problema.mensaje}</p>}
       </fieldset>
       <div className="space-y-1.5">
         <Label htmlFor="emp-notas">Notas</Label>

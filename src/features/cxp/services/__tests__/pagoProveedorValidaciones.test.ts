@@ -60,8 +60,8 @@ describe("pagoProveedorValidaciones", () => {
 
   it("rechaza monto que excede el saldo", () => {
     expect(
-      validarPagoProveedor(base({ monto: 2000, montoTexto: "2000", montoEnMonedaFactura: 2000 })).error,
-    ).toMatch(/excede el saldo/);
+      validarPagoProveedor(base({ monto: 2000, montoTexto: "2000", montoEnMonedaFactura: 2000 })),
+    ).toMatchObject({ error: expect.stringMatching(/excede el saldo/), campoError: "monto" });
   });
 
   it("rechaza cuenta en otra moneda y cuenta faltante", () => {

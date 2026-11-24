@@ -14,6 +14,7 @@ import { DetailTableHead } from "@/components/shared/DetailTable";
 interface LoteRenglonesTableProps {
   /** Ancho mínimo del scroll horizontal (varía entre CxP y CxC). */
   minWidthClassName?: string;
+  etiquetaSaldoFinal?: string;
   children: ReactNode;
 }
 
@@ -27,6 +28,7 @@ const COLUMNAS = [
 
 export function LoteRenglonesTable({
   minWidthClassName = "min-w-[660px]",
+  etiquetaSaldoFinal = "Queda",
   children,
 }: LoteRenglonesTableProps) {
   return (
@@ -36,7 +38,7 @@ export function LoteRenglonesTable({
           <TableRow>
             {COLUMNAS.map((c) => (
               <DetailTableHead key={c.label} className={cn("px-3 py-2 font-medium", c.width, c.align)}>
-                {c.label}
+                {c.label === "Queda" ? etiquetaSaldoFinal : c.label}
               </DetailTableHead>
             ))}
           </TableRow>

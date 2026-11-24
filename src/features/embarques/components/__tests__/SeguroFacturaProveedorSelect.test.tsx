@@ -70,6 +70,11 @@ describe("SeguroFacturaProveedorSelect", () => {
     expect(screen.getByRole("combobox")).toHaveTextContent("Subtotal de factura: 100.005 MXN");
     expect(screen.getByText(/Seleccionarla no la reserva/)).toBeInTheDocument();
   });
+  it("agrupa miles sin redondear los decimales exactos que utiliza la cobertura", () => {
+    mockHook.mockReturnValue({ ...ready, items: [{ ...facturas[0], subtotal: "10000.00500", moneda: "USD" }] });
+    render(<SeguroFacturaProveedorSelect {...context} value="factura-1" onChange={vi.fn()} />);
+    expect(screen.getByRole("combobox")).toHaveTextContent("Subtotal de factura: 10,000.00500 USD");
+  });
   it("retains rows after a later-page error and explicitly calls the list incomplete", () => {
     const onChange = vi.fn();
     mockHook.mockReturnValue({ ...ready, isError: true, isFetchNextPageError: true, complete: false, hasNextPage: true });

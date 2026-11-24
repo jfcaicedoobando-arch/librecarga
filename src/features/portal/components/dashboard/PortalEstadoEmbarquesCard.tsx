@@ -6,7 +6,6 @@ import { pluralS } from "@/lib/formatters";
 import { useDrilldownRow } from "@/components/shared/dataTable/useDrilldownRow";
 import { cn } from "@/lib/utils";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
-import { Hint } from "@/components/shared/Hint";
 
 interface Props {
   total: number;
@@ -29,11 +28,11 @@ export function PortalEstadoEmbarquesCard({ total, distribucion }: Props) {
         {distribucion.map(([estado, count]) => (
           <EstadoLegendRow key={estado} estado={estado} count={count} />
         ))}
-        <div className="flex h-2.5 rounded-full overflow-hidden mt-2" role="img" aria-label="Distribución de embarques por estado">
+        <div className="flex h-2.5 rounded-full overflow-hidden mt-2" aria-hidden="true">
           {distribucion.map(([estado, count]) => {
             const pct = (count / total) * 100;
             return (
-              <EstadoBarSegment key={estado} estado={estado} count={count} pct={pct} />
+              <div key={estado} className={cn(getEstadoBarColor(estado), "rounded-sm")} style={{ width: `${pct}%` }} />
             );
           })}
         </div>
@@ -60,21 +59,5 @@ function EstadoLegendRow({ estado, count }: { estado: string; count: number }) {
       </div>
       <span className="text-muted-foreground font-medium tabular-nums">{count}</span>
     </div>
-  );
-}
-
-function EstadoBarSegment({ estado, count, pct }: { estado: string; count: number; pct: number }) {
-  const nav = useDrilldownRow({
-    href: `/portal/embarques?estado=${encodeURIComponent(estado)}`,
-    ariaLabel: `Filtrar por ${estado}`,
-  });
-  return (
-    <Hint label={`${estado}: ${count}`}>
-      <div
-        {...nav}
-        className={cn(nav.className, getEstadoBarColor(estado), "transition-opacity hover:opacity-80 rounded-sm")}
-        style={{ width: `${pct}%` }}
-      />
-    </Hint>
   );
 }

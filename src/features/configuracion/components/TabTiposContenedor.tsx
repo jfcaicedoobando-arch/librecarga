@@ -9,6 +9,7 @@ import { SwitchVisibilidadOrg } from "./SwitchVisibilidadOrg";
 import { Plus, Trash2 } from "lucide-react";
 import { useAllTiposContenedor, useAdminTiposContenedor } from "@/features/catalogos/hooks";
 import SearchInput from "@/components/shared/SearchInput";
+import { normalizarBusqueda } from "@/lib/text/normalizarBusqueda";
 import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import DoubleConfirmDeleteDialog from "@/components/shared/DoubleConfirmDeleteDialog";
@@ -41,11 +42,11 @@ export default function TabTiposContenedor() {
     );
   };
 
-  const filtrados = tipos.filter((t) => {
-    if (!busqueda) return true;
-    const q = busqueda.toLowerCase();
-    return t.code.toLowerCase().includes(q) || t.name.toLowerCase().includes(q);
-  });
+  const termino = normalizarBusqueda(busqueda);
+  const filtrados = termino
+    ? tipos.filter((t) => [t.code, t.name]
+      .some((valor) => normalizarBusqueda(valor).includes(termino)))
+    : tipos;
 
   const columns: ColumnDef<TipoContenedor, unknown>[] = defineColumns<TipoContenedor>([
     { id: "code", header: "Código", meta: { className: "font-mono text-xs" }, cell: ({ row }) => row.original.code },
@@ -105,7 +106,7 @@ export default function TabTiposContenedor() {
             isError={isError}
             errorState={<CatalogQueryError error={error} onRetry={() => void refetch()} retrying={isFetching} />}
             emptyMessage="No se encontraron tipos de contenedor"
-            emptyState={tipos.length > 0 && busqueda.trim() ? (
+            emptyState={tipos.length > 0 && termino ? (
               <EmptyStateInline message="Sin coincidencias" action={{ label: "Limpiar búsqueda", onClick: () => setBusqueda("") }} />
             ) : undefined}
             rowKey={(t) => t.id}
@@ -113,7 +114,12 @@ export default function TabTiposContenedor() {
             density={TABLE_DENSITY.embebida}
           />
         </div>
-        {!isLoading && !isError && <p className="text-xs text-muted-foreground">{tipos.length} tipos en total · {tipos.filter(visibleOrg).length} visibles en mi empresa</p>}
+        {!isLoading && !isError && (
+          <div className="text-xs text-muted-foreground">
+            {termino && <p role="status">{filtrados.length} de {tipos.length} tipos de contenedor coinciden con la búsqueda.</p>}
+            <p>Catálogo completo · {tipos.length} tipos de contenedor en total · {tipos.filter(visibleOrg).length} visibles en mi empresa</p>
+          </div>
+        )}
       </CardContent>
       <DoubleConfirmDeleteDialog
         open={!!tipoAEliminar}

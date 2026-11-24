@@ -8,7 +8,7 @@
  * P1-B: datos/estado/exportación viven en `useComprasPagosController`.
  */
 import { useMemo } from "react";
-import { Landmark, Download, Banknote, Coins, Euro, ListFilter } from "lucide-react";
+import { Landmark, Download, Banknote, Coins, Euro, ListFilter, SearchX } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,7 @@ import { DatePickerMx } from "@/components/ui/date-picker-mx";
 import { RANGO_DESDE_LABEL, RANGO_HASTA_LABEL } from "@/lib/ui/rangoFechasCopy";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { ErrorState } from "@/components/shared/states/ErrorState";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import {
   useComprasPagosController,
   MONEDAS_FILTRO,
@@ -40,6 +41,8 @@ export default function ComprasPagos() {
 
   const columns = useMemo(() => buildPagosColumns(), []);
   const valorKpi = (valor: number | string) => isError ? "No disponible" : valor;
+  const filtrosActivos = moneda !== "todas" || metodoPago !== "todos" || Boolean(search.trim());
+  const limpiarFiltros = () => { setMoneda("todas"); setMetodoPago("todos"); setSearch(""); };
 
   return (
     <PageContainer width="wide">
@@ -112,6 +115,11 @@ export default function ComprasPagos() {
             columns={columns}
             data={rows}
             isLoading={isLoading}
+            emptyState={filtrosActivos ? (
+              <EmptyStateInline icon={SearchX} message="Sin pagos que coincidan con la búsqueda o los filtros"
+                hint="Conservamos el periodo seleccionado."
+                action={{ label: "Limpiar búsqueda y filtros", onClick: limpiarFiltros }} />
+            ) : undefined}
             emptyMessage="No hay pagos en el período seleccionado"
             emptyHint="Ajusta el rango de fechas o los filtros para ver resultados."
             emptyIcon={Landmark}

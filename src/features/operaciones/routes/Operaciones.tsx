@@ -154,6 +154,7 @@ export default function Operaciones() {
 }
 
 function BalanceCargas({ balancePct }: { balancePct: number | null }) {
+  const valorVisual = Math.min(balancePct ?? 0, 100);
   return (
     <div className="flex flex-wrap items-center gap-3">
       <span className="text-xs text-muted-foreground whitespace-nowrap">Balance ETD/llegadas</span>
@@ -161,7 +162,7 @@ function BalanceCargas({ balancePct }: { balancePct: number | null }) {
         <span className="text-xs text-muted-foreground">Sin ETD este mes</span>
       ) : (
         <>
-          <Progress aria-label="Balance ETD/llegadas" value={Math.min(balancePct, 100)}
+          <Progress aria-label="Balance ETD/llegadas" aria-valuenow={valorVisual} aria-valuetext={`${balancePct}%`} value={valorVisual}
             className={`h-2 flex-1 ${balancePct >= 100 ? "[&>div]:bg-success" : "[&>div]:bg-warning"}`} />
           <span className="text-xs font-medium">{balancePct}%</span>
         </>

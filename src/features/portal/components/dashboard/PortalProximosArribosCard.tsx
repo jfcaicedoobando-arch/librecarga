@@ -12,17 +12,11 @@ import { cn } from "@/lib/utils";
 import { labelExpediente } from "@/lib/domain/labelExpediente";
 import { useDrilldownRow } from "@/components/shared/dataTable/useDrilldownRow";
 
-function etaProximityClass(eta: string | null | undefined): string {
-  if (!eta) return "text-muted-foreground";
-  try {
-    const days = differenceInCalendarDays(parseDateOnlyLocal(eta), new Date());
-    if (days < 0) return "text-muted-foreground";
-    if (days < 3) return "text-destructive";
-    if (days < 7) return "text-warning";
-    return "text-accent";
-  } catch {
-    return "text-accent";
-  }
+function etaProximityClass(dias: number | null): string {
+  if (dias === null || dias < 0) return "text-muted-foreground";
+  if (dias < 3) return "text-destructive";
+  if (dias < 7) return "text-warning";
+  return "text-accent";
 }
 
 interface ArriboItem {
@@ -72,9 +66,13 @@ export function PortalProximosArribosCard({ items }: Props) {
 }
 
 function ArriboRow({ e }: { e: ArriboItem }) {
+  const dias = e.eta ? differenceInCalendarDays(parseDateOnlyLocal(e.eta), new Date()) : null;
+  const proximidad = dias === 0 ? "Hoy" : dias === 1 ? "Mañana"
+    : dias !== null && dias > 0 ? `En ${dias} días` : null;
+  const expediente = labelExpediente(e.expediente, e.id, e.estado);
   const nav = useDrilldownRow({
     href: `/portal/embarques/${e.id}`,
-    ariaLabel: `Ver embarque ${labelExpediente(e.expediente, e.id, e.estado)}`,
+    ariaLabel: proximidad ? `Ver embarque ${expediente} · ETA: ${proximidad}` : `Ver embarque ${expediente}`,
   });
   return (
     <div
@@ -84,16 +82,17 @@ function ArriboRow({ e }: { e: ArriboItem }) {
       <div className="flex items-center gap-3 min-w-0">
         <ModoIcon modo={e.modo} size={16} circle className="shrink-0" />
         <div className="min-w-0">
-          <p className="font-medium text-body truncate font-mono tabular-nums">{labelExpediente(e.expediente, e.id, e.estado)}</p>
+          <p className="font-medium text-body truncate font-mono tabular-nums">{expediente}</p>
           <p className="text-body-sm text-muted-foreground truncate">
             {e.puerto_destino || e.aeropuerto_destino || e.ciudad_destino || "—"}
           </p>
         </div>
       </div>
       <div className="text-right shrink-0 ml-2">
-        <p className={cn("text-body-sm font-semibold tabular-nums", etaProximityClass(e.eta))}>
+        <p className={cn("text-body-sm font-semibold tabular-nums", etaProximityClass(dias))}>
           {e.eta ? formatDate(e.eta, "dd MMM") : "—"}
         </p>
+        {proximidad && <p className="text-label text-muted-foreground">{proximidad}</p>}
       </div>
     </div>
   );

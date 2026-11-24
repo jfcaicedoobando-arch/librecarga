@@ -84,7 +84,7 @@ function AdjuntoActions({
       {adjunto && path && (
         <Button variant="ghost" size="sm" className="h-7 px-2 opacity-60 group-hover:opacity-100"
           onClick={() => handleAbrir(path, tipo)}>
-          <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir
+          <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir {tipo}
         </Button>
       )}
       {canEdit && onUpload && (
@@ -138,11 +138,7 @@ export function AdjuntoRow({
   };
 
   return (
-    <div
-      className={`group flex items-center justify-between gap-3 rounded-md border bg-muted/30 hover:bg-background transition-colors px-3 py-2 ${adjunto ? "cursor-pointer" : "opacity-70"}`}
-      onClick={() => { if (adjunto && path) handleAbrir(path, tipo); }}
-      role={adjunto ? "button" : undefined}
-    >
+    <div className={`group flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/30 hover:bg-background transition-colors px-3 py-2 ${adjunto ? "" : "opacity-70"}`}>
       <div className="flex items-center gap-3 min-w-0">
         <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-label font-bold ${badgeCls}`}>
           {icon}

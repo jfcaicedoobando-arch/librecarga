@@ -8,7 +8,7 @@ import { notifySuccess, notifyWarning } from "@/lib/ui/appFeedback";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { upsertAuditoriaRevision } from "@/features/auditoria/services";
 import { insertBitacora } from "@/features/auditoria/services/bitacora";
-import { hallazgoHash, AUDITORIA_REVISIONES_KEY } from "@/features/auditoria/hooks/revisiones/hash";
+import { hallazgoHash, revisionKey, AUDITORIA_REVISIONES_KEY } from "@/features/auditoria/hooks/revisiones/hash";
 import { queryKeys } from "@/lib/query";
 import { logger } from "@/lib/observability/logger";
 import { notifyError } from "@/lib/ui/appFeedback";
@@ -26,7 +26,7 @@ export interface MarcarRevisadosBulkInput {
 export interface MarcarRevisadosBulkResult {
   ok: number;
   fail: number;
-  errores: { expediente: string; mensaje: string }[];
+  errores: { id: string; expediente: string; mensaje: string }[];
 }
 
 export function useMarcarRevisadosBulk() {
@@ -42,7 +42,7 @@ export function useMarcarRevisadosBulk() {
       if (!accion) throw new Error("La acción tomada es requerida");
       if (hallazgos.length === 0) throw new Error("No hay hallazgos seleccionados");
 
-      const errores: { expediente: string; mensaje: string }[] = [];
+      const errores: MarcarRevisadosBulkResult["errores"] = [];
       let ok = 0;
 
       for (let i = 0; i < hallazgos.length; i += CHUNK) {
@@ -84,7 +84,7 @@ export function useMarcarRevisadosBulk() {
             }).catch((e) => logger.warn("Bitácora bulk falló:", e));
           } else {
             const msg = (r.reason as { message?: string })?.message ?? "Error desconocido";
-            errores.push({ expediente: h.expediente, mensaje: msg });
+            errores.push({ id: revisionKey(h), expediente: h.expediente, mensaje: msg });
           }
         });
       }

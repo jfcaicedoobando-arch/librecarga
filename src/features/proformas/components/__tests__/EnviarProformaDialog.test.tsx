@@ -117,6 +117,23 @@ describe("EnviarProformaDialog — ocultar correos recientes", () => {
     expect(screen.getByLabelText("Para *")).toHaveValue("previo@x.com");
   });
 
+  it("permite reintentar una consulta de destinatarios sin perder el correo escrito", () => {
+    const refetch = vi.fn();
+    useDestinatariosSugeridosMock.mockReturnValue({ isError: true, isFetching: false, refetch });
+    const { rerenderDialog } = renderDialog();
+    fireEvent.change(screen.getByLabelText("Para *"), { target: { value: "capturado@x.com" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("No se pudieron consultar los destinatarios recientes");
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(refetch).toHaveBeenCalledOnce();
+    useDestinatariosSugeridosMock.mockReturnValue({ data: {
+      sugerencias: ["previo@x.com"], ultimo: { to: ["previo@x.com"], cc: [] },
+    } });
+    rerenderDialog();
+    expect(screen.getByLabelText("Para *")).toHaveValue("capturado@x.com");
+    expect(screen.getByRole("button", { name: "previo@x.com" })).toHaveClass("focus-visible:ring-ring");
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
   it("muestra el resultado por destinatario y reconcilia con la misma clave", async () => {
     invokeMock.mockResolvedValueOnce({
       data: { estado: "pendiente", enlace_portal: "https://portal/abc",

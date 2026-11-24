@@ -6,7 +6,7 @@
  * navy, así que aquí ya no rendereamos el pie de totales.
  */
 import { Plus, Trash2 } from "lucide-react";
-import { useLayoutEffect, useRef } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NumericInput } from "@/components/shared/NumericInput";
@@ -29,6 +29,7 @@ interface Props {
 }
 
 export function FacturaManualConceptosTable({ conceptos, moneda, onChange }: Props) {
+  const requisitoConceptoId = useId();
   // P2-IVA: el 8% de frontera es un estímulo; si la organización no lo tiene
   // habilitado la opción se deshabilita aquí (el servidor sigue siendo la
   // autoridad y rechaza el timbrado, fail-closed).
@@ -159,6 +160,7 @@ export function FacturaManualConceptosTable({ conceptos, moneda, onChange }: Pro
                       onClick={() => remove(idx)}
                       disabled={conceptos.length === 1}
                       aria-label={`Eliminar concepto ${idx + 1}`}
+                      aria-describedby={conceptos.length === 1 ? requisitoConceptoId : undefined}
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -169,6 +171,11 @@ export function FacturaManualConceptosTable({ conceptos, moneda, onChange }: Pro
             );
           })}
         </div>
+        {conceptos.length === 1 && (
+          <p id={requisitoConceptoId} className="px-3 pb-2 text-label text-muted-foreground">
+            La factura requiere al menos un concepto.
+          </p>
+        )}
         {!fronteraHabilitada && (
           <p className="text-label text-muted-foreground">
             {AVISO_IVA_FRONTERA_DESHABILITADO}

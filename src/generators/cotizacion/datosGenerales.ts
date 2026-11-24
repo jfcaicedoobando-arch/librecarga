@@ -19,11 +19,17 @@ function rowsMaritimo(c: CotizacionRow): [string, string][] {
   return out;
 }
 
+function rutaRepiteExtremosAereos(c: CotizacionRow) {
+  if (c.modo !== "Aéreo" || !c.ruta_texto || !c.origen || !c.destino) return false;
+  const normalizar = (texto: string) => texto.trim().replace(/\s*→\s*/g, " → ").replace(/\s+/g, " ");
+  return normalizar(c.ruta_texto) === normalizar(`${c.origen} → ${c.destino}`);
+}
+
 function rowsOpcionales(c: CotizacionRow): [string, string][] {
   const out: [string, string][] = [];
   if (c.tiempo_transito_dias != null) out.push(['Tiempo de tránsito', pluralizar(c.tiempo_transito_dias, 'día')]);
   if (c.frecuencia) out.push(['Frecuencia', c.frecuencia]);
-  if (c.ruta_texto) out.push(['Ruta', c.ruta_texto]);
+  if (c.ruta_texto && !rutaRepiteExtremosAereos(c)) out.push(['Ruta', c.ruta_texto]);
   if (c.tipo_movimiento) out.push(['Tipo de movimiento', c.tipo_movimiento]);
   // Referencia para cotizaciones mixtas; el PDF conserva totales por moneda.
   const tc = Number(c.tipo_cambio_usd ?? 0);

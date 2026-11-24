@@ -12,6 +12,7 @@ import { Table, TableHeader, TableBody, TableCell } from "@/components/ui/table"
 import { DetailTableHead, DetailTableRow } from "@/components/shared/DetailTable";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import type { DetalleFlujo, SemanaFlujo } from "@/features/tesoreria/services";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { SectionHeading } from "@/components/shared/SectionHeading";
@@ -53,22 +54,13 @@ export default function TablaFlujoSemanal({ semanas, saldoDisponible = true }: P
               const striped = i % 2 === 1;
               return (
                 <Fragment key={s.semana_iso}>
-                  <DetailTableRow
-                    className={cn("cursor-pointer", striped && "bg-muted/20")}
-                    onClick={() => toggle(s.semana_iso)}
-                    role="button"
-                    tabIndex={0}
-                    aria-expanded={isOpen}
-                    aria-label={`${isOpen ? "Colapsar" : "Expandir"} detalle de la semana ${s.semana_iso}`}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        toggle(s.semana_iso);
-                      }
-                    }}
-                  >
+                  <DetailTableRow className={striped ? "bg-muted/20" : undefined}>
                     <TableCell className="whitespace-nowrap">
-                      {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      <Button type="button" variant="ghost" size="icon" aria-expanded={isOpen}
+                        aria-label={`${isOpen ? "Colapsar" : "Expandir"} detalle de la semana ${s.semana_iso}`}
+                        onClick={() => toggle(s.semana_iso)}>
+                        {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      </Button>
                     </TableCell>
                     <TableCell className="whitespace-nowrap font-medium">{s.semana_iso}</TableCell>
                     <TableCell className="whitespace-nowrap text-muted-foreground">{s.inicio} → {s.fin}</TableCell>

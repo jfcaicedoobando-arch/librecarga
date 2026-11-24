@@ -25,6 +25,17 @@ beforeEach(() => {
 });
 
 describe('confirmación del destinatario del recordatorio', () => {
+  it.each([
+    [0, 'Vence hoy'],
+    [-1, 'Vence en 1 día'],
+    [2, 'Vencida hace 2 días'],
+  ])('describe el vencimiento de %s días sin enviar el recordatorio', async (dias_vencido, etiqueta) => {
+    mocks.invoke.mockResolvedValueOnce(consulta());
+    render(<DialogRecordatorioCobranza {...props()} factura={{ ...factura, dias_vencido }} />, { wrapper: createWrapper() });
+    expect(screen.getByRole('dialog')).toHaveAccessibleDescription(expect.stringContaining(etiqueta));
+    await screen.findByText('anterior@example.test', { exact: false });
+    expect(mocks.invoke).toHaveBeenCalledOnce();
+  });
   it('abrir y reintentar sólo consulta; confirma el correo mostrado y conserva la nota', async () => {
     const p = props();
     mocks.invoke.mockResolvedValueOnce(consulta()).mockResolvedValueOnce({

@@ -49,17 +49,16 @@ export default function AltaProspectoDialog({ brokerId, open, nombreInicial, onC
       busy={m.isPending}
       footer={
         <>
-          {problema && <span className="mr-auto text-body-sm text-muted-foreground">{problema}</span>}
           <FormDialogCancelarBoton onCancelar={cerrar} disabled={m.isPending} />
           <Button onClick={guardar} disabled={!!problema} loading={m.isPending}>Registrar</Button>
         </>
       }
     >
       <FormDialogSection title="Empresa">
-        <EmpresaBrokerFields value={empresa} onChange={setEmpresa} />
+        <EmpresaBrokerFields value={empresa} onChange={setEmpresa} problema={problema} />
       </FormDialogSection>
       <FormDialogSection title="Contactos">
-        <ContactosBrokerFields value={contactos} onChange={setContactos} />
+        <ContactosBrokerFields value={contactos} onChange={setContactos} problema={problema} />
       </FormDialogSection>
     </FormDialogShell>
   );

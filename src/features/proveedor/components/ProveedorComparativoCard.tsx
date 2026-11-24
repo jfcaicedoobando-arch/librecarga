@@ -63,7 +63,7 @@ export function ProveedorComparativoCard({ comparativo, tipoProveedor }: Props) 
             {filas.map((f) => (
               <li key={`${f.concepto}-${f.moneda}`} className="py-2.5 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-body truncate">{f.concepto}</p>
+                  <p className="text-body wrap-anywhere">{f.concepto}</p>
                   <p className="text-body-sm text-muted-foreground tabular-nums">
                     {formatCurrency(f.unitarioPropio, f.moneda)} vs {formatCurrency(f.unitarioOtros, f.moneda)}
                     {" · "}{f.opsPropias}/{f.opsOtros} operaciones

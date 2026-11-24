@@ -21,7 +21,7 @@ interface Props {
 
 export function CotizacionDetalleHeader({ cotizacion, nombreDestinatario, onExportarPdf, exportandoPdf = false, onEnviarEmail, yaEnviada }: Props) {
   const volver = useVolver("/cotizaciones");
-  const motivoEnvioId = useId();
+  const motivoImporteId = useId();
   // R-08: una cotización sin importe no puede enviarse al cliente.
   // W-01 (QA r2): se evalúa contra los conceptos de venta (USD y MXN) — antes
   // sólo `subtotal`, que era 0 en cotizaciones MXN-only y bloqueaba el envío
@@ -47,7 +47,8 @@ export function CotizacionDetalleHeader({ cotizacion, nombreDestinatario, onExpo
       trailing={
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" onClick={onExportarPdf} disabled={exportandoPdf}>
+            <Button variant="outline" size="sm" onClick={onExportarPdf} disabled={exportandoPdf || sinImporte}
+              aria-describedby={sinImporte ? motivoImporteId : undefined}>
               <FileDown className="h-4 w-4 mr-1" /> {exportandoPdf ? "Generando…" : "Exportar PDF"}
             </Button>
             {mostrarEnvio && (
@@ -56,15 +57,15 @@ export function CotizacionDetalleHeader({ cotizacion, nombreDestinatario, onExpo
                 size="sm"
                 onClick={onEnviarEmail}
                 disabled={sinImporte}
-                aria-describedby={sinImporte ? motivoEnvioId : undefined}
+                aria-describedby={sinImporte ? motivoImporteId : undefined}
               >
                 <Mail className="h-4 w-4 mr-1" /> {yaEnviada ? "Reenviar" : "Enviar por correo"}
               </Button>
             )}
           </div>
-          {mostrarEnvio && sinImporte && (
-            <p id={motivoEnvioId} className="text-body-sm text-muted-foreground">
-              Agrega conceptos de venta con importe antes de enviar la cotización.
+          {sinImporte && (
+            <p id={motivoImporteId} className="text-body-sm text-muted-foreground">
+              Agrega conceptos de venta con importe antes de {mostrarEnvio ? "exportar o enviar" : "exportar"} la cotización.
             </p>
           )}
         </div>
