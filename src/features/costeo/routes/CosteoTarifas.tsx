@@ -7,9 +7,12 @@
 import { useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Plane } from "lucide-react";
+import { Plus, Plane, Upload } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query";
 import { useState } from "react";
 import { NuevaTarifaMultimodoDialog } from "@/features/costeo/tarifario/multimodo/NuevaTarifaMultimodoDialog";
+import { ImportarMultimodoDialog } from "@/features/costeo/tarifario/multimodo/ImportarMultimodoDialog";
 import { useCosteoAgentes } from "@/features/costeo/hooks/useCosteoAgentes";
 import { useCosteoRutas } from "@/features/costeo/hooks/useCosteoRutas";
 import { useTiposContenedor } from "@/features/catalogos/hooks";
@@ -43,6 +46,8 @@ export default function CosteoTarifas() {
   };
   const s = useCosteoTarifasPageState();
   const [multimodo, setMultimodo] = useState(false);
+  const [importarMm, setImportarMm] = useState(false);
+  const qc = useQueryClient();
   const { data: agentes = [] } = useCosteoAgentes();
   const { data: tipos = [] } = useTiposContenedor();
 
@@ -68,6 +73,9 @@ export default function CosteoTarifas() {
               description="Respuestas de pricing: tarifas por agente, naviera, ruta y contenedor. Moneda base: USD."
               actions={
                 <>
+                <Button variant="outline" onClick={() => setImportarMm(true)}>
+                  <Upload className="size-4 mr-2" />Importar aéreas/terrestres
+                </Button>
                 <Button variant="outline" onClick={() => setMultimodo(true)}>
                   <Plane className="size-4 mr-2" />Nueva tarifa aérea o terrestre
                 </Button>
@@ -181,6 +189,8 @@ export default function CosteoTarifas() {
         </TabsContent>
       </Tabs>
       <NuevaTarifaMultimodoDialog open={multimodo} onOpenChange={setMultimodo} />
+      <ImportarMultimodoDialog open={importarMm} onOpenChange={setImportarMm}
+        onDone={() => void qc.invalidateQueries({ queryKey: queryKeys.costeo.tarifas.all })} />
     </PageContainer>
   );
 }
