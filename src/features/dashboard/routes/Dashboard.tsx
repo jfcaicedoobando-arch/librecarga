@@ -79,7 +79,9 @@ function OperationalDashboard() {
       {misReaprob > 0 && (
         <Alert variant="warning">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Tienes {misReaprob} cotización{misReaprob === 1 ? "" : "es"} pendiente{misReaprob === 1 ? "" : "s"} de reaprobación</AlertTitle>
+          <AlertTitle>
+            Tienes {misReaprob} {misReaprob === 1 ? "cotización pendiente" : "cotizaciones pendientes"} de reaprobación
+          </AlertTitle>
           <AlertDescription>
             Revisa los cambios de tarifa antes de continuar con el embarque.{" "}
             <Link to="/cotizaciones?reaprobacion=pendiente" className="underline font-medium">
