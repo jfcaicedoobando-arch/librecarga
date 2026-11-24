@@ -19,6 +19,7 @@ export const GRUPOS_CARGO: Record<string, string> = {
   INS: "Seguro",
   ADM: "Administrativos y financieros",
   OTH: "Otros",
+  AGR: "Cargos agrupados",
 };
 
 export const FILAS_CARGO: readonly FilaCargo[] = [
@@ -139,4 +140,8 @@ export const FILAS_CARGO: readonly FilaCargo[] = [
   ["OTH-MCC", "Misceláneo debido al transportista", "MAT", "GEN", "FIX", "MC (IATA, due carrier)", true],
   ["OTH-MCA", "Misceláneo debido al agente", "MAT", "GEN", "FIX", "MA (IATA, due agent)", true],
   ["OTH-GTX", "Impuesto gubernamental (origen/destino extranjero)", "MAT", "GEN", "FIX", "GT (IATA)", true],
+  ["AGR-ON", "Cargos en origen Naviera", "MAT", "ORI", "SHP", "", true],
+  ["AGR-OA", "Cargos en origen Agente", "MAT", "ORI", "SHP", "", true],
+  ["AGR-DN", "Cargos en destino Naviera", "MAT", "DES", "SHP", "", true],
+  ["AGR-DA", "Cargos en destino Agente", "MAT", "DES", "SHP", "", true],
 ];
