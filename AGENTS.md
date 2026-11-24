@@ -1,4 +1,5 @@
 # Decisiones técnicas
+- Pricing completion is derived from live, non-archived quotations linked by `pricing_solicitud_id`, read in tenant-scoped batches; display Cotizada/Finalizada and hide all quote actions without changing quotation commercial status or SQL workflow states. Why: close the Pricing presentation without weakening existing fiscal and transition guards.
 
 - Opportunity external seller is read-only and resolved by `crm_oportunidad_vendedor_externo` from the company's broker (explicit company link or originating lead), with existing opportunity reader permissions and active tenant checks. Why: show broker attribution without duplicating names or changing KAM assignment or commissions.
 

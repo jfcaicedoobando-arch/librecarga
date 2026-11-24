@@ -1,5 +1,6 @@
 export { useAccionSolicitud } from "./useAccionSolicitud";
 import { enTrabajo } from "@/features/crm/services/pricing/estadosPricing";
+import { conectarCotizadas } from "@/features/crm/services/pricing/cotizadaPricing";
 import { crmPricingKeys } from "@/features/crm/queryKeys.performance";
 import { useInvalidarSolicitud } from "./useInvalidarSolicitud";
 /**
@@ -34,7 +35,8 @@ export function useTarifasPricing(enabled: boolean) {
 export function useSolicitudesOportunidad(oportunidadId: string) {
   return useQuery({
     queryKey: crmPricingKeys.oportunidad(oportunidadId),
-    queryFn: () => listarSolicitudesOportunidad(oportunidadId),
+    queryFn: async () => conectarCotizadas(await listarSolicitudesOportunidad(oportunidadId)),
+    refetchOnMount: "always",
     // Mientras haya solicitudes enviadas sin respuesta, reconsulta solo (30 s)
     // para que el solicitante vea la respuesta de Pricing sin recargar.
     refetchInterval: (q) =>
@@ -44,8 +46,12 @@ export function useSolicitudesOportunidad(oportunidadId: string) {
 
 export function useBandejaPricing(estado: string, pagina: number, modo = "todos") {
   return useQuery({
-    queryKey: [...crmPricingKeys.bandeja(estado, pagina), modo],
-    queryFn: () => listarBandejaPricing(estado, pagina, modo),
+    queryKey: crmPricingKeys.bandejaModo(estado, pagina, modo),
+    queryFn: async () => {
+      const resultado = await listarBandejaPricing(estado, pagina, modo);
+      return { ...resultado, filas: await conectarCotizadas(resultado.filas) };
+    },
+    refetchOnMount: "always",
     placeholderData: keepPreviousData,
   });
 }
@@ -53,7 +59,14 @@ export function useBandejaPricing(estado: string, pagina: number, modo = "todos"
 export function useSolicitudPricing(id: string | null) {
   return useQuery({
     queryKey: crmPricingKeys.solicitud(id),
-    queryFn: () => obtenerSolicitud(id as string),
+    queryFn: async () => {
+      if (!id) return null;
+      const s = await obtenerSolicitud(id);
+      if (!s) return null;
+      const [fila] = await conectarCotizadas([s]);
+      return fila ?? null;
+    },
+    refetchOnMount: "always",
     enabled: !!id,
   });
 }

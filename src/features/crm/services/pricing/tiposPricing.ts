@@ -5,7 +5,9 @@
  */
 import type { Database } from "@/integrations/supabase/types";
 
-export type SolicitudPricingRow = Database["public"]["Tables"]["crm_solicitudes_pricing"]["Row"];
+export type SolicitudPricingRow = Database["public"]["Tables"]["crm_solicitudes_pricing"]["Row"] & {
+  cotizacion_finalizada?: { id: string; folio: string };
+};
 export type SolicitudPricingInsert = Database["public"]["Tables"]["crm_solicitudes_pricing"]["Insert"];
 export type OpcionPricingRow = Database["public"]["Tables"]["crm_pricing_opciones"]["Row"];
 export type OpcionPricingInsert = Database["public"]["Tables"]["crm_pricing_opciones"]["Insert"];
@@ -35,7 +37,7 @@ export const ETIQUETA_TIPO_SOLICITUD: Record<string, string> = {
 };
 export const ETIQUETA_ESTADO_PRICING: Record<string, string> = {
   borrador: "Borrador", enviada: "Enviada", asignada: "Asignada", en_proceso: "En proceso",
-  info_requerida: "Información requerida", respondida: "Respondida", sin_opcion: "Sin opción", cancelada: "Cancelada",
+  info_requerida: "Información requerida", respondida: "Respondida", cotizada: "Cotizada", sin_opcion: "Sin opción", cancelada: "Cancelada",
 };
 
 /** Los 4 cargos que captura Pricing; cada uno con tarifa, moneda y unidad. */

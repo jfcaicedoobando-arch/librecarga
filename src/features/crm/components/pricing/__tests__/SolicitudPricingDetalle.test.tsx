@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppRole } from "@/types/appRole";
 import type { SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
@@ -50,6 +51,13 @@ beforeEach(() => { vi.clearAllMocks(); m.role = "admin"; m.userId = "usuario"; m
 afterEach(cleanup);
 
 describe("cotizar la respuesta desde el detalle compartido de CRM y bandeja", () => {
+  it.each(["Marítimo", "Aéreo", "Terrestre"])("no permite volver a cotizar una solicitud Cotizada de %s", (servicio) => {
+    const client = new QueryClient({ defaultOptions: { queries: { enabled: false } } });
+    render(<QueryClientProvider client={client}><SolicitudPricingDetalle solicitud={{ ...solicitud, servicio, estado: "cotizada" }} /></QueryClientProvider>);
+    expect(screen.queryByRole("button", { name: /Cotizar con esta/ })).not.toBeInTheDocument();
+    expect(m.navigate).not.toHaveBeenCalled();
+    client.clear();
+  });
   it("mantiene una acción al pasar de Enviada a Respondida sin opción de tarifario elegida", () => {
     const { rerender } = render(<SolicitudPricingDetalle solicitud={{ ...solicitud, estado: "enviada" }} />);
     expect(screen.getByRole("button", { name: "Usar esta opción" })).toBeInTheDocument();

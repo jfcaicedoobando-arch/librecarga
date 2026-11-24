@@ -4,6 +4,8 @@
  * capturadas con el formulario anterior se muestran sólo para consulta.
  */
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { AjustePlazoPricing } from "./AjustePlazoPricing";
 import { esGerenteOps } from "@/features/crm/services/pricing/plazoPricing";
 import { useNavigate } from "react-router";
@@ -31,6 +33,30 @@ function puedeUsarRespuesta(s: SolicitudPricingRow, userId: string | undefined, 
   return esPricing || esAutorSolicitud(s, userId);
 }
 
+function puedeCotizarSolicitud(estado: string, puedeElegir: boolean, puedeEscribir: boolean) {
+  return puedeElegir && puedeEscribir && !["cotizada", "cancelada", "sin_opcion"].includes(estado);
+}
+
+function datosModoRespuesta(s: SolicitudPricingRow) {
+  return {
+    aereo: s.servicio === "Aéreo" ? { pol: s.pol, pod: s.pod } : undefined,
+    terrestre: s.servicio === "Terrestre" ? {
+      submodalidad: s.submodalidad, origen: s.origen_cp ?? s.pol,
+      destino: s.destino_cp ?? s.pod, tipoUnidad: s.tipo_unidad,
+    } : undefined,
+  };
+}
+
+function CotizacionFinalizada({ solicitud: s }: Props) {
+  const navigate = useNavigate();
+  if (s.estado !== "cotizada") return null;
+  const cotizacion = s.cotizacion_finalizada;
+  return <div className="flex flex-wrap items-center gap-2">
+    <Badge variant="success">Finalizada</Badge>
+    {cotizacion && <Button variant="link" onClick={() => navigate(`/cotizaciones/${cotizacion.id}`)}>{cotizacion.folio}</Button>}
+  </div>;
+}
+
 function estadoConsultaRespuesta(
   opciones: ReturnType<typeof useOpcionesPricing>,
   tarifas: ReturnType<typeof useTarifasRespuestaPricing>,
@@ -56,12 +82,13 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
   const puedeCancelar = solicitudAbierta(s) && (esPricing || s.created_by === userId);
   const puedeEditar = puedeEditarSolicitud(s, userId, esPricing);
   const puedeElegir = puedeUsarRespuesta(s, userId, esPricing);
-  const puedeCotizar = puedeElegir && canWriteCotizaciones;
+  const puedeCotizar = puedeCotizarSolicitud(s.estado, puedeElegir, canWriteCotizaciones);
   const tarifas = tarifasRespuesta.data ?? [];
   const tarifasRespondidas = s.estado === "respondida"
     ? new Set(tarifas.map((tarifa) => tarifa.id))
     : undefined;
   const cotizarRespuesta = (tarifaId: string) => {
+    if (!puedeCotizar) return;
     // La tarifa ya responde a esta solicitud; cotizar no vuelve a seleccionarla ni cambia su estado.
     const q = new URLSearchParams({ tarifa: tarifaId, solicitud: s.id });
     if (s.oportunidad_id) q.set("oportunidad", s.oportunidad_id);
@@ -77,6 +104,7 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
       <SolicitudPricingDialog open={editando} onOpenChange={setEditando}
         oportunidadId={s.oportunidad_id ?? ""} solicitud={s} />
       <ResumenSolicitudPricing solicitud={s} />
+      <CotizacionFinalizada solicitud={s} />
       {esGerenteOps(effectiveRole) && <AjustePlazoPricing solicitud={s} />}
       <AdjuntosSolicitudPricing organizationId={s.organization_id} solicitudId={s.id}
         puedeAdjuntar={s.estado !== "cancelada"} />
@@ -90,8 +118,7 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
         <OpcionPricingEditor key={o.id} solicitudId={s.id} organizationId={s.organization_id}
           orden={o.orden} opcion={o} editable={false} />
       ))}
-      <TarifasRespuestaPricing solicitudId={s.id} aereo={s.servicio === "Aéreo" ? { pol: s.pol, pod: s.pod } : undefined}
-        terrestre={s.servicio === "Terrestre" ? { submodalidad: s.submodalidad, origen: s.origen_cp ?? s.pol, destino: s.destino_cp ?? s.pod, tipoUnidad: s.tipo_unidad } : undefined} hayOpcionesViejas={opciones.length > 0}
+      <TarifasRespuestaPricing solicitudId={s.id} {...datosModoRespuesta(s)} hayOpcionesViejas={opciones.length > 0}
         tarifas={tarifas} isLoading={tarifasRespuesta.isLoading}
         isError={tarifasRespuesta.isError} isFetching={tarifasRespuesta.isFetching} onSaved={() => { void tarifasRespuesta.refetch(); }}
         onCotizar={puedeCotizar && s.estado === "respondida" ? cotizarRespuesta : undefined}

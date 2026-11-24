@@ -1,4 +1,5 @@
 # Roadmap — Pricing por modo
+- [x] Conectar etiqueta Cotizada/Finalizada y ocultar cotizar cuando exista cotización vinculada.
 - [x] Fase 1a: quitar "g" de la captura nueva
 - [x] Fase 1b-1: SLA en horas hábiles (L-V 9-18, sáb 9-14 CDMX)
 - [x] Fase 1b-2a: submodalidad, CPT/CIP y obligatorios por modo en servidor

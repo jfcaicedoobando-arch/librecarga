@@ -13,6 +13,7 @@ export const crmPricingKeys = {
   usuarios: ["crm", "pricing", "usuarios"] as const,
   bandejas: ["crm", "pricing", "bandeja"] as const,
   bandeja: (estado: string, pagina: number) => ["crm", "pricing", "bandeja", estado, pagina] as const,
+  bandejaModo: (estado: string, pagina: number, modo: string) => ["crm", "pricing", "bandeja", estado, pagina, modo] as const,
   oportunidad: (id: string) => ["crm", "pricing", "oportunidad", id] as const,
   solicitud: (id: string | null) => ["crm", "pricing", "solicitud", id] as const,
   opciones: (id: string | null) => ["crm", "pricing", "opciones", id] as const,
