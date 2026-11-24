@@ -37,4 +37,11 @@ describe("catálogo único de cargos", () => {
     ]);
     for (const concepto of conceptos ?? []) expect(baseSugerida(concepto)).toBe("por_embarque");
   });
+  it.each(["Marítimo", "Aéreo", "Terrestre"] as const)("ofrece Pick UP y Delivery por unidad en %s", (modo) => {
+    const conceptos = conceptosRecargoPorModo(modo);
+    expect(conceptos).toContain("INL-PUP · Pick UP");
+    expect(conceptos).toContain("INL-DLV · Delivery");
+    expect(baseSugerida("INL-PUP · Pick UP")).toBe("por_unidad");
+    expect(baseSugerida("INL-DLV · Delivery")).toBe("por_unidad");
+  });
 });

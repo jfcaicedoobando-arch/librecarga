@@ -1,4 +1,5 @@
 # Roadmap — Pricing por modo
+- [x] Renombrar en el catálogo «Pick UP» (INL-PUP) y «Delivery» (INL-DLV) para que aparezcan con ese nombre en el selector de recargos; 1114 pruebas focalizadas y lint aprobados.
 - [x] Agregar cuatro conceptos de cargos agrupados origen/destino por Naviera/Agente al selector de recargos, sin desglose automático.
 - [x] Barrido de pantallas de vigencia: sugerencias por modo, apertura/respuestas y cambio de tarifa en cotización; 104 pruebas focalizadas y lint aprobados.
 - [ ] Vigencia en base: selección marítima y vínculo Pricing pendientes de autorización específica; revalidación al embarcar requiere confirmar alcance sin alterar acuerdos aceptados.

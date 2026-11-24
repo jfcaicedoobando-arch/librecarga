@@ -216,8 +216,8 @@ Columnas: **Código** · **Concepto** · **Modos** · **Etapa** · **Base** · *
 
 | Código | Concepto | Modos | Etapa | Base | Cód. industria / alias |
 |---|---|---|---|---|---|
-| INL-PUP | Recolección (pick-up) | X | ORI | UNI / KGT / PLT | PU (IATA) |
-| INL-DLV | Entrega última milla (delivery) | X | DES | UNI / KGT / PLT | Delivery |
+| INL-PUP | Pick UP | X | ORI | UNI / KGT / PLT | PU (IATA) |
+| INL-DLV | Delivery | X | DES | UNI / KGT / PLT | Delivery |
 | INL-DRY | Arrastre de contenedor puerto–destino (drayage) | T (drayage) | DES / ORI | CNT | Drayage |
 | INL-RVC | Retorno de contenedor vacío | T (drayage) | DES | CNT | Empty return |
 | INL-FUL | Adicional "full" (dos contenedores, un tracto) | T (drayage) | DES | UNI | — |
