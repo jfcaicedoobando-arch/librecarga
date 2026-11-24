@@ -792,6 +792,13 @@
       "when": 1795494642179,
       "tag": "0112_pricing_recotizar_vigencia_columnas",
       "breakpoints": true
+    },
+    {
+      "idx": 113,
+      "version": "7",
+      "when": 1795495194809,
+      "tag": "0113_pricing_motivo_perdida",
+      "breakpoints": true
     }
   ]
 }

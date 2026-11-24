@@ -5303,6 +5303,7 @@ export type Database = {
           info_motivo: string | null
           known_shipper: boolean | null
           modalidad_negocio: string | null
+          motivo_perdida_id: string | null
           motivo_sin_opcion: string | null
           notas: string | null
           oportunidad_id: string
@@ -5311,6 +5312,9 @@ export type Database = {
           origen_cp: string | null
           paradas: string[] | null
           pausada_at: string | null
+          perdida_at: string | null
+          perdida_nota: string | null
+          perdida_por: string | null
           peso: string | null
           plazo_motivo: string | null
           pod: string | null
@@ -5371,6 +5375,7 @@ export type Database = {
           info_motivo?: string | null
           known_shipper?: boolean | null
           modalidad_negocio?: string | null
+          motivo_perdida_id?: string | null
           motivo_sin_opcion?: string | null
           notas?: string | null
           oportunidad_id: string
@@ -5379,6 +5384,9 @@ export type Database = {
           origen_cp?: string | null
           paradas?: string[] | null
           pausada_at?: string | null
+          perdida_at?: string | null
+          perdida_nota?: string | null
+          perdida_por?: string | null
           peso?: string | null
           plazo_motivo?: string | null
           pod?: string | null
@@ -5439,6 +5447,7 @@ export type Database = {
           info_motivo?: string | null
           known_shipper?: boolean | null
           modalidad_negocio?: string | null
+          motivo_perdida_id?: string | null
           motivo_sin_opcion?: string | null
           notas?: string | null
           oportunidad_id?: string
@@ -5447,6 +5456,9 @@ export type Database = {
           origen_cp?: string | null
           paradas?: string[] | null
           pausada_at?: string | null
+          perdida_at?: string | null
+          perdida_nota?: string | null
+          perdida_por?: string | null
           peso?: string | null
           plazo_motivo?: string | null
           pod?: string | null
@@ -5473,6 +5485,13 @@ export type Database = {
           volumen_cbm?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "crm_solicitudes_pricing_motivo_perdida_id_fkey"
+            columns: ["motivo_perdida_id"]
+            isOneToOne: false
+            referencedRelation: "crm_motivos_perdida"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "crm_solicitudes_pricing_oportunidad_id_fkey"
             columns: ["oportunidad_id"]
@@ -13213,6 +13232,10 @@ export type Database = {
           moneda: string
           solicitud_id: string
         }[]
+      }
+      crm_pricing_marcar_perdida: {
+        Args: { p_id: string; p_motivo_id: string; p_nota: string }
+        Returns: Json
       }
       crm_pricing_recotizar: {
         Args: { p_id: string; p_motivo: string }

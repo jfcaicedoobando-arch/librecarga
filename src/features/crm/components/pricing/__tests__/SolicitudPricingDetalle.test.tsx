@@ -32,6 +32,7 @@ vi.mock("../RelojPricing", () => ({ RelojPricing: () => null }));
 vi.mock("../fase6/VersionesPricing", () => ({ VersionesPricing: () => null }));
 vi.mock("../fase6/CostoVsRealPricing", () => ({ CostoVsRealPricing: () => null }));
 vi.mock("../fase6/RecotizarPricing", () => ({ RecotizarPricing: () => null }));
+vi.mock("../fase6/PerdidaPricing", () => ({ PerdidaPricing: () => null }));
 vi.mock("../AccionesFlujoPricing", () => ({ AccionesFlujoPricing: () => null }));
 vi.mock("../AjustePlazoPricing", () => ({ AjustePlazoPricing: () => null }));
 

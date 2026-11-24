@@ -30,6 +30,7 @@ import { RecotizarPricing } from "./fase6/RecotizarPricing";
 import { puedeRecotizar } from "@/features/crm/services/pricing/versionesPricing";
 import { VersionesPricing } from "./fase6/VersionesPricing";
 import { CostoVsRealPricing } from "./fase6/CostoVsRealPricing";
+import { PerdidaPricing } from "./fase6/PerdidaPricing";
 
 interface Props { solicitud: SolicitudPricingRow }
 
@@ -113,6 +114,7 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
         oportunidadId={s.oportunidad_id ?? ""} solicitud={s} />
       <ResumenSolicitudPricing solicitud={s} />
       <CotizacionFinalizada solicitud={s} />
+      <PerdidaPricing solicitud={s} esPricing={esPricing} />
       <CostoVsRealPricing solicitudId={s.id} />
       {esGerenteOps(effectiveRole) && <AjustePlazoPricing solicitud={s} />}
       <AdjuntosSolicitudPricing organizationId={s.organization_id} solicitudId={s.id}

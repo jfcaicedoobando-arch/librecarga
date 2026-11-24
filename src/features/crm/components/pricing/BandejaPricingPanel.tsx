@@ -89,6 +89,7 @@ function FilaSolicitud({ solicitud, activa, onClick }: {
       <span className="text-body-sm">{cliente ?? "Sin cliente"}</span>
       <span className="text-body-sm text-muted-foreground">{[servicio, origen ?? pol, destino ?? pod].filter(Boolean).join(" · ")}</span>
       {estaVencida(solicitud, new Date()) && <Badge variant="destructive">Vencida</Badge>}
+      {solicitud.perdida_at && <Badge variant="destructive">Perdida</Badge>}
       <span className="ml-auto"><RelojPricing enviadaAt={enviada_at} venceAt={vence_at} respondidaAt={respondida_at}
         cancelada={estado === "cancelada" || estado === "sin_opcion"} pausada={estado === "info_requerida"} /></span>
     </button>
