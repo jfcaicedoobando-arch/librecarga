@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-
+import { CalendarDays, DollarSign, TrendingUp, FileCheck, Ship } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { Badge } from "@/components/ui/badge";
@@ -10,8 +10,6 @@ import { formatDate, formatCurrency, getOrigen, getDestino, toTitleCase, PLACEHO
 import { ModoIcon } from "@/components/shared/ModoIcon";
 import { KpiCard } from "@/components/shared/KpiCard";
 import type { EmbarqueMesSiguiente, ResumenFacturacion } from "@/features/dashboard/hooks";
-
-import { CalendarDays, DollarSign, TrendingUp, FileCheck, Ship } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { Hint } from "@/components/shared/Hint";
@@ -19,8 +17,6 @@ import {
   proyectarFilasUtilidadVisible,
   proyectarUtilidadVisible,
 } from "@/features/dashboard/domain/proyeccionVisible";
-
-
 interface Props {
   embarques: EmbarqueMesSiguiente[];
   resumen: ResumenFacturacion;
@@ -113,8 +109,7 @@ const columns: ColumnDef<EmbarqueMesSiguiente, unknown>[] = defineColumns<Embarq
 ]);
 
 export function EmbarquesActivosTable({ embarques, resumen: resumenCrudo, isLoading, hideFinancials = false }: Props) {
-  // P2-B: la utilidad mostrada (fila, tooltip, orden y tono) se deriva de la
-  // venta y el costo YA redondeados a centavos, igual que Costos y el P&L.
+  // La utilidad visible se deriva de venta y costo redondeados, igual que Costos y el P&L.
   const filas = useMemo(() => proyectarFilasUtilidadVisible(embarques), [embarques]);
   const resumen = useMemo(() => proyectarUtilidadVisible(resumenCrudo), [resumenCrudo]);
 
@@ -129,8 +124,6 @@ export function EmbarquesActivosTable({ embarques, resumen: resumenCrudo, isLoad
     () => (hideFinancials ? columns.filter((c) => c.id !== "profit" && c.id !== "facturado") : columns),
     [hideFinancials],
   );
-
-
   return (
     <Card>
       <CardHeader className="pb-3">

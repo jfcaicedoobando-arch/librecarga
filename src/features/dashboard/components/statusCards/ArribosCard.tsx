@@ -61,18 +61,17 @@ function InfoHint({
   popoverLabel?: string;
 }) {
   const isMobile = useIsMobile();
+  const contentProps = {
+    side: "bottom",
+    sideOffset: 8,
+    collisionPadding: 8,
+    className: `${widthClass} p-3`,
+  } as const;
   if (isMobile || popoverLabel) {
     return (
       <Popover>
         <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-        <PopoverContent
-          aria-label={popoverLabel}
-          side="bottom"
-          align="center"
-          sideOffset={8}
-          collisionPadding={8}
-          className={`${widthClass} p-3`}
-        >
+        <PopoverContent aria-label={popoverLabel} align="center" {...contentProps}>
           {content}
         </PopoverContent>
       </Popover>
@@ -82,12 +81,7 @@ function InfoHint({
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>{trigger}</TooltipTrigger>
-        <TooltipContent
-          side="bottom"
-          sideOffset={8}
-          collisionPadding={8}
-          className={`${widthClass} p-3`}
-        >
+        <TooltipContent {...contentProps}>
           {content}
         </TooltipContent>
       </Tooltip>
