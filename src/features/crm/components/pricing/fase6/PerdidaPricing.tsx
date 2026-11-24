@@ -1,5 +1,6 @@
 /** Motivo de pérdida: Pricing lo registra con el catálogo de la empresa y el vendedor recibe aviso. */
 import { useState } from "react";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -50,7 +51,9 @@ function DialogoPerdida({ solicitud: s, motivos }: { solicitud: SolicitudPricing
             <SelectTrigger id="motivo-perdida"><SelectValue placeholder="Elige un motivo" /></SelectTrigger>
             <SelectContent>{motivos.map((x) => <SelectItem key={x.id} value={x.id}>{x.nombre}</SelectItem>)}</SelectContent>
           </Select>
-          {motivos.length === 0 && <p className="text-caption text-muted-foreground">No hay motivos activos en el catálogo de CRM.</p>}
+          {motivos.length === 0 && (
+            <EmptyStateInline density="compact" message="No hay motivos activos en el catálogo de CRM." />
+          )}
         </div>
         <div className="space-y-1">
           <Label htmlFor="nota-perdida">Nota (opcional)</Label>

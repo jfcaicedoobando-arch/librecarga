@@ -31,8 +31,9 @@ describe("presentación del resumen comercial", () => {
 
   it("el paso4 usa conceptos y la moneda manual sin depender de costos en esa moneda", () => {
     render(<PasoResumenCotizacion plUSD={usd} plMXN={mxn} tieneCostosUSD tieneCostosMXN={false}
-      conceptosVenta={ventas} nombreCliente="Cliente" origen="Origen" destino="Destino" numContenedores={1}
-      modo="Terrestre" incoterm="DAP" tipo="Importación" totales={{ usd: 174, mxn: 10200 }} />);
+      conceptosVenta={ventas} totales={{ usd: 174, mxn: 10200 }}
+      operacion={{ nombreCliente: "Cliente", origen: "Origen", destino: "Destino", numContenedores: 1,
+        modo: "Terrestre", incoterm: "DAP", tipo: "Importación" }} />);
     expect(screen.getByText("USD 150.00")).toBeInTheDocument();
     expect(screen.getByText("USD 100.00")).toBeInTheDocument();
     expect(screen.getByText("MXN")).toBeInTheDocument();

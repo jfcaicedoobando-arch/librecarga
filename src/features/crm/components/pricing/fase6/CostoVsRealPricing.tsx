@@ -1,27 +1,58 @@
 /** Tarjeta «Costo cotizado vs real» por moneda (sólo lectura). */
+import { DataTable, defineColumns } from "@/components/shared/DataTable";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/formatters/numbers";
+import { formatCurrency, formatPercent } from "@/lib/formatters/numbers";
 import { useCostoVsReal } from "@/features/crm/hooks/useRecotizarPricing";
-import { ETIQUETA_ESTADO_COSTO, type ResumenCostoReal } from "@/features/crm/services/pricing/costoVsRealPricing";
+import { ETIQUETA_ESTADO_COSTO, type MonedaCostoReal, type ResumenCostoReal } from "@/features/crm/services/pricing/costoVsRealPricing";
+
+const COLUMNAS_COSTO_REAL = defineColumns<MonedaCostoReal>([
+  { id: "moneda", header: "Moneda", accessorKey: "moneda", enableSorting: false },
+  {
+    id: "cotizado",
+    header: "Cotizado",
+    cell: ({ row: { original } }) => formatCurrency(original.cotizado, original.moneda),
+    meta: { align: "right" },
+    enableSorting: false,
+  },
+  {
+    id: "real",
+    header: "Real",
+    cell: ({ row: { original } }) => formatCurrency(original.real, original.moneda),
+    meta: { align: "right" },
+    enableSorting: false,
+  },
+  {
+    id: "diferencia",
+    header: "Diferencia",
+    cell: ({ row: { original } }) => (
+      <span className={original.diferencia > 0 ? "text-destructive" : undefined}>
+        {formatCurrency(original.diferencia, original.moneda)}
+      </span>
+    ),
+    meta: { align: "right" },
+    enableSorting: false,
+  },
+  {
+    id: "pct",
+    header: "%",
+    cell: ({ row: { original } }) => original.pct == null ? "—" : formatPercent(original.pct),
+    meta: { align: "right" },
+    enableSorting: false,
+  },
+]);
 
 export function TablaCostoReal({ resumen }: { resumen: ResumenCostoReal }) {
   if (resumen.estado !== "con_resultado" && resumen.estado !== "esperando_facturas") return null;
   return (
-    <table className="w-full text-body-sm">
-      <thead><tr className="text-left text-muted-foreground">
-        <th className="py-1">Moneda</th><th className="text-right">Cotizado</th><th className="text-right">Real</th>
-        <th className="text-right">Diferencia</th><th className="text-right">%</th>
-      </tr></thead>
-      <tbody>{resumen.monedas.map((m) => (
-        <tr key={m.moneda} className="border-t">
-          <td className="py-1">{m.moneda}</td>
-          <td className="text-right">{formatCurrency(m.cotizado, m.moneda)}</td>
-          <td className="text-right">{formatCurrency(m.real, m.moneda)}</td>
-          <td className={m.diferencia > 0 ? "text-right text-destructive" : "text-right"}>{formatCurrency(m.diferencia, m.moneda)}</td>
-          <td className="text-right">{m.pct == null ? "—" : `${m.pct.toFixed(1)} %`}</td>
-        </tr>
-      ))}</tbody>
-    </table>
+    <DataTable
+      columns={COLUMNAS_COSTO_REAL}
+      data={resumen.monedas}
+      rowKey={(moneda) => moneda.moneda}
+      density="compact"
+      striped={false}
+      hoverable={false}
+      emptyMessage="No hay costos por moneda."
+    />
   );
 }
 

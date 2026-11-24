@@ -295,6 +295,7 @@ if [ "$REUSE" != "1" ]; then
   "${PSQL[@]}" -f supabase/tests/rls/_ci_check_isr_resico_acl.sql || exit 1
   "${PSQL[@]}" -f supabase/tests/rls/_ci_check_factura_resico_totales_acl.sql || exit 1
   "${PSQL[@]}" -f supabase/tests/rls/_ci_check_isr_resico_comercial_acl.sql || exit 1
+  "${PSQL[@]}" -f supabase/tests/rls/_ci_check_pricing_fase6_acl.sql || exit 1
 
 
 
@@ -329,6 +330,7 @@ if [ "$REUSE" != "1" ]; then
   run_sql supabase/tests/rls/_ci_post_migrate.sql post_migrate || exit 1
   run_sql supabase/tests/rls/_ci_preserve_cotizacion_especial_acl.sql special_acl || exit 1
   run_sql supabase/tests/rls/_ci_preserve_coordinador_acl.sql coordinator_acl || exit 1
+  run_sql supabase/tests/rls/_ci_preserve_pricing_fase6_acl.sql pricing_fase6_acl || exit 1
   run_sql supabase/tests/rls/_ci_verify_rls.sql verify_rls || exit 1
 
 

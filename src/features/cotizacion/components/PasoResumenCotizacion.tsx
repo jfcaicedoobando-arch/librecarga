@@ -17,12 +17,7 @@ interface TotalesPL {
   porcentaje: number;
 }
 
-interface Props {
-  conceptosVenta?: ConceptoVentaCotizacion[];
-  plUSD: TotalesPL;
-  plMXN: TotalesPL;
-  tieneCostosUSD: boolean;
-  tieneCostosMXN: boolean;
+interface DatosOperacionResumen {
   nombreCliente: string;
   origen: string;
   destino: string;
@@ -32,6 +27,19 @@ interface Props {
   modo: string;
   incoterm: string;
   tipo: string;
+  /** Aéreo: banderas de la solicitud de Pricing (litio, Known Shipper, PAX/CAO). */
+  banderasAereas?: BanderasAereas | null;
+  /** Aéreo: escalas de la tarifa ligada (null = directo). */
+  escalas?: string[] | null;
+}
+
+interface Props {
+  conceptosVenta?: ConceptoVentaCotizacion[];
+  plUSD: TotalesPL;
+  plMXN: TotalesPL;
+  tieneCostosUSD: boolean;
+  tieneCostosMXN: boolean;
+  operacion: DatosOperacionResumen;
   totales: { usd: number; mxn: number };
   resumenFiscal?: ReactNode;
   accionesEdicion?: {
@@ -41,10 +49,6 @@ interface Props {
   };
   /** Sólo cambia el texto del aviso final (crear borrador vs. guardar cambios). */
   esEdicion?: boolean;
-  /** Aéreo: banderas de la solicitud de Pricing (litio, Known Shipper, PAX/CAO). */
-  banderasAereas?: BanderasAereas | null;
-  /** Aéreo: escalas de la tarifa ligada (null = directo). */
-  escalas?: string[] | null;
 }
 
 
@@ -52,7 +56,7 @@ const DATO = (label: string, valor: string) => ({ label, valor });
 
 function datosOperacion({
   nombreCliente, origen, destino, numContenedores, cargaLcl, modo, incoterm, tipo, banderasAereas, escalas,
-}: Props) {
+}: DatosOperacionResumen) {
   // BL-COT-04: sólo el marítimo se mide en contenedores.
   return [
     DATO("Cliente", nombreCliente || "—"),
@@ -75,7 +79,7 @@ export default function PasoResumenCotizacion(props: Props) {
     plUSD, plMXN, tieneCostosUSD, tieneCostosMXN, conceptosVenta, totales,
     resumenFiscal, esEdicion = false, accionesEdicion,
   } = props;
-  const datos = datosOperacion(props);
+  const datos = datosOperacion(props.operacion);
 
   return (
     <div className="space-y-6">

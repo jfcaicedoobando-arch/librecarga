@@ -864,5 +864,37 @@
       "0109_pricing_modos_tenant_scope.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0110_pricing_msds_pdf_obligatoria.sql",
+    "sha256": "9ba1b18abea257c07bc4ac483686e5d3b83388197be83aecd096c1ed7cb3f851",
+    "replays": [
+      "0110_pricing_msds_pdf_obligatoria.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0111_pricing_fase6_recotizar_costo_real.sql",
+    "sha256": "646fc37d2b6428798cbeb98a2d70cfd3ce74f13918ca56717c0e24aa0eec9fe2",
+    "replays": [
+      "0111_pricing_fase6_recotizar_costo_real.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0112_pricing_recotizar_vigencia_columnas.sql",
+    "sha256": "8c2f7367c80ae13a0747c173c0005de23b890cc3305d072445615f1fc9b3095b",
+    "replays": [
+      "0112_pricing_recotizar_vigencia_columnas.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0113_pricing_motivo_perdida.sql",
+    "sha256": "c0a04ba208d3e81a57df6bda6f4d10a4f56ebedc9126f30176949fb006bff261",
+    "replays": [
+      "0113_pricing_motivo_perdida.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

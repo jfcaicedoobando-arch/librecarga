@@ -191,6 +191,8 @@ INSERT INTO _ci_service_role_only (fn) VALUES
    -- Pricing Fase 5: resolución interna de destinatarios y avisos de SLA.
    ('public._crm_pricing_destinatarios_modo(uuid, text)'),
    ('public.crm_pricing_avisos_sla()'),
+   -- 0110: la validación MSDS sólo se invoca internamente.
+   ('public._crm_pricing_validar_msds()'),
    -- Replay Drizzle: helpers de trigger; nunca son RPCs del cliente.
    ('public._costeo_tarifa_solicitud_guard()'),
    ('public._crm_sol_pricing_before_ins()'),

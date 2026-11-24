@@ -225,6 +225,7 @@ fi
 "${PSQL[@]}" -f supabase/tests/rls/_ci_check_isr_resico_acl.sql || exit 1
 "${PSQL[@]}" -f supabase/tests/rls/_ci_check_factura_resico_totales_acl.sql || exit 1
 "${PSQL[@]}" -f supabase/tests/rls/_ci_check_isr_resico_comercial_acl.sql || exit 1
+"${PSQL[@]}" -f supabase/tests/rls/_ci_check_pricing_fase6_acl.sql || exit 1
 replay_profile_begin replay_final_check
 
 if [[ "${AUD54_CI:-}" == 1 && "$audit54_runtime_checked" != 1 ]]; then
