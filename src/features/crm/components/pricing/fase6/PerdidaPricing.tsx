@@ -19,7 +19,7 @@ export function PerdidaPricing({ solicitud: s, esPricing }: Props) {
   const motivos = useMotivosPerdida(!s.perdida_at);
   if (s.perdida_at) {
     const nombre = motivos.data?.find((m) => m.id === s.motivo_perdida_id)?.nombre ?? "sin motivo";
-    return <div className="flex flex-wrap items-center gap-2 text-sm">
+    return <div className="flex flex-wrap items-center gap-2 text-body-sm">
       <Badge variant="destructive">Perdida</Badge><span>Motivo: {nombre}</span>
       {s.perdida_nota && <span className="text-muted-foreground">— {s.perdida_nota}</span>}
     </div>;

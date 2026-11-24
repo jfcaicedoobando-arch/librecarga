@@ -1,5 +1,6 @@
 /** Tarjeta «Costo cotizado vs real» por moneda (sólo lectura). */
 import { DataTable, defineColumns } from "@/components/shared/DataTable";
+import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatPercent } from "@/lib/formatters/numbers";
 import { useCostoVsReal } from "@/features/crm/hooks/useRecotizarPricing";
@@ -48,7 +49,7 @@ export function TablaCostoReal({ resumen }: { resumen: ResumenCostoReal }) {
       columns={COLUMNAS_COSTO_REAL}
       data={resumen.monedas}
       rowKey={(moneda) => moneda.moneda}
-      density="compact"
+      density={TABLE_DENSITY.embebida}
       striped={false}
       hoverable={false}
       emptyMessage="No hay costos por moneda."
