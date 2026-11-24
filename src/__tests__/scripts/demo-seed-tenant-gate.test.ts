@@ -74,9 +74,13 @@ describe("forward demo cleanup fail-closed tenant graph contract", () => {
         expect(table).toMatch(/\bid uuid\b/);
       } else if (!/\borganization_id uuid\b/.test(table!)) unsupported.push(name);
     }
-    //0052 derives tenant ownership through proformas. The historical cleanup
-    // must reject it, never whitelist it as global or silently skip the child.
-    expect(unsupported).toEqual(["proforma_email_intentos"]);
+    // 0052 introduces a child scoped through proformas. 0100 introduces a shared
+    // endpoint with text keys. The historical cleanup must reject both shapes.
+    expect(unsupported).toEqual(["aeropuertos", "proforma_email_intentos"]);
+    expect(edges.filter((edge) => edge.parent === "aeropuertos")).toEqual([
+      expect.objectContaining({ child: "costeo_tarifas", childKeys: ["aeropuerto_destino"], parentKeys: ["iata"] }),
+      expect.objectContaining({ child: "costeo_tarifas", childKeys: ["aeropuerto_origen"], parentKeys: ["iata"] }),
+    ]);
     expect(edges).toContainEqual(expect.objectContaining({
       child: "proforma_email_intentos", childKeys: ["proforma_id"], parent: "proformas", parentKeys: ["id"],
     }));
@@ -95,7 +99,8 @@ describe("forward demo cleanup fail-closed tenant graph contract", () => {
     for (const edge of edges.filter((edge) => graph.has(edge.child) && graph.has(edge.parent))) {
       expect(globals.has(edge.child), `global child: ${edge.name}`).toBe(false);
       for (const [table, keys] of [[edge.child, edge.childKeys], [edge.parent, edge.parentKeys]] as const) {
-        for (const key of keys) expect(tables.get(table), `${edge.name}: ${key}`).toMatch(new RegExp(`\\b${key} uuid\\b`));
+        const type = edge.parent === "aeropuertos" ? "text" : "uuid";
+        for (const key of keys) expect(tables.get(table), `${edge.name}: ${key}`).toMatch(new RegExp(`\\b${key} ${type}\\b`));
       }
     }
   });

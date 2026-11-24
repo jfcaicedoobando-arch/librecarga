@@ -1,5 +1,6 @@
 /** Datos para abrir una cotización desde una tarifa aérea o terrestre sugerida en Pricing. */
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import type { BanderasAereas } from "@/features/cotizacion/domain/banderasAereas";
 import { pesoSolicitudAKg } from "@/features/cotizacion/domain/mapeoSolicitudCotizacion";
 
@@ -17,6 +18,35 @@ function monedaDeTarifa(moneda: string | null): PrefillTarifaAerea["moneda"] {
   return moneda === "USD" || moneda === "MXN" ? moneda : null;
 }
 
+type RutaTarifa = Pick<Tables<"costeo_tarifas">,
+  "aeropuerto_origen" | "aeropuerto_destino" | "origen_ciudad" | "origen_cp" |
+  "destino_ciudad" | "destino_cp" | "tipo_unidad">;
+type RutaSolicitud = Pick<Tables<"crm_solicitudes_pricing">,
+  "pol" | "pod" | "tipo_unidad" | "paradas" | "baterias_litio" | "known_shipper" | "tipo_aeronave">;
+
+function datosPorModo(modo: PrefillTarifaAerea["modo"], tarifa: RutaTarifa, solicitud: RutaSolicitud) {
+  if (modo === "Aéreo") {
+    return {
+      origen: solicitud.pol || tarifa.aeropuerto_origen || "",
+      destino: solicitud.pod || tarifa.aeropuerto_destino || "",
+      tipoUnidad: null,
+      puntoIntermedio: null,
+      banderasAereas: {
+        baterias_litio: solicitud.baterias_litio,
+        known_shipper: solicitud.known_shipper,
+        tipo_aeronave: solicitud.tipo_aeronave,
+      },
+    };
+  }
+  return {
+    origen: solicitud.pol || tarifa.origen_ciudad || tarifa.origen_cp || "",
+    destino: solicitud.pod || tarifa.destino_ciudad || tarifa.destino_cp || "",
+    tipoUnidad: solicitud.tipo_unidad || tarifa.tipo_unidad || null,
+    puntoIntermedio: solicitud.paradas?.[0] ?? null,
+    banderasAereas: { baterias_litio: null, known_shipper: null, tipo_aeronave: null },
+  };
+}
+
 export async function fetchPrefillTarifaAerea(organizationId: string, tarifaId: string, solicitudId: string): Promise<PrefillTarifaAerea> {
   const [t, s] = await Promise.all([
     supabase.from("costeo_tarifas").select("id, modo, moneda, aeropuerto_origen, aeropuerto_destino, origen_ciudad, origen_cp, destino_ciudad, destino_cp, tipo_unidad, vigente_hasta, estado, estado_aprobacion")
@@ -32,17 +62,10 @@ export async function fetchPrefillTarifaAerea(organizationId: string, tarifaId: 
     throw new Error("La tarifa ya no está vigente; elige otra.");
   }
   if (!sol || sol.servicio !== modo) throw new Error("La solicitud ya no está disponible o es de otro modo.");
-  const aereo = modo === "Aéreo";
   return {
     tarifaId: tar.id, moneda: monedaDeTarifa(tar.moneda), modo,
-    tipoUnidad: aereo ? null : sol.tipo_unidad || tar.tipo_unidad || null,
-    puntoIntermedio: aereo ? null : sol.paradas?.[0] ?? null,
-    origen: sol.pol || (aereo ? tar.aeropuerto_origen : tar.origen_ciudad || tar.origen_cp) || "",
-    destino: sol.pod || (aereo ? tar.aeropuerto_destino : tar.destino_ciudad || tar.destino_cp) || "",
+    ...datosPorModo(modo, tar, sol),
     vigenteHasta: tar.vigente_hasta, pesoKg: pesoSolicitudAKg(sol.peso, sol.unidad_medida),
     volumenM3: sol.volumen_cbm == null ? null : Number(sol.volumen_cbm), commodity: sol.commodity?.trim() || null,
-    banderasAereas: aereo
-      ? { baterias_litio: sol.baterias_litio, known_shipper: sol.known_shipper, tipo_aeronave: sol.tipo_aeronave }
-      : { baterias_litio: null, known_shipper: null, tipo_aeronave: null },
   };
 }

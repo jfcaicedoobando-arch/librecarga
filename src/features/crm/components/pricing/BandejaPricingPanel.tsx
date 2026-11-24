@@ -20,7 +20,8 @@ import { estaVencida } from "@/features/crm/services/pricing/estadosPricing";
 import { esGerenteOps } from "@/features/crm/services/pricing/plazoPricing";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { ModosEjecutivoPanel } from "@/features/crm/components/pricing/ModosEjecutivoPanel";
-import { TabsModoPricing, useModoPropioPricing } from "@/features/crm/components/pricing/TabsModoPricing";
+import { TabsModoPricing } from "@/features/crm/components/pricing/TabsModoPricing";
+import { useModoPropioPricing } from "@/features/crm/hooks/useFlujoPricing";
 import { SolicitudPricingDetalle } from "@/features/crm/components/pricing/SolicitudPricingDetalle";
 
 const ESTADOS = [

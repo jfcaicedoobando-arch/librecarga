@@ -12,7 +12,7 @@ BEGIN
   END IF;
   IF NOT public._crm_es_pricing(v.organization_id) THEN RAISE EXCEPTION 'LC_PRICING_SIN_PERMISO' USING ERRCODE = '42501'; END IF;
   IF v.estado = 'respondida' THEN RETURN jsonb_build_object('id', v.id, 'ya_respondida', true); END IF;
-  IF v.estado <> 'enviada' THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
+  IF v.estado NOT IN ('enviada','asignada','en_proceso','info_requerida') THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.costeo_tarifas WHERE solicitud_pricing_id = p_id)
      AND NOT EXISTS (SELECT 1 FROM public.crm_pricing_opciones WHERE solicitud_id = p_id) THEN
     RAISE EXCEPTION 'LC_PRICING_SIN_OPCIONES' USING ERRCODE = 'P0001';

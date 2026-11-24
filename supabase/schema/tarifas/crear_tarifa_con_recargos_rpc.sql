@@ -7,11 +7,18 @@ DECLARE
   v_row public.costeo_tarifas;
   v_modo text := COALESCE(NULLIF(p_tarifa->>'modo', ''), 'Marítimo');
   v_moneda text := upper(COALESCE(NULLIF(btrim(p_tarifa->>'moneda'), ''), 'USD'));
+  v_escalas text[];
 BEGIN
   IF v_modo = 'Marítimo' THEN
     v_moneda := 'USD';
   ELSIF v_moneda NOT IN ('USD', 'MXN') THEN
     RAISE EXCEPTION 'Moneda no soportada para tarifa %: %', v_modo, v_moneda USING ERRCODE = '22023';
+  END IF;
+
+  IF jsonb_typeof(p_tarifa->'escalas') = 'array' THEN
+    SELECT array_agg(upper(btrim(e)) ORDER BY o) INTO v_escalas
+    FROM jsonb_array_elements_text(p_tarifa->'escalas') WITH ORDINALITY AS x(e, o)
+    WHERE btrim(e) <> '';
   END IF;
 
   INSERT INTO public.costeo_tarifas (
@@ -20,7 +27,7 @@ BEGIN
     transit_time_dias, notas, moneda, estado,
     solicitud_pricing_id, carta_garantia, unidad_flete,
     modo, aeropuerto_origen, aeropuerto_destino, aerolinea,
-    origen_cp, destino_cp, origen_ciudad, destino_ciudad, submodalidad, tipo_unidad, minimo
+    origen_cp, destino_cp, origen_ciudad, destino_ciudad, submodalidad, tipo_unidad, minimo, escalas
   ) VALUES (
     p_organization_id,
     NULLIF(p_tarifa->>'agente_id', '')::uuid,
@@ -48,19 +55,22 @@ BEGIN
     NULLIF(btrim(COALESCE(p_tarifa->>'destino_ciudad', '')), ''),
     NULLIF(p_tarifa->>'submodalidad', ''),
     NULLIF(btrim(COALESCE(p_tarifa->>'tipo_unidad', '')), ''),
-    NULLIF(p_tarifa->>'minimo', '')::numeric
+    NULLIF(p_tarifa->>'minimo', '')::numeric,
+    v_escalas
   )
   RETURNING * INTO v_row;
 
   INSERT INTO public.costeo_tarifa_recargos (
-    tarifa_id, organization_id, concepto, lado, monto, moneda, base, incluido_en_total
+    tarifa_id, organization_id, concepto, lado, monto, moneda, base, incluido_en_total, minimo, proveedor
   )
   SELECT
     v_row.id, v_row.organization_id, btrim(r->>'concepto'),
     COALESCE(NULLIF(r->>'lado', ''), 'origen'),
     (r->>'monto')::numeric, v_moneda,
     CASE WHEN NULLIF(r->>'base', '') = 'por_embarque' THEN 'por_embarque' ELSE 'por_unidad' END,
-    COALESCE((r->>'incluido_en_total')::boolean, true)
+    COALESCE((r->>'incluido_en_total')::boolean, true),
+    NULLIF(NULLIF(r->>'minimo', '')::numeric, 0),
+    NULLIF(btrim(COALESCE(r->>'proveedor', '')), '')
   FROM jsonb_array_elements(COALESCE(p_recargos, '[]'::jsonb)) AS r
   WHERE NULLIF(btrim(COALESCE(r->>'concepto', '')), '') IS NOT NULL
     AND COALESCE((r->>'monto')::numeric, 0) > 0;

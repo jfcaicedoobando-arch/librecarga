@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accionesDisponibles, enTrabajo, estaVencida, relojCorre } from "../estadosPricing";
-import { modoPorDefecto } from "@/features/crm/components/pricing/TabsModoPricing";
+import { accionesDisponibles, enTrabajo, estaVencida, modoPorDefecto, relojCorre } from "../estadosPricing";
 
 const base = { asignada_a: null, solicitante_id: "vend", created_by: "vend" };
 

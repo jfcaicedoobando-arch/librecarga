@@ -47,14 +47,11 @@ interface Props {
 
 const DATO = (label: string, valor: string) => ({ label, valor });
 
-export default function PasoResumenCotizacion({
-  plUSD, plMXN, tieneCostosUSD, tieneCostosMXN, conceptosVenta,
-  nombreCliente, origen, destino, numContenedores, cargaLcl,
-  modo, incoterm, tipo, totales, resumenFiscal, esEdicion = false, accionesEdicion, banderasAereas,
+function datosOperacion({
+  nombreCliente, origen, destino, numContenedores, cargaLcl, modo, incoterm, tipo, banderasAereas,
 }: Props) {
-
   // BL-COT-04: sólo el marítimo se mide en contenedores.
-  const datos = [
+  return [
     DATO("Cliente", nombreCliente || "—"),
     DATO("Ruta", `${origen || "—"} → ${destino || "—"}`),
     ...(modo === "Marítimo"
@@ -67,6 +64,14 @@ export default function PasoResumenCotizacion({
     DATO("Tipo", tipo || "—"),
     ...(modo === "Aéreo" ? itemsBanderasAereas(banderasAereas).map(([l, v]) => DATO(l, v)) : []),
   ];
+}
+
+export default function PasoResumenCotizacion(props: Props) {
+  const {
+    plUSD, plMXN, tieneCostosUSD, tieneCostosMXN, conceptosVenta, totales,
+    resumenFiscal, esEdicion = false, accionesEdicion,
+  } = props;
+  const datos = datosOperacion(props);
 
   return (
     <div className="space-y-6">

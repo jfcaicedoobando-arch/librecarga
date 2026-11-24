@@ -11,6 +11,7 @@ import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarB
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
 import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { useOrganization } from "@/lib/contexts/OrganizationContext";
 import { useToast } from "@/hooks/shared";
 import { queryKeys } from "@/lib/query";
@@ -43,7 +44,7 @@ function EstadoAgentes({ consulta }: { consulta: ReturnType<typeof useCosteoAgen
   if (consulta.isError) return <ErrorStateInline title="No se pudieron consultar los agentes"
     message="Reintenta para consultar el catálogo." onRetry={() => void consulta.refetch()} retrying={consulta.isFetching} />;
   if (consulta.isLoading) return <p role="status" className="text-body-sm text-muted-foreground">Cargando agentes…</p>;
-  if (!consulta.data?.length) return <p className="text-body-sm text-muted-foreground">No hay agentes disponibles.</p>;
+  if (!consulta.data?.length) return <EmptyStateInline message="No hay agentes disponibles." density="compact" />;
   return null;
 }
 

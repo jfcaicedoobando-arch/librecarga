@@ -1,5 +1,11 @@
 -- Run AFTER replay and BEFORE _ci_post_migrate.sql blanket grants.
 -- This assertion reads the actual migrated catalog, with no grants or fixtures.
+-- The installer checkpoint uses the original body. The final replay uses 0108.
+\if :{?pricing_container_fase5}
+\else
+  \set pricing_container_fase5 false
+\endif
+SELECT pg_catalog.set_config('lc.ci_pricing_container_fase5', :'pricing_container_fase5', false) AS pricing_container_stage \gset
 DO $pricing_container_catalog$
 DECLARE
   v_oid oid := pg_catalog.to_regprocedure('public.crm_aplicar_tarifa_tarifario(uuid,uuid)');
@@ -35,7 +41,12 @@ BEGIN
     RAISE EXCEPTION 'PRICING_CONTAINER_PRECONDITION: unexpected owner, signature or attributes';
   END IF;
   v_hash := pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(v_proc.prosrc,'UTF8')),'hex');
-  IF v_hash NOT IN ('30f6bf09d3098b3494ca1655b3dac6cfa1f71e185d5fbff1fa4117735a77b97e') THEN
+  IF v_hash IS DISTINCT FROM (
+    CASE WHEN current_setting('lc.ci_pricing_container_fase5', true) = 'true'
+      THEN '15d2c098be9c57c2a8062e3cfbea8cdad29a7afbef6f171c86cba2babc31380b'
+      ELSE '30f6bf09d3098b3494ca1655b3dac6cfa1f71e185d5fbff1fa4117735a77b97e'
+    END
+  ) THEN
     RAISE EXCEPTION 'PRICING_CONTAINER_PRECONDITION: unreviewed target body';
   END IF;
   IF v_proc.proacl IS NULL

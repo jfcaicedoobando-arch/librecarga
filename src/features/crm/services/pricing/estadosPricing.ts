@@ -14,6 +14,10 @@ export function relojCorre(estado: string): boolean {
   return estado === "enviada" || estado === "asignada" || estado === "en_proceso";
 }
 
+export function modoPorDefecto(modosPropios: string[]): string {
+  return modosPropios.length === 1 ? modosPropios[0] : "todos";
+}
+
 export type AccionFlujoPricing = "tomar" | "iniciar" | "pedir_info" | "reanudar" | "sin_opcion";
 
 interface SolicitudFlujo { estado: string; asignada_a: string | null; solicitante_id: string | null; created_by: string | null }
@@ -21,10 +25,11 @@ interface SolicitudFlujo { estado: string; asignada_a: string | null; solicitant
 /** Acciones de trabajo disponibles, espejo de las reglas de la base. */
 export function accionesDisponibles(s: SolicitudFlujo, userId: string | undefined, esPricing: boolean): AccionFlujoPricing[] {
   const acciones: AccionFlujoPricing[] = [];
-  if (esPricing && s.estado === "enviada") acciones.push("tomar");
-  if (esPricing && s.estado === "asignada" && s.asignada_a !== userId) acciones.push("tomar");
-  if (esPricing && (s.estado === "enviada" || s.estado === "asignada")) acciones.push("iniciar");
-  if (esPricing && relojCorre(s.estado)) acciones.push("pedir_info");
+  if (esPricing) {
+    if (s.estado === "enviada" || (s.estado === "asignada" && s.asignada_a !== userId)) acciones.push("tomar");
+    if (s.estado === "enviada" || s.estado === "asignada") acciones.push("iniciar");
+    if (relojCorre(s.estado)) acciones.push("pedir_info");
+  }
   const autor = !!userId && (s.solicitante_id === userId || s.created_by === userId);
   if (s.estado === "info_requerida" && (esPricing || autor)) acciones.push("reanudar");
   if (esPricing && enTrabajo(s.estado)) acciones.push("sin_opcion");

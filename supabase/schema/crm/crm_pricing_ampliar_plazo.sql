@@ -9,7 +9,7 @@ BEGIN
   SELECT * INTO v FROM crm_solicitudes_pricing WHERE id = p_id AND deleted_at IS NULL FOR UPDATE;
   IF v.id IS NULL OR v.organization_id IS DISTINCT FROM org_scope() THEN RAISE EXCEPTION 'LC_PRICING_NO_ENCONTRADA' USING ERRCODE = 'P0001'; END IF;
   IF NOT _crm_pricing_es_gerente_ops(v.organization_id) THEN RAISE EXCEPTION 'LC_PRICING_SOLO_GERENTE_OPS' USING ERRCODE = '42501'; END IF;
-  IF v.estado <> 'enviada' OR v.complejidad <> 'alta' THEN RAISE EXCEPTION 'LC_PRICING_PLAZO_NO_AMPLIABLE' USING ERRCODE = 'P0001'; END IF;
+  IF v.estado NOT IN ('enviada','asignada','en_proceso') OR v.complejidad <> 'alta' THEN RAISE EXCEPTION 'LC_PRICING_PLAZO_NO_AMPLIABLE' USING ERRCODE = 'P0001'; END IF;
   IF now() > v.enviada_at + interval '8 hours' THEN RAISE EXCEPTION 'LC_PRICING_PLAZO_FUERA_DE_TIEMPO' USING ERRCODE = 'P0001'; END IF;
   IF p_horas IS NULL OR p_horas <= 48 OR p_horas > 720 THEN RAISE EXCEPTION 'LC_PRICING_HORAS_INVALIDAS' USING ERRCODE = 'P0001'; END IF;
   IF length(trim(coalesce(p_motivo, ''))) < 10 THEN RAISE EXCEPTION 'LC_PRICING_MOTIVO_REQUERIDO' USING ERRCODE = 'P0001'; END IF;

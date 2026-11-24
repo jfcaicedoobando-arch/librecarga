@@ -84,7 +84,7 @@ $PSQL -f supabase/tests/rls/_ci_check_service_role_only.sql
 # Pricing RPC exact ACL before harness grants
 (
 set -euo pipefail
-$PSQL -f supabase/tests/rls/_ci_check_pricing_container_acl.sql
+$PSQL -v pricing_container_fase5=true -f supabase/tests/rls/_ci_check_pricing_container_acl.sql
 )
 
 # KAM own company to Prospecto - strict roles, ownership and retries

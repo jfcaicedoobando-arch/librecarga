@@ -34,15 +34,19 @@ export function usaTramos(f: Pick<TarifaMultimodoForm, "modo" | "submodalidad">)
   return f.modo === "Aéreo" || f.submodalidad === "LTL";
 }
 
+function validarRutaAerea(f: TarifaMultimodoForm, faltantes: string[]) {
+  if (!IATA.test(f.origen)) faltantes.push("Aeropuerto de origen (IATA)");
+  if (!IATA.test(f.destino)) faltantes.push("Aeropuerto de destino (IATA)");
+  if (f.origen && f.origen === f.destino) faltantes.push("Origen y destino distintos");
+  const escalas = escalasLista(f.escalas);
+  if (escalas.length > 3 || escalas.some((escala) => !IATA.test(escala))) faltantes.push("Escalas (hasta 3 códigos IATA)");
+}
+
 export function faltantesTarifaMultimodo(f: TarifaMultimodoForm): string[] {
   const out: string[] = [];
   if (!f.agente_id) out.push("Agente");
   if (f.modo === "Aéreo") {
-    if (!IATA.test(f.origen)) out.push("Aeropuerto de origen (IATA)");
-    if (!IATA.test(f.destino)) out.push("Aeropuerto de destino (IATA)");
-    if (f.origen && f.origen === f.destino) out.push("Origen y destino distintos");
-    const esc = escalasLista(f.escalas);
-    if (esc.length > 3 || esc.some((e) => !IATA.test(e))) out.push("Escalas (hasta 3 códigos IATA)");
+    validarRutaAerea(f, out);
   } else {
     if (!f.submodalidad) out.push("Submodalidad");
     if (!f.origen.trim()) out.push("Origen (CP o ciudad)");

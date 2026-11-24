@@ -3,7 +3,8 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
-import type { AccionFlujoPricing } from "@/features/crm/services/pricing/estadosPricing";
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { modoPorDefecto, type AccionFlujoPricing } from "@/features/crm/services/pricing/estadosPricing";
 import { cambiarEstadoPricing, guardarModosEjecutivo, listarModosEjecutivo } from "@/features/crm/services/pricing/flujoPricing";
 import { mensajeErrorPricing } from "@/features/crm/services/pricing/tiposPricing";
 import { useInvalidarSolicitud } from "./useInvalidarSolicitud";
@@ -31,6 +32,12 @@ export function useCambiarEstadoPricing() {
 
 export function useModosEjecutivo() {
   return useQuery({ queryKey: LLAVE_MODOS, queryFn: listarModosEjecutivo });
+}
+
+export function useModoPropioPricing(): string {
+  const { user } = useAuth();
+  const { data } = useModosEjecutivo();
+  return modoPorDefecto((data ?? []).filter((modo) => modo.user_id === user?.id).map((modo) => modo.modo));
 }
 
 export function useGuardarModosEjecutivo() {

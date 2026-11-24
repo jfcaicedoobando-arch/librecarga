@@ -42,6 +42,9 @@ export const LC_CODE_MESSAGES_PRICING: Record<string, string> = {
     "Captura el tipo y tamaño de contenedor de la solicitud antes de aplicar una tarifa.",
   LC_TARIFA_CONTENEDOR_INCOMPATIBLE:
     "El tipo o tamaño de contenedor de la solicitud no coincide con la tarifa seleccionada. Revisa ambos datos y elige una tarifa compatible.",
+  LC_PRICING_ACCION_INVALIDA: "La acción de Pricing ya no está disponible. Actualiza la solicitud e inténtalo de nuevo.",
+  LC_PRICING_MODO_INVALIDO: "Selecciona un modo de transporte válido para el ejecutivo de Pricing.",
+  LC_PRICING_NO_ES_EJECUTIVO: "Selecciona un ejecutivo de Pricing o un gerente de Operaciones de tu organización.",
   LC_PRICING_ESTADO_INVALIDO: "La solicitud no está en un estado válido para esta acción. Actualiza la bandeja.",
   LC_PRICING_ESTADO_SOLO_RPC: "Cambia el estado desde las acciones de la solicitud de pricing.",
   LC_PRICING_INCOTERM_MODO: "FAS, FOB, CFR y CIF solo aplican a transporte marítimo.",
