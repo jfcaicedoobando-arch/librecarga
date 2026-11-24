@@ -1,4 +1,5 @@
 # Roadmap — Pricing por modo
+- [x] Restaurar vigencia aérea según fecha tentativa de carga: 27 pruebas focalizadas y lint aprobados; revisión en sesión real del respaldo sin fecha, sin modificar solicitudes.
 - [x] MSDS: adjuntar PDF identificado y bloquear envío de carga peligrosa sin archivo; aviso y selección verificados en pantalla, rechazo transaccional y 47 pruebas focalizadas.
 - [x] Conectar etiqueta Cotizada/Finalizada y ocultar cotizar cuando exista cotización vinculada.
 - [x] Fase 1a: quitar "g" de la captura nueva

@@ -1,13 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { hoyMx } from "@/lib/date/mx";
+import { fechaVigencia } from "./useTarifasTerrestresSugeridas";
 import { crm } from "../queryKeys";
 import { listarTarifasAereasSugeridas } from "../services/pricing/tarifasAereasSugeridas";
 
-export function useTarifasAereasSugeridas(organizationId: string, origen: string | null, destino: string | null) {
-  const hoy = hoyMx();
+export function useTarifasAereasSugeridas(organizationId: string, origen: string | null, destino: string | null, fechaCarga: string | null) {
+  const fecha = fechaVigencia(fechaCarga);
   return useQuery({
-    queryKey: crm.tarifasAereasSugeridas(organizationId, origen, destino, hoy),
-    queryFn: () => listarTarifasAereasSugeridas(organizationId, origen!, destino!, hoy),
+    queryKey: crm.tarifasAereasSugeridas(organizationId, origen, destino, fecha),
+    queryFn: () => {
+      if (!origen || !destino) return [];
+      return listarTarifasAereasSugeridas(organizationId, origen, destino, fecha);
+    },
     enabled: !!origen && !!destino,
   });
 }

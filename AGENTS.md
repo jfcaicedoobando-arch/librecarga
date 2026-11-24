@@ -1,4 +1,5 @@
 # Decisiones técnicas
+- Air Pricing suggestions reuse the terrestrial effective-date resolver and include that date in their query key. Why: tariff validity follows the requested future loading day, retaining the existing Mexico-business-day fallback without changing tariff amounts or database guards.
 - Pricing MSDS uses explicitly prefixed `MSDS-*.pdf` attachments in the existing private request folder; submission verifies the object MIME, size and exact tenant/request path server-side, while drafts remain editable. Why: enforce hazardous-cargo documentation without new storage or altering workflow RPC permissions.
 - Pricing completion is derived from live, non-archived quotations linked by `pricing_solicitud_id`, read in tenant-scoped batches; display Cotizada/Finalizada and hide all quote actions without changing quotation commercial status or SQL workflow states. Why: close the Pricing presentation without weakening existing fiscal and transition guards.
 
