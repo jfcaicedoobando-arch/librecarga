@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { notifyError } from "@/lib/ui/appFeedback";
 import { MAX_ADJUNTO_BYTES } from "@/features/crm/services/pricing/adjuntosPricing";
 import { SelectorAdjuntos } from "./SelectorAdjuntos";
+import { SelectorMsdsPricing } from "./SelectorMsdsPricing";
+import { faltaMsdsPricing } from "@/features/crm/services/pricing/msdsPricing";
 
-interface Props { archivos: File[]; onChange: (files: File[]) => void; disabled?: boolean }
+interface Props { archivos: File[]; onChange: (files: File[]) => void; disabled?: boolean; peligrosa?: boolean }
 
-export function AdjuntosPendientes({ archivos, onChange, disabled }: Props) {
+export function AdjuntosPendientes({ archivos, onChange, disabled, peligrosa }: Props) {
   const agregar = (nuevos: File[]) => {
     const grandes = nuevos.filter((f) => f.size > MAX_ADJUNTO_BYTES);
     if (grandes.length) {
@@ -23,6 +25,12 @@ export function AdjuntosPendientes({ archivos, onChange, disabled }: Props) {
   return (
     <div className="space-y-2">
       <p className="text-label font-medium uppercase tracking-wide text-muted-foreground">Archivos adjuntos</p>
+      {peligrosa && <>
+        <p role="status" className={`text-body-sm ${faltaMsdsPricing(true, archivos.map((f) => f.name)) ? "text-destructive" : "text-success"}`}>
+          {faltaMsdsPricing(true, archivos.map((f) => f.name)) ? "Carga peligrosa: adjunta la hoja de seguridad (MSDS) en PDF antes de enviar a Pricing." : "MSDS seleccionada; se adjuntará al guardar el borrador."}
+        </p>
+        <SelectorMsdsPricing disabled={disabled} onArchivo={(f) => agregar([f])} />
+      </>}
       <SelectorAdjuntos onArchivos={agregar} disabled={disabled} />
       {archivos.length > 0 && (
         <ul className="space-y-1 text-body">

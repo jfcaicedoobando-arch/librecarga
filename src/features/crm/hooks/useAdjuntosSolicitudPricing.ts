@@ -15,12 +15,13 @@ export function useUrlAdjuntoPricing(path: string) {
   });
 }
 
-export function useAdjuntosSolicitudPricing(organizationId: string, solicitudId: string) {
+export function useAdjuntosSolicitudPricing(organizationId: string, solicitudId: string, enabled = true) {
   const qc = useQueryClient();
   const key = crm.adjuntos(solicitudId);
   const { data: adjuntos = [], isLoading, isFetching, refetch, error } = useQuery({
     queryKey: key,
     queryFn: () => listarAdjuntos(organizationId, solicitudId),
+    enabled,
   });
   const subir = useMutation({
     mutationFn: async (files: File[]) => {

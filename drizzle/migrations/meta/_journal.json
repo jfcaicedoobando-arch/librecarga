@@ -771,6 +771,13 @@
       "when": 1795481722544,
       "tag": "0109_pricing_modos_tenant_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1795491808538,
+      "tag": "0110_pricing_msds_pdf_obligatoria",
+      "breakpoints": true
     }
   ]
 }

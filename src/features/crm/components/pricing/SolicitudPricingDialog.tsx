@@ -161,8 +161,8 @@ function SesionSolicitudPricing({ open, onOpenChange, oportunidadId, clienteNomb
       </p>}
       <SolicitudPricingCampos datos={datos} set={set} disabled={busy} />
       {solicitud && organizationId
-        ? <AdjuntosSolicitudPricing organizationId={organizationId} solicitudId={solicitud.id} puedeAdjuntar />
-        : <AdjuntosPendientes archivos={pendientes} onChange={(f) => { setPendientes(f); setSucio(true); }} disabled={busy} />}
+        ? <AdjuntosSolicitudPricing organizationId={organizationId} solicitudId={solicitud.id} puedeAdjuntar peligrosa={datos.imo === true} />
+        : <AdjuntosPendientes archivos={pendientes} onChange={(f) => { setPendientes(f); setSucio(true); }} disabled={busy} peligrosa={datos.imo === true} />}
     </FormDialogShell>
   );
 }

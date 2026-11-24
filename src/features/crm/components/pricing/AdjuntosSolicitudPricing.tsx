@@ -10,8 +10,10 @@ import { Hint } from "@/components/shared/Hint";
 import { useAdjuntosSolicitudPricing, useUrlAdjuntoPricing } from "@/features/crm/hooks/useAdjuntosSolicitudPricing";
 import type { AdjuntoPricing } from "@/features/crm/services/pricing/adjuntosPricing";
 import { SelectorAdjuntos } from "./SelectorAdjuntos";
+import { SelectorMsdsPricing } from "./SelectorMsdsPricing";
+import { faltaMsdsPricing } from "@/features/crm/services/pricing/msdsPricing";
 
-interface Props { organizationId: string; solicitudId: string; puedeAdjuntar: boolean }
+interface Props { organizationId: string; solicitudId: string; puedeAdjuntar: boolean; peligrosa?: boolean }
 
 const kb = (b: number) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 
@@ -48,13 +50,21 @@ function Miniatura({ a }: { a: AdjuntoPricing }) {
   );
 }
 
-export function AdjuntosSolicitudPricing({ organizationId, solicitudId, puedeAdjuntar }: Props) {
+export function AdjuntosSolicitudPricing({ organizationId, solicitudId, puedeAdjuntar, peligrosa }: Props) {
   const { adjuntos, isLoading, isFetching, refetch, error, subir } = useAdjuntosSolicitudPricing(organizationId, solicitudId);
 
   return (
     <Card>
       <CardHeader className="pb-3"><CardTitle>Archivos adjuntos</CardTitle></CardHeader>
       <CardContent className="space-y-3">
+        {peligrosa && <>
+          <p role="status" className={`text-body-sm ${faltaMsdsPricing(true, adjuntos.map((a) => a.nombre)) ? "text-destructive" : "text-success"}`}>
+            {isLoading ? "Consultando MSDS…" : faltaMsdsPricing(true, adjuntos.map((a) => a.nombre))
+              ? "Carga peligrosa: falta adjuntar la hoja de seguridad (MSDS) en PDF. No se puede enviar a Pricing sin ella."
+              : "Hoja de seguridad (MSDS) adjunta."}
+          </p>
+          {puedeAdjuntar && <SelectorMsdsPricing disabled={subir.isPending} onArchivo={(f) => subir.mutate([f])} />}
+        </>}
         {puedeAdjuntar && <SelectorAdjuntos disabled={subir.isPending} onArchivos={(f) => f.length && subir.mutate(f)} />}
         {subir.isPending && <p className="text-body text-muted-foreground">Subiendo…</p>}
         {isLoading && <p role="status" className="text-body text-muted-foreground">Cargando archivos adjuntos…</p>}

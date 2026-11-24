@@ -1,4 +1,5 @@
 # Roadmap — Pricing por modo
+- [x] MSDS: adjuntar PDF identificado y bloquear envío de carga peligrosa sin archivo; aviso y selección verificados en pantalla, rechazo transaccional y 47 pruebas focalizadas.
 - [x] Conectar etiqueta Cotizada/Finalizada y ocultar cotizar cuando exista cotización vinculada.
 - [x] Fase 1a: quitar "g" de la captura nueva
 - [x] Fase 1b-1: SLA en horas hábiles (L-V 9-18, sáb 9-14 CDMX)

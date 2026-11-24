@@ -4,6 +4,7 @@
  * Solicitante y Pricing los ven por URL firmada temporal.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { esMsdsPricing, prepararMsdsPricing } from "./msdsPricing";
 
 export const BUCKET_ADJUNTOS_PRICING = "crm-pricing-adjuntos";
 export const MAX_ADJUNTO_BYTES = 10 * 1024 * 1024;
@@ -44,6 +45,7 @@ export async function listarAdjuntos(orgId: string, solicitudId: string): Promis
 }
 
 export async function subirAdjunto(orgId: string, solicitudId: string, file: File): Promise<void> {
+  if (esMsdsPricing(file.name)) file = await prepararMsdsPricing(file);
   if (file.size > MAX_ADJUNTO_BYTES) throw new Error(`"${file.name}" pesa más de 10 MB.`);
   const path = `${carpeta(orgId, solicitudId)}/${Date.now()}-${limpiarNombre(file.name)}`;
   const { error } = await supabase.storage

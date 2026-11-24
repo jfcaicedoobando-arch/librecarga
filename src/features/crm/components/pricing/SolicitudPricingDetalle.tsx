@@ -107,7 +107,7 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
       <CotizacionFinalizada solicitud={s} />
       {esGerenteOps(effectiveRole) && <AjustePlazoPricing solicitud={s} />}
       <AdjuntosSolicitudPricing organizationId={s.organization_id} solicitudId={s.id}
-        puedeAdjuntar={s.estado !== "cancelada"} />
+        puedeAdjuntar={s.estado !== "cancelada"} peligrosa={s.imo === true} />
       {s.servicio === "Aéreo" ? <OpcionesTarifarioAereo solicitud={s} puedeCotizar={puedeCotizar} />
         : s.servicio === "Terrestre" ? <OpcionesTarifarioTerrestre solicitud={s} puedeCotizar={puedeCotizar} /> : (
         <OpcionesTarifario solicitud={s} puedeElegir={puedeElegir} puedeCotizar={puedeCotizar}

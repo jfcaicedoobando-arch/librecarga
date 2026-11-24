@@ -12,6 +12,8 @@ import { mensajeErrorPricing } from "@/features/crm/services/pricing/tiposPricin
 import { notifyError } from "@/lib/ui/appFeedback";
 import type { SolicitudPricingRow } from "@/features/crm/services/pricing/tiposPricing";
 import { getSessionCacheGeneration, subscribeSessionCacheGeneration } from "@/lib/auth/sessionCacheRegistry";
+import { useAdjuntosSolicitudPricing } from "@/features/crm/hooks/useAdjuntosSolicitudPricing";
+import { faltaMsdsPricing } from "@/features/crm/services/pricing/msdsPricing";
 
 export function EnviarSolicitudFinal({ solicitud: s, puede }: { solicitud: SolicitudPricingRow; puede: boolean }) {
   const generation = useSyncExternalStore(subscribeSessionCacheGeneration, getSessionCacheGeneration, getSessionCacheGeneration);
@@ -19,11 +21,20 @@ export function EnviarSolicitudFinal({ solicitud: s, puede }: { solicitud: Solic
   return <SesionEnvio key={JSON.stringify([s.id, s.organization_id, s.oportunidad_id, generation])} solicitud={s} />;
 }
 
+function useValidacionMsds(s: SolicitudPricingRow) {
+  const archivos = useAdjuntosSolicitudPricing(s.organization_id, s.id, s.imo === true);
+  const faltaMsds = faltaMsdsPricing(s.imo, archivos.adjuntos.map((a) => a.nombre));
+  const consultandoMsds = s.imo === true && (archivos.isLoading || archivos.isFetching);
+  const errorMsds = s.imo === true && !!archivos.error;
+  return { archivos, faltaMsds, bloqueada: consultandoMsds || errorMsds, errorMsds };
+}
+
 function SesionEnvio({ solicitud: s }: { solicitud: SolicitudPricingRow }) {
   const accion = useAccionSolicitud();
   const { opciones, isLoading, isError, isFetching, reintentar } = useOpcionesTarifario(s);
-  const faltan = camposFaltantesSolicitud(s);
-  const envioBloqueado = isLoading || isError || isFetching || faltan.length > 0;
+  const { archivos, faltaMsds, bloqueada, errorMsds } = useValidacionMsds(s);
+  const faltan = camposFaltantesSolicitud(s).concat(faltaMsds ? ["Hoja de seguridad (MSDS) en PDF"] : []);
+  const envioBloqueado = isLoading || isError || isFetching || bloqueada || faltan.length > 0;
   const montada = useRef(false);
   const enCurso = useRef(false);
   useLayoutEffect(() => {
@@ -49,6 +60,8 @@ function SesionEnvio({ solicitud: s }: { solicitud: SolicitudPricingRow }) {
   return (
     <Card>
       <CardContent className="flex flex-wrap items-center gap-3 py-4">
+        {errorMsds && <ErrorStateInline title="No se pudo verificar la MSDS" message="Reintenta antes de enviar a Pricing."
+          onRetry={() => void archivos.refetch()} retrying={archivos.isFetching} />}
         {isError ? (
           <ErrorStateInline
             title="No se pudo consultar el tarifario"

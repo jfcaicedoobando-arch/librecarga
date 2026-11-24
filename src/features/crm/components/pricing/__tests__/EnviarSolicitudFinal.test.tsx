@@ -13,6 +13,7 @@ import { EnviarSolicitudFinal } from "../EnviarSolicitudFinal";
 import { setAuthSnapshot } from "@/lib/auth/authSnapshot";
 import { purgeSessionCache } from "@/lib/auth/purgeSessionCache";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
+import { crm } from "@/features/crm/queryKeys";
 
 const solicitud: SolicitudPricingRow = {
   id: "s1", organization_id: "org1", oportunidad_id: "o1", solicitante_id: "u1", created_by: "u1",
@@ -45,6 +46,27 @@ beforeEach(() => {
 afterEach(() => { cleanup(); client.clear(); });
 
 describe("envío final después de revisar tarifario", () => {
+  it.each([{ nombres: [] as string[] }, { nombres: ["factura.pdf"] }])("no permite enviar IMO Sí sin MSDS identificada ($nombres)", ({ nombres }) => {
+    const key = crm.adjuntos(solicitud.id);
+    client.setQueryDefaults(key, { staleTime: Infinity });
+    client.setQueryData(key, nombres.map((nombre) => ({ nombre, path: nombre, tamano: 100, esImagen: false, creado: null })));
+    render(<Vista fila={{ ...solicitud, imo: true, imo_clase: "3", imo_un: "1203" }} />);
+    const boton = screen.getByRole("button", { name: "Enviar a Pricing" });
+    expect(boton).toBeDisabled();
+    fireEvent.click(boton);
+    expect(services.enviarSolicitud).not.toHaveBeenCalled();
+  });
+
+  it("permite enviar IMO Sí con MSDS adjunta y los demás obligatorios completos", async () => {
+    const key = crm.adjuntos(solicitud.id);
+    client.setQueryDefaults(key, { staleTime: Infinity });
+    client.setQueryData(key, [{ nombre: "MSDS-hoja.pdf", path: "org1/s1/1795489200000-MSDS-hoja.pdf", tamano: 100, esImagen: false, creado: null }]);
+    render(<Vista fila={{ ...solicitud, imo: true, imo_clase: "3", imo_un: "1203" }} />);
+    const boton = screen.getByRole("button", { name: "Enviar a Pricing" });
+    expect(boton).toBeEnabled();
+    fireEvent.click(boton);
+    await waitFor(() => expect(services.enviarSolicitud).toHaveBeenCalledWith("s1"));
+  });
   it("permite reintentar sin enviar ni declarar una ruta nueva si falla el tarifario", () => {
     tarifario.isError = true;
     const view = render(<Vista />);
