@@ -25,6 +25,8 @@ import { GuiaPrimerosPasos } from "../GuiaPrimerosPasos";
 import { ContenidoPrimerosPasos } from "../ContenidoPrimerosPasos";
 import Ayuda from "@/features/dashboard/routes/Ayuda";
 
+const CLAVE_PREFERENCIA_INICIO = "lc:guia-primeros-pasos:persona-a:empresa-a";
+
 function RutaActual() {
   const { pathname, search } = useLocation();
   return <div aria-label="Ruta actual">{pathname}{search}</div>;
@@ -55,7 +57,7 @@ function VistaConHistorial() {
   return (
     <MemoryRouter initialEntries={["/inicio"]}>
       <Routes>
-        <Route path="/inicio" element={<GuiaPrimerosPasos abrirEnPrimeraVisita />} />
+        <Route path="/inicio" element={<GuiaPrimerosPasos recordarApertura />} />
         <Route path="/embarques" element={<VolverAInicio />} />
       </Routes>
       <RutaActual />
@@ -69,6 +71,7 @@ function cambiarRol(role: AppRole | null) {
 }
 
 beforeEach(() => {
+  localStorage.removeItem(CLAVE_PREFERENCIA_INICIO);
   sessionStorage.removeItem("lc:guia-primeros-pasos:tarea-reciente");
   contexto.auth.user = { id: "persona-a" };
   cambiarRol("vendedor");
@@ -355,21 +358,27 @@ describe("Guía contextual conectada a permisos reales", () => {
   });
 });
 
-it("Inicio abre la guía por primera vez y recuerda el cierre por persona y organización", () => {
+it("Inicio empieza con la guía contraída y recuerda la elección por persona y organización", () => {
   cambiarRol("admin");
-  const clave = "lc:guia-primeros-pasos:persona-a:empresa-a";
-  localStorage.removeItem(clave);
-  const vista = () => <MemoryRouter><GuiaPrimerosPasos abrirEnPrimeraVisita /></MemoryRouter>;
+  const vista = () => <MemoryRouter><GuiaPrimerosPasos recordarApertura /></MemoryRouter>;
+  const encabezado = () => screen.getByRole("button", { name: "Empieza por tu tarea" });
   const primero = render(vista());
-  const trigger = screen.getByRole("button", { name: "Empieza por tu tarea" });
-  expect(trigger).toHaveAttribute("aria-expanded", "true");
-  fireEvent.click(screen.getByRole("button", { name: "Registrar un cliente" }));
-  expect(screen.getByRole("link", { name: "Abrir Clientes" })).toHaveAttribute("href", "/clientes");
-  fireEvent.click(trigger);
+  expect(encabezado()).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByRole("button", { name: "Registrar un cliente" })).not.toBeInTheDocument();
+  expect(localStorage.getItem(CLAVE_PREFERENCIA_INICIO)).toBeNull();
+
+  fireEvent.click(encabezado());
+  expect(localStorage.getItem(CLAVE_PREFERENCIA_INICIO)).toBe("abierta");
   primero.unmount();
+  const segundo = render(vista());
+  expect(encabezado()).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("button", { name: "Registrar un cliente" })).toBeVisible();
+
+  fireEvent.click(encabezado());
+  segundo.unmount();
   render(vista());
-  expect(screen.getByRole("button", { name: "Empieza por tu tarea" })).toHaveAttribute("aria-expanded", "false");
-  localStorage.removeItem(clave);
+  expect(encabezado()).toHaveAttribute("aria-expanded", "false");
+  expect(localStorage.getItem(CLAVE_PREFERENCIA_INICIO)).toBe("cerrada");
 });
 
 describe("Interacción de la guía en Inicio", () => {
@@ -427,11 +436,13 @@ describe("Interacción de la guía en Inicio", () => {
   it("recupera una tarea de la lista completa y su foco al volver con Atrás", async () => {
     cambiarRol("admin");
     render(<VistaConHistorial />);
+    abrirGuia();
     await mostrarTodasLasTareas();
     fireEvent.click(screen.getByRole("button", { name: "Continuar una operación" }));
     fireEvent.click(screen.getByRole("link", { name: "Ver embarques" }));
     expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/embarques");
     expect(screen.queryByRole("button", { name: "Empieza por tu tarea" })).not.toBeInTheDocument();
+    localStorage.removeItem(CLAVE_PREFERENCIA_INICIO);
     fireEvent.click(screen.getByRole("button", { name: "Atrás" }));
     expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/inicio");
     const tarea = screen.getByRole("button", { name: "Continuar una operación" });
@@ -443,6 +454,7 @@ describe("Interacción de la guía en Inicio", () => {
   it.each(["usuario", "organización", "rol"])("al cambiar de %s antes de Atrás descarta la tarea anterior", async (cambio) => {
     cambiarRol("admin");
     const { rerender } = render(<VistaConHistorial />);
+    abrirGuia();
     await mostrarTodasLasTareas();
     fireEvent.click(screen.getByRole("button", { name: "Continuar una operación" }));
     fireEvent.click(screen.getByRole("link", { name: "Ver embarques" }));
@@ -451,6 +463,10 @@ describe("Interacción de la guía en Inicio", () => {
     if (cambio === "rol") cambiarRol("admin_org");
     rerender(<VistaConHistorial />);
     fireEvent.click(screen.getByRole("button", { name: "Atrás" }));
+    if (cambio !== "rol") {
+      expect(screen.getByRole("button", { name: "Empieza por tu tarea" })).toHaveAttribute("aria-expanded", "false");
+      abrirGuia();
+    }
     expect(screen.getByRole("button", { name: "Ver todas las tareas" })).toBeVisible();
     await mostrarTodasLasTareas();
     const tarea = screen.getByRole("button", { name: "Continuar una operación" });
