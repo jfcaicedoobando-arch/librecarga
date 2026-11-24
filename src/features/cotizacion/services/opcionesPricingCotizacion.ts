@@ -7,6 +7,7 @@ import { captureAuthOperationScope, AuthOperationChangedError } from "@/lib/auth
 import { CAP_LOTES_DURO } from "@/constants/queryCaps";
 import { ResultadoTruncadoError } from "@/lib/supabase/assertNotTruncated";
 import { leerTodasLasPaginas } from "@/lib/supabase/paginado";
+import { fechaVigenciaCarga, tarifaCubreCarga } from "@/lib/date/fechaVigenciaCarga";
 
 export interface OpcionPricingCotizacion extends MetadataRespuestaPricing {
   organizationId: string;
@@ -22,7 +23,7 @@ export const esEnNegociacion = (nombre: string | null | undefined) => norm(nombr
 async function leerSolicitudes(filtro: { organizationId: string; oportunidadId?: string; clienteId?: string }) {
   return leerTodasLasPaginas("opciones de Pricing", (desde, hasta) => {
     let q = supabase.from("crm_solicitudes_pricing")
-      .select("id, folio, tarifa_tarifario_id, incoterm, cantidad, servicio, tipo_carga, commodity, imo, estibable, peso, unidad_medida, notas, tipo_operacion, sector_economico, oportunidad:crm_oportunidades!crm_solicitudes_pricing_oportunidad_id_fkey!inner(id, cliente_id, etapa:crm_etapas_pipeline!crm_oportunidades_etapa_id_fkey(nombre))")
+      .select("id, folio, tarifa_tarifario_id, incoterm, cantidad, servicio, tipo_carga, commodity, imo, estibable, peso, unidad_medida, notas, tipo_operacion, sector_economico, fecha_tentativa_carga, oportunidad:crm_oportunidades!crm_solicitudes_pricing_oportunidad_id_fkey!inner(id, cliente_id, etapa:crm_etapas_pipeline!crm_oportunidades_etapa_id_fkey(nombre))")
       .eq("organization_id", filtro.organizationId).eq("oportunidad.organization_id", filtro.organizationId)
       .eq("oportunidad.etapa.organization_id", filtro.organizationId).eq("oportunidad.etapa.activa", true).eq("oportunidad.etapa.tipo", "abierta")
       .is("oportunidad.etapa.deleted_at", null).eq("estado", "respondida").is("deleted_at", null).is("oportunidad.deleted_at", null);
@@ -62,7 +63,7 @@ export async function fetchOpcionesPricingCotizacion(filtro: { organizationId: s
   const porId = new Map(tarifas.map((t) => [t.id, t]));
   return pares.flatMap(({ s, tarifaId }) => {
     const tarifa = porId.get(tarifaId);
-    if (!tarifa) return [];
+    if (!tarifa || !tarifaCubreCarga(tarifa, fechaVigenciaCarga(s.fecha_tentativa_carga))) return [];
     return [{ organizationId: filtro.organizationId, solicitudId: s.id, solicitudFolio: s.folio, oportunidadId: s.oportunidad.id,
       clienteId: s.oportunidad.cliente_id, incoterm: s.incoterm, cantidad: s.cantidad,
       servicio: s.servicio, tipo_carga: s.tipo_carga, tarifa }];

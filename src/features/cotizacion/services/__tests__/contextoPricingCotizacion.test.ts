@@ -39,6 +39,19 @@ beforeEach(() => {
   m.tarifa.mockReset().mockResolvedValue({ id: "tarifa" }); m.tarifas.mockReset().mockResolvedValue([{ id: "tarifa" }]); m.prospecto.mockReset().mockResolvedValue({ id: "op", leadId: "lead" });
 });
 describe("resolver Pricing real con I/O sustituido", () => {
+  it("rechaza al seleccionar una respuesta que vence antes del día futuro de carga", async () => {
+    m.rows.crm_solicitudes_pricing = [{ ...solicitud, fecha_tentativa_carga: "2099-12-10" }];
+    m.rows.costeo_tarifas_vigentes_v = [{ id: "tarifa", organization_id: "org", vigente_desde: "2026-01-01", vigente_hasta: "2099-12-09" }];
+    await expect(fetchContextoPricingCotizacion(params)).rejects.toThrow("fecha tentativa de carga");
+    expect(await fetchOpcionesPricingCotizacion({ organizationId: "org", oportunidadId: "op" })).toEqual([]);
+  });
+  it("incluye una respuesta hasta el mismo día de carga sin modificar la solicitud", async () => {
+    m.rows.crm_solicitudes_pricing = [{ ...solicitud, fecha_tentativa_carga: "2099-12-10" }];
+    m.rows.costeo_tarifas_vigentes_v = [{ id: "tarifa", organization_id: "org", vigente_desde: "2099-12-10", vigente_hasta: "2099-12-10" }];
+    expect((await fetchContextoPricingCotizacion(params)).tarifa.id).toBe("tarifa");
+    expect(await fetchOpcionesPricingCotizacion({ organizationId: "org", oportunidadId: "op" })).toHaveLength(1);
+    expect(m.calls.every((call) => !["update", "insert", "delete"].includes(call.method))).toBe(true);
+  });
   it("resolver no retorna datos de una sesión revocada mientras espera I/O", async () => {
     let release!: () => void;
     m.hold = new Promise<void>((resolve) => { release = resolve; });

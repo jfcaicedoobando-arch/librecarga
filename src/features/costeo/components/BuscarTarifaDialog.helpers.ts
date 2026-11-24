@@ -9,6 +9,7 @@ export interface FiltrosTarifaInitial {
   puertoOrigenId?: string;
   puertoDestinoId?: string;
   tipoContenedorId?: string;
+  fecha?: string;
 }
 
 /** Filtros del buscador; se resetean al abrir con los valores iniciales. */
@@ -16,7 +17,7 @@ export function useFiltrosTarifa(open: boolean, initial: FiltrosTarifaInitial | 
   const [origen, setOrigenState] = useState(initial?.puertoOrigenId ?? "");
   const [destino, setDestinoState] = useState(initial?.puertoDestinoId ?? "");
   const [tipo, setTipoState] = useState(initial?.tipoContenedorId ?? "");
-  const [fecha, setFecha] = useState(todayLocalISO());
+  const [fecha, setFecha] = useState(initial?.fecha ?? todayLocalISO());
   const wasOpenRef = useRef(false);
   const touchedRef = useRef(false);
 
@@ -35,8 +36,9 @@ export function useFiltrosTarifa(open: boolean, initial: FiltrosTarifaInitial | 
       setOrigenState(initial?.puertoOrigenId ?? "");
       setDestinoState(initial?.puertoDestinoId ?? "");
       setTipoState(initial?.tipoContenedorId ?? "");
+      if (initial?.fecha) setFecha(initial.fecha);
     }
-  }, [open, initial?.puertoOrigenId, initial?.puertoDestinoId, initial?.tipoContenedorId]);
+  }, [open, initial?.puertoOrigenId, initial?.puertoDestinoId, initial?.tipoContenedorId, initial?.fecha]);
 
   /** Si el nuevo origen coincide con el destino elegido, limpiamos destino. */
   const setOrigen = (id: string) => {
@@ -55,5 +57,6 @@ export function useFiltrosTarifa(open: boolean, initial: FiltrosTarifaInitial | 
 
   const mismoPuerto = !!origen && origen === destino;
 
-  return { origen, setOrigen, destino, setDestino, tipo, setTipo, fecha, setFecha, mismoPuerto };
+  const cambiarFecha = (value: string) => { touchedRef.current = true; setFecha(value); };
+  return { origen, setOrigen, destino, setDestino, tipo, setTipo, fecha, setFecha: cambiarFecha, mismoPuerto };
 }

@@ -9,6 +9,17 @@ const precarga = {
 };
 
 describe("useFiltrosTarifa", () => {
+  it("hereda la fecha de carga que llega tarde sin sustituir una fecha elegida por el operador", () => {
+    const { result, rerender } = renderHook(
+      ({ fecha }) => useFiltrosTarifa(true, { ...precarga, fecha }),
+      { initialProps: { fecha: undefined as string | undefined } },
+    );
+    rerender({ fecha: "2026-12-10" });
+    expect(result.current.fecha).toBe("2026-12-10");
+    act(() => result.current.setFecha("2026-12-15"));
+    rerender({ fecha: "2026-12-20" });
+    expect(result.current.fecha).toBe("2026-12-15");
+  });
   it("aplica la precarga tardía si el operador no ha tocado filtros", () => {
     const { result, rerender } = renderHook(
       ({ initial }) => useFiltrosTarifa(true, initial),

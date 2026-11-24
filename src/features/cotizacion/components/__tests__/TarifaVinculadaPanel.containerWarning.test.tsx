@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { FormProvider, useForm } from "react-hook-form";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TarifaVinculadaPanel from "../TarifaVinculadaPanel";
 import { COTIZACION_FORM_DEFAULTS, type CotizacionFormValues } from "@/features/cotizacion/types";
@@ -32,7 +33,7 @@ function Fixture({ valor }: { valor: string }) {
   const form = useForm<CotizacionFormValues>({ defaultValues: {
     ...COTIZACION_FORM_DEFAULTS, modo: "Marítimo", tarifaId: "t1", tipoContenedor: valor,
   } });
-  return <FormProvider {...form}><TarifaVinculadaPanel /></FormProvider>;
+  return <QueryClientProvider client={new QueryClient()}><FormProvider {...form}><TarifaVinculadaPanel /></FormProvider></QueryClientProvider>;
 }
 
 beforeEach(() => leerTipos.mockReturnValue({ data: catalogo }));

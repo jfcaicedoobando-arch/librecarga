@@ -46,6 +46,10 @@ beforeEach(() => {
 afterEach(() => { cleanup(); client.clear(); });
 
 describe("OpcionesTarifario", () => {
+  it("consulta el tarifario marítimo para el día futuro de carga antes de filtrar opciones", async () => {
+    montar({ fecha_tentativa_carga: "2099-12-10" });
+    await waitFor(() => expect(mocks.tarifas).toHaveBeenCalledWith("vigentes", "2099-12-10"));
+  });
   it("separa etiquetas de ruta, agente, naviera, contenedor y flete sin alterar valores", async () => {
     montar();
     await screen.findByRole("button", { name: "Usar esta opción" });

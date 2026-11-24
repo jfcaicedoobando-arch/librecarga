@@ -14,9 +14,10 @@ interface Props {
   puertoOrigenId?: string | null;
   puertoDestinoId?: string | null;
   tipoContenedorId?: string | null;
+  fecha?: string;
 }
 
-export function SugerenciasTarifaSinIds({ openDialog, setOpenDialog, onElegir, puertoOrigenId, puertoDestinoId, tipoContenedorId }: Props) {
+export function SugerenciasTarifaSinIds({ openDialog, setOpenDialog, onElegir, puertoOrigenId, puertoDestinoId, tipoContenedorId, fecha }: Props) {
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-md border border-dashed p-3">
       <p className="text-body text-muted-foreground">
@@ -34,6 +35,7 @@ export function SugerenciasTarifaSinIds({ openDialog, setOpenDialog, onElegir, p
           puertoOrigenId: puertoOrigenId ?? undefined,
           puertoDestinoId: puertoDestinoId ?? undefined,
           tipoContenedorId: tipoContenedorId ?? undefined,
+          fecha,
         }}
       />
     </div>

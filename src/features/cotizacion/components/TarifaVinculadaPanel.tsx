@@ -27,6 +27,8 @@ import type { TopTarifaRow } from "@/features/costeo/types";
 import { destinoDe, etiquetaRutaCompleta, origenDe } from "@/features/costeo";
 import { resolveTipoContenedorId, computeTarifaWarnings, faltaCatalogoParaValidarTipo } from "./tarifaVinculadaPanel.helpers";
 import { TarifaVinculadaEstadoConsulta } from "./TarifaVinculadaEstadoConsulta";
+import { useSolicitudPricing } from "@/features/crm/hooks/usePricingCrm";
+import { fechaVigenciaCarga } from "@/lib/date/fechaVigenciaCarga";
 
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -48,6 +50,9 @@ export default function TarifaVinculadaPanel({
   const tarifaId = watch("tarifaId");
   const validez = watch("validezPropuesta");
   const tipoContenedorActual = watch("tipoContenedor");
+  const solicitudId = watch("pricingSolicitudId");
+  const solicitud = useSolicitudPricing(solicitudId ?? null);
+  const fechaCarga = fechaVigenciaCarga(solicitud.data?.fecha_tentativa_carga);
 
 
   const { data: tarifa, isLoading, isFetching, isError, isSuccess, refetch } = useTarifaVinculada(tarifaId);
@@ -160,11 +165,11 @@ export default function TarifaVinculadaPanel({
       </div>
 
       <BuscarTarifaDialog
-        open={open}
+        open={Boolean(solicitudId) && !solicitud.isSuccess ? false : open}
         onOpenChange={setOpen}
         onElegir={aplicarTarifa}
         selectLabel="Usar esta tarifa"
-        initial={{ tipoContenedorId: tipoContenedorIdInicial }}
+        initial={{ tipoContenedorId: tipoContenedorIdInicial, fecha: fechaCarga }}
       />
     </WizardSection>
   );

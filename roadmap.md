@@ -1,4 +1,6 @@
 # Roadmap — Pricing por modo
+- [x] Barrido de pantallas de vigencia: sugerencias por modo, apertura/respuestas y cambio de tarifa en cotización; 104 pruebas focalizadas y lint aprobados.
+- [ ] Vigencia en base: selección marítima y vínculo Pricing pendientes de autorización específica; revalidación al embarcar requiere confirmar alcance sin alterar acuerdos aceptados.
 - [x] Restaurar vigencia aérea según fecha tentativa de carga: 27 pruebas focalizadas y lint aprobados; revisión en sesión real del respaldo sin fecha, sin modificar solicitudes.
 - [x] MSDS: adjuntar PDF identificado y bloquear envío de carga peligrosa sin archivo; aviso y selección verificados en pantalla, rechazo transaccional y 47 pruebas focalizadas.
 - [x] Conectar etiqueta Cotizada/Finalizada y ocultar cotizar cuando exista cotización vinculada.

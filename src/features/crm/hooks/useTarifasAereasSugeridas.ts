@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fechaVigencia } from "./useTarifasTerrestresSugeridas";
+import { fechaVigenciaCarga as fechaVigencia } from "@/lib/date/fechaVigenciaCarga";
 import { crm } from "../queryKeys";
 import { listarTarifasAereasSugeridas } from "../services/pricing/tarifasAereasSugeridas";
 

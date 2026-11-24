@@ -14,6 +14,7 @@ export interface MetadataRespuestaPricing {
   notas?: string | null;
   tipo_operacion?: string | null;
   sector_economico?: string | null;
+  fecha_tentativa_carga?: string | null;
 }
 
 const MODOS_COTIZACION = ["Marítimo", "Aéreo", "Terrestre"] as const;

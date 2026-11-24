@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 import { hoyMx } from "@/lib/date/mx";
+import { fechaVigenciaCarga } from "@/lib/date/fechaVigenciaCarga";
 import {
   aplicarTarifaTarifario, costeoQueryKeys, listarCargos,
   listarTarifasTarifario, tarifasCoincidentes,
@@ -11,7 +12,10 @@ import type { SolicitudPricingRow } from "../services/pricing/tiposPricing";
 export function useOpcionesTarifario(s: SolicitudPricingRow) {
   const qc = useQueryClient();
   const hoy = hoyMx();
-  const tarifas = useQuery({ queryKey: costeoQueryKeys.tarifario.tarifas("vigentes"), queryFn: () => listarTarifasTarifario("vigentes", hoy) });
+  // Una selección existente conserva su consulta; las nuevas usan el día de carga.
+  const fecha = s.tarifa_tarifario_id ? hoy : fechaVigenciaCarga(s.fecha_tentativa_carga, hoy);
+  const key = costeoQueryKeys.tarifario.tarifas("vigentes");
+  const tarifas = useQuery({ queryKey: fecha === hoy ? key : [...key, fecha], queryFn: () => listarTarifasTarifario("vigentes", fecha) });
   const esFob = (s.incoterm ?? "").toUpperCase() === "FOB";
   const fob = useQuery({ queryKey: costeoQueryKeys.tarifario.cargos("fob"), queryFn: () => listarCargos("fob"), enabled: esFob });
   const locales = useQuery({ queryKey: costeoQueryKeys.tarifario.cargos("locales"), queryFn: () => listarCargos("locales") });

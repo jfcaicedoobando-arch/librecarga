@@ -4,6 +4,7 @@ import type { ProspectoMatch } from "@/features/crm/services/prospectoSearch";
 import { captureAuthOperationScope, AuthOperationChangedError } from "@/lib/auth/authOperationScope";
 import { fetchTarifasPricingOrganizacion } from "./tarifasPricingCotizacion";
 import type { MetadataRespuestaPricing } from "@/features/cotizacion/domain/respuestaPricing";
+import { fechaVigenciaCarga, tarifaCubreCarga } from "@/lib/date/fechaVigenciaCarga";
 
 export interface ContextoPricingParams {
   organizationId: string;
@@ -40,7 +41,7 @@ async function resolverDestinatario(oportunidadId: string, organizationId: strin
 async function resolverSolicitud({ organizationId, solicitudId, oportunidadId, tarifaId }: ContextoPricingParams): Promise<MetadataRespuestaPricing | null> {
   if (!solicitudId) return null; // Enlaces históricos no infieren una solicitud por tarifa.
   const { data: s, error } = await supabase.from("crm_solicitudes_pricing")
-    .select("id, oportunidad_id, tarifa_tarifario_id, incoterm, cantidad, servicio, tipo_carga, commodity, imo, estibable, peso, unidad_medida, notas, tipo_operacion, sector_economico")
+    .select("id, oportunidad_id, tarifa_tarifario_id, incoterm, cantidad, servicio, tipo_carga, commodity, imo, estibable, peso, unidad_medida, notas, tipo_operacion, sector_economico, fecha_tentativa_carga")
     .eq("organization_id", organizationId).eq("id", solicitudId).eq("estado", "respondida").is("deleted_at", null).maybeSingle();
   if (error) throw error;
   if (!s || s.oportunidad_id !== oportunidadId) throw new Error("La solicitud no corresponde a esta oportunidad o ya no está respondida.");
@@ -64,5 +65,8 @@ export async function fetchContextoPricingCotizacion(params: ContextoPricingPara
   scope.assertCurrent();
   const tarifa = tarifas[0];
   if (!tarifa) throw new Error("La tarifa de Pricing ya no está vigente; elige otra en la ruta.");
+  if (solicitud && !tarifaCubreCarga(tarifa, fechaVigenciaCarga(solicitud.fecha_tentativa_carga))) {
+    throw new Error("La tarifa no cubre la fecha tentativa de carga; elige otra.");
+  }
   return { organizationId: params.organizationId, tarifa, destinatario, solicitud };
 }

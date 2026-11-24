@@ -6,6 +6,7 @@
  */
 import type { TarifaTarifario } from "./tarifarioService";
 import { claveCanonicaTipoContenedor } from "@/features/catalogos";
+import { fechaVigenciaCarga } from "@/lib/date/fechaVigenciaCarga";
 
 export interface SolicitudBusqueda {
   pol: string | null;
@@ -74,7 +75,7 @@ function puntajePuerto(s: SolicitudBusqueda, t: TarifaTarifario): number {
 
 export function tarifasCoincidentes(s: SolicitudBusqueda, tarifas: readonly TarifaTarifario[], hoy: string): TarifaTarifario[] {
   if (!esMaritimo(s.servicio)) return [];
-  const fecha = s.fecha_tentativa_carga && s.fecha_tentativa_carga > hoy ? s.fecha_tentativa_carga : hoy;
+  const fecha = fechaVigenciaCarga(s.fecha_tentativa_carga, hoy);
   return tarifas.filter((t) =>
     coincideExtremo(s.origen, s.pol, t.ruta?.origen) &&
     coincideExtremo(s.destino, s.pod, t.ruta?.destino) &&

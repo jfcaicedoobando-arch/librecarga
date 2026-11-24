@@ -37,6 +37,7 @@ export default function SugerenciasTarifaInline({
   const {
     openDialog, setOpenDialog,
     puertoOrigenId, puertoDestinoId, tipoContenedorId,
+    fecha,
     tarifas, isFetching, error, refetch, isRefetching,
     handleElegir,
   } = useSugerenciasTarifaInline({ cotizacionId, onElegirTarifa });
@@ -52,6 +53,7 @@ export default function SugerenciasTarifaInline({
         puertoOrigenId={puertoOrigenId}
         puertoDestinoId={puertoDestinoId}
         tipoContenedorId={tipoContenedorId}
+        fecha={fecha}
       />
     );
   }
@@ -87,7 +89,7 @@ export default function SugerenciasTarifaInline({
         onOpenChange={setOpenDialog}
         onElegir={onElegirTarifa}
         selectLabel="Usar esta tarifa"
-        initial={{ puertoOrigenId, puertoDestinoId, tipoContenedorId }}
+        initial={{ puertoOrigenId, puertoDestinoId, tipoContenedorId, fecha }}
       />
     </div>
   );

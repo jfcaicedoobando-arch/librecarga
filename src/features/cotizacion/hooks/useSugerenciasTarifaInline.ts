@@ -11,7 +11,8 @@ import { logTarifaSugeridaAplicada } from "@/features/cotizacion/services/bitaco
 import { resolverPuertoId, resolverTipoId } from "@/features/cotizacion/components/seccionRuta/resolverCatalogos";
 import type { CotizacionFormValues } from "@/features/cotizacion/types";
 import type { TopTarifaRow } from "@/features/costeo/types";
-import { todayLocalISO } from "@/lib/date/today";
+import { fechaVigenciaCarga } from "@/lib/date/fechaVigenciaCarga";
+import { useSolicitudPricing } from "@/features/crm/hooks/usePricingCrm";
 
 interface UseSugerenciasTarifaInlineParams {
   cotizacionId?: string | null;
@@ -29,6 +30,10 @@ export function useSugerenciasTarifaInline({ cotizacionId, onElegirTarifa }: Use
   const puertoOrigenIdForm = watch("puertoOrigenId");
   const puertoDestinoIdForm = watch("puertoDestinoId");
   const tipoContenedor = watch("tipoContenedor");
+  const solicitudId = watch("pricingSolicitudId");
+  const solicitud = useSolicitudPricing(solicitudId ?? null);
+  const esperandoSolicitud = Boolean(solicitudId) && !solicitud.isSuccess;
+  const fecha = fechaVigenciaCarga(solicitud.data?.fecha_tentativa_carga);
 
   // Etapa 3: el ID capturado en el formulario manda. `resolverPuertoId` queda
   // sólo como compatibilidad con cotizaciones legacy que únicamente tienen texto.
@@ -44,10 +49,10 @@ export function useSugerenciasTarifaInline({ cotizacionId, onElegirTarifa }: Use
 
 
   const { data: tarifas = [], isFetching, error, refetch, isRefetching } = useTopTarifas({
-    puertoOrigenId,
+    puertoOrigenId: esperandoSolicitud ? "" : puertoOrigenId,
     puertoDestinoId,
     tipoContenedorId,
-    fecha: todayLocalISO(),
+    fecha,
   });
 
   const handleElegir = (row: TopTarifaRow) => {
@@ -57,15 +62,16 @@ export function useSugerenciasTarifaInline({ cotizacionId, onElegirTarifa }: Use
   };
 
   return {
-    openDialog,
+    openDialog: esperandoSolicitud ? false : openDialog,
     setOpenDialog,
     puertoOrigenId,
     puertoDestinoId,
     tipoContenedorId,
+    fecha,
     tarifas,
-    isFetching,
-    error,
-    refetch,
+    isFetching: (Boolean(solicitudId) && solicitud.isPending) || isFetching,
+    error: solicitudId && solicitud.isError ? solicitud.error : error,
+    refetch: solicitudId && solicitud.isError ? solicitud.refetch : refetch,
     isRefetching,
     handleElegir,
   };
