@@ -38,7 +38,7 @@ vi.mock("../AjustePlazoPricing", () => ({ AjustePlazoPricing: () => null }));
 
 const solicitud: SolicitudPricingRow = {
   id: "sol", organization_id: "org", oportunidad_id: "op", solicitante_id: "solicitante", created_by: "creador",
-  version: 1, recotizada_at: null, estado: "respondida", folio: "SOL-1", fecha: "2026-10-10", complejidad: "baja", created_at: "", updated_at: "",
+  version: 1, recotizada_at: null, motivo_perdida_id: null, perdida_at: null, perdida_nota: null, perdida_por: null, estado: "respondida", folio: "SOL-1", fecha: "2026-10-10", complejidad: "baja", created_at: "", updated_at: "",
   cantidad: 1, cliente: null, commodity: null, container_size: null, deleted_at: null, delivery: null,
   destino: "Manzanillo", dimensiones: null, enviada_at: null, estibable: null, fecha_tentativa_carga: null,
   imo: null, incoterm: "FAS", notas: null, origen: "Ningbo", peso: null, pod: null, pol: null,

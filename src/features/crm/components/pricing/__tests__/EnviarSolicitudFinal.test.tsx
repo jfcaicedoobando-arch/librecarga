@@ -17,7 +17,7 @@ import { crm } from "@/features/crm/queryKeys";
 
 const solicitud: SolicitudPricingRow = {
   id: "s1", organization_id: "org1", oportunidad_id: "o1", solicitante_id: "u1", created_by: "u1",
-  estado: "borrador", version: 1, recotizada_at: null, folio: "SP1", fecha: "2026-10-08", complejidad: "media", created_at: "", updated_at: "",
+  estado: "borrador", version: 1, recotizada_at: null, motivo_perdida_id: null, perdida_at: null, perdida_nota: null, perdida_por: null, folio: "SP1", fecha: "2026-10-08", complejidad: "media", created_at: "", updated_at: "",
   cantidad: 1, cliente: "ACME", commodity: "Llantas", container_size: null, deleted_at: null, delivery: null,
   destino: "Manzanillo", dimensiones: "1x1x1", enviada_at: null, estibable: true, fecha_tentativa_carga: null,
   imo: false, incoterm: "FOB", notas: null, origen: "Shanghai", peso: "1000", pod: "MXZLO", pol: "CNSHA",
