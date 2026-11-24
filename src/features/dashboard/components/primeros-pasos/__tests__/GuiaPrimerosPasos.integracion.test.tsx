@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, useLocation } from "react-router";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router";
 import type { AppRole } from "@/types/appRole";
 
 const contexto = vi.hoisted(() => ({
@@ -41,12 +41,35 @@ function abrirGuia() {
   fireEvent.click(screen.getByRole("button", { name: /Empieza por tu tarea|Ver guía de primeros pasos/ }));
 }
 
+async function mostrarTodasLasTareas() {
+  const boton = screen.queryByRole("button", { name: "Ver todas las tareas" });
+  if (boton) await act(async () => { fireEvent.click(boton); });
+}
+
+function VolverAInicio() {
+  const navigate = useNavigate();
+  return <button type="button" onClick={() => void navigate(-1)}>Atrás</button>;
+}
+
+function VistaConHistorial() {
+  return (
+    <MemoryRouter initialEntries={["/inicio"]}>
+      <Routes>
+        <Route path="/inicio" element={<GuiaPrimerosPasos abrirEnPrimeraVisita />} />
+        <Route path="/embarques" element={<VolverAInicio />} />
+      </Routes>
+      <RutaActual />
+    </MemoryRouter>
+  );
+}
+
 function cambiarRol(role: AppRole | null) {
   contexto.auth.role = role;
   contexto.auth.effectiveRole = role;
 }
 
 beforeEach(() => {
+  sessionStorage.removeItem("lc:guia-primeros-pasos:tarea-reciente");
   contexto.auth.user = { id: "persona-a" };
   cambiarRol("vendedor");
   contexto.auth.loading = false;
@@ -59,12 +82,20 @@ beforeEach(() => {
   contexto.org.reintentarCargaOrganizaciones.mockReset();
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe("Guía contextual conectada a permisos reales", () => {
   it("cero tareas anuncia el estado sin ofrecer acciones ni reintentar", () => {
     const retry = vi.fn(async () => {});
-    render(<ContenidoPrimerosPasos resultado={{ estado: "disponible", contexto: "organizacion", tareas: [] }} onRetry={retry} />);
+    render(<ContenidoPrimerosPasos
+      resultado={{ estado: "disponible", contexto: "organizacion", tareas: [] }}
+      onRetry={retry}
+      tareaAbierta=""
+      onTareaAbiertaChange={vi.fn()}
+    />);
     expect(screen.getByRole("status")).toHaveTextContent("No hay tareas de esta guía disponibles para tu acceso actual.");
     expect(screen.getByRole("status")).toHaveTextContent("Consulta las preguntas frecuentes de los módulos que puedes abrir.");
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
@@ -89,13 +120,12 @@ describe("Guía contextual conectada a permisos reales", () => {
     fireEvent.click(trigger);
     abrirGuia();
     expect(fetch).not.toHaveBeenCalled();
-    expect(storage).not.toHaveBeenCalled();
+    expect(storage.mock.contexts).not.toContain(localStorage);
     expect(contexto.auth.refreshProfile).not.toHaveBeenCalled();
     expect(contexto.org.reintentarCargaOrganizaciones).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Preparar una cotización" }));
     fireEvent.click(screen.getByRole("link", { name: "Ver cotizaciones" }));
     expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/cotizaciones");
-    storage.mockRestore();
   });
 
   it.each([
@@ -104,10 +134,11 @@ describe("Guía contextual conectada a permisos reales", () => {
     ["tesorero", "Revisar pagos a proveedores", "Preparar la emisión de una factura"],
     ["customer_service", "Preparar una cotización", "Capturar facturas de proveedor"],
     ["gerente_visor", "Consultar información", "Preparar una cotización"],
-  ] as const)("%s recibe tareas de su matriz específica", (role, visible, oculta) => {
+  ] as const)("%s recibe tareas de su matriz específica", async (role, visible, oculta) => {
     cambiarRol(role);
     render(<Vista />);
     abrirGuia();
+    await mostrarTodasLasTareas();
     expect(screen.getByRole("button", { name: visible })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: oculta })).not.toBeInTheDocument();
     if (role === "customer_service") {
@@ -116,10 +147,11 @@ describe("Guía contextual conectada a permisos reales", () => {
     }
   });
 
-  it("preserva los parámetros de las bandejas de emisión", () => {
+  it("preserva los parámetros de las bandejas de emisión", async () => {
     cambiarRol("contador");
     render(<Vista />);
     abrirGuia();
+    await mostrarTodasLasTareas();
     fireEvent.click(screen.getByRole("button", { name: "Preparar la emisión de una factura" }));
     expect(screen.getByRole("link", { name: "Ver proformas aceptadas" })).toHaveAttribute("href", "/proformas?estado=aceptada");
     expect(screen.getByRole("link", { name: "Ver Por timbrar" })).toHaveAttribute("href", "/facturacion?bandeja=por-timbrar");
@@ -289,6 +321,7 @@ describe("Guía contextual conectada a permisos reales", () => {
     fireEvent.click(screen.getByRole("button", { name: role === "cliente" ? "Consultar tu portal de cliente" : "Consultar tu portal de agente" }));
     const prefijo = role === "cliente" ? "/portal" : "/agente";
     for (const link of screen.getAllByRole("link")) expect(link.getAttribute("href")).toMatch(new RegExp(`^${prefijo}(?:/|$)`));
+    expect(screen.queryByRole("button", { name: "Ver todas las tareas" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Preparar una cotización" })).not.toBeInTheDocument();
   });
 
@@ -337,6 +370,93 @@ it("Inicio abre la guía por primera vez y recuerda el cierre por persona y orga
   render(vista());
   expect(screen.getByRole("button", { name: "Empieza por tu tarea" })).toHaveAttribute("aria-expanded", "false");
   localStorage.removeItem(clave);
+});
+
+describe("Interacción de la guía en Inicio", () => {
+  it("el título y la flecha alternan el mismo botón y plegar oculta también la introducción", () => {
+    render(<Vista />);
+    const encabezado = screen.getByRole("heading", { name: "Empieza por tu tarea" });
+    const boton = within(encabezado).getByRole("button");
+    const flecha = boton.querySelector("svg.lucide-chevron-down");
+    if (!flecha) throw new Error("Falta la flecha del encabezado");
+    fireEvent.click(flecha);
+    expect(boton).toHaveAttribute("aria-expanded", "true");
+    const contenido = screen.getByRole("region", { name: "Empieza por tu tarea" });
+    expect(contenido).toHaveTextContent("Elige una tarea según tu acceso en la organización activa.");
+    fireEvent.click(within(boton).getByText("Empieza por tu tarea"));
+    expect(boton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Elige una tarea según tu acceso en la organización activa.")).not.toBeInTheDocument();
+    expect(contenido).not.toBeVisible();
+  });
+
+  it("muestra tres tareas iniciales y al reducir la lista deja el foco en el control", async () => {
+    cambiarRol("admin");
+    render(<Vista />);
+    abrirGuia();
+    const contenido = screen.getByRole("region", { name: "Empieza por tu tarea" });
+    expect(within(contenido).getAllByRole("heading", { level: 3 })).toHaveLength(3);
+    expect(within(contenido).queryByRole("button", { name: "Continuar una operación" })).not.toBeInTheDocument();
+    await mostrarTodasLasTareas();
+    expect(within(contenido).getAllByRole("heading", { level: 3 })).toHaveLength(11);
+    fireEvent.click(within(contenido).getByRole("button", { name: "Continuar una operación" }));
+    const enlace = within(contenido).getByRole("link", { name: "Ver embarques" });
+    expect(enlace).toBeVisible();
+    enlace.focus();
+    const verMenos = within(contenido).getByRole("button", { name: "Ver menos tareas" });
+    await act(async () => { fireEvent.click(verMenos); });
+    expect(within(contenido).getAllByRole("heading", { level: 3 })).toHaveLength(3);
+    expect(within(contenido).queryByRole("link", { name: "Ver embarques" })).not.toBeInTheDocument();
+    expect(within(contenido).getByRole("button", { name: "Ver todas las tareas" })).toHaveFocus();
+  });
+
+  it("al alternar tareas conserva el foco en la fila seleccionada y sólo abre una", () => {
+    render(<Vista />);
+    abrirGuia();
+    const cotizacion = screen.getByRole("button", { name: "Preparar una cotización" });
+    const pricing = screen.getByRole("button", { name: "Consultar tarifas y Pricing" });
+    fireEvent.click(cotizacion);
+    expect(screen.getByRole("link", { name: "Ver cotizaciones" })).toBeVisible();
+    pricing.focus();
+    fireEvent.click(pricing);
+    expect(pricing).toHaveFocus();
+    expect(pricing).toHaveAttribute("aria-expanded", "true");
+    expect(cotizacion).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("link", { name: "Ver cotizaciones" })).not.toBeInTheDocument();
+  });
+
+  it("recupera una tarea de la lista completa y su foco al volver con Atrás", async () => {
+    cambiarRol("admin");
+    render(<VistaConHistorial />);
+    await mostrarTodasLasTareas();
+    fireEvent.click(screen.getByRole("button", { name: "Continuar una operación" }));
+    fireEvent.click(screen.getByRole("link", { name: "Ver embarques" }));
+    expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/embarques");
+    expect(screen.queryByRole("button", { name: "Empieza por tu tarea" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Atrás" }));
+    expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/inicio");
+    const tarea = screen.getByRole("button", { name: "Continuar una operación" });
+    expect(tarea).toHaveAttribute("aria-expanded", "true");
+    expect(tarea).toHaveFocus();
+    expect(screen.getByRole("link", { name: "Ver embarques" })).toBeVisible();
+  });
+
+  it.each(["usuario", "organización", "rol"])("al cambiar de %s antes de Atrás descarta la tarea anterior", async (cambio) => {
+    cambiarRol("admin");
+    const { rerender } = render(<VistaConHistorial />);
+    await mostrarTodasLasTareas();
+    fireEvent.click(screen.getByRole("button", { name: "Continuar una operación" }));
+    fireEvent.click(screen.getByRole("link", { name: "Ver embarques" }));
+    if (cambio === "usuario") contexto.auth.user = { id: "persona-b" };
+    if (cambio === "organización") contexto.org.organizationId = "empresa-b";
+    if (cambio === "rol") cambiarRol("admin_org");
+    rerender(<VistaConHistorial />);
+    fireEvent.click(screen.getByRole("button", { name: "Atrás" }));
+    expect(screen.getByRole("button", { name: "Ver todas las tareas" })).toBeVisible();
+    await mostrarTodasLasTareas();
+    const tarea = screen.getByRole("button", { name: "Continuar una operación" });
+    expect(tarea).toHaveAttribute("aria-expanded", "false");
+    expect(tarea).not.toHaveFocus();
+  });
 });
 
 it("Ayuda enseña las coincidencias del glosario en el vacío de preguntas y permite limpiar", () => {
