@@ -13,4 +13,5 @@
 - [ ] Fase 3: aéreo (aeropuertos CSV)
 - [ ] Fase 4: terrestre
 - [ ] Fase 5: operación de Pricing
-- [ ] Fase 6: ciclo y reportes (por confirmar)
+- [x] Fase 6 (parte 1): recotizar por versión y costo cotizado vs real
+- [ ] Fase 6 (parte 2): motivos de pérdida, indicadores y carga Excel (sin aprobar)
