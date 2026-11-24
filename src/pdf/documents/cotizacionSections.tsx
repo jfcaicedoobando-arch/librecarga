@@ -8,6 +8,7 @@ import { KeyValueGrid } from "../components/KeyValueGrid";
 import { DataTable, type PdfColumn } from "../components/DataTable";
 import { sanitizePdfText } from "../text/sanitizePdfText";
 import { itemsBanderasAereas } from "@/features/cotizacion/domain/banderasAereas";
+import { itemEscalas } from "@/features/cotizacion/domain/escalasVuelo";
 import { esIncotermSinFleteVenta, esIncotermConSeguroIncluido } from "@/features/cotizacion/utils/incotermRules";
 
 interface Props {
@@ -109,8 +110,8 @@ export function SeccionDimensiones({ c }: Props) {
 export { SeccionProspecto };
 
 /** Sección Datos Generales + Mercancía + descripciones propias + dimensiones. */
-export function SeccionDatosYMercancia({ c, tiposContenedor = [] }: PropsConCatalogo) {
-  const aereas = c.modo === "Aéreo" ? itemsBanderasAereas(c) : [];
+export function SeccionDatosYMercancia({ c, tiposContenedor = [], escalas }: PropsConCatalogo & { escalas?: string[] | null }) {
+  const aereas = c.modo === "Aéreo" ? [...itemEscalas(escalas), ...itemsBanderasAereas(c)] : [];
   return (
     <>
       <View wrap={false}>

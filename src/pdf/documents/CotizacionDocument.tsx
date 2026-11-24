@@ -22,6 +22,8 @@ import {
 
 interface Props {
   cotizacion: CotizacionRow;
+  /** Aéreo: escalas de la tarifa ligada (null = directo, undefined = sin dato). */
+  escalas?: string[] | null;
   tasaIva?: number;
   emisor?: EmisorInfo;
   tiposContenedor?: ReadonlyArray<TipoContenedorCatalogo>;
@@ -47,7 +49,7 @@ function ResumenFiscalPdf({ cotizacion, tasaIva }: { cotizacion: CotizacionRow; 
 
 }
 
-export function CotizacionDocument({ cotizacion, tasaIva = TASA_IVA, emisor, tiposContenedor = [] }: Props) {
+export function CotizacionDocument({ cotizacion, tasaIva = TASA_IVA, emisor, tiposContenedor = [], escalas }: Props) {
   const fiscal = fiscalCotizacionParaDocumento(cotizacion);
   const conFiscal = fiscal.estado === "confirmado" || fiscal.estado === "pendiente";
   const totales = calcularTotales(cotizacion.conceptos_venta, tasaIva);
@@ -85,7 +87,7 @@ export function CotizacionDocument({ cotizacion, tasaIva = TASA_IVA, emisor, tip
         />
         <SeccionResumenRuta c={cotizacion} />
         <SeccionProspecto c={cotizacion} />
-        <SeccionDatosYMercancia c={cotizacion} tiposContenedor={tiposContenedor} />
+        <SeccionDatosYMercancia c={cotizacion} tiposContenedor={tiposContenedor} escalas={escalas} />
 
         {/* v13.823.77: el título arrastra al menos el encabezado de la tabla. */}
         <View wrap={false} minPresenceAhead={90}>

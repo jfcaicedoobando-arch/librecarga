@@ -6,6 +6,7 @@ import { WizardSection } from "@/components/shared/WizardSection";
 import { formatCurrency } from "@/lib/formatters";
 import type { ConceptoVentaCotizacion } from "@/features/cotizacion/types";
 import { itemsBanderasAereas, type BanderasAereas } from "@/features/cotizacion/domain/banderasAereas";
+import { itemEscalas } from "@/features/cotizacion/domain/escalasVuelo";
 import ResumenPL from "@/features/cotizacion/components/ResumenPL";
 import CargosResumenCotizacion from "@/features/cotizacion/components/CargosResumenCotizacion";
 
@@ -42,13 +43,15 @@ interface Props {
   esEdicion?: boolean;
   /** Aéreo: banderas de la solicitud de Pricing (litio, Known Shipper, PAX/CAO). */
   banderasAereas?: BanderasAereas | null;
+  /** Aéreo: escalas de la tarifa ligada (null = directo). */
+  escalas?: string[] | null;
 }
 
 
 const DATO = (label: string, valor: string) => ({ label, valor });
 
 function datosOperacion({
-  nombreCliente, origen, destino, numContenedores, cargaLcl, modo, incoterm, tipo, banderasAereas,
+  nombreCliente, origen, destino, numContenedores, cargaLcl, modo, incoterm, tipo, banderasAereas, escalas,
 }: Props) {
   // BL-COT-04: sólo el marítimo se mide en contenedores.
   return [
@@ -62,6 +65,7 @@ function datosOperacion({
     DATO("Modo", modo || "—"),
     DATO("Incoterm", incoterm || "—"),
     DATO("Tipo", tipo || "—"),
+    ...(modo === "Aéreo" ? itemEscalas(escalas).map(([l, v]) => DATO(l, v)) : []),
     ...(modo === "Aéreo" ? itemsBanderasAereas(banderasAereas).map(([l, v]) => DATO(l, v)) : []),
   ];
 }

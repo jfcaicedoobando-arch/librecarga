@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DimensionLCL, DimensionAerea } from "@/features/cotizacion/hooks";
 import { itemsBanderasAereas, type BanderasAereas } from "@/features/cotizacion/domain/banderasAereas";
+import { itemEscalas } from "@/features/cotizacion/domain/escalasVuelo";
+import { useEscalasTarifa } from "@/features/cotizacion/hooks/useEscalasTarifa";
 import { pesoTasable } from "@/features/costeo/domain/tarifaPorPeso";
 import { formatNumber } from "@/lib/formatters";
 import { MercanciaInfoGrid } from "./seccionMercancia/MercanciaInfoGrid";
@@ -24,6 +26,7 @@ interface Props {
     msds_archivo: string | null;
     dimensiones_lcl: unknown;
     dimensiones_aereas: unknown;
+    tarifa_id?: string | null;
   } & Partial<BanderasAereas>;
 }
 
@@ -51,11 +54,12 @@ function MedidasAereasGuardadas({ cotizacion, conDimensiones }: { cotizacion: Pr
 }
 
 function CondicionesAereasGuardadas({ cotizacion }: { cotizacion: Props["cotizacion"] }) {
-  const banderas = itemsBanderasAereas({
+  const escalas = useEscalasTarifa(cotizacion.tarifa_id, true);
+  const banderas = [...itemEscalas(escalas), ...itemsBanderasAereas({
     baterias_litio: cotizacion.baterias_litio ?? null,
     known_shipper: cotizacion.known_shipper ?? null,
     tipo_aeronave: cotizacion.tipo_aeronave ?? null,
-  });
+  })];
   if (!banderas.length) return null;
   return (
     <dl aria-label="Condiciones de transporte aéreo" className="grid grid-cols-2 gap-4 text-body md:grid-cols-4">

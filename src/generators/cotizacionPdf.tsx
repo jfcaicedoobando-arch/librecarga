@@ -11,6 +11,7 @@ import { descargarPdf } from "@/pdf/render/descargarPdf";
 import { cargarEmisorDocumento } from "@/pdf/emisor";
 import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
 import { fetchTiposContenedor } from "@/features/catalogos/services";
+import { fetchEscalasTarifa } from "@/features/cotizacion/services/escalasTarifa";
 import { slugifyOrg } from "@/lib/filenames";
 
 export async function generarPdfCotizacion(
@@ -18,10 +19,11 @@ export async function generarPdfCotizacion(
   tasaIva: number = TASA_IVA,
 ): Promise<void> {
   const scope = captureAuthOperationScope();
-  const [emisor, tiposContenedor, { CotizacionDocument }] = await Promise.all([
+  const [emisor, tiposContenedor, { CotizacionDocument }, escalas] = await Promise.all([
     cargarEmisorDocumento(cotizacion.organization_id),
     fetchTiposContenedor(true).catch(() => []),
     import("@/pdf/documents/CotizacionDocument"),
+    cotizacion.modo === "Aéreo" ? fetchEscalasTarifa(cotizacion.tarifa_id).catch(() => undefined) : undefined,
   ]);
   scope.assertCurrent();
   await descargarPdf(
@@ -30,6 +32,7 @@ export async function generarPdfCotizacion(
       tasaIva={tasaIva}
       emisor={emisor}
       tiposContenedor={tiposContenedor}
+      escalas={escalas}
     />,
     `${slugifyOrg(emisor.organizacionNombre || emisor.razonSocial)}_${cotizacion.folio}-cotizacion`,
   );

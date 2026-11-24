@@ -14,6 +14,7 @@ import { resumenCargaLcl } from "@/lib/domain/resumenCargaLcl";
 
 import SeccionConceptosVentaCotizacion from "@/features/cotizacion/components/SeccionConceptosVentaCotizacion";
 import SeccionCostosInternosPLUnificado from "@/features/cotizacion/components/SeccionCostosInternosPLUnificado";
+import { useEscalasTarifa } from "@/features/cotizacion/hooks/useEscalasTarifa";
 import PasoResumenCotizacion from "@/features/cotizacion/components/PasoResumenCotizacion";
 import PasoDatosGenerales from "@/features/cotizacion/components/wizard/PasoDatosGenerales";
 import Paso1ProgressSidebar from "@/features/cotizacion/components/wizard/Paso1ProgressSidebar";
@@ -63,6 +64,7 @@ export function CotizacionWizardSteps({ w, clientes, catalogoClientes, esMaritim
   const pricingSolicitudId = useWatch({ control, name: "pricingSolicitudId" });
   const monedaCrm = useWatch({ control, name: "monedaCrm" });
   const tarifaId = useWatch({ control, name: "tarifaId" });
+  const escalas = useEscalasTarifa(tarifaId, modo === "Aéreo");
   const monedaElegida = useWatch({ control, name: "monedaTarifa" });
   const monedaTarifa = tarifaId && !pricingSolicitudId ? monedaElegida : null;
   const monedaCanonica = monedaObjetivoCotizacion(tarifaId, monedaElegida, pricingSolicitudId, monedaCrm);
@@ -169,6 +171,7 @@ export function CotizacionWizardSteps({ w, clientes, catalogoClientes, esMaritim
             totales={{ usd: w.totalUSD, mxn: w.totalMXN }}
             esEdicion={w.isEditMode}
             banderasAereas={banderasAereas}
+            escalas={escalas}
             accionesEdicion={{
               editarDatos: () => w.setCurrentStep(1),
               editarConceptos: () => w.setCurrentStep(3),
