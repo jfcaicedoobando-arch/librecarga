@@ -21,7 +21,7 @@ import { TarifasFilterChips } from "@/features/costeo/components/TarifasFilterCh
 import { useDocumentTitle } from "@/hooks/shared";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { BandejaPricingPanel } from "@/features/crm";
+import { BandejaPricingPanel, CostoVsRealPanel } from "@/features/crm";
 import {
   useCosteoTarifasPageState,
   DEFAULT_ESTADO,
@@ -33,7 +33,8 @@ import {
 
 export default function CosteoTarifas() {
   const [params, setParams] = useSearchParams();
-  const tab = params.get("tab") === "bandeja" ? "bandeja" : "tarifas";
+  const tabUrl = params.get("tab");
+  const tab = tabUrl === "bandeja" || tabUrl === "costo-real" ? tabUrl : "tarifas";
   useDocumentTitle(tab === "bandeja" ? "Bandeja de pricing" : "Tarifas de costeo");
   const cambiarTab = (v: string) => {
     const n = new URLSearchParams(params);
@@ -58,6 +59,7 @@ export default function CosteoTarifas() {
         <TabsList>
           <TabsTrigger value="tarifas">Tarifas</TabsTrigger>
           <TabsTrigger value="bandeja">Bandeja de pricing</TabsTrigger>
+          <TabsTrigger value="costo-real">Cotizado vs real</TabsTrigger>
         </TabsList>
         <TabsContent value="tarifas">
           <div className="space-y-4 pt-4">
@@ -173,6 +175,9 @@ export default function CosteoTarifas() {
           <div className="space-y-4 pt-4">
             <BandejaPricingPanel />
           </div>
+        </TabsContent>
+        <TabsContent value="costo-real">
+          <div className="pt-4"><CostoVsRealPanel /></div>
         </TabsContent>
       </Tabs>
       <NuevaTarifaMultimodoDialog open={multimodo} onOpenChange={setMultimodo} />

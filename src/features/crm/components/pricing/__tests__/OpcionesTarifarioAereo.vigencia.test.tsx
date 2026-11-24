@@ -13,7 +13,7 @@ vi.mock("react-router", async (original) => ({
 
 const solicitud: SolicitudPricingRow = {
   id: "sol", organization_id: "org", oportunidad_id: "op", solicitante_id: "solicitante", created_by: "creador",
-  estado: "enviada", folio: "SOL-1", fecha: "2026-11-23", complejidad: "media", created_at: "", updated_at: "",
+  estado: "enviada", version: 1, recotizada_at: null, folio: "SOL-1", fecha: "2026-11-23", complejidad: "media", created_at: "", updated_at: "",
   cantidad: 1, cliente: null, commodity: null, container_size: null, deleted_at: null, delivery: null,
   destino: null, dimensiones: null, enviada_at: null, estibable: null, fecha_tentativa_carga: "2026-12-10",
   imo: null, incoterm: null, notas: null, origen: null, peso: "20", pod: "MEX — Ciudad de México", pol: "PVG — Shanghai",

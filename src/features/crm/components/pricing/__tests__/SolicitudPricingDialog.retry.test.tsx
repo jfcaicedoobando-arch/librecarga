@@ -43,7 +43,7 @@ import { setAuthSnapshot } from "@/lib/auth/authSnapshot";
 
 const borrador: SolicitudPricingRow = {
   id: "s1", organization_id: "org1", oportunidad_id: "o1", solicitante_id: "u1", created_by: "u1",
-  estado: "borrador", folio: "SP1", fecha: "2026-10-08", complejidad: "media", created_at: "", updated_at: "",
+  version: 1, recotizada_at: null, estado: "borrador", folio: "SP1", fecha: "2026-10-08", complejidad: "media", created_at: "", updated_at: "",
   cantidad: null, cliente: null, commodity: null, container_size: null, deleted_at: null, delivery: null,
   destino: "Manzanillo", dimensiones: null, enviada_at: null, estibable: null, fecha_tentativa_carga: null,
   imo: null, incoterm: null, notas: null, origen: "Shanghai", peso: null, pod: null, pol: null,

@@ -4983,6 +4983,53 @@ export type Database = {
           },
         ]
       }
+      crm_pricing_opciones_versiones: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          motivo: string
+          opciones: Json
+          organization_id: string
+          respondida_at: string | null
+          solicitud_id: string
+          tarifas: Json
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          motivo: string
+          opciones?: Json
+          organization_id: string
+          respondida_at?: string | null
+          solicitud_id: string
+          tarifas?: Json
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          motivo?: string
+          opciones?: Json
+          organization_id?: string
+          respondida_at?: string | null
+          solicitud_id?: string
+          tarifas?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_pricing_opciones_versiones_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: false
+            referencedRelation: "crm_solicitudes_pricing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_propiedad_opciones: {
         Row: {
           archivada: boolean
@@ -5268,6 +5315,7 @@ export type Database = {
           plazo_motivo: string | null
           pod: string | null
           pol: string | null
+          recotizada_at: string | null
           respondida_at: string | null
           retorno_vacio: boolean | null
           sector_economico: string | null
@@ -5285,6 +5333,7 @@ export type Database = {
           unidad_medida: string | null
           updated_at: string
           vence_at: string | null
+          version: number
           volumen_cbm: number | null
         }
         Insert: {
@@ -5334,6 +5383,7 @@ export type Database = {
           plazo_motivo?: string | null
           pod?: string | null
           pol?: string | null
+          recotizada_at?: string | null
           respondida_at?: string | null
           retorno_vacio?: boolean | null
           sector_economico?: string | null
@@ -5351,6 +5401,7 @@ export type Database = {
           unidad_medida?: string | null
           updated_at?: string
           vence_at?: string | null
+          version?: number
           volumen_cbm?: number | null
         }
         Update: {
@@ -5400,6 +5451,7 @@ export type Database = {
           plazo_motivo?: string | null
           pod?: string | null
           pol?: string | null
+          recotizada_at?: string | null
           respondida_at?: string | null
           retorno_vacio?: boolean | null
           sector_economico?: string | null
@@ -5417,6 +5469,7 @@ export type Database = {
           unidad_medida?: string | null
           updated_at?: string
           vence_at?: string | null
+          version?: number
           volumen_cbm?: number | null
         }
         Relationships: [
@@ -13145,6 +13198,24 @@ export type Database = {
       }
       crm_pricing_cambiar_estado: {
         Args: { p_accion: string; p_id: string; p_motivo?: string }
+        Returns: Json
+      }
+      crm_pricing_costo_vs_real: {
+        Args: { p_solicitud_ids: string[] }
+        Returns: {
+          costo_cotizado: number
+          costo_real: number
+          cotizacion_folio: string
+          cotizacion_id: string
+          embarque_id: string
+          expediente: string
+          facturas: number
+          moneda: string
+          solicitud_id: string
+        }[]
+      }
+      crm_pricing_recotizar: {
+        Args: { p_id: string; p_motivo: string }
         Returns: Json
       }
       crm_pricing_set_modos_ejecutivo: {

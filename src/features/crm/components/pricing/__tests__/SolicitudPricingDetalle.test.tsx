@@ -29,12 +29,15 @@ vi.mock("../AdjuntosSolicitudPricing", () => ({ AdjuntosSolicitudPricing: () => 
 vi.mock("../ResumenSolicitudPricing", () => ({ ResumenSolicitudPricing: () => null }));
 vi.mock("../OpcionPricingEditor", () => ({ OpcionPricingEditor: () => null }));
 vi.mock("../RelojPricing", () => ({ RelojPricing: () => null }));
+vi.mock("../fase6/VersionesPricing", () => ({ VersionesPricing: () => null }));
+vi.mock("../fase6/CostoVsRealPricing", () => ({ CostoVsRealPricing: () => null }));
+vi.mock("../fase6/RecotizarPricing", () => ({ RecotizarPricing: () => null }));
 vi.mock("../AccionesFlujoPricing", () => ({ AccionesFlujoPricing: () => null }));
 vi.mock("../AjustePlazoPricing", () => ({ AjustePlazoPricing: () => null }));
 
 const solicitud: SolicitudPricingRow = {
   id: "sol", organization_id: "org", oportunidad_id: "op", solicitante_id: "solicitante", created_by: "creador",
-  estado: "respondida", folio: "SOL-1", fecha: "2026-10-10", complejidad: "baja", created_at: "", updated_at: "",
+  version: 1, recotizada_at: null, estado: "respondida", folio: "SOL-1", fecha: "2026-10-10", complejidad: "baja", created_at: "", updated_at: "",
   cantidad: 1, cliente: null, commodity: null, container_size: null, deleted_at: null, delivery: null,
   destino: "Manzanillo", dimensiones: null, enviada_at: null, estibable: null, fecha_tentativa_carga: null,
   imo: null, incoterm: "FAS", notas: null, origen: "Ningbo", peso: null, pod: null, pol: null,

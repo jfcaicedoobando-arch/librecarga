@@ -26,6 +26,10 @@ import { OpcionesTarifarioAereo } from "./OpcionesTarifarioAereo";
 import { OpcionesTarifarioTerrestre } from "./OpcionesTarifarioTerrestre";
 import { SolicitudPricingDialog } from "./SolicitudPricingDialog";
 import { TarifasRespuestaPricing } from "./TarifasRespuestaPricing";
+import { RecotizarPricing } from "./fase6/RecotizarPricing";
+import { puedeRecotizar } from "@/features/crm/services/pricing/versionesPricing";
+import { VersionesPricing } from "./fase6/VersionesPricing";
+import { CostoVsRealPricing } from "./fase6/CostoVsRealPricing";
 
 interface Props { solicitud: SolicitudPricingRow }
 
@@ -49,11 +53,15 @@ function datosModoRespuesta(s: SolicitudPricingRow) {
 
 function CotizacionFinalizada({ solicitud: s }: Props) {
   const navigate = useNavigate();
-  if (s.estado !== "cotizada") return null;
+  const { effectiveRole } = useAuth();
   const cotizacion = s.cotizacion_finalizada;
+  const recotizable = puedeRecotizar(s, esRolPricing(effectiveRole));
+  if (s.estado !== "cotizada" && !recotizable && s.version <= 1) return null;
   return <div className="flex flex-wrap items-center gap-2">
-    <Badge variant="success">Finalizada</Badge>
-    {cotizacion && <Button variant="link" onClick={() => navigate(`/cotizaciones/${cotizacion.id}`)}>{cotizacion.folio}</Button>}
+    {s.version > 1 && <Badge variant="outline">Versión {s.version}</Badge>}
+    {s.estado === "cotizada" && <Badge variant="success">Finalizada</Badge>}
+    {s.estado === "cotizada" && cotizacion && <Button variant="link" onClick={() => navigate(`/cotizaciones/${cotizacion.id}`)}>{cotizacion.folio}</Button>}
+    {recotizable && <RecotizarPricing solicitud={s} />}
   </div>;
 }
 
@@ -105,6 +113,7 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
         oportunidadId={s.oportunidad_id ?? ""} solicitud={s} />
       <ResumenSolicitudPricing solicitud={s} />
       <CotizacionFinalizada solicitud={s} />
+      <CostoVsRealPricing solicitudId={s.id} />
       {esGerenteOps(effectiveRole) && <AjustePlazoPricing solicitud={s} />}
       <AdjuntosSolicitudPricing organizationId={s.organization_id} solicitudId={s.id}
         puedeAdjuntar={s.estado !== "cancelada"} peligrosa={s.imo === true} />
@@ -123,6 +132,7 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
         isError={tarifasRespuesta.isError} isFetching={tarifasRespuesta.isFetching} onSaved={() => { void tarifasRespuesta.refetch(); }}
         onCotizar={puedeCotizar && s.estado === "respondida" ? cotizarRespuesta : undefined}
         editable={(enTrabajo(s.estado) || s.estado === "respondida") && puedeAgregarTarifaRespuesta(effectiveRole)} />
+      <VersionesPricing solicitudId={s.id} version={s.version} />
     </div>
   );
 }

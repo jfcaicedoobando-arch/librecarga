@@ -26,6 +26,16 @@ describe("cierre de Pricing por cotización vinculada", () => {
     mock.setTableResult("cotizaciones", { data: [], error: null });
     expect(await conectarCotizadas([solicitud])).toEqual([solicitud]);
   });
+  it("tras recotizar, una cotización de la versión anterior ya no la cierra", async () => {
+    mock.setTableResult("cotizaciones", { data: [{ id: "cot-1", folio: "COT-1", pricing_solicitud_id: "sol-1", created_at: "2026-11-20T10:00:00Z" }], error: null });
+    const recotizada = { ...solicitud, estado: "en_proceso", recotizada_at: "2026-11-23T10:00:00Z" } as SolicitudPricingRow;
+    expect((await conectarCotizadas([recotizada]))[0].estado).toBe("en_proceso");
+  });
+  it("una cotización posterior a la recotización sí la cierra", async () => {
+    mock.setTableResult("cotizaciones", { data: [{ id: "cot-2", folio: "COT-2", pricing_solicitud_id: "sol-1", created_at: "2026-11-24T10:00:00Z" }], error: null });
+    const recotizada = { ...solicitud, recotizada_at: "2026-11-23T10:00:00Z" } as SolicitudPricingRow;
+    expect((await conectarCotizadas([recotizada]))[0]).toMatchObject({ estado: "cotizada", cotizacion_finalizada: { id: "cot-2", folio: "COT-2" } });
+  });
   it("no reabre una solicitud cancelada", async () => {
     mock.setTableResult("cotizaciones", { data: [{ id: "cot-1", folio: "COT-1", pricing_solicitud_id: "sol-1" }], error: null });
     expect((await conectarCotizadas([{ ...solicitud, estado: "cancelada" }]))[0].estado).toBe("cancelada");

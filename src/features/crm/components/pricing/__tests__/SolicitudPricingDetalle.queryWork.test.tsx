@@ -32,7 +32,7 @@ import { SolicitudPricingDetalle } from "../SolicitudPricingDetalle";
 
 const solicitud: SolicitudPricingRow = {
   id: "s1", organization_id: "org1", oportunidad_id: "o1", solicitante_id: "u1", created_by: "u1",
-  estado: "enviada", folio: "SP1", fecha: "2026-10-06", complejidad: "baja", created_at: "", updated_at: "",
+  version: 1, recotizada_at: null, estado: "enviada", folio: "SP1", fecha: "2026-10-06", complejidad: "baja", created_at: "", updated_at: "",
   cantidad: null, cliente: null, commodity: null, container_size: null, deleted_at: null, delivery: null,
   destino: null, dimensiones: null, enviada_at: null, estibable: null, fecha_tentativa_carga: null,
   imo: null, incoterm: null, notas: null, origen: null, peso: null, pod: null, pol: null,

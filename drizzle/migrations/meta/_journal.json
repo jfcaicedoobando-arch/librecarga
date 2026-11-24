@@ -778,6 +778,20 @@
       "when": 1795491808538,
       "tag": "0110_pricing_msds_pdf_obligatoria",
       "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1795494609878,
+      "tag": "0111_pricing_fase6_recotizar_costo_real",
+      "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1795494642179,
+      "tag": "0112_pricing_recotizar_vigencia_columnas",
+      "breakpoints": true
     }
   ]
 }

@@ -18,4 +18,7 @@ export const crmPricingKeys = {
   solicitud: (id: string | null) => ["crm", "pricing", "solicitud", id] as const,
   opciones: (id: string | null) => ["crm", "pricing", "opciones", id] as const,
   tarifasRespuesta: (id: string) => ["crm", "pricing", "tarifas-respuesta", id] as const,
+  versiones: (id: string) => ["crm", "pricing", "versiones", id] as const,
+  costoReal: (ids: string) => ["crm", "pricing", "costo-real", ids] as const,
+  costoRealLista: (pagina: number, modo: string, ejecutivo: string) => ["crm", "pricing", "costo-real-lista", pagina, modo, ejecutivo] as const,
 };
