@@ -46,6 +46,11 @@ export function monedaRecargo(r: Pick<CosteoTarifaRecargo, "moneda" | "concepto"
   throw new Error(`El recargo ${r.concepto} está en ${m}; las cotizaciones sólo manejan USD y MXN. Corrige la tarifa antes de cotizar.`);
 }
 
+/** Recargo local con «+ IVA»: el renglón de costo lleva IVA (tasa configurada). */
+export function llevaIva(r: Pick<CosteoTarifaRecargo, "ambito" | "aplica_impuesto">): boolean {
+  return r.ambito === "local" && r.aplica_impuesto === true;
+}
+
 /** Diferencia para llegar al mínimo del recargo (0 si el cargo real ya lo alcanza). */
 export function ajusteMinimoRecargo(minimo: number | null | undefined, monto: number, cantidad: number): number {
   const min = Number(minimo ?? 0);
@@ -87,7 +92,8 @@ export function filasDesdeRecargos({
       costo_unitario: monto,
       precio_venta: aplicarMarkup(monto, markup),
       unidad_medida: porEmbarque ? "embarque" : unidad,
-      aplica_iva: false,
+      // Sólo el recargo local marcado «+ IVA» lleva IVA mexicano; el VAT extranjero no.
+      aplica_iva: llevaIva(r),
       notas: NOTA_AUTO_TARIFA,
       // B-073: linkage tarifa + recargo (la RPC compara recargo por recargo).
       costeo_tarifa_id: tarifaId,
@@ -99,7 +105,7 @@ export function filasDesdeRecargos({
       filas.push({
         concepto: `Ajuste a mínimo · ${r.concepto}${ladoTxt}`, moneda, proveedor: proveedorFila,
         cantidad: 1, costo_unitario: ajuste, precio_venta: aplicarMarkup(ajuste, markup),
-        unidad_medida: "embarque", aplica_iva: false, notas: NOTA_AUTO_TARIFA,
+        unidad_medida: "embarque", aplica_iva: llevaIva(r), notas: NOTA_AUTO_TARIFA,
         costeo_tarifa_id: null, costeo_tarifa_recargo_id: null,
       });
     }

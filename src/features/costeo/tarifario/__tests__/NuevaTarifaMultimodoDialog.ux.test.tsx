@@ -36,14 +36,14 @@ beforeEach(() => {
 });
 
 describe("alta de tarifas aéreas o terrestres", () => {
-  it("muestra USD y MXN según la moneda elegida para los recargos", async () => {
+  it("separa recargos locales en MXN e internacionales en USD", () => {
     mostrar();
-    fireEvent.click(screen.getByRole("button", { name: "Agregar recargo" }));
-    expect(screen.getByRole("textbox", { name: "Monto del recargo 1 en USD" })).toBeVisible();
-    await elegir(/Moneda/, "MXN");
-    expect(screen.getByText("Recargos (MXN)")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Agregar recargo local" }));
     expect(screen.getByRole("textbox", { name: "Monto del recargo 1 en MXN" })).toBeVisible();
-    expect(screen.getByRole("textbox", { name: "Mínimo del recargo 1 en MXN" })).toBeVisible();
+    expect(screen.getByText("+ IVA")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Agregar recargo internacional" }));
+    expect(screen.getByRole("textbox", { name: "Monto del recargo 2 en USD" })).toBeVisible();
+    expect(screen.getByText("+ VAT")).toBeVisible();
   });
 
   it("pregunta antes de descartar captura y conserva agente y moneda al cambiar", async () => {

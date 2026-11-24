@@ -18,6 +18,9 @@ export interface TarifaRecargoInput {
   base?: "por_unidad" | "por_embarque";
   minimo?: number | null;
   proveedor?: string | null;
+  /** local = MXN (+IVA); internacional = USD (+VAT). */
+  ambito?: "local" | "internacional";
+  aplica_impuesto?: boolean;
 }
 
 export interface TarifaInput {
@@ -100,6 +103,8 @@ export function recargosParaRpc(recargos: TarifaRecargoInput[]) {
       base: r.base === "por_embarque" ? "por_embarque" : "por_unidad",
       minimo: Number(r.minimo) > 0 ? Number(r.minimo) : null,
       proveedor: r.proveedor?.trim() || null,
+      ambito: r.ambito === "local" ? "local" : "internacional",
+      aplica_impuesto: r.aplica_impuesto === true,
     }));
 }
 

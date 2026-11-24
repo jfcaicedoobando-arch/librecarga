@@ -1,21 +1,15 @@
 /**
- * Editor de filas dinámicas para recargos de una tarifa (marítima, aérea o terrestre).
- * Conceptos sugeridos por modo (`conceptosRecargoPorModo`) y base de cobro por recargo.
+ * Editor de recargos de una tarifa (marítima, aérea o terrestre), separado en
+ * locales (MXN, + IVA opcional) e internacionales (USD, + VAT opcional).
  */
 import { Button } from "@/components/ui/button";
-import { MoneyInput } from "@/components/shared/MoneyInput";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  Select, SelectContent, SelectGroup, SelectLabel, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import type { TarifaRecargoInput } from "@/features/costeo/services/tarifas";
-
-import {
-  ETIQUETA_BASE_RECARGO, baseSugerida, conceptosRecargoPorModo, gruposConceptosRecargo, type ModoRecargo,
-} from "@/features/costeo/domain/conceptosRecargo";
+import { conceptosRecargoPorModo, type ModoRecargo } from "@/features/costeo/domain/conceptosRecargo";
+import { ambitoDeRecargo, monedaDeAmbito, type AmbitoRecargo } from "@/features/costeo/domain/ambitoRecargo";
+import { TarifaRecargoFila } from "./TarifaRecargoFila";
 
 interface Props {
   value: TarifaRecargoInput[];
@@ -24,130 +18,52 @@ interface Props {
   mostrarErrores?: boolean;
   /** Modo de la tarifa: define los conceptos sugeridos. */
   modo?: ModoRecargo;
+  /** Moneda de la tarifa: decide el tipo de los recargos sin tipo guardado. */
   moneda?: string;
 }
 
+const BLOQUES: { ambito: AmbitoRecargo; titulo: string }[] = [
+  { ambito: "local", titulo: "Recargos locales (MXN)" },
+  { ambito: "internacional", titulo: "Recargos internacionales (USD)" },
+];
+
 export function TarifaRecargosEditor({ value, onChange, mostrarErrores = false, modo = "Marítimo", moneda = "USD" }: Props) {
-  const update = (i: number, patch: Partial<TarifaRecargoInput>) => {
-    onChange(value.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
-  };
-  const add = () =>
-    onChange([
-      ...value,
-      { concepto: conceptosRecargoPorModo(modo)[0], monto: 0, lado: "origen", incluido_en_total: true, base: "por_unidad" },
-    ]);
-  const remove = (i: number) => onChange(value.filter((_, idx) => idx !== i));
+  const filas = value.map((r) => {
+    const ambito = ambitoDeRecargo(r, moneda);
+    return { ...r, ambito, moneda: monedaDeAmbito(ambito) };
+  });
+  const update = (i: number, patch: Partial<TarifaRecargoInput>) =>
+    onChange(filas.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const remove = (i: number) => onChange(filas.filter((_, idx) => idx !== i));
+  const add = (ambito: AmbitoRecargo) =>
+    onChange([...filas, {
+      concepto: conceptosRecargoPorModo(modo)[0], monto: 0, lado: ambito === "local" ? "destino" : "origen",
+      incluido_en_total: true, base: "por_unidad", ambito, moneda: monedaDeAmbito(ambito), aplica_impuesto: false,
+    }]);
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label>Recargos ({moneda})</Label>
-        <Button type="button" size="sm" variant="outline" onClick={add}>
-          <Plus className="size-3.5 mr-1" /> Agregar recargo
-        </Button>
-      </div>
-
-      {value.length === 0 && (
-        <EmptyStateInline message="Sin recargos. Sólo se cobrará el flete base." className="py-3" />
-      )}
-
-      {value.map((r, i) => (
-        <div key={i} className="space-y-2 rounded-md border border-border p-2">
-        <div className="grid grid-cols-12 gap-2 items-end">
-          <div className="col-span-3">
-            <Label htmlFor={`recargo-concepto-${i}`} className="sr-only">{`Concepto del recargo ${i + 1}`}</Label>
-            <Select value={r.concepto} onValueChange={(v) => update(i, { concepto: v, base: baseSugerida(v) })}>
-              <SelectTrigger
-                id={`recargo-concepto-${i}`}
-                aria-label={`Concepto del recargo ${i + 1}`}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {r.concepto && !conceptosRecargoPorModo(modo).includes(r.concepto) && (
-                  <SelectItem value={r.concepto}>{r.concepto}</SelectItem>
-                )}
-                {gruposConceptosRecargo(modo).map((g) => (
-                  <SelectGroup key={g.grupo}>
-                    <SelectLabel>{g.nombre}</SelectLabel>
-                    {g.conceptos.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectGroup>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="col-span-3">
-            <Label htmlFor={`recargo-monto-${i}`} className="sr-only">{`Monto del recargo ${i + 1}`}</Label>
-            <MoneyInput
-              id={`recargo-monto-${i}`}
-              value={r.monto}
-              onChange={(n: number) => update(i, { monto: n })}
-              currency={moneda}
-              aria-label={`Monto del recargo ${i + 1} en ${moneda}`}
-              aria-invalid={mostrarErrores && !(Number(r.monto) > 0) ? true : undefined}
-              aria-describedby={mostrarErrores && !(Number(r.monto) > 0) ? `recargo-monto-err-${i}` : undefined}
-            />
-            {mostrarErrores && !(Number(r.monto) > 0) && (
-              <p id={`recargo-monto-err-${i}`} className="mt-1 text-body-sm text-destructive">
-                Captura un monto mayor a 0 o quita el recargo.
-              </p>
+    <div className="space-y-4">
+      {BLOQUES.map((b) => {
+        const indices = filas.map((r, i) => (r.ambito === b.ambito ? i : -1)).filter((i) => i >= 0);
+        return (
+          <div key={b.ambito} className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>{b.titulo}</Label>
+              <Button type="button" size="sm" variant="outline" onClick={() => add(b.ambito)}
+                aria-label={`Agregar recargo ${b.ambito}`}>
+                <Plus className="size-3.5 mr-1" /> Agregar recargo
+              </Button>
+            </div>
+            {indices.length === 0 && (
+              <EmptyStateInline message="Sin recargos en este bloque." className="py-3" />
             )}
+            {indices.map((i) => (
+              <TarifaRecargoFila key={i} r={filas[i]} i={i} modo={modo}
+                mostrarErrores={mostrarErrores} update={update} remove={remove} />
+            ))}
           </div>
-          <div className="col-span-2">
-            <Label htmlFor={`recargo-lado-${i}`} className="sr-only">{`Lado del recargo ${i + 1}`}</Label>
-            <Select value={r.lado ?? "origen"} onValueChange={(v) => update(i, { lado: v as "origen" | "destino" })}>
-              <SelectTrigger
-                id={`recargo-lado-${i}`}
-                aria-label={`Lado del recargo ${i + 1}`}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="origen">Origen</SelectItem>
-                <SelectItem value="destino">Destino</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="col-span-3">
-            <Label htmlFor={`recargo-base-${i}`} className="sr-only">{`Base del recargo ${i + 1}`}</Label>
-            <Select value={r.base ?? "por_unidad"} onValueChange={(v) => update(i, { base: v as "por_unidad" | "por_embarque" })}>
-              <SelectTrigger id={`recargo-base-${i}`} aria-label={`Base del recargo ${i + 1}`}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="por_unidad">{ETIQUETA_BASE_RECARGO.por_unidad}</SelectItem>
-                <SelectItem value="por_embarque">{ETIQUETA_BASE_RECARGO.por_embarque}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="col-span-1 flex justify-end">
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              onClick={() => remove(i)}
-              aria-label={`Quitar recargo ${i + 1}`}
-            >
-              <Trash2 className="size-4 text-destructive" />
-            </Button>
-          </div>
-        </div>
-        <div className="grid grid-cols-12 gap-2">
-          <div className="col-span-4">
-            <Label htmlFor={`recargo-minimo-${i}`} className="text-body-sm text-muted-foreground">Mínimo (opcional)</Label>
-            <MoneyInput id={`recargo-minimo-${i}`} value={r.minimo ?? 0} currency={moneda}
-              onChange={(n: number) => update(i, { minimo: n > 0 ? n : null })}
-              aria-label={`Mínimo del recargo ${i + 1} en ${moneda}`} />
-          </div>
-          <div className="col-span-8">
-            <Label htmlFor={`recargo-proveedor-${i}`} className="text-body-sm text-muted-foreground">Proveedor (vacío = el de la tarifa)</Label>
-            <Input id={`recargo-proveedor-${i}`} value={r.proveedor ?? ""} maxLength={200}
-              onChange={(e) => update(i, { proveedor: e.target.value })}
-              aria-label={`Proveedor del recargo ${i + 1}`} />
-          </div>
-        </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

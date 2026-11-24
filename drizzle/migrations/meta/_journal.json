@@ -799,6 +799,13 @@
       "when": 1795495194809,
       "tag": "0113_pricing_motivo_perdida",
       "breakpoints": true
+    },
+    {
+      "idx": 114,
+      "version": "7",
+      "when": 1795559914233,
+      "tag": "0114_recargos_local_internacional",
+      "breakpoints": true
     }
   ]
 }

@@ -83,6 +83,9 @@ export interface CosteoTarifaRecargo {
   minimo?: number | null;
   /** Proveedor que cobra el recargo; null = el de la tarifa. */
   proveedor?: string | null;
+  /** local = MXN (+IVA opcional); internacional = USD (+VAT informativo). */
+  ambito?: "local" | "internacional";
+  aplica_impuesto?: boolean;
 }
 
 export type BaseRecargo = "por_unidad" | "por_embarque";

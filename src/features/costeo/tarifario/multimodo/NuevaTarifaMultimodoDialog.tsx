@@ -132,7 +132,7 @@ export function NuevaTarifaMultimodoDialog({ open, onOpenChange, inicial, onSave
         </FormDialogSection>
       )}
       <FormDialogSection title="Recargos" description="Se suman al flete en el desglose de la cotización." cols={1}>
-        <TarifaRecargosEditor value={recargos} onChange={(r) => setRecargos(r.map((x) => ({ ...x, moneda: f.moneda })))} modo={f.modo} moneda={f.moneda} />
+        <TarifaRecargosEditor value={recargos} onChange={setRecargos} modo={f.modo} moneda={f.moneda} />
       </FormDialogSection>
       {faltan.length > 0 && <p className="text-body-sm text-muted-foreground">Falta: {faltan.join(", ")}</p>}
       <ConfirmActionDialog
