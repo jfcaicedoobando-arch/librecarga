@@ -156,22 +156,22 @@ export function CotizacionWizardSteps({ w, clientes, catalogoClientes, esMaritim
             plMXN={w.plMXN}
             tieneCostosUSD={w.costosUSD.length > 0}
             tieneCostosMXN={w.costosMXN.length > 0}
-            nombreCliente={
-              esProspecto
+            operacion={{
+              nombreCliente: esProspecto
                 ? prospectoEmpresa
-                : (w.clienteSeleccionado?.nombre || "—")
-            }
-            origen={origen}
-            destino={destino}
-            numContenedores={numContenedores}
-            cargaLcl={tipoEmbarque === "LCL" ? resumenCargaLcl(dimensionesLCL, pesoKg) : undefined}
-            modo={modo}
-            incoterm={incoterm}
-            tipo={tipo}
+                : (w.clienteSeleccionado?.nombre || "—"),
+              origen,
+              destino,
+              numContenedores,
+              cargaLcl: tipoEmbarque === "LCL" ? resumenCargaLcl(dimensionesLCL, pesoKg) : undefined,
+              modo,
+              incoterm,
+              tipo,
+              banderasAereas,
+              escalas,
+            }}
             totales={{ usd: w.totalUSD, mxn: w.totalMXN }}
             esEdicion={w.isEditMode}
-            banderasAereas={banderasAereas}
-            escalas={escalas}
             accionesEdicion={{
               editarDatos: () => w.setCurrentStep(1),
               editarConceptos: () => w.setCurrentStep(3),

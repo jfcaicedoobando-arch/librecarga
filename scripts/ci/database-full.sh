@@ -150,6 +150,7 @@ set -euo pipefail
 $PSQL -f supabase/tests/rls/_ci_post_migrate.sql
 $PSQL -f supabase/tests/rls/_ci_preserve_cotizacion_especial_acl.sql
 $PSQL -f supabase/tests/rls/_ci_preserve_coordinador_acl.sql
+$PSQL -f supabase/tests/rls/_ci_preserve_pricing_fase6_acl.sql
 )
 
 # Verify RLS coverage

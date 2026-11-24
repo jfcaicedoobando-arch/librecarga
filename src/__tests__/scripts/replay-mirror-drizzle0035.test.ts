@@ -110,6 +110,10 @@ describe("bounded Drizzle0035 dynamic replay model", () => {
     "0107_pricing_solicitud_terrestre.sql",
     "0108_pricing_fase5_operacion.sql",
     "0109_pricing_modos_tenant_scope.sql",
+    "0110_pricing_msds_pdf_obligatoria.sql",
+    "0111_pricing_fase6_recotizar_costo_real.sql",
+    "0112_pricing_recotizar_vigencia_columnas.sql",
+    "0113_pricing_motivo_perdida.sql",
   ])("rejects a changed newly reviewed source %s", key => {
     const changed = new Map(sources);
     changed.set(key, sources.get(key)! + "\n-- altered bytes");

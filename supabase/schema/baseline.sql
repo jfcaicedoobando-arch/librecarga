@@ -3656,6 +3656,20 @@ BEGIN
   NEW.updated_at := now();
   RETURN NEW;
 END $$;
+CREATE FUNCTION public._crm_pricing_perdida_guard() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public'
+    AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    NEW.motivo_perdida_id := NULL; NEW.perdida_nota := NULL; NEW.perdida_at := NULL; NEW.perdida_por := NULL;
+  ELSIF coalesce(current_setting('lc.pricing_rpc', true), '') <> '1'
+    AND (NEW.motivo_perdida_id IS DISTINCT FROM OLD.motivo_perdida_id OR NEW.perdida_nota IS DISTINCT FROM OLD.perdida_nota
+      OR NEW.perdida_at IS DISTINCT FROM OLD.perdida_at OR NEW.perdida_por IS DISTINCT FROM OLD.perdida_por) THEN
+    RAISE EXCEPTION 'LC_PRICING_ESTADO_SOLO_RPC' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END $$;
 CREATE FUNCTION public._crm_pricing_sumar_horas_habiles(p_inicio timestamp with time zone, p_horas integer) RETURNS timestamp with time zone
     LANGUAGE plpgsql STABLE
     SET search_path TO 'public'
@@ -3680,6 +3694,49 @@ BEGIN
     v_local := date_trunc('day', v_local) + interval '1 day';
   END LOOP;
   RAISE EXCEPTION 'LC_PRICING_PLAZO_FUERA_DE_RANGO' USING ERRCODE = 'P0001';
+END $$;
+CREATE FUNCTION public._crm_pricing_validar_msds() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $_$
+BEGIN
+  IF NEW.imo IS NOT TRUE OR NEW.estado IN ('borrador', 'cancelada', 'sin_opcion') THEN
+    RETURN NEW;
+  END IF;
+  IF TG_OP = 'UPDATE' THEN
+    IF NOT (OLD.estado = 'borrador' OR OLD.imo IS DISTINCT FROM NEW.imo) THEN
+      RETURN NEW;
+    END IF;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM storage.objects o
+    WHERE o.bucket_id = 'crm-pricing-adjuntos'
+      AND split_part(o.name, '/', 1) = NEW.organization_id::text
+      AND split_part(o.name, '/', 2) = NEW.id::text
+      AND array_length(string_to_array(o.name, '/'), 1) = 3
+      AND split_part(o.name, '/', 3) ~* '^[0-9]{13}-MSDS-.+\.pdf$'
+      AND o.metadata->>'mimetype' = 'application/pdf'
+      AND CASE WHEN jsonb_typeof(o.metadata->'size') = 'number'
+        THEN (o.metadata->>'size')::numeric > 0 AND (o.metadata->>'size')::numeric <= 10485760
+        ELSE false END
+  ) THEN
+    RAISE EXCEPTION 'LC_PRICING_INCOMPLETA: Hoja de seguridad (MSDS) en PDF' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END;
+$_$;
+CREATE FUNCTION public._crm_pricing_version_guard() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public'
+    AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    NEW.version := 1; NEW.recotizada_at := NULL;
+  ELSIF coalesce(current_setting('lc.pricing_rpc', true), '') <> '1'
+     AND (NEW.version IS DISTINCT FROM OLD.version OR NEW.recotizada_at IS DISTINCT FROM OLD.recotizada_at) THEN
+    RAISE EXCEPTION 'LC_PRICING_ESTADO_SOLO_RPC' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
 END $$;
 CREATE FUNCTION public._crm_probabilidad_terminal() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
@@ -21334,6 +21391,98 @@ BEGIN
   END IF;
   PERFORM set_config('lc.pricing_rpc', '', true);
   RETURN jsonb_build_object('id', v.id);
+END $$;
+CREATE FUNCTION public.crm_pricing_costo_vs_real(p_solicitud_ids uuid[]) RETURNS TABLE(solicitud_id uuid, cotizacion_id uuid, cotizacion_folio text, embarque_id uuid, expediente text, moneda text, costo_cotizado numeric, costo_real numeric, facturas integer)
+    LANGUAGE sql STABLE
+    SET search_path TO 'public'
+    AS $$
+  WITH cot AS (
+    SELECT c.id, c.folio, c.pricing_solicitud_id FROM cotizaciones c
+    WHERE c.pricing_solicitud_id = ANY (coalesce(p_solicitud_ids, '{}')) AND c.deleted_at IS NULL
+      AND c.estado::text <> 'Archivada' AND c.organization_id = org_scope()
+  ), emb AS (
+    SELECT DISTINCT ON (cot.id) cot.*, e.id AS embarque_id, e.expediente
+    FROM cot LEFT JOIN embarques e ON e.cotizacion_id = cot.id AND e.deleted_at IS NULL
+      AND e.estado::text NOT IN ('Cancelado') AND e.organization_id = org_scope()
+    ORDER BY cot.id, e.created_at DESC
+  ), costo AS (
+    SELECT cc.cotizacion_id, cc.moneda, round(sum(cc.costo_total), 2) AS monto
+    FROM cotizacion_costos cc JOIN emb ON emb.id = cc.cotizacion_id
+    WHERE cc.deleted_at IS NULL GROUP BY 1, 2
+  ), facturado AS (
+    SELECT f.embarque_id, f.moneda::text AS moneda, round(sum(f.subtotal), 2) AS monto, count(*)::int AS n
+    FROM proveedor_facturas f JOIN emb ON emb.embarque_id = f.embarque_id
+    WHERE f.deleted_at IS NULL AND f.estado::text IN ('Vigente','Pagada') GROUP BY 1, 2
+  ), monedas AS (
+    SELECT emb.id, costo.moneda FROM emb JOIN costo ON costo.cotizacion_id = emb.id
+    UNION SELECT emb.id, facturado.moneda FROM emb JOIN facturado ON facturado.embarque_id = emb.embarque_id
+  )
+  SELECT emb.pricing_solicitud_id, emb.id, emb.folio, emb.embarque_id, emb.expediente, m.moneda,
+    coalesce(costo.monto, 0), coalesce(fa.monto, 0), coalesce(fa.n, 0)
+  FROM emb LEFT JOIN monedas m ON m.id = emb.id
+  LEFT JOIN costo ON costo.cotizacion_id = emb.id AND costo.moneda = m.moneda
+  LEFT JOIN facturado fa ON fa.embarque_id = emb.embarque_id AND fa.moneda = m.moneda
+  ORDER BY emb.pricing_solicitud_id, emb.folio, m.moneda;
+$$;
+CREATE FUNCTION public.crm_pricing_marcar_perdida(p_id uuid, p_motivo_id uuid, p_nota text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE v record; v_motivo text; v_nota text := nullif(trim(coalesce(p_nota, '')), '');
+BEGIN
+  SELECT * INTO v FROM crm_solicitudes_pricing WHERE id = p_id AND deleted_at IS NULL FOR UPDATE;
+  IF v.id IS NULL OR v.organization_id IS DISTINCT FROM org_scope() THEN
+    RAISE EXCEPTION 'LC_PRICING_NO_ENCONTRADA' USING ERRCODE = 'P0001';
+  END IF;
+  IF NOT _crm_es_pricing(v.organization_id) THEN RAISE EXCEPTION 'LC_PRICING_SIN_PERMISO' USING ERRCODE = '42501'; END IF;
+  IF v.estado <> 'respondida' OR v.perdida_at IS NOT NULL THEN
+    RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001';
+  END IF;
+  SELECT nombre INTO v_motivo FROM crm_motivos_perdida
+   WHERE id = p_motivo_id AND organization_id = v.organization_id AND activa AND deleted_at IS NULL;
+  IF v_motivo IS NULL THEN RAISE EXCEPTION 'LC_PRICING_MOTIVO_REQUERIDO' USING ERRCODE = 'P0001'; END IF;
+  IF length(coalesce(v_nota, '')) > 500 THEN RAISE EXCEPTION 'LC_PRICING_MOTIVO_REQUERIDO' USING ERRCODE = 'P0001'; END IF;
+  PERFORM set_config('lc.pricing_rpc', '1', true);
+  UPDATE crm_solicitudes_pricing SET motivo_perdida_id = p_motivo_id, perdida_nota = v_nota,
+    perdida_at = now(), perdida_por = auth.uid() WHERE id = p_id;
+  PERFORM set_config('lc.pricing_rpc', '', true);
+  PERFORM _crm_pricing_avisar_cambio(v.organization_id, v.id, v.solicitante_id, 'Pricing perdida ' || v.folio,
+    'Motivo: ' || v_motivo || coalesce(' — ' || v_nota, ''));
+  RETURN jsonb_build_object('id', v.id, 'motivo', v_motivo);
+END $$;
+CREATE FUNCTION public.crm_pricing_recotizar(p_id uuid, p_motivo text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE v record; v_motivo text := nullif(trim(coalesce(p_motivo, '')), ''); v_horas int;
+BEGIN
+  SELECT * INTO v FROM crm_solicitudes_pricing WHERE id = p_id AND deleted_at IS NULL FOR UPDATE;
+  IF v.id IS NULL OR v.organization_id IS DISTINCT FROM org_scope() THEN
+    RAISE EXCEPTION 'LC_PRICING_NO_ENCONTRADA' USING ERRCODE = 'P0001';
+  END IF;
+  IF NOT _crm_es_pricing(v.organization_id) THEN RAISE EXCEPTION 'LC_PRICING_SIN_PERMISO' USING ERRCODE = '42501'; END IF;
+  IF v.estado <> 'respondida' THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
+  IF length(coalesce(v_motivo, '')) < 5 THEN RAISE EXCEPTION 'LC_PRICING_MOTIVO_REQUERIDO' USING ERRCODE = 'P0001'; END IF;
+  INSERT INTO crm_pricing_opciones_versiones (organization_id, solicitud_id, version, motivo, opciones, tarifas, respondida_at, created_by)
+  VALUES (v.organization_id, v.id, v.version, v_motivo,
+    coalesce((SELECT jsonb_agg(to_jsonb(o) - 'organization_id' ORDER BY o.orden, o.created_at)
+              FROM crm_pricing_opciones o WHERE o.solicitud_id = v.id), '[]'::jsonb),
+    coalesce((SELECT jsonb_agg(jsonb_build_object('id', t.id, 'modo', t.modo, 'moneda', t.moneda,
+                'vigente_desde', t.vigente_desde, 'vigente_hasta', t.vigente_hasta) ORDER BY t.created_at)
+              FROM costeo_tarifas t WHERE t.organization_id = v.organization_id
+                AND (t.solicitud_pricing_id = v.id OR t.id = v.tarifa_tarifario_id)), '[]'::jsonb),
+    v.respondida_at, auth.uid());
+  v_horas := _crm_pricing_horas_modo(v.complejidad, v.servicio);
+  PERFORM set_config('lc.pricing_rpc', '1', true);
+  UPDATE crm_solicitudes_pricing SET estado = 'en_proceso', version = v.version + 1, recotizada_at = now(),
+    respondida_at = NULL, pausada_at = NULL, aviso_80_at = NULL, aviso_vencida_at = NULL,
+    asignada_a = coalesce(asignada_a, auth.uid()),
+    vence_at = CASE WHEN v_horas IS NULL THEN NULL ELSE _crm_pricing_sumar_horas_habiles(now(), v_horas) END
+  WHERE id = p_id;
+  PERFORM set_config('lc.pricing_rpc', '', true);
+  PERFORM _crm_pricing_avisar_cambio(v.organization_id, v.id, v.solicitante_id, 'Pricing recotiza ' || v.folio,
+    'Versión ' || (v.version + 1) || ' en proceso: ' || v_motivo);
+  RETURN jsonb_build_object('id', v.id, 'version', v.version + 1);
 END $$;
 CREATE FUNCTION public.crm_pricing_set_modos_ejecutivo(p_user_id uuid, p_modos text[]) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
@@ -43063,6 +43212,20 @@ CREATE TABLE public.crm_pricing_opciones (
     CONSTRAINT crm_pricing_opciones_otros_moneda_check CHECK ((otros_moneda = ANY (ARRAY['USD'::text, 'MXN'::text, 'EUR'::text]))),
     CONSTRAINT crm_pricing_opciones_recoleccion_moneda_check CHECK ((recoleccion_moneda = ANY (ARRAY['USD'::text, 'MXN'::text, 'EUR'::text])))
 );
+CREATE TABLE public.crm_pricing_opciones_versiones (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    organization_id uuid NOT NULL,
+    solicitud_id uuid NOT NULL,
+    version integer NOT NULL,
+    motivo text NOT NULL,
+    opciones jsonb DEFAULT '[]'::jsonb NOT NULL,
+    tarifas jsonb DEFAULT '[]'::jsonb NOT NULL,
+    respondida_at timestamp with time zone,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT crm_pricing_opciones_versiones_motivo_check CHECK ((length(TRIM(BOTH FROM motivo)) >= 5)),
+    CONSTRAINT crm_pricing_opciones_versiones_version_check CHECK ((version >= 1))
+);
 CREATE TABLE public.crm_propiedad_opciones (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     propiedad_id uuid NOT NULL,
@@ -43206,6 +43369,12 @@ CREATE TABLE public.crm_solicitudes_pricing (
     motivo_sin_opcion text,
     aviso_80_at timestamp with time zone,
     aviso_vencida_at timestamp with time zone,
+    version integer DEFAULT 1 NOT NULL,
+    recotizada_at timestamp with time zone,
+    motivo_perdida_id uuid,
+    perdida_nota text,
+    perdida_at timestamp with time zone,
+    perdida_por uuid,
     CONSTRAINT crm_sol_pricing_terrestre_campos CHECK (((servicio = 'Terrestre'::text) OR ((origen_cp IS NULL) AND (destino_cp IS NULL) AND (paradas IS NULL) AND (cruce_fronterizo IS NULL) AND (in_bond IS NULL) AND (tipo_unidad IS NULL) AND (tarimas IS NULL) AND (arrastre_puerto IS NULL) AND (retorno_vacio IS NULL) AND (sobrepeso IS NULL)))),
     CONSTRAINT crm_sol_pricing_terrestre_valores CHECK ((((origen_cp IS NULL) OR (origen_cp ~ '^[0-9]{5}$'::text)) AND ((destino_cp IS NULL) OR (destino_cp ~ '^[0-9]{5}$'::text)) AND ((paradas IS NULL) OR ((cardinality(paradas) >= 1) AND (cardinality(paradas) <= 5))) AND ((in_bond IS NULL) OR (cruce_fronterizo IS TRUE)) AND ((tarimas IS NULL) OR ((tarimas >= 1) AND (tarimas <= 60))) AND ((tipo_unidad IS NULL) OR (char_length(tipo_unidad) <= 60)) AND ((arrastre_puerto IS NULL) OR (char_length(arrastre_puerto) <= 200)))),
     CONSTRAINT crm_solicitudes_pricing_cantidad_check CHECK (((cantidad IS NULL) OR (cantidad > 0))),
@@ -44567,6 +44736,10 @@ ALTER TABLE ONLY public.crm_pricing_modos_ejecutivo
     ADD CONSTRAINT crm_pricing_modos_ejecutivo_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.crm_pricing_opciones
     ADD CONSTRAINT crm_pricing_opciones_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.crm_pricing_opciones_versiones
+    ADD CONSTRAINT crm_pricing_opciones_versiones_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.crm_pricing_opciones_versiones
+    ADD CONSTRAINT crm_pricing_opciones_versiones_solicitud_id_version_key UNIQUE (solicitud_id, version);
 ALTER TABLE ONLY public.crm_propiedad_opciones
     ADD CONSTRAINT crm_propiedad_opciones_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.crm_propiedades
@@ -44836,6 +45009,7 @@ CREATE INDEX crm_brokers_user_idx ON public.crm_brokers USING btree (user_id);
 CREATE INDEX crm_empresas_broker_idx ON public.crm_empresas USING btree (broker_id) WHERE (broker_id IS NOT NULL);
 CREATE INDEX crm_empresas_org_estado_idx ON public.crm_empresas USING btree (organization_id, estado_crm);
 CREATE INDEX crm_pricing_opciones_sol_idx ON public.crm_pricing_opciones USING btree (solicitud_id);
+CREATE INDEX crm_pricing_opciones_versiones_org_idx ON public.crm_pricing_opciones_versiones USING btree (organization_id, solicitud_id);
 CREATE INDEX crm_reportes_tablero_idx ON public.crm_reportes USING btree (tablero_id);
 CREATE INDEX crm_scoring_reglas_objeto_idx ON public.crm_scoring_reglas USING btree (objeto, criterio) WHERE activa;
 CREATE INDEX crm_solicitudes_pricing_estado_idx ON public.crm_solicitudes_pricing USING btree (organization_id, estado);
@@ -45241,6 +45415,8 @@ CREATE TRIGGER a00_h14_guard_escritura BEFORE INSERT OR DELETE OR UPDATE ON publ
 CREATE TRIGGER a00_h14_guard_escritura BEFORE INSERT OR DELETE OR UPDATE ON public.seguros_embarque FOR EACH ROW EXECUTE FUNCTION public._h14_guard_escritor_baja();
 CREATE TRIGGER cliente_coordinador_guard BEFORE INSERT OR UPDATE ON public.clientes FOR EACH ROW EXECUTE FUNCTION public._cliente_coordinador_guard();
 CREATE TRIGGER costeo_tarifas_match_agente_org_trg BEFORE INSERT OR UPDATE OF organization_id, agente_id ON public.costeo_tarifas FOR EACH ROW EXECUTE FUNCTION public.costeo_tarifas_match_agente_org();
+CREATE TRIGGER crm_pricing_msds_pdf_obligatoria BEFORE INSERT OR UPDATE OF estado, imo ON public.crm_solicitudes_pricing FOR EACH ROW EXECUTE FUNCTION public._crm_pricing_validar_msds();
+CREATE TRIGGER crm_pricing_version_guard BEFORE INSERT OR UPDATE ON public.crm_solicitudes_pricing FOR EACH ROW EXECUTE FUNCTION public._crm_pricing_version_guard();
 CREATE TRIGGER crm_scoring_cortes_updated_at BEFORE UPDATE ON public.crm_scoring_cortes FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER crm_scoring_reglas_updated_at BEFORE UPDATE ON public.crm_scoring_reglas FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER embarques_set_fechas_originales BEFORE INSERT ON public.embarques FOR EACH ROW EXECUTE FUNCTION public.set_embarque_fechas_originales();
@@ -45362,6 +45538,7 @@ CREATE TRIGGER trg_crm_op_updated_at BEFORE UPDATE ON public.crm_oportunidades F
 CREATE TRIGGER trg_crm_oportunidad_criterios_updated_at BEFORE UPDATE ON public.crm_oportunidad_criterios FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER trg_crm_oportunidad_requiere_origen BEFORE INSERT OR UPDATE OF lead_id, cliente_id, organization_id ON public.crm_oportunidades FOR EACH ROW EXECUTE FUNCTION public._crm_oportunidad_requiere_origen();
 CREATE TRIGGER trg_crm_pricing_opcion_guard BEFORE INSERT OR DELETE OR UPDATE ON public.crm_pricing_opciones FOR EACH ROW EXECUTE FUNCTION public._crm_pricing_opcion_guard();
+CREATE TRIGGER trg_crm_pricing_perdida_guard BEFORE INSERT OR UPDATE ON public.crm_solicitudes_pricing FOR EACH ROW EXECUTE FUNCTION public._crm_pricing_perdida_guard();
 CREATE TRIGGER trg_crm_probabilidad_terminal BEFORE INSERT OR UPDATE OF etapa_id, probabilidad ON public.crm_oportunidades FOR EACH ROW EXECUTE FUNCTION public._crm_probabilidad_terminal();
 CREATE TRIGGER trg_crm_registrar_cambio_etapa BEFORE UPDATE ON public.crm_oportunidades FOR EACH ROW EXECUTE FUNCTION public._crm_registrar_cambio_etapa();
 CREATE TRIGGER trg_crm_reportes_guard BEFORE INSERT OR UPDATE ON public.crm_reportes FOR EACH ROW EXECUTE FUNCTION public._crm_reportes_guard();
@@ -45927,6 +46104,8 @@ ALTER TABLE ONLY public.crm_pricing_opciones
     ADD CONSTRAINT crm_pricing_opciones_solicitud_id_fkey FOREIGN KEY (solicitud_id) REFERENCES public.crm_solicitudes_pricing(id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.crm_pricing_opciones
     ADD CONSTRAINT crm_pricing_opciones_tarifa_id_fkey FOREIGN KEY (tarifa_id) REFERENCES public.costeo_tarifas(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.crm_pricing_opciones_versiones
+    ADD CONSTRAINT crm_pricing_opciones_versiones_solicitud_id_fkey FOREIGN KEY (solicitud_id) REFERENCES public.crm_solicitudes_pricing(id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.crm_propiedad_opciones
     ADD CONSTRAINT crm_propiedad_opciones_propiedad_id_fkey FOREIGN KEY (propiedad_id) REFERENCES public.crm_propiedades(id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.crm_propiedad_opciones
@@ -45939,6 +46118,8 @@ ALTER TABLE ONLY public.crm_scoring_reglas
     ADD CONSTRAINT crm_scoring_reglas_opcion_id_fkey FOREIGN KEY (opcion_id) REFERENCES public.crm_propiedad_opciones(id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.crm_scoring_reglas
     ADD CONSTRAINT crm_scoring_reglas_propiedad_id_fkey FOREIGN KEY (propiedad_id) REFERENCES public.crm_propiedades(id) ON DELETE RESTRICT;
+ALTER TABLE ONLY public.crm_solicitudes_pricing
+    ADD CONSTRAINT crm_solicitudes_pricing_motivo_perdida_id_fkey FOREIGN KEY (motivo_perdida_id) REFERENCES public.crm_motivos_perdida(id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.crm_solicitudes_pricing
     ADD CONSTRAINT crm_solicitudes_pricing_oportunidad_id_fkey FOREIGN KEY (oportunidad_id) REFERENCES public.crm_oportunidades(id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.crm_solicitudes_pricing
@@ -46835,6 +47016,9 @@ CREATE POLICY crm_pricing_op_escribir ON public.crm_pricing_opciones TO authenti
 CREATE POLICY crm_pricing_op_leer ON public.crm_pricing_opciones FOR SELECT TO authenticated USING ((organization_id = public.org_scope()));
 ALTER TABLE public.crm_pricing_opciones ENABLE ROW LEVEL SECURITY;
 CREATE POLICY crm_pricing_opciones_tenant_restrictive ON public.crm_pricing_opciones AS RESTRICTIVE TO authenticated USING (public.rls_tenant_scope_ok(organization_id)) WITH CHECK (public.rls_tenant_scope_ok(organization_id));
+ALTER TABLE public.crm_pricing_opciones_versiones ENABLE ROW LEVEL SECURITY;
+CREATE POLICY crm_pricing_versiones_leer ON public.crm_pricing_opciones_versiones FOR SELECT TO authenticated USING ((organization_id = public.org_scope()));
+CREATE POLICY crm_pricing_versiones_tenant_restrictive ON public.crm_pricing_opciones_versiones AS RESTRICTIVE TO authenticated USING (public.rls_tenant_scope_ok(organization_id)) WITH CHECK (public.rls_tenant_scope_ok(organization_id));
 ALTER TABLE public.crm_propiedad_opciones ENABLE ROW LEVEL SECURITY;
 CREATE POLICY crm_propiedad_opciones_admin ON public.crm_propiedad_opciones TO authenticated USING (public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role)) WITH CHECK (public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role));
 CREATE POLICY crm_propiedad_opciones_leer ON public.crm_propiedad_opciones FOR SELECT TO authenticated USING ((public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) OR (EXISTS ( SELECT 1
@@ -47225,9 +47409,13 @@ GRANT ALL ON FUNCTION public._crm_pricing_horas_modo(p_complejidad text, p_servi
 REVOKE ALL ON FUNCTION public._crm_pricing_opcion_guard() FROM PUBLIC;
 GRANT ALL ON FUNCTION public._crm_pricing_opcion_guard() TO authenticated;
 GRANT ALL ON FUNCTION public._crm_pricing_opcion_guard() TO service_role;
+REVOKE ALL ON FUNCTION public._crm_pricing_perdida_guard() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._crm_pricing_sumar_horas_habiles(p_inicio timestamp with time zone, p_horas integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION public._crm_pricing_sumar_horas_habiles(p_inicio timestamp with time zone, p_horas integer) TO authenticated;
 GRANT ALL ON FUNCTION public._crm_pricing_sumar_horas_habiles(p_inicio timestamp with time zone, p_horas integer) TO service_role;
+REVOKE ALL ON FUNCTION public._crm_pricing_validar_msds() FROM PUBLIC;
+GRANT ALL ON FUNCTION public._crm_pricing_validar_msds() TO service_role;
+REVOKE ALL ON FUNCTION public._crm_pricing_version_guard() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._crm_probabilidad_terminal() FROM PUBLIC;
 GRANT ALL ON FUNCTION public._crm_probabilidad_terminal() TO service_role;
 REVOKE ALL ON FUNCTION public._crm_registrar_cambio_etapa() FROM PUBLIC;
@@ -47968,6 +48156,14 @@ GRANT ALL ON FUNCTION public.crm_pricing_cambiar_complejidad(p_id uuid, p_comple
 REVOKE ALL ON FUNCTION public.crm_pricing_cambiar_estado(p_id uuid, p_accion text, p_motivo text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.crm_pricing_cambiar_estado(p_id uuid, p_accion text, p_motivo text) TO authenticated;
 GRANT ALL ON FUNCTION public.crm_pricing_cambiar_estado(p_id uuid, p_accion text, p_motivo text) TO service_role;
+REVOKE ALL ON FUNCTION public.crm_pricing_costo_vs_real(p_solicitud_ids uuid[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.crm_pricing_costo_vs_real(p_solicitud_ids uuid[]) TO authenticated;
+GRANT ALL ON FUNCTION public.crm_pricing_costo_vs_real(p_solicitud_ids uuid[]) TO service_role;
+REVOKE ALL ON FUNCTION public.crm_pricing_marcar_perdida(p_id uuid, p_motivo_id uuid, p_nota text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.crm_pricing_marcar_perdida(p_id uuid, p_motivo_id uuid, p_nota text) TO authenticated;
+REVOKE ALL ON FUNCTION public.crm_pricing_recotizar(p_id uuid, p_motivo text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.crm_pricing_recotizar(p_id uuid, p_motivo text) TO authenticated;
+GRANT ALL ON FUNCTION public.crm_pricing_recotizar(p_id uuid, p_motivo text) TO service_role;
 REVOKE ALL ON FUNCTION public.crm_pricing_set_modos_ejecutivo(p_user_id uuid, p_modos text[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.crm_pricing_set_modos_ejecutivo(p_user_id uuid, p_modos text[]) TO authenticated;
 GRANT ALL ON FUNCTION public.crm_pricing_set_modos_ejecutivo(p_user_id uuid, p_modos text[]) TO service_role;
@@ -49222,6 +49418,8 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.crm_pricing_modos_ejecutivo TO
 GRANT ALL ON TABLE public.crm_pricing_modos_ejecutivo TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.crm_pricing_opciones TO authenticated;
 GRANT ALL ON TABLE public.crm_pricing_opciones TO service_role;
+GRANT SELECT ON TABLE public.crm_pricing_opciones_versiones TO authenticated;
+GRANT ALL ON TABLE public.crm_pricing_opciones_versiones TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.crm_propiedad_opciones TO authenticated;
 GRANT ALL ON TABLE public.crm_propiedad_opciones TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.crm_propiedades TO authenticated;

@@ -61,28 +61,43 @@ function modo(v: unknown): TarifaMultimodoForm["modo"] | null {
 
 type Agentes = ReadonlyArray<{ id: string; nombre: string }>;
 
+function leerRuta(r: Record<string, unknown>, modoTarifa: TarifaMultimodoForm["modo"]) {
+  const origen = txt(r.origen);
+  const destino = txt(r.destino);
+  if (modoTarifa === "Aéreo") {
+    return {
+      origen: origen.toUpperCase(), destino: destino.toUpperCase(),
+      aerolinea: txt(r.aerolinea), escalas: txt(r.escalas), submodalidad: "", tipo_unidad: "",
+    };
+  }
+  const submodalidad = txt(r.submodalidad).toUpperCase();
+  return {
+    origen, destino, aerolinea: "", escalas: "",
+    submodalidad: submodalidad === "ARRASTRE" ? "Arrastre" : submodalidad,
+    tipo_unidad: txt(r.tipo_unidad),
+  };
+}
+
 function convertir(r: Record<string, unknown>, agentes: Agentes): { form?: TarifaMultimodoForm; error?: string } {
   const m = modo(r.modo);
   if (!m) return { error: "Modo debe ser Aéreo o Terrestre" };
   const agente = agentes.find((a) => norm(a.nombre) === norm(r.agente));
   const moneda = (txt(r.moneda).toUpperCase() || "USD") as MonedaTarifaMultimodo;
   if (!MONEDAS_TARIFA_MULTIMODO.includes(moneda)) return { error: "Moneda debe ser USD o MXN" };
-  const flete = numero(r.flete); const minimo = numero(r.minimo); const dias = numero(r.dias);
-  if (flete === null || Number.isNaN(flete) || Number.isNaN(minimo) || Number.isNaN(dias)) return { error: "Precio, mínimo o días no son números" };
+  const flete = numero(r.flete);
+  const minimo = numero(r.minimo);
+  const dias = numero(r.dias);
+  if (flete === null || [flete, minimo, dias].some(Number.isNaN)) return { error: "Precio, mínimo o días no son números" };
   const tramos = rangosPeso(r.rangos);
   if (tramos === null) return { error: "Rangos de peso: usa el formato 45:4.5; 100:3.9" };
-  const sub = txt(r.submodalidad).toUpperCase() === "ARRASTRE" ? "Arrastre" : txt(r.submodalidad).toUpperCase();
   const form: TarifaMultimodoForm = {
     modo: m, agente_id: agente?.id ?? "", moneda,
-    origen: m === "Aéreo" ? txt(r.origen).toUpperCase() : txt(r.origen),
-    destino: m === "Aéreo" ? txt(r.destino).toUpperCase() : txt(r.destino),
-    aerolinea: m === "Aéreo" ? txt(r.aerolinea) : "", escalas: m === "Aéreo" ? txt(r.escalas) : "",
-    submodalidad: m === "Terrestre" ? sub : "", tipo_unidad: m === "Terrestre" ? txt(r.tipo_unidad) : "",
+    ...leerRuta(r, m),
     flete_base: flete, minimo, transit_time_dias: dias,
     vigente_desde: fechaIso(r.desde) ?? "", vigente_hasta: fechaIso(r.hasta) ?? "", tramos: [],
   };
   form.tramos = usaTramos(form) ? tramos : [];
-  if (m === "Terrestre" && !["FTL", "LTL", "Arrastre"].includes(sub)) return { error: "Submodalidad debe ser FTL, LTL o Arrastre" };
+  if (m === "Terrestre" && !["FTL", "LTL", "Arrastre"].includes(form.submodalidad)) return { error: "Submodalidad debe ser FTL, LTL o Arrastre" };
   const faltan = faltantesTarifaMultimodo(form);
   if (faltan.length) return { error: `Falta o es inválido: ${faltan.join(", ")}` };
   return { form };
