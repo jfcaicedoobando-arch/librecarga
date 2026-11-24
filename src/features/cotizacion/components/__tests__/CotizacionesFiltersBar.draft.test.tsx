@@ -24,7 +24,7 @@ vi.mock("../CotizacionesFilterSelects", () => ({
 
 const defaults = {
   estado: "todos", cliente: "todos", aceptadasSinEmbarque: "no",
-  sinCostos: "no", incluirInactivas: "no", segmento: "clientes",
+  sinCostos: "no", incluirInactivas: "no", segmento: "clientes", reaprobacion: "no",
 };
 const commit = vi.fn();
 const reset = vi.fn();
@@ -40,6 +40,7 @@ function Host() {
         soloAceptadasSinEmbarque={list.filters.aceptadasSinEmbarque === "si"}
         filterSinCostos={list.filters.sinCostos === "si"}
         incluirInactivas={list.filters.incluirInactivas === "si"} totalAceptadasSinEmbarque={0}
+        soloMisReaprobaciones={list.filters.reaprobacion === "pendiente"}
         setFilter={(k, v) => { commit(k, v); list.setFilter(k, v); }}
         activeChips={list.activeChips} activeCount={list.activeCount}
         resetAll={() => { reset(); list.resetAll(); }}
@@ -173,4 +174,19 @@ it("conserva vivos los primarios de escritorio, búsqueda, chips y Limpiar todo"
   fireEvent.click(screen.getByRole("button", { name: "Limpiar todo" }));
   expect(reset).toHaveBeenCalledOnce();
   await waitFor(() => expect(query()).toContain('"search":""'));
+});
+
+it("muestra el filtro entrante en el panel y permite quitarlo con Limpiar y Aplicar", async () => {
+  mount("?q=barco&page=3&reaprobacion=pendiente");
+  open();
+  expect(screen.getByRole("button", { name: "Mis pendientes de reaprobación" }))
+    .toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByRole("button", { name: "Incluir vencidas/archivadas" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Limpiar" }));
+  expect(commit).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
+  expect(commit.mock.calls).toEqual([["reaprobacion", "no"]]);
+  await waitFor(() => expect(query()).toContain('"page":0'));
+  expect(query()).toContain('"search":"barco"');
+  expect(query()).toContain('"reaprobacion":"no"');
 });

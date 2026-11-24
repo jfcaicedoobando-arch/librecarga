@@ -8,6 +8,7 @@ import { orIlike } from "@/lib/search/ilike";
 import { ESTADOS_INACTIVOS } from "@/features/cotizacion/domain/lifecycle";
 import { COTIZACION_LIST_COLUMNS, flattenCotizacionListRow } from "./queries";
 import type { CotizacionListItem, SegmentoCotizacion } from "./cotizacionListTypes";
+import { filtrarMisReaprobaciones } from "./pendientesReaprobacion";
 
 /** Whitelist de columnas ordenables (evita inyección vía `sort`). */
 export const SORTABLE_COTIZACION_COLUMNS = [
@@ -33,6 +34,8 @@ export interface CotizacionesFiltrosSql {
   incluirInactivas: boolean;
   soloAceptadasSinEmbarque: boolean;
   segmento: SegmentoCotizacion;
+  /** undefined: lista normal. null: filtro de reaprobación sin usuario resuelto. */
+  reaprobacionOperador?: string | null;
 }
 
 export interface CotizacionesPaginadasParams extends CotizacionesFiltrosSql {
@@ -62,6 +65,7 @@ export function aplicarFiltrosCotizaciones<T extends FiltrableQuery>(
 ): T {
   let q = query.is("deleted_at", null);
   if (f.organizationId) q = q.eq("organization_id", f.organizationId) as T;
+  if (f.reaprobacionOperador) q = filtrarMisReaprobaciones(q, f.reaprobacionOperador);
 
   if (f.search.trim()) {
     // v13.823.349 — `prospecto_empresa` es la columna que la tabla MUESTRA en el
@@ -124,6 +128,9 @@ export function resolverColumnaOrdenCotizaciones(
 export async function fetchCotizacionesPaginadas(
   p: CotizacionesPaginadasParams,
 ): Promise<CotizacionesPaginadasResult> {
+  if (p.reaprobacionOperador !== undefined && (!p.reaprobacionOperador || !p.organizationId)) {
+    return { rows: [], count: 0 };
+  }
   const sortColumn = resolverColumnaOrdenCotizaciones(p.sortKey, p.segmento);
 
   let query = supabase

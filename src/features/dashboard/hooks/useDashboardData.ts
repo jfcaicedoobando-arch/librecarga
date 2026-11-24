@@ -50,7 +50,12 @@ export function useDashboardData() {
 
   // Details: listas largas — corre EN PARALELO con summary (no esperamos a que summary
   // termine). HTTP/2 multiplexa ambas peticiones sobre la misma conexión, mejorando TTI.
-  const { data: details } = useQuery({
+  const {
+    data: details,
+    isLoading: isLoadingDetails,
+    isError: isErrorDetails,
+    refetch: refetchDetails,
+  } = useQuery({
     queryKey: queryKeys.dashboard.statsDetails(organizationId),
     queryFn: fetchDashboardDetails,
     staleTime: 5 * 60_000,
@@ -120,6 +125,9 @@ export function useDashboardData() {
     isLoading,
     isError,
     refetch,
+    isLoadingDetails,
+    isErrorDetails,
+    refetchDetails,
     activos,
     conteoPorEstado,
     totalActivos,

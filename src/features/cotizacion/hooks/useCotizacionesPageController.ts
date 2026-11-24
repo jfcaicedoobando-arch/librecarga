@@ -1,18 +1,11 @@
-/**
- * Controller de la página de listado de Cotizaciones.
- *
- * YG-03: la paginación, el orden, la búsqueda y los filtros se resuelven en el
- * servidor (`services/paginados.ts`) y los KPIs/conteos con `count: "exact"`
- * (`services/agregados.ts`). Antes se traían hasta 1000 filas (`CAP_POSTGREST`)
- * y todo se filtraba/paginaba en memoria: con más de 1000 cotizaciones las más
- * viejas desaparecían del listado, de los KPIs y del CSV.
- */
+/** Cotizaciones: filtros, paginación y exportación con lecturas de servidor. */
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerPagedList } from "@/hooks/shared/useServerPagedList";
 import { useOrgFilter } from "@/hooks/shared/useOrgFilter";
 import { useClientesForSelect } from "@/features/cliente/hooks/useClientes";
 import { usePermissions } from "@/hooks/shared/usePermissions";
+import { useAuth } from "@/lib/contexts/AuthContext";
 import { staleTimes } from "@/lib/query/staleTimes";
 import { useCotizacionActions } from "./useCotizacionActions";
 import {
@@ -46,6 +39,7 @@ const DEFAULT_FILTERS = {
   sinCostos: "no",
   incluirInactivas: "no",
   aceptadasSinEmbarque: "no",
+  reaprobacion: "no",
   // Por defecto se muestran las cotizaciones a clientes; la prospección
   // (CRM) vive en su propio segmento para no mezclar embudos.
   segmento: "clientes",
@@ -62,29 +56,31 @@ function aFiltrosSql(
   organizationId: string | null,
   search: string,
   filters: CotizacionFilters,
+  operadorEmail: string | null,
 ): CotizacionesFiltrosSql {
+  const pendientes = filters.reaprobacion === "pendiente";
   return {
     organizationId,
     search,
     filterEstado: filters.estado,
     filterCliente: filters.cliente,
     filterSinCostos: filters.sinCostos === "si",
-    incluirInactivas: filters.incluirInactivas === "si",
+    incluirInactivas: pendientes || filters.incluirInactivas === "si",
     soloAceptadasSinEmbarque: filters.aceptadasSinEmbarque === "si",
-    segmento: normalizarSegmento(filters.segmento),
+    segmento: pendientes ? "todas" : normalizarSegmento(filters.segmento),
+    reaprobacionOperador: pendientes ? operadorEmail : undefined,
   };
 }
 
 export function useCotizacionesPageController() {
-  // v13.823.348 — todas las acciones de esta pantalla son de ESCRITURA (nueva,
-  // duplicar, eliminar): se gatean con la capacidad específica, no con el
-  // `canEdit` amplio (que incluye finanzas y sólo autoriza lectura).
   const { canWriteCotizaciones: canEdit } = usePermissions();
-  const { organizationId } = useOrgFilter();
+  const { organizationId, orgListo } = useOrgFilter();
+  const { user } = useAuth();
+  const operadorEmail = orgListo ? user?.email ?? null : null;
   const { data: clientes = [] } = useClientesForSelect();
   const actions = useCotizacionActions();
 
-  const listQueryKey = ["cotizaciones", "paginadas", organizationId];
+  const listQueryKey = ["cotizaciones", "paginadas", organizationId, operadorEmail];
   const lista = useServerPagedList<CotizacionListItem, CotizacionFilters>({
     queryKey: listQueryKey,
     defaultFilters: { ...DEFAULT_FILTERS },
@@ -102,7 +98,7 @@ export function useCotizacionesPageController() {
     },
     fetcher: (args) =>
       fetchCotizacionesPaginadas({
-        ...aFiltrosSql(organizationId, args.search, args.filters),
+        ...aFiltrosSql(organizationId, args.search, args.filters, operadorEmail),
         page: args.page,
         pageSize: args.pageSize,
         sortKey: args.sortKey,
@@ -119,10 +115,11 @@ export function useCotizacionesPageController() {
     if (estadoIncompatible) setFilter("estado", DEFAULT_FILTERS.estado);
   }, [estadoIncompatible, setFilter]);
 
-  const segmento = normalizarSegmento(lista.filters.segmento);
+  const filtrosActuales = aFiltrosSql(organizationId, lista.search, lista.filters, operadorEmail);
+  const soloMisReaprobaciones = lista.filters.reaprobacion === "pendiente";
+  const { segmento, incluirInactivas } = filtrosActuales;
 
   // COT-NEW-01: los conteos comparten el filtro de vigencia con la tabla.
-  const incluirInactivas = lista.filters.incluirInactivas === "si";
   const agregadosQueryKey = ["cotizaciones", "agregados", organizationId, segmento, incluirInactivas];
   const consultaAgregados = useQuery({
     queryKey: agregadosQueryKey,
@@ -131,12 +128,20 @@ export function useCotizacionesPageController() {
   });
   const agregados = consultaAgregados.isError ? undefined : consultaAgregados.data;
 
-  const filtrosActuales = aFiltrosSql(organizationId, lista.search, lista.filters);
+  const activeChips = lista.activeChips.flatMap((chip) => {
+    if (chip.key === "filter:estado" && estadoIncompatible) return [];
+    if (soloMisReaprobaciones && ["filter:segmento", "filter:incluirInactivas"].includes(chip.key)) return [];
+    if (chip.key === "filter:reaprobacion") {
+      return soloMisReaprobaciones ? [{ ...chip, label: "Mis cotizaciones pendientes de reaprobación" }] : [];
+    }
+    return [chip];
+  });
 
   return {
     // datos
     isLoading: lista.isLoading,
     isPlaceholderData: lista.isPlaceholderData,
+    actualizandoResultados: lista.isStaleView,
     isError: !!lista.error,
     refetch: lista.refetch,
     clientes,
@@ -155,6 +160,7 @@ export function useCotizacionesPageController() {
     filterSinCostos: lista.filters.sinCostos === "si",
     incluirInactivas: lista.filters.incluirInactivas === "si",
     soloAceptadasSinEmbarque,
+    soloMisReaprobaciones,
     segmento,
     segmentoConteos: agregados?.segmentoConteos,
     totalAceptadasSinEmbarque: agregados?.totalAceptadasSinEmbarque ?? 0,
@@ -169,8 +175,8 @@ export function useCotizacionesPageController() {
     setSort: lista.setSort,
     pagination: lista.pagination,
     // UnifiedFiltersBar
-    activeChips: estadoIncompatible ? lista.activeChips.filter((chip) => chip.key !== "filter:estado") : lista.activeChips,
-    activeCount: lista.activeCount - Number(estadoIncompatible),
+    activeChips,
+    activeCount: activeChips.length + Number(Boolean(lista.search)),
     resetAll: lista.resetAll,
     // acciones (delegadas a useCotizacionActions)
     cotizacionAEliminar: actions.cotizacionAEliminar,

@@ -37,9 +37,15 @@ describe('useDashboard Hooks', () => {
 
   it('useDashboardData re-calculates when details arrive', async () => {
     mockFetchSummary.mockResolvedValueOnce({ totalActivos: 10 });
-    mockFetchDetails.mockResolvedValueOnce({ alertasDemora: [{ id: '1' }] });
+    let resolveDetails: (data: { alertasDemora: { id: string }[] }) => void = () => {};
+    mockFetchDetails.mockReturnValueOnce(new Promise((resolve) => { resolveDetails = resolve; }));
     
     const { result } = renderHook(() => useDashboardData(), { wrapper: createWrapper() });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.isLoadingDetails).toBe(true);
+
+    resolveDetails({ alertasDemora: [{ id: '1' }] });
     await waitFor(() => expect(result.current.alertasDemora.length).toBe(1));
+    expect(result.current.isLoadingDetails).toBe(false);
   });
 });

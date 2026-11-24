@@ -8,12 +8,12 @@ import { CotizacionesSecondaryFilters } from "./CotizacionesSecondaryFilters";
 type Props = Pick<ReturnType<typeof useCotizacionesPageController>,
   "search" | "setSearch" | "filterEstado" | "filterCliente" | "clientes" |
   "soloAceptadasSinEmbarque" | "totalAceptadasSinEmbarque" | "filterSinCostos" |
-  "incluirInactivas" | "setFilter" | "activeChips" | "activeCount" | "resetAll"
+  "incluirInactivas" | "soloMisReaprobaciones" | "setFilter" | "activeChips" | "activeCount" | "resetAll"
 >;
 
 const EMPTY_DRAFT = {
   estado: "todos", cliente: "todos", aceptadasSinEmbarque: "no",
-  sinCostos: "no", incluirInactivas: "no",
+  sinCostos: "no", incluirInactivas: "no", reaprobacion: "no",
 };
 
 type FilterDraft = typeof EMPTY_DRAFT;
@@ -34,6 +34,7 @@ export function CotizacionesFiltersBar(c: Props) {
     aceptadasSinEmbarque: c.soloAceptadasSinEmbarque ? "si" : "no",
     sinCostos: c.filterSinCostos ? "si" : "no",
     incluirInactivas: c.incluirInactivas ? "si" : "no",
+    reaprobacion: c.soloMisReaprobaciones ? "pendiente" : "no",
   };
   const [draft, setDraft] = useState(applied);
   const setDraftFilter = (key: keyof FilterDraft, value: string) =>
@@ -65,14 +66,16 @@ export function CotizacionesFiltersBar(c: Props) {
           totalAceptadasSinEmbarque={c.totalAceptadasSinEmbarque}
           filterSinCostos={draft.sinCostos === "si"}
           incluirInactivas={draft.incluirInactivas === "si"}
+          soloMisReaprobaciones={draft.reaprobacion === "pendiente"}
           setFilter={setDraftFilter}
         />
       }
       onSheetOpenChange={(open) => { if (open) setDraft(applied); }}
       onApply={() => commit(draft)}
       onSheetClearAll={() => setDraft(EMPTY_DRAFT)}
-      sheetActiveCount={Object.keys(draft).filter((key) =>
-        draft[key as keyof typeof draft] !== EMPTY_DRAFT[key as keyof typeof draft]).length}
+      sheetActiveCount={(Object.keys(draft) as (keyof FilterDraft)[]).filter((key) =>
+        draft[key] !== EMPTY_DRAFT[key] &&
+        (key !== "incluirInactivas" || draft.reaprobacion !== "pendiente")).length}
       chips={c.activeChips}
       activeCount={c.activeCount}
       onClearAll={c.resetAll}

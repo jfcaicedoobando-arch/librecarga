@@ -73,6 +73,7 @@ export default function Cotizaciones() {
           <CotizacionesPageActions
             canEdit={c.canEdit}
             totalFiltrado={c.total}
+            actualizandoResultados={c.actualizandoResultados}
             exportando={c.exportando}
             onExportar={c.exportar}
             onNueva={c.irANueva}
@@ -92,11 +93,13 @@ export default function Cotizaciones() {
         onRetry={() => void c.reintentarAgregados()}
       />
 
-      <SegmentoTabs
-        value={c.segmento}
-        conteos={c.segmentoConteos}
-        onChange={(v) => c.setFilter("segmento", v)}
-      />
+      {!c.soloMisReaprobaciones && (
+        <SegmentoTabs
+          value={c.segmento}
+          conteos={c.segmentoConteos}
+          onChange={(v) => c.setFilter("segmento", v)}
+        />
+      )}
 
       <Card>
         <CardContent className="p-4">
@@ -124,7 +127,9 @@ export default function Cotizaciones() {
             // las filas de la consulta anterior; el esqueleto evita operar
             // sobre filas del segmento equivocado.
             isLoading={c.isLoading || c.isPlaceholderData || deferredPaginated !== c.paginated}
-            emptyMessage="No se encontraron cotizaciones"
+            emptyMessage={c.soloMisReaprobaciones
+              ? "No se encontraron cotizaciones pendientes de reaprobación"
+              : "No se encontraron cotizaciones"}
             getRowHref={(r) => `/cotizaciones/${r.id}`}
             onRowMouseEnter={(r) => c.prefetchCotizacion(r.id)}
             rowKey={(r) => r.id}

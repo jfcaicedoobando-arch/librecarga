@@ -4,7 +4,7 @@
  * Extraído de `Cotizaciones.tsx` para respetar el límite de 200 líneas
  * (Power of 10).
  */
-import { AlertTriangle, Archive, Truck } from "lucide-react";
+import { AlertTriangle, Archive, FileCheck, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Hint } from "@/components/shared/Hint";
 
@@ -13,7 +13,8 @@ interface Props {
   totalAceptadasSinEmbarque: number;
   filterSinCostos: boolean;
   incluirInactivas: boolean;
-  setFilter: (clave: "aceptadasSinEmbarque" | "sinCostos" | "incluirInactivas", valor: string) => void;
+  soloMisReaprobaciones: boolean;
+  setFilter: (clave: "aceptadasSinEmbarque" | "sinCostos" | "incluirInactivas" | "reaprobacion", valor: string) => void;
 }
 
 export function CotizacionesSecondaryFilters({
@@ -21,6 +22,7 @@ export function CotizacionesSecondaryFilters({
   totalAceptadasSinEmbarque,
   filterSinCostos,
   incluirInactivas,
+  soloMisReaprobaciones,
   setFilter,
 }: Props) {
   return (
@@ -52,19 +54,32 @@ export function CotizacionesSecondaryFilters({
         <AlertTriangle className="h-4 w-4" />
         Sólo sin costos
       </Button>
-      <Hint label="Por defecto se ocultan las cotizaciones Vencidas y Archivadas">
-        <Button
-          type="button"
-          variant={incluirInactivas ? "default" : "outline"}
-          size="sm"
-          aria-pressed={incluirInactivas}
-          onClick={() => setFilter("incluirInactivas", incluirInactivas ? "no" : "si")}
-          className="w-full gap-2"
-        >
-          <Archive className="h-4 w-4" />
-          Incluir vencidas/archivadas
-        </Button>
-      </Hint>
+      <Button
+        type="button"
+        variant={soloMisReaprobaciones ? "default" : "outline"}
+        size="sm"
+        aria-pressed={soloMisReaprobaciones}
+        onClick={() => setFilter("reaprobacion", soloMisReaprobaciones ? "no" : "pendiente")}
+        className="w-full gap-2"
+      >
+        <FileCheck className="h-4 w-4" />
+        Mis pendientes de reaprobación
+      </Button>
+      {!soloMisReaprobaciones && (
+        <Hint label="Por defecto se ocultan las cotizaciones Vencidas y Archivadas">
+          <Button
+            type="button"
+            variant={incluirInactivas ? "default" : "outline"}
+            size="sm"
+            aria-pressed={incluirInactivas}
+            onClick={() => setFilter("incluirInactivas", incluirInactivas ? "no" : "si")}
+            className="w-full gap-2"
+          >
+            <Archive className="h-4 w-4" />
+            Incluir vencidas/archivadas
+          </Button>
+        </Hint>
+      )}
     </div>
     );
 }
