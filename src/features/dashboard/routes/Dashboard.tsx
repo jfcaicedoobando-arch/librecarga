@@ -42,6 +42,7 @@ function OperationalDashboard() {
   const {
     scope, setScope, showScopeToggle, operadorEmail,
     isOperador, canViewFinancials, hideFinancials, isLoading, isError, refetch,
+    isLoadingDetails, isErrorDetails, refetchDetails,
     cargasPorCliente, cargasActivasTotal, scoped, saludo, hoyStr,
   } = useDashboardController();
   const { data: misReaprob = 0 } = useMisCotizacionesPendientesReaprobacion();
@@ -78,10 +79,12 @@ function OperationalDashboard() {
       {misReaprob > 0 && (
         <Alert variant="warning">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Tienes {misReaprob} cotización{misReaprob === 1 ? "" : "es"} esperando tu re-aprobación</AlertTitle>
+          <AlertTitle>Tienes {misReaprob} cotización{misReaprob === 1 ? "" : "es"} pendiente{misReaprob === 1 ? "" : "s"} de reaprobación</AlertTitle>
           <AlertDescription>
-            Operaciones detectó cambios en la tarifa al crear el embarque.{" "}
-            <Link to="/cotizaciones?reaprobacion=pendiente" className="underline font-medium">Revisar ahora →</Link>
+            Revisa los cambios de tarifa antes de continuar con el embarque.{" "}
+            <Link to="/cotizaciones?reaprobacion=pendiente" className="underline font-medium">
+              Ver mis cotizaciones pendientes de reaprobación
+            </Link>
           </AlertDescription>
         </Alert>
       )}
@@ -128,12 +131,19 @@ function OperationalDashboard() {
         <ProfitTable embarques={scoped.profitArribosEsteMes} isLoading={isLoading} />
       )}
 
-      <EmbarquesActivosTable
-        embarques={scoped.embarquesMesSiguiente}
-        resumen={scoped.resumenMesSiguiente}
-        isLoading={isLoading}
-        hideFinancials={hideFinancials}
-      />
+      <CargaGuard
+        isLoading={isLoadingDetails}
+        isError={isErrorDetails}
+        onRetry={() => refetchDetails()}
+        errorTitle="No pudimos cargar los embarques del próximo mes"
+      >
+        <EmbarquesActivosTable
+          embarques={scoped.embarquesMesSiguiente}
+          resumen={scoped.resumenMesSiguiente}
+          isLoading={isLoading || isLoadingDetails}
+          hideFinancials={hideFinancials}
+        />
+      </CargaGuard>
       </CargaGuard>
     </PageContainer>
   );

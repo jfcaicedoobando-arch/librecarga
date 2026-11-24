@@ -43,6 +43,7 @@ const {
   EXPORT_BATCH_SIZE,
   resolverColumnaOrdenCotizaciones,
 } = await import("../paginados");
+const { contarMisCotizacionesPendientesReaprobacion } = await import("../pendientesReaprobacion");
 
 // v13.823.351 — en los segmentos con prospectos la columna Cliente muestra
 // `prospecto_empresa`, así que ordenar por `cliente_nombre` no corresponde al
@@ -165,6 +166,38 @@ describe("fetchCotizacionesPaginadas", () => {
         { op: "eq", args: ["cliente_id", "c1"] },
       ]));
     }
+  });
+
+  it("comparte el alcance de las reaprobaciones propias entre contador, tabla y CSV", async () => {
+    const email = "operador@example.test";
+    const filtros = {
+      ...FILTROS, segmento: "todas" as const, incluirInactivas: true, reaprobacionOperador: email,
+    };
+    estado.respuestas.push({ data: [], count: 1, error: null });
+    expect(await contarMisCotizacionesPendientesReaprobacion(email, "org-1")).toBe(1);
+    estado.respuestas.push({ data: filasFalsas(1), count: 1, error: null });
+    expect((await fetchCotizacionesPaginadas({ ...filtros, page: 0, pageSize: 50 })).count).toBe(1);
+    estado.respuestas.push({ data: filasFalsas(1), count: 1, error: null });
+    expect(await fetchTodasCotizacionesParaExportar(filtros)).toHaveLength(1);
+    for (const { table, ops } of estado.llamadas) {
+      expect(table).toBe("cotizaciones");
+      expect(ops.filter(({ op }) => ["is", "eq", "or", "not"].includes(op))).toEqual([
+        { op: "is", args: ["deleted_at", null] },
+        { op: "eq", args: ["organization_id", "org-1"] },
+        { op: "eq", args: ["estado_revalidacion", "pendiente_reaprobacion"] },
+        { op: "eq", args: ["operador", email] },
+      ]);
+    }
+  });
+
+  it.each([
+    { organizationId: "org-1", reaprobacionOperador: null },
+    { organizationId: null, reaprobacionOperador: "operador@example.test" },
+  ])("no consulta pendientes si falta la organización o el operador", async (scope) => {
+    const filtros = { ...FILTROS, ...scope };
+    expect(await fetchCotizacionesPaginadas({ ...filtros, page: 0, pageSize: 50 })).toEqual({ rows: [], count: 0 });
+    expect(await fetchTodasCotizacionesParaExportar(filtros)).toEqual([]);
+    expect(estado.llamadas).toHaveLength(0);
   });
 });
 

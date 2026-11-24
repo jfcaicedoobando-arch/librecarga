@@ -31,7 +31,8 @@ export const cotizaciones = {
     ['cotizacion', 'prefill-tarifa-aerea', organizationId, tarifaId, solicitudId] as const,
   pendientesReaprobacion: {
     all: ['cotizaciones', 'pendientes-reaprobacion', 'all'] as const,
-    mias: (email: string | null) => ['cotizaciones', 'pendientes-reaprobacion', 'mias', email] as const,
+    mias: (email: string | null, organizationId: string | null) =>
+      ['cotizaciones', 'pendientes-reaprobacion', 'mias', email, organizationId] as const,
   },
   // P3 (v13.297.0): Versiones (snapshots inmutables) por cotización.
   versiones: (cotizacionId: string) => ['cotizacion_versiones', cotizacionId] as const,

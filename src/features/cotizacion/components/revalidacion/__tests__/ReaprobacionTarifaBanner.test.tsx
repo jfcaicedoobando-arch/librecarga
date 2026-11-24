@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter, useLocation } from "react-router";
 import { ReaprobacionTarifaBanner } from "../ReaprobacionTarifaBanner";
+import { recotizarCotizacion } from "@/features/cotizacion/services/versionado";
 
 const estado = vi.hoisted(() => ({ rol: "vendedor" }));
 
@@ -15,12 +17,22 @@ vi.mock("@/features/cotizacion/services/versionado", () => ({
   recotizarCotizacion: vi.fn(),
 }));
 
+function Path() {
+  return <output data-testid="ruta">{useLocation().pathname}</output>;
+}
+
 function renderBanner(props: Parameters<typeof ReaprobacionTarifaBanner>[0]) {
-  return render(
-    <MemoryRouter>
-      <ReaprobacionTarifaBanner {...props} />
-    </MemoryRouter>,
+  const cache = new QueryClient();
+  const invalidateQueries = vi.spyOn(cache, "invalidateQueries");
+  const view = render(
+    <QueryClientProvider client={cache}>
+      <MemoryRouter>
+        <ReaprobacionTarifaBanner {...props} />
+        <Path />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
+  return { ...view, invalidateQueries };
 }
 
 describe("ReaprobacionTarifaBanner (B-097)", () => {
@@ -30,8 +42,8 @@ describe("ReaprobacionTarifaBanner (B-097)", () => {
   });
 
   it("no se pinta cuando la cotización no está pendiente de re-aprobación", () => {
-    const { container } = renderBanner({ cotizacionId: "c1", estado: "Aceptada" });
-    expect(container).toBeEmptyDOMElement();
+    renderBanner({ cotizacionId: "c1", estado: "Aceptada" });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("usa copy de vigencia cuando la tarifa está vencida", () => {
@@ -58,6 +70,16 @@ describe("ReaprobacionTarifaBanner (B-097)", () => {
     expect(screen.getByRole("button", { name: /Re-aprobar manteniendo precio/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Re-cotizar con tarifa vigente/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Rechazar/ })).toBeInTheDocument();
+  });
+
+  it("invalida las listas de pendientes y su contador al recotizar con éxito", async () => {
+    vi.mocked(recotizarCotizacion).mockResolvedValueOnce({ version_anterior: 1, version_nueva: 2 });
+    const { invalidateQueries } = renderBanner({
+      cotizacionId: "c1", estado: "pendiente_reaprobacion", estadoCotizacion: "Aceptada",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Re-cotizar con tarifa vigente" }));
+    await waitFor(() => expect(screen.getByTestId("ruta")).toHaveTextContent("/cotizaciones/c1/editar"));
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["cotizaciones"] });
   });
 
   /**

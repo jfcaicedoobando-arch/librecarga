@@ -7,10 +7,12 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { CotizacionesPageActions } from "../CotizacionesPageActions";
 
-function montar(totalFiltrado: number, onExportar = vi.fn()) {
+function montar(totalFiltrado: number, actualizandoResultados = false) {
+  const onExportar = vi.fn();
   render(
     <MemoryRouter>
-      <CotizacionesPageActions canEdit totalFiltrado={totalFiltrado} onExportar={onExportar} onNueva={vi.fn()} />
+      <CotizacionesPageActions canEdit totalFiltrado={totalFiltrado} actualizandoResultados={actualizandoResultados}
+        onExportar={onExportar} onNueva={vi.fn()} />
     </MemoryRouter>,
   );
   return { onExportar, boton: screen.getByRole("button", { name: /Exportar CSV/i }) };
@@ -34,6 +36,14 @@ describe("CotizacionesPageActions · Exportar CSV", () => {
     expect(boton).not.toBeDisabled();
     fireEvent.click(boton);
     expect(onExportar).toHaveBeenCalledTimes(1);
+  });
+
+  it("explica cuándo el conteo anterior todavía no corresponde al filtro nuevo", () => {
+    const { boton, onExportar } = montar(3, true);
+    expect(boton).toBeDisabled();
+    expect(boton).toHaveAccessibleDescription("Actualizando los resultados de los filtros.");
+    fireEvent.click(boton);
+    expect(onExportar).not.toHaveBeenCalled();
   });
 
   it("separa el CTA de escritorio del FAB móvil en el breakpoint md", () => {

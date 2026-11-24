@@ -15,6 +15,7 @@ interface CotizacionesPageActionsProps {
   canEdit: boolean;
   /** Total filtrado en servidor: con 0 no hay nada que exportar. */
   totalFiltrado?: number;
+  actualizandoResultados?: boolean;
   /** v13.823.349 — evita segundas descargas mientras el CSV se está armando. */
   exportando?: boolean;
   onExportar: () => void;
@@ -24,10 +25,12 @@ interface CotizacionesPageActionsProps {
 export function CotizacionesPageActions({
   canEdit,
   totalFiltrado,
+  actualizandoResultados = false,
   exportando = false,
   onExportar,
   onNueva,
 }: CotizacionesPageActionsProps) {
+  const motivoExportar = actualizandoResultados ? "Actualizando los resultados de los filtros." : totalFiltrado === 0 ? SIN_EXPORTAR : "";
   return (
     <>
       <Button variant="outline" asChild className="hidden md:inline-flex">
@@ -35,23 +38,23 @@ export function CotizacionesPageActions({
           <Sparkles className="h-4 w-4 mr-2" /> Plantillas
         </Link>
       </Button>
-      <Hint label={totalFiltrado === 0 ? SIN_EXPORTAR : ""}>
+      <Hint label={motivoExportar}>
         <Button
           variant="outline"
           onClick={onExportar}
-          disabled={totalFiltrado === 0 || exportando}
+          disabled={Boolean(motivoExportar) || exportando}
           // Un botón deshabilitado no dispara el tooltip de Radix (no recibe
           // eventos de puntero): dejamos la causa como descripción accesible
           // (sin `title` nativo, prohibido por la auditoría de arquitectura).
-          aria-describedby={totalFiltrado === 0 ? "exportar-csv-motivo" : undefined}
+          aria-describedby={motivoExportar ? "exportar-csv-motivo" : undefined}
           className="hidden sm:inline-flex"
         >
           <Download className="h-4 w-4 mr-2" /> {exportando ? "Exportando…" : "Exportar CSV"}
         </Button>
       </Hint>
-      {totalFiltrado === 0 && (
+      {motivoExportar && (
         <span id="exportar-csv-motivo" className="sr-only">
-          {SIN_EXPORTAR}
+          {motivoExportar}
         </span>
       )}
 
@@ -83,7 +86,7 @@ export function CotizacionesPageActions({
               <Sparkles className="mr-2 h-4 w-4" /> Plantillas
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onExportar} disabled={totalFiltrado === 0 || exportando}>
+          <DropdownMenuItem onClick={onExportar} disabled={Boolean(motivoExportar) || exportando}>
             <Download className="mr-2 h-4 w-4" /> Exportar CSV
           </DropdownMenuItem>
 

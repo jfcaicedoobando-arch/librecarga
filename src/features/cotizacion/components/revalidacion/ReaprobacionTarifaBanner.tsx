@@ -14,6 +14,7 @@
  */
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw } from "lucide-react";
@@ -21,6 +22,7 @@ import { useResolverReaprobacion } from "@/features/cotizacion/hooks/useRevalida
 import { recotizarCotizacion } from "@/features/cotizacion/services/versionado";
 import { notifyError } from "@/lib/ui/appFeedback";
 import { usePermissions } from "@/hooks/shared";
+import { queryKeys } from "@/lib/query";
 
 interface Props {
   cotizacionId: string;
@@ -44,6 +46,7 @@ export function ReaprobacionTarifaBanner({ cotizacionId, estado, estadoCotizacio
   const { canApproveTarifaCotizacion } = usePermissions();
   const [recotizando, setRecotizando] = useState(false);
   const navigate = useNavigate();
+  const cache = useQueryClient();
 
   if (estado !== "pendiente_reaprobacion") return null;
 
@@ -62,6 +65,7 @@ export function ReaprobacionTarifaBanner({ cotizacionId, estado, estadoCotizacio
       // v13.823.351: `recotizar_cotizacion` ya registra la decisión
       // `recotizada`; marcarla aparte quedaba a medias si la versión fallaba.
       await recotizarCotizacion(cotizacionId, "Tarifa vigente actualizada por ventas");
+      void cache.invalidateQueries({ queryKey: queryKeys.cotizaciones.all });
       navigate(`/cotizaciones/${cotizacionId}/editar`);
     } catch (e) {
       notifyError(undefined, {

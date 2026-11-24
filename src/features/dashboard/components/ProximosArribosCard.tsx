@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { CalendarClock, Clock, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ListSkeleton } from "@/components/shared/states/ListSkeleton";
 import { formatDate, toTitleCase } from "@/lib/formatters";
@@ -38,7 +38,7 @@ export const ProximosArribosCard = memo(function ProximosArribosCard({ arribos, 
     }
     if (arribos.length === 0) {
       return (
-        <EmptyStateInline icon={CalendarClock} message="Sin arribos próximos" className="py-6" />
+        <EmptyStateInline icon={CalendarClock} message="Sin arribos previstos en ese periodo" className="py-6" />
       );
     }
     return arribos.slice(0, MAX_ITEMS_TARJETA_DASHBOARD).map((e) => (
@@ -71,13 +71,14 @@ export const ProximosArribosCard = memo(function ProximosArribosCard({ arribos, 
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
           <CalendarClock className="h-4 w-4 text-warning" />
-          Próximos Arribos (7 días)
+          Próximos arribos (7 días)
           {arribos.length > 0 && (
             <Badge className="ml-auto text-label bg-warning/15 text-warning border-warning/30">
               {arribos.length}
             </Badge>
           )}
         </CardTitle>
+        <CardDescription className="text-body-sm">Embarques en tránsito</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         {renderBody()}

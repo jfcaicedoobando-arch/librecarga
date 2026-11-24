@@ -1,6 +1,5 @@
 /**
- * Sub-componentes del card "Arribos este mes". Extraídos para mantener
- * `ArribosCard.tsx` ≤200 líneas (Power of 10).
+ * Detalles de utilidad y cobertura de gastos para la tarjeta de arribos.
  */
 import { Fragment } from "react";
 import { Ship } from "lucide-react";
@@ -110,7 +109,7 @@ export function CoberturaTooltipContent({
 }: CoberturaProps) {
   return (
     <div className="space-y-2">
-      <SectionHeading as="h3">Cobertura de gastos fijos</SectionHeading>
+      <SectionHeading as="h3">Cobertura proyectada de gastos fijos</SectionHeading>
       <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-body-sm">
         <span className="text-muted-foreground">Utilidad proyectada</span>
         <span className="tabular-nums font-medium text-right">{formatCurrency(profitMXN, "MXN")}</span>
@@ -120,7 +119,7 @@ export function CoberturaTooltipContent({
       {sinGastos ? (
         <EmptyStateInline
           icon={Ship}
-          message="Aún no hay gastos fijos capturados este mes."
+          message="Se necesita un importe de gastos fijos mayor a cero para calcular la cobertura."
           density="compact"
           className="border-t pt-1.5"
         />
@@ -130,7 +129,7 @@ export function CoberturaTooltipContent({
         </p>
       ) : pctReal >= 100 ? (
         <p className="text-label text-success border-t pt-1.5">
-          Ya cubriste tus gastos fijos del mes. El excedente es utilidad neta.
+          La utilidad proyectada alcanza para cubrir los gastos incluidos del mes.
         </p>
       ) : (
         <p className="text-label text-muted-foreground border-t pt-1.5">

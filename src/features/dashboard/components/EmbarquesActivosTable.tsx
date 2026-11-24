@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import { statusColumn } from "@/components/shared/dataTable/columnBuilders";
@@ -117,9 +118,8 @@ export function EmbarquesActivosTable({ embarques, resumen: resumenCrudo, isLoad
   const filas = useMemo(() => proyectarFilasUtilidadVisible(embarques), [embarques]);
   const resumen = useMemo(() => proyectarUtilidadVisible(resumenCrudo), [resumenCrudo]);
 
-  const nombreMesCap = resumen.nombreMes
-    ? resumen.nombreMes.charAt(0).toUpperCase() + resumen.nombreMes.slice(1)
-    : "Próximo mes";
+  const mes = resumen.nombreMes.trim().toLocaleLowerCase("es-MX").replace(/^(\S+) (\d{4})$/, "$1 de $2");
+  const periodo = mes ? `en ${mes}` : "el próximo mes";
   const pctFacturados = resumen.totalEmbarques > 0
     ? Math.round((resumen.facturados / resumen.totalEmbarques) * 100)
     : 0;
@@ -136,59 +136,69 @@ export function EmbarquesActivosTable({ embarques, resumen: resumenCrudo, isLoad
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 flex-wrap">
           <CalendarDays className="h-4 w-4 text-primary shrink-0" />
-          <span>Embarques activos — próximo mes ({nombreMesCap})</span>
+          <span>Embarques activos — próximo mes{mes && ` (${mes})`}</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Resumen de facturación */}
-        <div className={`grid gap-3 ${hideFinancials ? "grid-cols-1" : "grid-cols-2 md:grid-cols-3 lg:grid-cols-5"}`}>
-          <KpiCard label="Embarques" value={resumen.totalEmbarques} icon={Ship} iconVariant="chip" />
-          {!hideFinancials && (
-            <>
-              <KpiCard
-                label="Venta MXN"
-                value={formatCurrency(resumen.ventaMXN, "MXN")}
-                icon={DollarSign}
-                iconVariant="chip"
-                variant="info"
-              />
-              <KpiCard
-                label="Costo MXN"
-                value={formatCurrency(resumen.costoMXN, "MXN")}
-                icon={DollarSign}
-                iconVariant="chip"
-                variant="warning"
-              />
-              <KpiCard
-                label="Utilidad MXN"
-                value={formatCurrency(resumen.profitMXN, "MXN")}
-                icon={TrendingUp}
-                iconVariant="chip"
-                variant={resumen.profitMXN >= 0 ? "success" : "destructive"}
-              />
-              <KpiCard
-                label="Facturados"
-                value={`${resumen.facturados}/${resumen.totalEmbarques}`}
-                icon={FileCheck}
-                iconVariant="chip"
-                delta={`${pctFacturados}%`}
-                className="col-span-2 md:col-span-3 lg:col-span-1"
-              >
-                <Progress value={pctFacturados} className={`h-1.5 mt-1.5 ${colorClass}`} />
-              </KpiCard>
-            </>
-          )}
-        </div>
+        {isLoading || filas.length === 0 ? (
+          <EmptyStateInline
+            icon={Ship}
+            loading={isLoading}
+            message={isLoading
+              ? "Cargando embarques del próximo mes…"
+              : `Sin embarques activos con llegada prevista ${periodo}`}
+          />
+        ) : (
+          <>
+            <p className="text-body-sm text-muted-foreground">Resumen de los embarques mostrados.</p>
+            <div className={`grid gap-3 ${hideFinancials ? "grid-cols-1" : "grid-cols-2 md:grid-cols-3 lg:grid-cols-5"}`}>
+              <KpiCard label="Embarques" value={resumen.totalEmbarques} icon={Ship} iconVariant="chip" />
+              {!hideFinancials && (
+                <>
+                  <KpiCard
+                    label="Venta MXN"
+                    value={formatCurrency(resumen.ventaMXN, "MXN")}
+                    icon={DollarSign}
+                    iconVariant="chip"
+                    variant="info"
+                  />
+                  <KpiCard
+                    label="Costo MXN"
+                    value={formatCurrency(resumen.costoMXN, "MXN")}
+                    icon={DollarSign}
+                    iconVariant="chip"
+                    variant="warning"
+                  />
+                  <KpiCard
+                    label="Utilidad MXN"
+                    value={formatCurrency(resumen.profitMXN, "MXN")}
+                    icon={TrendingUp}
+                    iconVariant="chip"
+                    variant={resumen.profitMXN >= 0 ? "success" : "destructive"}
+                  />
+                  <KpiCard
+                    label="Facturados"
+                    value={`${resumen.facturados}/${resumen.totalEmbarques}`}
+                    icon={FileCheck}
+                    iconVariant="chip"
+                    delta={`${pctFacturados}%`}
+                    className="col-span-2 md:col-span-3 lg:col-span-1"
+                  >
+                    <Progress value={pctFacturados} className={`h-1.5 mt-1.5 ${colorClass}`} />
+                  </KpiCard>
+                </>
+              )}
+            </div>
 
-        <DataTable
-          columns={visibleColumns}
-          data={filas}
-          isLoading={isLoading}
-          emptyMessage={`Sin embarques con ETA en ${nombreMesCap}`}
-          getRowHref={(e) => `/embarques/${e.id}`}
-          rowKey={(e) => e.id}
-          density={TABLE_DENSITY.embebida}
-        />
+            <DataTable
+              columns={visibleColumns}
+              data={filas}
+              getRowHref={(e) => `/embarques/${e.id}`}
+              rowKey={(e) => e.id}
+              density={TABLE_DENSITY.embebida}
+            />
+          </>
+        )}
       </CardContent>
     </Card>
   );

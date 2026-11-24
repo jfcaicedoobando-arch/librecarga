@@ -31,6 +31,7 @@ const ESTADOS_ORDEN: EstadoFiltro[] = [
 ];
 
 const ESTADOS_TEXTO = ESTADOS_ORDEN.join(" · ");
+const ABRIR_FICHA = "Abrir ficha del cliente";
 
 function sumDesglose(desglose: CargaCliente["desglose"]): number {
   return ESTADOS_ORDEN.reduce((acc, est) => acc + (desglose?.[est] ?? 0), 0);
@@ -46,16 +47,16 @@ function FilaCliente({ cliente: c, totalActivosGlobal, onClick }: FilaProps) {
   const hasGlobal = totalActivosGlobal > 0;
   const pct = hasGlobal ? (c.totalVisible / totalActivosGlobal) * 100 : 0;
   const pctRedondeado = Math.round(pct);
-  const ariaLabel = hasGlobal
-    ? `${c.clienteNombre}: ${c.totalVisible} de ${totalActivosGlobal} cargas activas, ${pctRedondeado} por ciento del total`
-    : `${c.clienteNombre}: ${c.totalVisible} cargas activas`;
+  const resumen = hasGlobal
+    ? `${c.totalVisible} de ${totalActivosGlobal} embarques activos, ${pctRedondeado} por ciento del total`
+    : `${c.totalVisible} ${c.totalVisible === 1 ? "embarque activo" : "embarques activos"}`;
 
   return (
     <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>
         <div
           {...activableConTeclado(onClick)}
-          aria-label={ariaLabel}
+          aria-label={`${ABRIR_FICHA}: ${c.clienteNombre}. ${resumen}`}
           className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer hover:bg-primary/5 transition-colors group ${FOCUS_RING}`}
         >
           {/* Total — big number (suma exacta de los chips) */}
@@ -83,6 +84,7 @@ function FilaCliente({ cliente: c, totalActivosGlobal, onClick }: FilaProps) {
                 );
               })}
             </div>
+            <span className="block text-label font-medium text-primary">{ABRIR_FICHA}</span>
           </div>
 
           {/* Proportion bar — % sobre el total activo de TODOS los clientes */}
@@ -112,11 +114,11 @@ function FilaCliente({ cliente: c, totalActivosGlobal, onClick }: FilaProps) {
         {hasGlobal ? (
           <p className="text-body-sm">
             <span className="font-medium">{c.totalVisible}</span> de{" "}
-            <span className="font-medium">{totalActivosGlobal}</span> cargas activas{" "}
+            <span className="font-medium">{totalActivosGlobal}</span> embarques activos{" "}
             <span className="text-muted-foreground">({pctRedondeado}% del total de tu organización)</span>
           </p>
         ) : (
-          <p className="text-body-sm">{c.totalVisible} cargas activas</p>
+          <p className="text-body-sm">{resumen}</p>
         )}
         <p className="text-label text-muted-foreground mt-1.5 leading-snug">
           Incluye embarques en: {ESTADOS_TEXTO}
@@ -159,7 +161,7 @@ export const CargasActivasClienteCard = memo(function CargasActivasClienteCard({
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
             <Ship className="h-4 w-4 text-muted-foreground" />
-            Cargas activas por cliente
+            Embarques activos por cliente
           </CardTitle>
           <p className="text-body-sm text-muted-foreground leading-snug">
             Suma de embarques en {ESTADOS_TEXTO}. El % de cada fila indica qué porción

@@ -43,7 +43,8 @@ export function useDashboardController() {
   const {
     alertasDemora, proximosArribos, profitArribosEsteMes, embarquesMesSiguiente,
     embarquesEir, conteoPorEstado, totalActivos, arribosEsteMes, resumenMesSiguiente,
-    isLoading, isError, refetch, cargasPorCliente, cargasActivasTotal,
+    isLoading, isError, refetch, isLoadingDetails, isErrorDetails, refetchDetails,
+    cargasPorCliente, cargasActivasTotal,
   } = useDashboardData();
   const operadorEmail = user?.email ?? "";
 
@@ -128,7 +129,8 @@ export function useDashboardController() {
     isOperador,
     canViewFinancials,
     hideFinancials: !canViewFinancials,
-    isLoading, isError, refetch, cargasPorCliente, cargasActivasTotal,
+    isLoading, isError, refetch, isLoadingDetails, isErrorDetails, refetchDetails,
+    cargasPorCliente, cargasActivasTotal,
     scoped,
     saludo,
     hoyStr,

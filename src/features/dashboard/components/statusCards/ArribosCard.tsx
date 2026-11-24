@@ -3,6 +3,7 @@ import { CardContent } from "@/components/ui/card";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { KpiStrip } from "@/components/shared/KpiStrip";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarDays, TrendingUp, Ship, CheckCircle2 } from "lucide-react";
@@ -45,24 +46,27 @@ function getBarStyles(perdida: boolean, pctReal: number) {
 }
 
 /**
- * En desktop usa Tooltip (hover); en mobile usa Popover (tap), porque los
- * tooltips de Radix no se abren con touch. El contenido es el mismo.
+ * En móvil usa Popover para abrir con un toque. Una ayuda con diálogo
+ * identificado también se abre al activar el control en escritorio.
  */
 function InfoHint({
   trigger,
   content,
   widthClass,
+  popoverLabel,
 }: {
   trigger: ReactNode;
   content: ReactNode;
   widthClass: string;
+  popoverLabel?: string;
 }) {
   const isMobile = useIsMobile();
-  if (isMobile) {
+  if (isMobile || popoverLabel) {
     return (
       <Popover>
         <PopoverTrigger asChild>{trigger}</PopoverTrigger>
         <PopoverContent
+          aria-label={popoverLabel}
           side="bottom"
           align="center"
           sideOffset={8}
@@ -98,6 +102,7 @@ export function ArribosCard({ arribosEsteMes, isLoading, hideFinancials = false 
   const pctBarra = Math.min(100, pctReal);
   const faltante = Math.max(gastos - profitPositivo, 0);
   const sinGastos = gastos <= 0;
+  const cobertura = sinGastos ? "Sin base para calcular" : `${pctReal}%`;
   const perdida = arribosEsteMes.profitMXN < 0;
   const { bar: barColor, text: pctTextColor } = getBarStyles(perdida, pctReal);
   const profitPositivoFlag = arribosEsteMes.profitMXN >= 0;
@@ -110,7 +115,7 @@ export function ArribosCard({ arribosEsteMes, isLoading, hideFinancials = false 
             <div className="p-2 rounded-lg bg-linear-to-br/srgb from-primary to-primary/80">
               <CalendarDays className="h-4 w-4 text-primary-foreground" />
             </div>
-            <SectionHeading as="h3" className="inline-flex">Arribos este mes</SectionHeading>
+            <SectionHeading as="h3" className="inline-flex">Arribos del mes según ETA</SectionHeading>
           </div>
 
           <div className="flex-1 min-w-0">
@@ -128,7 +133,7 @@ export function ArribosCard({ arribosEsteMes, isLoading, hideFinancials = false 
                 loading={isLoading}
               />
               <KpiCard
-                label="En camino"
+                label="Pendientes de arribo"
                 value={arribosEsteMes.enCamino}
                 icon={Ship}
                 variant="warning"
@@ -158,32 +163,38 @@ export function ArribosCard({ arribosEsteMes, isLoading, hideFinancials = false 
             </KpiStrip>
           </div>
 
-          {/* VB-07: el bloque de cobertura quedaba truncado al borde derecho;
-              se le da ancho mínimo con el % siempre visible y, bajo 1536px,
-              pasa a su propia fila a ancho completo. */}
           <div className="flex flex-col gap-0.5 w-full 2xl:w-56 2xl:min-w-56 shrink-0">
-            <InfoHint
-              widthClass="w-[min(280px,calc(100vw-2rem))]"
-              trigger={
-                <button type="button" className="flex items-center gap-2 cursor-help w-full">
-                  <Progress value={pctBarra} className={`h-2 flex-1 ${barColor}`} />
-                  <span className={`text-body-sm font-semibold tabular-nums w-12 text-right ${pctTextColor}`}>
-                    {sinGastos ? "—" : `${pctReal}%`}
-                  </span>
-                </button>
-              }
-              content={
-                <CoberturaTooltipContent
-                  profitMXN={arribosEsteMes.profitMXN}
-                  gastos={gastos}
-                  faltante={faltante}
-                  sinGastos={sinGastos}
-                  perdida={perdida}
-                  pctReal={pctReal}
-                />
-              }
-            />
-            <p className="text-label text-muted-foreground text-center">Gastos fijos cubiertos</p>
+            {isLoading ? <Skeleton className="h-5 w-full" /> : (
+              <InfoHint
+                widthClass="w-[min(280px,calc(100vw-2rem))]"
+                popoverLabel="Cálculo de la cobertura de gastos fijos"
+                trigger={
+                  <button
+                    type="button"
+                    aria-label={`Ver cálculo de cobertura de gastos fijos (${cobertura})`}
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {!sinGastos && (
+                      <Progress aria-hidden="true" value={pctBarra} className={`h-2 flex-1 ${barColor}`} />
+                    )}
+                    <span className={sinGastos ? "w-full text-center text-body-sm text-muted-foreground" : `w-12 text-right text-body-sm font-semibold tabular-nums ${pctTextColor}`}>
+                      {cobertura}
+                    </span>
+                  </button>
+                }
+                content={
+                  <CoberturaTooltipContent
+                    profitMXN={arribosEsteMes.profitMXN}
+                    gastos={gastos}
+                    faltante={faltante}
+                    sinGastos={sinGastos}
+                    perdida={perdida}
+                    pctReal={pctReal}
+                  />
+                }
+              />
+            )}
+            <p className="text-label text-muted-foreground text-center">Cobertura proyectada de gastos fijos</p>
           </div>
         </div>
       </CardContent>
