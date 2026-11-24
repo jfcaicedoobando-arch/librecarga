@@ -100,7 +100,27 @@ describe("primeros pasos: tareas de los 18 roles existentes", () => {
     expect(hasRouteAccess(c.effectiveRole, "/crm")).toBe(true);
     const cotizar = seleccionarPrimerosPasos(c).tareas.find((t) => t.id === "cotizar");
     expect(cotizar?.enlaces.map((e) => e.href)).not.toContain("/crm");
+    const pricing = seleccionarPrimerosPasos(c).tareas.find((t) => t.id === "pricing");
+    expect(pricing?.requisito).toBeUndefined();
     expect(enlaces(contexto("vendedor")).some((e) => e.href === "/crm")).toBe(true);
+  });
+
+  it("indica cómo ver respuestas de Pricing cuando la bandeja está disponible", () => {
+    const conBandeja = seleccionarPrimerosPasos(contexto("admin")).tareas.find((t) => t.id === "pricing");
+    expect(conBandeja?.descripcion).toContain("Respondidas");
+    expect(conBandeja?.requisito).toContain("Nueva solicitud");
+    expect(conBandeja?.enlaces).toContainEqual({
+      etiqueta: "Ver solicitudes de Pricing",
+      href: "/costeo/tarifas?tab=bandeja",
+    });
+
+    const soloComparador = contexto("admin", {
+      esRutaVisible: (path) => path !== "/costeo/tarifas" && path !== "/crm",
+    });
+    const sinBandeja = seleccionarPrimerosPasos(soloComparador).tareas.find((t) => t.id === "pricing");
+    expect(sinBandeja?.descripcion).toContain("compárala antes de cotizar");
+    expect(sinBandeja?.descripcion).not.toContain("Respondidas");
+    expect(sinBandeja?.requisito).toBeUndefined();
   });
 
   it("no ofrece altas de clientes ni creación de embarques a vendedor/Pricing", () => {

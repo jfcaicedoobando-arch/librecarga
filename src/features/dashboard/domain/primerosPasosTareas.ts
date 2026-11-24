@@ -45,28 +45,40 @@ export function crearTareasOrganizacion(
   };
   agregar(p.canAltaCliente === true, {
     id: "alta-cliente", titulo: "Registrar un cliente",
-    descripcion: "Abre Clientes y selecciona Nuevo cliente. Ten a la mano la Constancia de Situación Fiscal si vas a darlo de alta.",
+    descripcion: "Abre Clientes y selecciona Nuevo Cliente. La Constancia de Situación Fiscal (CSF) en PDF es obligatoria. Si capturas los datos a mano, adjunta el PDF en el paso 2.",
     enlaces: [enlace("Abrir Clientes", "/clientes")],
   });
   agregar(p.canWriteCotizaciones, {
     id: "cotizar", titulo: "Preparar una cotización",
-    descripcion: "Prepara una cotización para un cliente existente o parte de un lead u oportunidad del CRM. Revisa Datos generales, Costos y utilidad, Cotización del cliente y Resumen.",
+    descripcion: "En Cotizaciones, selecciona Nueva cotización. Elige un cliente existente o parte de un lead u oportunidad del CRM. Revisa Datos generales, Costos y utilidad, Cotización del cliente y Resumen. Después de guardar, abre el detalle y selecciona Exportar PDF.",
     requisito: p.canAltaCliente
       ? "Si aún no existe, regístralo desde Clientes antes de cotizar a un cliente directo."
       : "Si aún no existe, solicita el alta a quien administra los clientes de tu organización.",
     enlaces: [enlace("Ver cotizaciones", "/cotizaciones"),
       ...(p.canCrearLead || p.canCrearOportunidad || p.canCrearActividad ? [enlace("Abrir CRM", "/crm")] : [])],
   });
+  const accesosPricing = [
+    {
+      destino: enlace("Ver solicitudes de Pricing", "/costeo/tarifas?tab=bandeja"),
+      texto: "Para ver una respuesta, abre la Bandeja de pricing y cambia el filtro Estado de la solicitud a Respondidas.",
+    },
+    {
+      destino: enlace("Ya hay tarifas · Comparar", "/costeo/buscar"),
+      texto: "Si ya hay una tarifa, compárala antes de cotizar.",
+    },
+  ].filter(({ destino }) => visible(destino.href));
   agregar(true, {
     id: "pricing", titulo: "Consultar tarifas y Pricing",
-    descripcion: "Si ya hay tarifa, compárala antes de cotizar. Si falta un costo, revisa las solicitudes de Pricing para saber si ya hay una respuesta.",
-    requisito: "Costeo no es un paso obligatorio para todos los modos de transporte.",
-    enlaces: [enlace("Me falta un costo · Ver solicitudes", "/costeo/tarifas?tab=bandeja"), enlace("Ya hay tarifas · Comparar", "/costeo/buscar")],
+    descripcion: accesosPricing.map(({ texto }) => texto).join(" "),
+    requisito: p.canCrearOportunidad && visible("/crm")
+      ? "Para pedir una tarifa nueva, abre una oportunidad que puedas editar en CRM, entra a Pricing y selecciona Nueva solicitud."
+      : undefined,
+    enlaces: accesosPricing.map(({ destino }) => destino),
   });
   agregar(p.canCrearEmbarqueDesdeCotizacion, {
     id: "operacion", titulo: "Continuar una operación",
-    descripcion: "Abre un embarque y revisa su fase, ruta, documentos y pendientes.",
-    requisito: "Para crear un embarque necesitas una cotización Aceptada. Coordina ese paso con Comercial si todavía no existe.",
+    descripcion: "Abre un embarque para revisar su fase, ruta, documentos y pendientes. Para iniciar uno, selecciona Buscar cotización aceptada.",
+    requisito: "Elige una cotización aceptada que aún no tenga embarque y corresponda a un cliente dado de alta.",
     enlaces: [enlace("Ver embarques", "/embarques")],
   });
   agregar(p.canEditarProforma, {
@@ -91,7 +103,7 @@ export function crearTareasOrganizacion(
   agregar(enlacesCaptura.length > 0, {
     id: "captura-cxp", titulo: puedeCapturar ? "Capturar facturas de proveedor" : "Revisar facturas por aprobar",
     descripcion: puedeCapturar
-      ? "Revisa Por capturar para localizar costos que todavía no tienen factura de proveedor recibida. Cuando tengas el documento, abre la captura y revisa los datos antes de guardar."
+      ? "En Por capturar, localiza el embarque con costos presupuestados. Si ya tienes la factura del proveedor, usa Capturar factura y revisa los datos antes de guardar."
       : "Abre Por aprobar y revisa la factura de proveedor antes de decidir su aprobación.",
     requisito: "Capturar, aprobar y pagar son acciones distintas, cada una con su propio permiso.",
     enlaces: enlacesCaptura,
