@@ -16,6 +16,7 @@ vi.mock("@/features/cxp", () => ({ DialogNuevaFacturaProveedor: () => null }));
 
 const PROVEEDOR_ID = "08664ed8-392d-4421-8e2f-6d0b97cfafc4";
 const PROVEEDOR_NOMBRE = "Maniobras y Fletes";
+const ENLACE_FACTURAS = "Ver todas las facturas del proveedor";
 
 /** Consume el estado real de la bandeja, que prepara sus filtros de servidor. */
 function FacturasDestino() {
@@ -68,10 +69,10 @@ afterEach(async () => {
 describe("AUD73 - alcance de la navegación desde proveedor", () => {
   it("Ver facturas lleva el ID del proveedor a la consulta y lo conserva tras recargar", async () => {
     const view = await montar(`/compras/proveedores/${PROVEEDOR_ID}`);
-    expect(screen.getByRole("link", { name: "Ver facturas" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: ENLACE_FACTURAS })).toHaveAttribute(
       "href", `/compras/facturas?proveedorId=${PROVEEDOR_ID}`,
     );
-    fireEvent.click(screen.getByRole("link", { name: "Ver facturas" }));
+    fireEvent.click(screen.getByRole("link", { name: ENLACE_FACTURAS }));
     await waitFor(() => {
       expect(screen.getByLabelText("Proveedor seleccionado")).toHaveTextContent(PROVEEDOR_ID);
       expect(screen.getByLabelText("Proveedor de la consulta")).toHaveTextContent(PROVEEDOR_ID);
@@ -91,7 +92,7 @@ describe("AUD73 - alcance de la navegación desde proveedor", () => {
   it("usa el ID de cada proveedor y permite ampliar explícitamente el filtro", async () => {
     const otroId = "3faa93f1-8dc7-4c17-9cf2-6da27571905c";
     await montar(`/compras/proveedores/${otroId}`, otroId);
-    fireEvent.click(screen.getByRole("link", { name: "Ver facturas" }));
+    fireEvent.click(screen.getByRole("link", { name: ENLACE_FACTURAS }));
     await waitFor(() => expect(screen.getByLabelText("Proveedor de la consulta")).toHaveTextContent(otroId));
     fireEvent.click(screen.getByRole("button", { name: "Ver todos los proveedores" }));
     await waitFor(() => {

@@ -55,7 +55,14 @@ describe.each(escenarios)("VinculosCard: $relacion", (escenario) => {
     expect(mutate).not.toHaveBeenCalled();
 
     fireEvent.click(within(fila).getByRole("button", { name: "Quitar vínculo con Nombre histórico" }));
-    expect(mutate).toHaveBeenCalledExactlyOnceWith({ tipo: escenario.tipo, ...escenario.par("eliminada"), quitar: true });
+    const confirmacion = () => within(screen.getByRole("alertdialog", { name: "¿Quitar el vínculo con Nombre histórico?" }));
+    expect(mutate).not.toHaveBeenCalled();
+    fireEvent.click(confirmacion().getByRole("button", { name: "Conservar vínculo" }));
+    expect(mutate).not.toHaveBeenCalled();
+    fireEvent.click(within(fila).getByRole("button", { name: "Quitar vínculo con Nombre histórico" }));
+    fireEvent.click(confirmacion().getByRole("button", { name: "Quitar vínculo" }));
+    expect(mutate).toHaveBeenCalledExactlyOnceWith({ tipo: escenario.tipo, ...escenario.par("eliminada"), quitar: true },
+      { onSuccess: expect.any(Function) });
   });
 
   it.each([

@@ -62,7 +62,7 @@ export function DialogTraspasoCuentas({ open, onOpenChange, cuentas }: DialogTra
 
   // YG-04: hay datos capturados que se perderían al cerrar el modal.
   // MNY P2.4: incluye la fecha si el usuario la movió respecto a la de apertura.
-  const isDirty = traspasoSucio(state, fechaInicial) || capturasNegativas?.montoOrigen || capturasNegativas?.comision;
+  const isDirty = traspasoSucio(state, fechaInicial) || Object.values(capturasNegativas ?? {}).some(Boolean);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -102,11 +102,12 @@ export function DialogTraspasoCuentas({ open, onOpenChange, cuentas }: DialogTra
       formId={FORM_ID}
       onSubmit={handleSubmit}
       isDirty={isDirty}
+      busy={isPending}
       footer={
         <FormDialogFooter
           formId={FORM_ID}
           onCancel={() => onOpenChange(false)}
-          confirmLabel="Registrar traspaso"
+          confirmLabel={isPending ? "Registrando traspaso…" : "Registrar traspaso"}
           loading={isPending}
           disabled={bloqueado}
         />

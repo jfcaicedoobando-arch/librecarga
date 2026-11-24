@@ -12,7 +12,7 @@ const mockController = {
     totalEnPuerto: 0, activasHoy: 0,
   },
   hoyStr: "hoy", chartData: [],
-  creadasEsteMes: 0, llegadasEsteMes: 0, balancePct: null, contPct: 0, totalAlertas: 0,
+  creadasEsteMes: 0, llegadasEsteMes: 0, balancePct: null as number | null, contPct: 0, totalAlertas: 0,
 };
 vi.mock("@/features/operaciones/hooks", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/features/operaciones/hooks")>();
@@ -70,4 +70,18 @@ it("explica el balance sin ETD y distingue el alcance del operador y la cifra gl
   expect(screen.queryByRole("progressbar", { name: "Balance ETD/llegadas" })).not.toBeInTheDocument();
   expect(screen.getByRole("combobox", { name: "Operador de la tendencia" })).toBeVisible();
   expect(screen.getByText("Activas hoy · toda la organización")).toBeVisible();
+});
+
+it("anuncia el porcentaje real aunque el indicador visual esté lleno", () => {
+  mockUseTarifasPendientes.mockReturnValue({ data: 0 });
+  mockController.balancePct = 120;
+  try {
+    renderPage();
+    const balance = screen.getByRole("progressbar", { name: "Balance ETD/llegadas" });
+    expect(balance).toHaveAttribute("aria-valuenow", "100");
+    expect(balance).toHaveAttribute("aria-valuetext", "120%");
+    expect(screen.getByText("120%")).toBeVisible();
+  } finally {
+    mockController.balancePct = null;
+  }
 });

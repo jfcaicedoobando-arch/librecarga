@@ -23,6 +23,7 @@ interface Props {
   vencidoNativo: SaldosPorMonedaCartera;
   eqTotal: Equivalente;
   eqVencido: Equivalente;
+  mostrarAlcance?: boolean;
 }
 
 
@@ -51,6 +52,9 @@ export function CarteraKpis(p: Props) {
   return (
     <div className="space-y-3">
     <TipoCambioFallbackBanner />
+    {p.mostrarAlcance && (
+      <p className="text-body-sm text-muted-foreground">Resumen por urgencia y moneda. La búsqueda y las fechas solo filtran el listado.</p>
+    )}
     {/* v13.823.25: grid-cols-2 en móvil (antes 1 columna, tarjetas muy anchas
         y con mucho espacio vacío en plegables ~692px). Header/content
         compactos sólo <md; desktop (md:grid-cols-3) queda intacto. */}

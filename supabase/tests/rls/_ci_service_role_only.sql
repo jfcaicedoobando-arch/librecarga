@@ -188,6 +188,9 @@ INSERT INTO _ci_service_role_only (fn) VALUES
    -- AUD-ANALISIS-8: venta facturada neta por embarque; recibe la org como
    -- parámetro, así que sólo la invocan RPCs DEFINER ya acotadas a org_scope().
    ('public._venta_facturada_por_embarque(uuid)'),
+   -- Pricing Fase 5: resolución interna de destinatarios y avisos de SLA.
+   ('public._crm_pricing_destinatarios_modo(uuid, text)'),
+   ('public.crm_pricing_avisos_sla()'),
    -- Replay Drizzle: helpers de trigger; nunca son RPCs del cliente.
    ('public._costeo_tarifa_solicitud_guard()'),
    ('public._crm_sol_pricing_before_ins()'),

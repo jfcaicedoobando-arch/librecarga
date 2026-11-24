@@ -29,6 +29,13 @@ interface Props {
   factura: FacturaRecordatorio | null;
 }
 
+function etiquetaVencimiento(dias: number) {
+  if (dias === 0) return "Vence hoy";
+  const cantidad = Math.abs(dias);
+  const periodo = `${cantidad} ${cantidad === 1 ? "día" : "días"}`;
+  return dias > 0 ? `Vencida hace ${periodo}` : `Vence en ${periodo}`;
+}
+
 export function DialogRecordatorioCobranza({ open, onOpenChange, factura }: Props) {
   const { nota, setNota, email, consultando, puedeEnviar, requiereRevision, errorMessage,
     isPending, isError, handleEnviar, revisarDestinatario }
@@ -36,7 +43,6 @@ export function DialogRecordatorioCobranza({ open, onOpenChange, factura }: Prop
 
   if (!factura) return null;
 
-  const vencida = factura.dias_vencido > 0;
   const saldo = factura.saldo ?? factura.total ?? 0;
 
   const footer = (
@@ -58,7 +64,7 @@ export function DialogRecordatorioCobranza({ open, onOpenChange, factura }: Prop
       onOpenChange={onOpenChange}
       icon={Mail}
       title={`Recordatorio de pago — ${factura.numero}`}
-      description={`${factura.cliente_nombre ?? "Cliente"} · Saldo ${formatCurrency(saldo, factura.moneda)} · ${vencida ? `Vencida ${factura.dias_vencido}d` : `Por vencer ${Math.abs(factura.dias_vencido)}d`}`}
+      description={`${factura.cliente_nombre ?? "Cliente"} · Saldo ${formatCurrency(saldo, factura.moneda)} · ${etiquetaVencimiento(factura.dias_vencido)}`}
       size="md"
       busy={isPending}
       footer={footer}

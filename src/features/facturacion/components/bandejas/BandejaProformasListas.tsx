@@ -7,8 +7,7 @@ import { FileCheck2 } from "lucide-react";
 import { defineColumns } from "@/components/shared/DataTable";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { clientColumn, dateColumn } from "@/components/shared/dataTable/columnBuilders";
-import { formatDate, toTitleCase } from "@/lib/formatters";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatDate, toTitleCase } from "@/lib/formatters";
 import { useClientPagedList } from "@/hooks/shared/useClientPagedList";
 import { useProformasListas, type FilaProformaLista } from "@/features/facturacion/hooks/useProformasListas";
 import { BandejaShell } from "./BandejaShell";
@@ -16,6 +15,17 @@ import { COL_W } from "@/components/shared/dataTable/columnWidths";
 import { FilteredListEmptyState } from "@/components/empty/FilteredListEmptyState";
 import { usePermissions } from "@/hooks/shared/usePermissions";
 import { hasRouteAccess } from "@/lib/access/roleRouteMatrix";
+
+function ImportesPorMoneda({ fila }: { fila: FilaProformaLista }) {
+  const { total_usd: usd, total_mxn: mxn } = fila;
+  if (!(usd && usd > 0) && !(mxn && mxn > 0)) return "—";
+  return (
+    <span className="flex flex-col text-right tabular-nums whitespace-nowrap">
+      {usd && usd > 0 ? <span>{formatCurrency(usd, "USD")}</span> : null}
+      {mxn && mxn > 0 ? <span>{formatCurrency(mxn, "MXN")}</span> : null}
+    </span>
+  );
+}
 
 const columns = defineColumns<FilaProformaLista>([
   {
@@ -37,18 +47,13 @@ const columns = defineColumns<FilaProformaLista>([
   },
   {
     id: "total",
-    header: "Total",
+    header: "Importes por moneda",
     accessorFn: (r) => (r.total_usd && r.total_usd > 0 ? r.total_usd : r.total_mxn ?? 0),
     enableSorting: true,
     meta: { width: COL_W.monto, align: "right", className: "tabular-nums whitespace-nowrap font-medium" },
-    cell: ({ row }) => {
-      const r = row.original;
-      if (r.total_usd && r.total_usd > 0) return formatCurrency(r.total_usd, "USD");
-      if (r.total_mxn && r.total_mxn > 0) return formatCurrency(r.total_mxn, "MXN");
-      return "—";
-    },
+    cell: ({ row }) => <ImportesPorMoneda fila={row.original} />,
   },
-  { ...dateColumn<FilaProformaLista>({ id: "aprobada", header: "Aprobada", accessor: (r) => r.created_at }),
+  { ...dateColumn<FilaProformaLista>({ id: "aprobada", header: "Creada", accessor: (r) => r.created_at }),
     meta: { width: COL_W.fecha, className: "text-body-sm whitespace-nowrap" } },
 ]);
 
@@ -108,10 +113,10 @@ export function BandejaProformasListas() {
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold text-body truncate font-mono">{r.numero || "—"}</div>
                   <div className="text-body-sm text-muted-foreground truncate mt-0.5">{toTitleCase(r.cliente_nombre)}</div>
-                  <div className="text-label text-muted-foreground mt-0.5">{r.expediente ?? "—"} · {formatDate(r.created_at)}</div>
+                  <div className="text-label text-muted-foreground mt-0.5">{r.expediente ?? "—"} · Creada el {formatDate(r.created_at)}</div>
                 </div>
-                <span className="text-body font-semibold tabular-nums whitespace-nowrap">
-                  {r.total_usd && r.total_usd > 0 ? formatCurrency(r.total_usd, "USD") : r.total_mxn && r.total_mxn > 0 ? formatCurrency(r.total_mxn, "MXN") : "—"}
+                <span className="text-body font-semibold">
+                  <ImportesPorMoneda fila={r} />
                 </span>
               </div>
             )}

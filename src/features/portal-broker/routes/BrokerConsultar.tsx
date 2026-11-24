@@ -21,8 +21,8 @@ import MisSolicitudesBroker from "../components/MisSolicitudesBroker";
 
 function Accion({ e, onPedir }: { e: EmpresaEncontrada; onPedir: () => void }) {
   if (e.es_mia) return <Badge variant="secondary">Ya es tuya</Badge>;
-  if (e.tipo === "Cliente") return <span className="text-body-sm text-muted-foreground">No disponible</span>;
-  return <Button size="sm" variant="outline" onClick={onPedir}>Solicitar</Button>;
+  if (e.tipo === "Cliente") return <span className="text-body-sm text-muted-foreground">La asignación se solicita para prospectos.</span>;
+  return <Button size="sm" variant="outline" aria-label={`Solicitar asignación de ${e.nombre}`} onClick={onPedir}>Solicitar</Button>;
 }
 
 function estadoBusqueda(termino: string, consultado: string, brokerId: string | null,

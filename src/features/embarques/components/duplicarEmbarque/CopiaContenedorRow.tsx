@@ -48,18 +48,19 @@ export function CopiaContenedorRow({
           <Label size="sm" htmlFor={`num-${idx}`}>Número de contenedor</Label>
           <Input
             id={`num-${idx}`} value={copia.num_contenedor}
+            aria-label={`Número de contenedor de la copia ${idx + 1}`}
             onChange={(e) => onChange("num_contenedor", e.target.value)}
             placeholder="Número de contenedor" autoComplete="off" className="h-8"
           />
         </div>
         <div className="space-y-1">
-          <Label size="sm">Tipo</Label>
+          <Label size="sm" htmlFor={`tipo-${idx}`}>Tipo</Label>
           <Select
             disabled={disabled}
             value={copia.tipo_contenedor || undefined}
             onValueChange={(v) => onChange("tipo_contenedor", v)}
           >
-            <SelectTrigger className="h-8">
+            <SelectTrigger id={`tipo-${idx}`} aria-label={`Tipo de la copia ${idx + 1}`} className="h-8">
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
             <SelectContent>
@@ -75,21 +76,21 @@ export function CopiaContenedorRow({
           <Label size="sm">Peso (kg)</Label>
           <NumericInput
             value={copia.peso_kg} onChange={(n) => onChange("peso_kg", n)}
-            decimals aria-label="Peso en kilogramos"
+            decimals aria-label={`Peso en kilogramos de la copia ${idx + 1}`}
           />
         </div>
         <div className="space-y-1">
           <Label size="sm">Volumen (m³)</Label>
           <NumericInput
             value={copia.volumen_m3} onChange={(n) => onChange("volumen_m3", n)}
-            decimals aria-label="Volumen en metros cúbicos"
+            decimals aria-label={`Volumen en metros cúbicos de la copia ${idx + 1}`}
           />
         </div>
         <div className="space-y-1">
           <Label size="sm">Piezas</Label>
           <NumericInput
             value={copia.piezas} onChange={(n) => onChange("piezas", n)}
-            aria-label="Piezas"
+            aria-label={`Piezas de la copia ${idx + 1}`}
           />
         </div>
       </div>

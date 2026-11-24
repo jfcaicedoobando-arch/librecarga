@@ -22,21 +22,28 @@ function itemsTerrestre(s: SolicitudPricingRow): Array<[string, string | number 
     ["Sobrepeso", siNo(s.sobrepeso)]];
 }
 
+function itemsAereo(s: SolicitudPricingRow): Array<[string, string | null]> {
+  return [["Baterías de litio", siNo(s.baterias_litio)], ["Known Shipper", siNo(s.known_shipper)], ["Tipo de avión", s.tipo_aeronave]];
+}
+
+const EXTREMOS: Record<string, string> = { "Aéreo": "Aeropuerto", Terrestre: "Ciudad" };
+
 export function ResumenSolicitudPricing({ solicitud: s }: { solicitud: SolicitudPricingRow }) {
   const { data: usuarios = [] } = useUsuariosOrgCrm();
   const solicitante = usuarios.find((u) => u.user_id === s.solicitante_id)?.nombre ?? null;
+  const extremo = EXTREMOS[s.servicio ?? ""] ?? "Puerto";
   const campos: Array<[string, string | number | null]> = [
     ["Solicitante", solicitante], ["Fecha", formatFechaDia(s.fecha)], ["Cliente", s.cliente],
     ["Modo de transporte", s.servicio], ["Submodalidad", s.submodalidad], ["Tipo de negocio", s.modalidad_negocio], ["Volumen (CBM)", s.volumen_cbm], ["Clase IMO", s.imo_clase], ["Número UN", s.imo_un], ["Complejidad", etiquetaPlazo(s)],
     ["Tipo de solicitud", s.tipo_solicitud ? ETIQUETA_TIPO_SOLICITUD[s.tipo_solicitud] ?? s.tipo_solicitud : null],
     ["Tipo de operación", s.tipo_operacion], ["Sector económico", s.sector_economico],
-    ["Incoterm", s.incoterm], ["IMO", siNo(s.imo)], ["Baterías de litio", siNo(s.baterias_litio)], ["Known Shipper", siNo(s.known_shipper)], ["Tipo de avión", s.tipo_aeronave], ["Commodity", s.commodity],
+    ["Incoterm", s.incoterm], ["IMO", siNo(s.imo)], ...(s.servicio === "Aéreo" ? itemsAereo(s) : []), ["Commodity", s.commodity],
     ["Container Size", s.container_size], ["Tipo de contenedor", s.tipo_carga], ["Quantity", s.cantidad],
     ["Estibable", siNo(s.estibable)], ["Weight", s.peso],
     ["Units of measurement", UNIDADES_MEDIDA_PRICING.find((u) => u.value === s.unidad_medida)?.label ?? s.unidad_medida ?? null],
     ["Dimensions", s.dimensiones],
-    ["País de origen", s.origen], [s.servicio === "Terrestre" ? "Ciudad de origen" : "Puerto de origen", s.pol],
-    ["País de destino", s.destino], [s.servicio === "Terrestre" ? "Ciudad de destino" : "Puerto de destino", s.pod],
+    ["País de origen", s.origen], [`${extremo} de origen`, s.pol],
+    ["País de destino", s.destino], [`${extremo} de destino`, s.pod],
     ...(s.servicio === "Terrestre" ? itemsTerrestre(s) : []),
     ["Fecha tentativa de carga", formatFechaDia(s.fecha_tentativa_carga)], ["Delivery", s.delivery],
   ];

@@ -1,10 +1,11 @@
 /**
  * Bloque R — Diálogo para crear/editar una póliza de seguro de carga.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { useCreateSeguro, useUpdateSeguro } from "@/features/embarques/hooks/useSegurosEmbarque";
 import type { SeguroEmbarque, SeguroEmbarqueInput } from "@/features/embarques/services/seguros";
 import { todayLocalISO } from "@/lib/date/today";
@@ -42,6 +43,9 @@ const emptyState = (): FormState => ({
 
 export function DialogSeguroForm({ open, onOpenChange, embarqueId, seguro, tipoCambioUsd = null, tipoCambioEur = null }: Props) {
   const [form, setForm] = useState<FormState>(emptyState());
+  const [inicial, setInicial] = useState(form);
+  const [sumaInvalida, setSumaInvalida] = useState(false);
+  const sumaRef = useRef<HTMLInputElement>(null);
   const create = useCreateSeguro(embarqueId);
   const update = useUpdateSeguro(embarqueId);
   const isEdit = Boolean(seguro);
@@ -49,8 +53,7 @@ export function DialogSeguroForm({ open, onOpenChange, embarqueId, seguro, tipoC
 
   useEffect(() => {
     if (!open) return;
-    setForm(
-      seguro
+    const valores = seguro
         ? {
             aseguradora: seguro.aseguradora,
             numero_poliza: seguro.numero_poliza,
@@ -66,15 +69,24 @@ export function DialogSeguroForm({ open, onOpenChange, embarqueId, seguro, tipoC
             notas: seguro.notas,
             proveedor_factura_id: seguro.proveedor_factura_id ?? null,
           }
-        : emptyState(),
-    );
+        : emptyState();
+    setInicial(valores);
+    setForm(valores);
+    setSumaInvalida(false);
   }, [open, seguro, embarqueId]);
 
-  const setField = <K extends keyof FormState>(k: K, v: FormState[K]) =>
+  const setField = <K extends keyof FormState>(k: K, v: FormState[K]) => {
+    if (k === "suma_asegurada" && Number(v) > 0) setSumaInvalida(false);
     setForm((p) => ({ ...p, [k]: v }));
+  };
+
+  const indicarSumaRequerida = () => {
+    setSumaInvalida(true);
+    sumaRef.current?.focus();
+  };
 
   const handleSubmit = async () => {
-    if (!validarSeguroForm(form, isEdit)) return;
+    if (busy || !validarSeguroForm(form, isEdit, indicarSumaRequerida)) return;
     try {
       if (isEdit && seguro) {
         await update.mutateAsync({ id: seguro.id, patch: form });
@@ -96,16 +108,19 @@ export function DialogSeguroForm({ open, onOpenChange, embarqueId, seguro, tipoC
       title={isEdit ? "Editar póliza" : "Nueva póliza de seguro"}
       description="Datos de la aseguradora, vigencia, prima y coberturas para la carga."
       size="2xl"
+      isDirty={JSON.stringify(form) !== JSON.stringify(inicial)}
+      busy={busy}
       footer={
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={busy}>{isEdit ? "Guardar cambios" : "Registrar póliza"}</Button>
+          <FormDialogCancelarBoton onCancelar={() => onOpenChange(false)} disabled={busy} />
+          <Button onClick={handleSubmit} loading={busy}>{isEdit ? "Guardar cambios" : "Registrar póliza"}</Button>
         </>
       }
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <SeguroFormCamposPrincipales form={form} setField={setField} />
-        <SeguroFormCamposAdicionales form={form} setField={setField} />
+        <SeguroFormCamposAdicionales form={form} setField={setField}
+          sumaRequerida={!isEdit} sumaInvalida={sumaInvalida} sumaRef={sumaRef} />
         <SeguroFacturaProveedorSelect embarqueId={embarqueId} value={form.proveedor_factura_id}
           savedValue={seguro?.proveedor_factura_id} prima={form.prima} moneda={form.moneda}
           seguroId={seguro?.id ?? null} tipoCambioUsd={tipoCambioUsd} tipoCambioEur={tipoCambioEur} open={open}

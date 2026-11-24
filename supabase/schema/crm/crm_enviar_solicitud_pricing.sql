@@ -32,9 +32,11 @@ BEGIN
   IF v.unidad_medida IS NULL THEN v_faltan := v_faltan || 'Unidad de medida'::text; END IF;
   IF coalesce(trim(v.dimensiones), '') = '' THEN v_faltan := v_faltan || 'Dimensiones'::text; END IF;
   IF coalesce(trim(v.origen), '') = '' THEN v_faltan := v_faltan || 'País de origen'::text; END IF;
-  IF coalesce(trim(v.pol), '') = '' THEN v_faltan := v_faltan || 'Puerto de origen'::text; END IF;
+  IF coalesce(trim(v.pol), '') = '' THEN v_faltan := v_faltan || CASE WHEN v.servicio = 'Terrestre' THEN 'Ciudad de origen' ELSE 'Puerto de origen' END; END IF;
   IF coalesce(trim(v.destino), '') = '' THEN v_faltan := v_faltan || 'País de destino'::text; END IF;
-  IF coalesce(trim(v.pod), '') = '' THEN v_faltan := v_faltan || 'Puerto de destino'::text; END IF;
+  IF coalesce(trim(v.pod), '') = '' THEN v_faltan := v_faltan || CASE WHEN v.servicio = 'Terrestre' THEN 'Ciudad de destino' ELSE 'Puerto de destino' END; END IF;
+  IF v.servicio = 'Terrestre' AND v.submodalidad = 'FTL' AND coalesce(trim(v.tipo_unidad), '') = '' THEN v_faltan := v_faltan || 'Tipo de unidad'::text; END IF;
+  IF v.servicio = 'Terrestre' AND v.submodalidad = 'LTL' AND v.tarimas IS NULL THEN v_faltan := v_faltan || 'Tarimas'::text; END IF;
   IF v.submodalidad = 'LCL' AND v.volumen_cbm IS NULL THEN v_faltan := v_faltan || 'Volumen (CBM)'::text; END IF;
   IF v.imo IS TRUE AND v.imo_clase IS NULL THEN v_faltan := v_faltan || 'Clase IMO'::text; END IF;
   IF v.imo IS TRUE AND v.imo_un IS NULL THEN v_faltan := v_faltan || 'Número UN'::text; END IF;
@@ -46,20 +48,21 @@ BEGIN
   END IF;
   v_comp := CASE WHEN v.imo IS TRUE OR v.sector_economico = 'Carga Proyecto'
       OR v.tipo_carga ~* '(open ?top|flat ?rack|reefer|refriger|platform|plataforma|tank|isotanque|special|especial)'
-    THEN 'alta' ELSE 'media' END;
+    THEN 'alta' WHEN public._crm_pricing_hay_tarifa_vigente(p_id) THEN 'baja' ELSE 'media' END;
   v_horas := public._crm_pricing_horas_modo(v_comp, v.servicio);
   PERFORM set_config('lc.pricing_rpc', '1', true);
   UPDATE public.crm_solicitudes_pricing SET estado = 'enviada', enviada_at = now(), complejidad = v_comp,
     tipo_solicitud = coalesce(v.tipo_solicitud, 'nueva_ruta'),
-    vence_at = public._crm_pricing_sumar_horas_habiles(now(), v_horas) WHERE id = p_id;
+    vence_at = CASE WHEN v_horas IS NULL THEN NULL ELSE public._crm_pricing_sumar_horas_habiles(now(), v_horas) END WHERE id = p_id;
   PERFORM set_config('lc.pricing_rpc', '', true);
   INSERT INTO public.notificaciones_internas (organization_id, usuario_id, tipo, titulo, mensaje, enlace, entidad_tipo, entidad_id)
   SELECT DISTINCT v.organization_id, om.user_id, 'crm_pricing_solicitud', 'Nueva solicitud de pricing ' || v.folio,
          coalesce(v.cliente, 'Sin cliente') || ' · ' || coalesce(v.pol, v.origen, '') || ' → ' || coalesce(v.pod, v.destino, '')
-           || ' · responder en ' || v_horas || ' h hábiles',
+           || CASE WHEN v_horas IS NULL THEN ' · tarifa vigente disponible' ELSE ' · responder en ' || v_horas || ' h hábiles' END,
          '/costeo/solicitudes?id=' || v.id, 'crm_solicitud_pricing', v.id
     FROM public.organization_members om
-   WHERE om.organization_id = v.organization_id AND om.role IN ('ejecutivo_pricing','gerente_operaciones');
+   WHERE om.organization_id = v.organization_id AND om.role IN ('ejecutivo_pricing','gerente_operaciones')
+     AND om.user_id IN (SELECT public._crm_pricing_destinatarios_modo(v.organization_id, v.servicio));
   RETURN jsonb_build_object('id', v.id, 'ya_enviada', false);
 END $function$;
 REVOKE ALL ON FUNCTION public.crm_enviar_solicitud_pricing(uuid) FROM PUBLIC, anon;

@@ -1,7 +1,8 @@
 /** Datos de carga terrestre: cruce/in-bond, unidad (FTL), tarimas (LTL) y arrastre. */
 import { CampoLista, CampoSiNo, CampoTexto } from "./CamposPricing";
 import type { DatosSolicitud } from "./SolicitudPricingCampos";
-import { TIPOS_UNIDAD } from "@/features/costeo/domain/tarifaMultimodo";
+import { TIPOS_UNIDAD } from "@/features/costeo";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { aNumero } from "@/features/crm/services/pricing/tiposPricing";
 import { faltantesTerrestre } from "@/features/crm/services/pricing/terrestrePricing";
 
@@ -17,9 +18,11 @@ export function CamposTerrestre({ datos, set, disabled }: Props) {
   return (
     <>
       {faltan.length > 0 && (
-        <p role="alert" className="col-span-full rounded-md border border-destructive/40 bg-destructive/10 p-3 text-body-sm text-destructive">
-          Terrestre {datos.submodalidad}: falta {faltan.join(", ")}. Pricing no aceptará el envío sin estos datos.
-        </p>
+        <Alert variant="destructive" className="col-span-full p-3">
+          <AlertDescription className="text-body-sm">
+            Terrestre {datos.submodalidad}: falta {faltan.join(", ")}. Pricing no aceptará el envío sin estos datos.
+          </AlertDescription>
+        </Alert>
       )}
       <CampoSiNo id="pr-t-cruce" label="¿Cruce fronterizo?" {...d} value={datos.cruce_fronterizo ?? null}
         onChange={(v) => { set("cruce_fronterizo", v); if (v !== true) set("in_bond", null); }} />

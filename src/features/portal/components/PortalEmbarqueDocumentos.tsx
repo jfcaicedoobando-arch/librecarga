@@ -25,7 +25,7 @@ interface Props {
 
 export function PortalEmbarqueDocumentos({ documentos }: Props) {
   const isMobile = useIsMobile();
-  const { downloadingId, handleDownload } = usePortalDocumentDownload();
+  const { downloadingIds, handleDownload } = usePortalDocumentDownload();
 
   if (isMobile) {
     if (documentos.length === 0) {
@@ -43,7 +43,7 @@ export function PortalEmbarqueDocumentos({ documentos }: Props) {
           <PortalDocumentoCard
             key={d.id}
             doc={d}
-            downloadingId={downloadingId}
+            downloading={downloadingIds.has(d.id)}
             onDownload={handleDownload}
           />
         ))}
@@ -72,18 +72,21 @@ export function PortalEmbarqueDocumentos({ documentos }: Props) {
       meta: { align: "right", width: "w-24" },
       cell: ({ row }) => {
         const doc = row.original;
+        const downloading = downloadingIds.has(doc.id);
         return doc.archivo ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={`Descargar ${doc.nombre}`}
-            disabled={downloadingId === doc.id}
-            loading={downloadingId === doc.id}
-            onClick={(e) => { e.stopPropagation(); handleDownload(doc.archivo!, doc.id); }}
-          >
-            {downloadingId !== doc.id && <Download className="h-4 w-4" />}
-          </Button>
-        ) : <span className="text-body-sm text-muted-foreground">—</span>;
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={downloading ? `Descargando ${doc.nombre}` : `Descargar ${doc.nombre}`}
+              loading={downloading}
+              onClick={(e) => { e.stopPropagation(); handleDownload(doc.archivo!, doc.id); }}
+            >
+              {!downloading && <Download className="h-4 w-4" />}
+            </Button>
+            <span role="status" className="sr-only">{downloading ? `Descargando ${doc.nombre}` : ""}</span>
+          </div>
+        ) : <span className="text-body-sm text-muted-foreground">Sin archivo disponible</span>;
       },
     },
   ]);

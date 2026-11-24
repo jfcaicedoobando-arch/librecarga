@@ -60,10 +60,14 @@ export function FechasEImportesBlock({
             <Input
               id="factura-prov-vencimiento"
               aria-invalid={!!errors.vencimiento}
+              aria-describedby="factura-prov-vencimiento-ayuda"
               value={values.vencimiento ? values.vencimiento.split("-").reverse().join("/") : ""}
               readOnly
               className="bg-muted"
             />
+            <p id="factura-prov-vencimiento-ayuda" className="text-label text-muted-foreground">
+              Se calcula con la fecha de emisión y los días de crédito.
+            </p>
             <FieldError msg={errors.vencimiento} />
           </div>
         </div>

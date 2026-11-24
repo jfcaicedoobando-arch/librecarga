@@ -65,17 +65,17 @@ afterEach(() => {
 });
 
 describe("usePortalDocumentDownload", () => {
-  it("happy path: completa la descarga y resetea downloadingId", async () => {
+  it("completa la descarga y deja vacíos los pendientes", async () => {
     mockCreateUrl.mockResolvedValue("https://signed-url/file.pdf");
 
     const { result } = renderHook(() => usePortalDocumentDownload());
-    expect(result.current.downloadingId).toBeNull();
+    expect(result.current.downloadingIds.size).toBe(0);
 
     await act(async () => {
       await result.current.handleDownload("path/to/file.pdf", "doc-1");
     });
 
-    expect(result.current.downloadingId).toBeNull();
+    expect(result.current.downloadingIds.size).toBe(0);
     expect(mockCreateUrl).toHaveBeenCalledWith("path/to/file.pdf", 300);
     expect(mockNotifyError).not.toHaveBeenCalled();
   });
@@ -90,6 +90,28 @@ describe("usePortalDocumentDownload", () => {
     });
 
     expect(mockNotifyError).toHaveBeenCalled();
-    expect(result.current.downloadingId).toBeNull();
+    expect(result.current.downloadingIds.size).toBe(0);
+  });
+
+  it("conserva la primera descarga pendiente si la segunda termina antes y bloquea duplicados", async () => {
+    let liberarPrimera!: (url: string) => void;
+    const primeraUrl = new Promise<string>((resolver) => { liberarPrimera = resolver; });
+    mockCreateUrl.mockImplementation((archivo) => archivo === "a.pdf" ? primeraUrl : Promise.resolve("https://signed-url/b.pdf"));
+    const { result } = renderHook(() => usePortalDocumentDownload());
+    let primera!: Promise<void>;
+    let segunda!: Promise<void>;
+    act(() => {
+      primera = result.current.handleDownload("a.pdf", "a");
+      segunda = result.current.handleDownload("b.pdf", "b");
+    });
+    expect(result.current.downloadingIds).toEqual(new Set(["a", "b"]));
+    await act(async () => {
+      await result.current.handleDownload("a.pdf", "a");
+      await segunda;
+    });
+    expect(result.current.downloadingIds).toEqual(new Set(["a"]));
+    expect(mockCreateUrl).toHaveBeenCalledTimes(2);
+    await act(async () => { liberarPrimera("https://signed-url/a.pdf"); await primera; });
+    expect(result.current.downloadingIds.size).toBe(0);
   });
 });

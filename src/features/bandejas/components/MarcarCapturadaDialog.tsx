@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { formatCurrency } from "@/lib/formatters";
 import { formatDate } from "@/lib/formatters/dates";
 import { useFacturasVinculablesEntrante } from "@/features/cxp/hooks";
@@ -33,11 +34,12 @@ export function MarcarCapturadaDialog({
   open, onOpenChange, embarqueId, expediente, nombreArchivo, pendiente, onConfirm,
 }: Props) {
   const [facturaId, setFacturaId] = useState("");
-  const { data: candidatas = [], isLoading } = useFacturasVinculablesEntrante(embarqueId, open);
+  const { data: candidatas = [], isLoading, isError, isFetching, refetch } = useFacturasVinculablesEntrante(embarqueId, open);
 
   useEffect(() => { if (!open) setFacturaId(""); }, [open]);
 
-  const sinCandidatas = !isLoading && candidatas.length === 0;
+  const candidatasDisponibles = !isLoading && !isError;
+  const puedeConfirmar = candidatasDisponibles && !pendiente && candidatas.some((f) => f.id === facturaId);
 
   return (
     <FormDialogShell
@@ -57,7 +59,7 @@ export function MarcarCapturadaDialog({
             Cancelar
           </Button>
           <Button
-            disabled={pendiente || !facturaId}
+            disabled={!puedeConfirmar}
             onClick={async () => { await onConfirm(facturaId); }}
           >
             {pendiente ? "Guardando…" : "Marcar como capturada"}
@@ -68,7 +70,13 @@ export function MarcarCapturadaDialog({
       <FormDialogSection title="Factura de proveedor" cols={1}>
         {isLoading && <Skeleton className="h-10 w-full" />}
 
-        {sinCandidatas && (
+        {isError && (
+          <ErrorStateInline title="No se pudieron consultar las facturas del embarque"
+            message="Reintenta para consultar las facturas que ya se capturaron."
+            onRetry={() => void refetch()} retrying={isFetching} />
+        )}
+
+        {candidatasDisponibles && candidatas.length === 0 && (
           <Alert>
             <AlertDescription className="text-sm">
               El embarque {expediente ?? ""} todavía no tiene facturas de proveedor capturadas.
@@ -77,7 +85,7 @@ export function MarcarCapturadaDialog({
           </Alert>
         )}
 
-        {!isLoading && candidatas.length > 0 && (
+        {candidatasDisponibles && candidatas.length > 0 && (
           <div className="space-y-2">
             <Label htmlFor="factura-vinculable">Selecciona la factura capturada</Label>
             <Select value={facturaId} onValueChange={setFacturaId}>

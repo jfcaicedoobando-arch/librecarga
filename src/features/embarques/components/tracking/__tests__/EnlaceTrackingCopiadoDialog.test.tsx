@@ -29,4 +29,14 @@ describe("aviso del enlace público copiado", () => {
     render(<EnlaceTrackingCopiadoDialog aviso={null} onClose={vi.fn()} />);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+
+  it("muestra el enlace manual y su caducidad sin anunciar que lo copió", () => {
+    const urlParaCopiar = "https://example.test/tracking/fixture";
+    render(<EnlaceTrackingCopiadoDialog aviso={{ expiresAt: "2030-01-15T18:20:45Z", urlParaCopiar }} onClose={vi.fn()} />);
+    const dialog = screen.getByRole("dialog", { name: "Enlace público listo para copiar" });
+    const entrada = screen.getByRole("textbox", { name: "Enlace público de tracking" });
+    expect(entrada).toHaveValue(urlParaCopiar);
+    expect(entrada).toHaveAttribute("readonly");
+    expect(dialog.querySelector("time")).toHaveAttribute("datetime", "2030-01-15T18:20:45Z");
+  });
 });

@@ -17,13 +17,18 @@ export default function AdminOrganizaciones() {
   useDocumentTitle('Organizaciones');
   const { state, setters, data, createOrg } = useAdminOrganizacionesController();
   const columns = useMemo(() => buildAdminOrganizacionesColumns(), []);
+  const descripcion = data.isError
+    ? "No se pudo consultar el total de organizaciones."
+    : data.isLoading
+      ? "Cargando organizaciones…"
+      : `${data.filtered.length} de ${data.orgs.length} empresas en la plataforma.`;
 
   return (
     <PageContainer>
       <PageHeader
         icon={<Building2 className="h-6 w-6 text-primary" />}
         title="Organizaciones"
-        description={`${data.filtered.length} de ${data.orgs.length} empresas en la plataforma.`}
+        description={descripcion}
         actions={
           <Button onClick={() => setters.setDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-1" />

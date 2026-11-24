@@ -824,5 +824,45 @@
       "0104_costeo_tarifa_tramos_tenant_scope.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0105_tarifa_aerea_escalas_reorden.sql",
+    "sha256": "5603a48d33b5f7f4e260b8b4d3c5b7294444a02c0790d310ed95fe909b27d0de",
+    "replays": [
+      "0105_tarifa_aerea_escalas_reorden.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0106_recargo_minimo_proveedor.sql",
+    "sha256": "7f171df29599c839bae60d23610e4d1960d877f93da9ded91db6bb7328fe6438",
+    "replays": [
+      "0106_recargo_minimo_proveedor.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0107_pricing_solicitud_terrestre.sql",
+    "sha256": "05e74bac735c09c4a9c37c25a2392bff0902d77db2ba49cf3903972cd6f03da3",
+    "replays": [
+      "0107_pricing_solicitud_terrestre.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0108_pricing_fase5_operacion.sql",
+    "sha256": "94ee8ac23a955fa078d9ce0b724e72a3456e13a008aff71eb2503a240ad62c31",
+    "replays": [
+      "0108_pricing_fase5_operacion.sql"
+    ],
+    "scope": "isolated-ci"
+  },
+  {
+    "file": "0109_pricing_modos_tenant_scope.sql",
+    "sha256": "7931d640d25178d77af48ae1bbffcde9b34e34a1b7c4dd53399a89994882ffec",
+    "replays": [
+      "0109_pricing_modos_tenant_scope.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

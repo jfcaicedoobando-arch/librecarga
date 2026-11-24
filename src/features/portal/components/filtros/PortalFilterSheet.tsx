@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { mobileFilterSheet } from "@/components/shared/utils/dialogTokens";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter,
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetFooter,
 } from "@/components/ui/sheet";
 
 interface PortalFilterSheetProps {
@@ -68,13 +68,14 @@ export function PortalFilterSheet({
         <SheetContent side="right" className={mobileFilterSheet}>
           <SheetHeader className="p-4 border-b">
             <SheetTitle>{title}</SheetTitle>
+            <SheetDescription>Los filtros se aplican al seleccionarlos.</SheetDescription>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto p-4 space-y-4">{children}</div>
           <SheetFooter className="p-4 border-t flex-row gap-2 sm:flex-row sm:justify-between">
             <Button variant="ghost" onClick={onClear} disabled={activeCount === 0} className="gap-2">
               <X className="h-4 w-4" /> Limpiar
             </Button>
-            <Button onClick={() => setOpen(false)}>Aplicar</Button>
+            <Button onClick={() => setOpen(false)}>Listo</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>

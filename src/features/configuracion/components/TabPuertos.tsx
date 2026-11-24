@@ -9,6 +9,7 @@ import { SwitchVisibilidadOrg } from "./SwitchVisibilidadOrg";
 import { Plus, Trash2 } from "lucide-react";
 import { useAllPuertos, useAdminPuertos } from "@/features/catalogos/hooks";
 import SearchInput from "@/components/shared/SearchInput";
+import { normalizarBusqueda } from "@/lib/text/normalizarBusqueda";
 import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import DoubleConfirmDeleteDialog from "@/components/shared/DoubleConfirmDeleteDialog";
@@ -42,11 +43,11 @@ export default function TabPuertos() {
     );
   };
 
-  const puertosFiltrados = puertos.filter((p) => {
-    if (!puertoBusqueda) return true;
-    const q = puertoBusqueda.toLowerCase();
-    return p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q) || p.country.toLowerCase().includes(q);
-  });
+  const termino = normalizarBusqueda(puertoBusqueda);
+  const puertosFiltrados = termino
+    ? puertos.filter((p) => [p.code, p.name, p.country]
+      .some((valor) => normalizarBusqueda(valor).includes(termino)))
+    : puertos;
 
   const columns: ColumnDef<Puerto, unknown>[] = defineColumns<Puerto>([
     { id: "code", header: "Código", meta: { className: "font-mono text-xs" }, cell: ({ row }) => row.original.code },
@@ -112,7 +113,7 @@ export default function TabPuertos() {
             isError={isError}
             errorState={<CatalogQueryError error={error} onRetry={() => void refetch()} retrying={isFetching} />}
             emptyMessage="No se encontraron puertos"
-            emptyState={puertos.length > 0 && puertoBusqueda.trim() ? (
+            emptyState={puertos.length > 0 && termino ? (
               <EmptyStateInline message="Sin coincidencias" action={{ label: "Limpiar búsqueda", onClick: () => setPuertoBusqueda("") }} />
             ) : undefined}
             rowKey={(p) => p.id}
@@ -120,7 +121,12 @@ export default function TabPuertos() {
             density={TABLE_DENSITY.embebida}
           />
         </div>
-        {!puertosLoading && !isError && <p className="text-xs text-muted-foreground">{puertos.length} puertos en total · {puertos.filter(visibleOrg).length} visibles en mi empresa</p>}
+        {!puertosLoading && !isError && (
+          <div className="text-xs text-muted-foreground">
+            {termino && <p role="status">{puertosFiltrados.length} de {puertos.length} puertos coinciden con la búsqueda.</p>}
+            <p>Catálogo completo · {puertos.length} puertos en total · {puertos.filter(visibleOrg).length} visibles en mi empresa</p>
+          </div>
+        )}
       </CardContent>
       <DoubleConfirmDeleteDialog
         open={!!puertoAEliminar}

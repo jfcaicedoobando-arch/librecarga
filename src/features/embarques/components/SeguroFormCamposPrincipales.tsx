@@ -20,20 +20,20 @@ export function SeguroFormCamposPrincipales({ form, setField }: Props) {
     <>
       <div>
         <Label htmlFor="seguro-aseguradora">Aseguradora *</Label>
-        <Input id="seguro-aseguradora" value={form.aseguradora} onChange={(e) => setField("aseguradora", e.target.value)} />
+        <Input id="seguro-aseguradora" aria-required value={form.aseguradora} onChange={(e) => setField("aseguradora", e.target.value)} />
       </div>
       <div>
         <Label htmlFor="seguro-poliza">Número de póliza *</Label>
-        <Input id="seguro-poliza" value={form.numero_poliza} onChange={(e) => setField("numero_poliza", e.target.value)} />
+        <Input id="seguro-poliza" aria-required value={form.numero_poliza} onChange={(e) => setField("numero_poliza", e.target.value)} />
       </div>
 
       <div>
         <Label htmlFor="seguro-vigencia-desde">Vigencia desde *</Label>
-        <DatePickerMx id="seguro-vigencia-desde" value={form.vigencia_desde} onChange={(v) => setField("vigencia_desde", v)} className="w-full" />
+        <DatePickerMx id="seguro-vigencia-desde" aria-required value={form.vigencia_desde} onChange={(v) => setField("vigencia_desde", v)} className="w-full" />
       </div>
       <div>
         <Label htmlFor="seguro-vigencia-hasta">Vigencia hasta *</Label>
-        <DatePickerMx id="seguro-vigencia-hasta" value={form.vigencia_hasta} onChange={(v) => setField("vigencia_hasta", v)} className="w-full" />
+        <DatePickerMx id="seguro-vigencia-hasta" aria-required value={form.vigencia_hasta} onChange={(v) => setField("vigencia_hasta", v)} className="w-full" />
         {form.vigencia_hasta < form.vigencia_desde && (
           <p className="text-body-sm text-destructive mt-1">La vigencia final es anterior a la inicial.</p>
         )}
@@ -52,7 +52,7 @@ export function SeguroFormCamposPrincipales({ form, setField }: Props) {
       </div>
       <div>
         <Label htmlFor="seguro-prima">Prima (costo) *</Label>
-        <Input id="seguro-prima" type="number" min={0} step={0.01} value={form.prima}
+        <Input id="seguro-prima" aria-required type="number" min={0} step={0.01} value={form.prima}
           onChange={(e) => setField("prima", Number(e.target.value))} />
         {form.prima < 0 && (
           <p className="text-body-sm text-destructive mt-1">La prima no puede ser negativa.</p>

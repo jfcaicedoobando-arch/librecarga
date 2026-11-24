@@ -36,7 +36,7 @@ export function CierreChecklistFase({
         variant="overline"
         actions={
           <Badge variant={completa && !informativo ? "secondary" : "outline"} className="text-2xs">
-            {okCount}/{total}
+            {total ? `${okCount}/${total}` : "Sin comprobaciones aplicables aún"}
           </Badge>
         }
       >

@@ -3,10 +3,19 @@ import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatNumber } from "@/lib/formatters";
 import { useFacturasSeguroElegibles, type FacturasSeguroContext } from "@/features/embarques/hooks/useFacturasSeguroElegibles";
 import { SEGURO_FACTURA_SELECTOR_ERROR } from "../domain/seguroFacturaSelector";
 
 const SIN = "sin";
+
+function subtotalVisible(subtotal: string, moneda: string) {
+  const partes = /^(-?)(\d+)(?:\.(\d+))?$/.exec(subtotal);
+  if (!partes || !Number.isSafeInteger(Number(partes[2]))) return `${subtotal} ${moneda}`;
+  const [, signo, entero, fraccion = ""] = partes;
+  return `${signo}${formatNumber(Number(entero))}.${fraccion.padEnd(2, "0")} ${moneda}`;
+}
+
 interface Props extends FacturasSeguroContext {
   value: string | null;
   savedValue?: string | null;
@@ -32,7 +41,7 @@ export function SeguroFacturaProveedorSelect({ value, savedValue, onChange, ...c
           )}
           {query.items.map((f) => (
             <SelectItem key={f.id} value={f.id}>
-              {(f.folio_interno ?? "Sin folio")} · {f.proveedor_nombre ?? "Sin proveedor"} · Subtotal de factura: {f.subtotal} {f.moneda}
+              {(f.folio_interno ?? "Sin folio")} · {f.proveedor_nombre ?? "Sin proveedor"} · Subtotal de factura: {subtotalVisible(f.subtotal, f.moneda)}
             </SelectItem>
           ))}
         </SelectContent>

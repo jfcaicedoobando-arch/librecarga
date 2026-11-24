@@ -33,6 +33,8 @@ export function FacturapiApiKeyRow({ orgId, ambiente, last4, label, prefijo }: A
   const clearKey = useClearFacturapiApiKey(orgId);
   const probar = useProbarFacturapiConexion(orgId);
   const cargada = !!last4;
+  const reemplazoPendiente = valor.trim() !== "";
+  const avisoReemplazoId = `facturapi-reemplazo-${ambiente}`;
 
   const onGuardar = async () => {
     const v = valor.trim();
@@ -80,7 +82,7 @@ export function FacturapiApiKeyRow({ orgId, ambiente, last4, label, prefijo }: A
           </Button>
         )}
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Input
           id={`facturapi-apikey-${ambiente}`}
           aria-label={`API key — ${label}`}
@@ -89,17 +91,29 @@ export function FacturapiApiKeyRow({ orgId, ambiente, last4, label, prefijo }: A
           placeholder={cargada ? "Pega una nueva key para reemplazar" : `${prefijo}…`}
           value={valor}
           onChange={(e) => setValor(e.target.value)}
-          className="font-mono text-xs"
+          className="min-w-40 flex-1 font-mono text-xs"
+          aria-describedby={reemplazoPendiente ? avisoReemplazoId : undefined}
         />
         <Button type="button" onClick={onGuardar} disabled={!valor.trim() || setKey.isPending} loading={setKey.isPending}>
           {!setKey.isPending && <Save className="h-4 w-4 mr-1" />}
           Guardar
         </Button>
-        <Button type="button" variant="outline" onClick={onProbar} disabled={!cargada || probar.isPending} loading={probar.isPending}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onProbar}
+          disabled={!cargada || reemplazoPendiente || setKey.isPending || clearKey.isPending}
+          loading={probar.isPending}
+        >
           {!probar.isPending && <PlugZap className="h-4 w-4 mr-1" />}
-          Probar
+          Probar llave guardada
         </Button>
       </div>
+      {reemplazoPendiente && (
+        <p id={avisoReemplazoId} className="text-label text-muted-foreground">
+          Guarda la llave ingresada antes de probar la conexión.
+        </p>
+      )}
       <p className="text-label text-muted-foreground">
         La key se guarda cifrada en el servidor. Aquí sólo ves los últimos 4 dígitos.
       </p>

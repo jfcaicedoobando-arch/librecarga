@@ -45,12 +45,15 @@ export default function SeccionTarifasInformativas({ tarifas, onChange, validar 
           const esTerrestre = t.modo === "Terrestre";
           const esPortaCont = esTerrestre && t.modalidad_equipo === "Porta Contenedor";
           const errores = validar ? validarFilaTarifaInformativa(t) : undefined;
-          const errorId = `tarifa-${t.id}-error`;
-          const primerError = errores && Object.values(errores).find(Boolean);
-          const validarCampo = (campo: keyof ReturnType<typeof validarFilaTarifaInformativa>) => ({
+          type Campo = keyof ReturnType<typeof validarFilaTarifaInformativa>;
+          const errorId = (campo: Campo) => `tarifa-${t.id}-error-${campo}`;
+          const validarCampo = (campo: Campo) => ({
             "aria-invalid": !!errores?.[campo] || undefined,
-            "aria-describedby": primerError && errores?.[campo] === primerError ? errorId : undefined,
+            "aria-describedby": errores?.[campo] ? errorId(campo) : undefined,
           });
+          const errorCampo = (campo: Campo) => errores?.[campo] && (
+            <p id={errorId(campo)} className="text-body-sm text-destructive">Tarifa {idx + 1}: {errores[campo]}.</p>
+          );
           return (
             <div key={t.id} role="group" aria-labelledby={`tarifa-${t.id}-titulo`} className="border rounded-md p-3 space-y-2 bg-muted/30">
               <p id={`tarifa-${t.id}-titulo`} className="text-body-sm font-medium">Tarifa {idx + 1}</p>
@@ -76,6 +79,7 @@ export default function SeccionTarifasInformativas({ tarifas, onChange, validar 
                 <div className="col-span-12 md:col-span-3">
                   <label className="text-body-sm text-muted-foreground">Origen</label>
                   <Input {...validarCampo("origen")} value={t.origen} onChange={(e) => update(idx, { origen: e.target.value })} className="h-9" aria-label={`Origen de la tarifa ${idx + 1}`} />
+                  {errorCampo("origen")}
                 </div>
                 {esPortaCont && (
                   <div className="col-span-12 md:col-span-2">
@@ -86,6 +90,7 @@ export default function SeccionTarifasInformativas({ tarifas, onChange, validar 
                 <div className="col-span-12 md:col-span-3">
                   <label className="text-body-sm text-muted-foreground">Destino</label>
                   <Input {...validarCampo("destino")} value={t.destino} onChange={(e) => update(idx, { destino: e.target.value })} className="h-9" aria-label={`Destino de la tarifa ${idx + 1}`} />
+                  {errorCampo("destino")}
                 </div>
                 <div className="col-span-6 md:col-span-2">
                   <label className="text-body-sm text-muted-foreground">Unidad</label>
@@ -99,6 +104,7 @@ export default function SeccionTarifasInformativas({ tarifas, onChange, validar 
                 <div className="col-span-6 md:col-span-2">
                   <label className="text-body-sm text-muted-foreground">Precio</label>
                   <Input {...validarCampo("precio")} type="number" min={0} step="0.01" value={t.precio} onChange={(e) => update(idx, { precio: parseFloat(e.target.value) || 0 })} className="h-9" aria-label={`Precio de la tarifa ${idx + 1}`} />
+                  {errorCampo("precio")}
                 </div>
                 <div className="col-span-6 md:col-span-2">
                   <label className="text-body-sm text-muted-foreground">Moneda</label>
@@ -108,6 +114,7 @@ export default function SeccionTarifasInformativas({ tarifas, onChange, validar 
                       {MONEDAS_TARIFARIO.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {errorCampo("moneda")}
                 </div>
                 <div className="col-span-12 md:col-span-5">
                   <label className="text-body-sm text-muted-foreground">Notas</label>
@@ -119,7 +126,6 @@ export default function SeccionTarifasInformativas({ tarifas, onChange, validar 
                   </Button>
                 </div>
               </div>
-              {primerError && <p id={errorId} className="text-body-sm text-destructive">Tarifa {idx + 1}: {primerError}.</p>}
             </div>
           );
         })}

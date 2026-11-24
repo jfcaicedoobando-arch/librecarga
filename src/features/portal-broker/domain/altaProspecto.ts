@@ -32,14 +32,19 @@ export const empresaVacia = (): EmpresaBroker => ({
   sector: "", origen: "", destino: "", incoterm: "", proveedor_actual: "", notas: "",
 });
 
-/** Devuelve el primer problema a corregir, o null si se puede enviar. */
-export function validarAlta(e: EmpresaBroker, contactos: readonly ContactoBroker[]): string | null {
-  if (e.nombre.trim().length < 2) return "Escribe el nombre de la empresa.";
-  if (e.pais.trim() === "") return "Indica el país.";
-  if (e.transporte.length === 0) return "Elige al menos un tipo de transporte.";
-  const conNombre = contactos.filter((c) => c.nombre.trim() !== "");
-  if (conNombre.length === 0) return "Agrega al menos un contacto con nombre.";
-  if (conNombre.some((c) => c.email.trim() !== "" && !c.email.includes("@"))) return "Revisa el correo de los contactos.";
+export type ProblemaAlta = { campo: "nombre" | "pais" | "transporte" | "contactos"; mensaje: string }
+  | { campo: "email"; contacto: number; mensaje: string };
+
+/** Devuelve el campo del primer problema a corregir, o null si se puede enviar. */
+export function validarAlta(e: EmpresaBroker, contactos: readonly ContactoBroker[]): ProblemaAlta | null {
+  if (e.nombre.trim().length < 2) return { campo: "nombre", mensaje: "Escribe el nombre de la empresa." };
+  if (e.pais.trim() === "") return { campo: "pais", mensaje: "Indica el país." };
+  if (e.transporte.length === 0) return { campo: "transporte", mensaje: "Elige al menos un tipo de transporte." };
+  if (!contactos.some((c) => c.nombre.trim() !== "")) {
+    return { campo: "contactos", mensaje: "Agrega al menos un contacto con nombre." };
+  }
+  const contacto = contactos.findIndex((c) => c.nombre.trim() !== "" && c.email.trim() !== "" && !c.email.includes("@"));
+  if (contacto !== -1) return { campo: "email", contacto, mensaje: "Revisa el correo del contacto." };
   return null;
 }
 

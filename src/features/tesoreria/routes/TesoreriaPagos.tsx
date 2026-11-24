@@ -28,10 +28,15 @@ import { LibroPagosMobileCard } from "@/features/tesoreria/components/LibroPagos
 import { LibroPagosToolbar } from "./_sections/LibroPagosToolbar";
 import { LibroPagosKpis } from "./_sections/LibroPagosKpis";
 import { LibroPagosExportButtons } from "./_sections/LibroPagosExportButtons";
+import { formatDate } from "@/lib/formatters";
 
 export default function TesoreriaPagos() {
   useDocumentTitle("Tesorería · Pagos");
-  const { data: cuentasRaw = [] } = useCuentasBancarias();
+  const consultaCuentas = useCuentasBancarias();
+  const cuentas = useMemo(
+    () => (consultaCuentas.data ?? []).map((c) => ({ id: c.id, alias: etiquetaCuenta(c), moneda: c.moneda })),
+    [consultaCuentas.data],
+  );
   // M8 (Ola 8): periodo y filtros viven en la URL (enlace compartible).
   const { rango, setRango, filtros, actualizarFiltros } = useFiltrosLibroPagosUrl();
   const [pagoAbierto, setPagoAbierto] = useState<RefPago | null>(null);
@@ -39,10 +44,6 @@ export default function TesoreriaPagos() {
   const { data: libro, organizationId, isLoading, isError, refetch } = useLibroPagos(rango.desde, rango.hasta);
   const pagos = useMemo(() => libro?.pagos ?? [], [libro]);
 
-  const cuentas = useMemo(
-    () => cuentasRaw.map((c) => ({ id: c.id, alias: etiquetaCuenta(c), moneda: c.moneda })),
-    [cuentasRaw],
-  );
   const monedas = useMemo(() => monedasDisponibles(pagos), [pagos]);
   const metodos = useMemo(() => metodosDisponibles(pagos), [pagos]);
   const visibles = useMemo(() => filtrarPagos(pagos, filtros), [pagos, filtros]);
@@ -81,6 +82,7 @@ export default function TesoreriaPagos() {
 
       <LibroPagosToolbar
         cuentas={cuentas}
+        consultaCuentas={consultaCuentas}
         monedas={monedas}
         metodos={metodos}
         filtros={filtros}
@@ -109,7 +111,7 @@ export default function TesoreriaPagos() {
           isError={isError}
           onRetry={() => void refetch()}
           onRowClick={(p) => setPagoAbierto(refPagoDeLibro(p))}
-          getRowAriaLabel={(p) => `Ver detalle: ${etiquetaTipoPagoLibro(p)} · ${p.contraparte ?? "la contraparte"}`}
+          getRowAriaLabel={(p) => `Ver detalle: ${etiquetaTipoPagoLibro(p)} · ${p.contraparte ?? "la contraparte"} · ${p.referencia || p.documento_folio || formatDate(p.fecha)}`}
           emptyMessage="No hay pagos registrados con estos filtros."
           mobileCard={(p) => <LibroPagosMobileCard row={p} />}
         />

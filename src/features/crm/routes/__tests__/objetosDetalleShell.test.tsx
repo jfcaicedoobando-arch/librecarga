@@ -24,6 +24,11 @@ it("ofrece enlaces nativos para contactar sin mezclar correo y teléfono", () =>
   expect(screen.getByRole("link", { name: "+525555555555" })).toHaveAttribute("href", "tel:+525555555555");
 });
 
+it("recupera búsqueda y página al volver desde un contacto", () => {
+  query.mockReturnValue({ data: { nombre: "Ana" } });
+  render(<MemoryRouter initialEntries={["/crm/contactos/c1?q=Ana&pagina=2"]}><Contacto /></MemoryRouter>);
+  expect(screen.getByRole("link", { name: "Volver" })).toHaveAttribute("href", "/crm/contactos?q=Ana&pagina=2");
+});
 describe.each([
   { nombre: "Empresa", Component: Empresa, lista: "/crm/empresas", error: "No se pudo cargar la empresa" },
   { nombre: "Contacto", Component: Contacto, lista: "/crm/contactos", error: "No se pudo cargar el contacto" },

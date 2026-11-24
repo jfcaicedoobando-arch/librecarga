@@ -16,7 +16,8 @@ vi.mock("@/features/crm/hooks/usePricingCrm", () => ({
   useSolicitudPricing: (id: string | null) => leerDetalle(id),
 }));
 vi.mock("../ModosEjecutivoPanel", () => ({ ModosEjecutivoPanel: () => null }));
-vi.mock("../TabsModoPricing", () => ({ TabsModoPricing: () => null, useModoPropioPricing: () => "todos" }));
+vi.mock("../TabsModoPricing", () => ({ TabsModoPricing: () => null }));
+vi.mock("@/features/crm/hooks/useFlujoPricing", () => ({ useModoPropioPricing: () => "todos" }));
 vi.mock("@/lib/contexts/AuthContext", () => ({ useAuth: () => ({ effectiveRole: "ejecutivo_pricing", user: { id: "u" } }) }));
 vi.mock("../SolicitudPricingDetalle", () => ({
   SolicitudPricingDetalle: () => <p>Respuesta de prueba</p>,

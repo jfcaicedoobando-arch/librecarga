@@ -95,7 +95,7 @@ BEGIN
   IF v.estado = 'respondida' AND v.tarifa_tarifario_id = p_tarifa_id THEN
     RETURN jsonb_build_object('id', v.id, 'ya_respondida', true);
   END IF;
-  IF v.estado NOT IN ('borrador','enviada') THEN
+  IF v.estado NOT IN ('borrador','enviada','asignada','en_proceso','info_requerida') THEN
     RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001';
   END IF;
   SELECT * INTO t FROM public.costeo_tarifas

@@ -23,8 +23,10 @@ export function NotificacionesPopover() {
   const headingId = useId();
   const headerRef = useRef<HTMLDivElement>(null);
   const [avisoAbierto, setAvisoAbierto] = useState<string | null>(null);
-  const { notificaciones, isSuccess, isError, isFetching, refetch, noLeidas, marcarLeida, marcarTodasLeidas } =
-    useNotificacionesInternas();
+  const {
+    notificaciones, isSuccess, isError, isFetching, refetch, noLeidas,
+    marcarLeida, marcarTodasLeidas, marcandoTodasLeidas,
+  } = useNotificacionesInternas();
 
   const handleClick = (n: NotificacionInterna) => {
     if (!n.leida) marcarLeida(n.id);
@@ -77,14 +79,16 @@ export function NotificacionesPopover() {
             id={headingId}
             variant="subsection"
             actions={
-              noLeidas > 0 ? (
+              noLeidas > 0 || marcandoTodasLeidas ? (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-6 px-2 text-xs"
                   onClick={() => marcarTodasLeidas()}
+                  loading={marcandoTodasLeidas}
                 >
-                  <Check className="mr-1 h-3 w-3" /> Marcar todas como leídas
+                  {!marcandoTodasLeidas && <Check className="mr-1 h-3 w-3" />}
+                  {marcandoTodasLeidas ? "Marcando como leídas…" : "Marcar todas como leídas"}
                 </Button>
               ) : undefined
             }

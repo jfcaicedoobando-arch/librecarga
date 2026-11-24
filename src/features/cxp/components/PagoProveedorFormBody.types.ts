@@ -6,6 +6,7 @@ import type { FacturaCxP } from "@/features/cxp/services";
 import type { Moneda } from "@/types/db";
 import type { CuentaBancaria } from "@/features/tesoreria";
 import type { ImpactoPago } from "@/features/cxp/services/pagoImpactoPreview";
+import type { ResultadoValidacionPago } from "@/features/cxp/services/pagoProveedorValidaciones";
 
 export type { Moneda };
 
@@ -45,8 +46,8 @@ export interface PagoProveedorFormBodyProps {
   cuentaId: string;
   setCuentaId: (v: string) => void;
   requiereCuenta: boolean;
-  /** Incoherencias de IVA/totales de la factura (informativas). */
-  validacion: { error: string | null; avisos: string[] };
+  /** Resultado de las validaciones y avisos del pago. */
+  validacion: ResultadoValidacionPago;
   /** Vista previa del impacto del pago (factura, proveedor y banco). */
   impacto: ImpactoPago | null;
   cargandoSaldoProveedor?: boolean;

@@ -18,6 +18,7 @@ docs/ci/workflow-archive/closed-labs-20261016/*.yml.txt -text
 /supabase/schema/squash/*.env text eol=lf
 /supabase/schema/squash/*.txt text eol=lf
 /drizzle/migrations/*.sql text eol=lf
+/drizzle/archived/*.sql text eol=lf
 /drizzle/migrations/meta/*.json text eol=lf
 /scripts/ci/drizzle-history/**/*.sql text eol=lf
 /scripts/ci/drizzle-history/**/*.json text eol=lf

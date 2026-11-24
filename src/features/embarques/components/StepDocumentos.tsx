@@ -19,7 +19,8 @@ interface Props {
 export function StepDocumentos({ documentos, onFileChange, errors = {} }: Props) {
   const adjuntados = useMemo(() => documentos.filter((d) => d.adjuntado).length, [documentos]);
   const total = documentos.length;
-  const pendientes = total - adjuntados;
+  const requeridos = documentos.filter((documento) => documento.requerido !== false);
+  const pendientes = requeridos.filter((documento) => !documento.adjuntado).length;
   const hasErrors = Object.keys(errors).length > 0;
 
   const handleFileChange = (nombre: string, file: File | undefined) => {
@@ -51,8 +52,8 @@ export function StepDocumentos({ documentos, onFileChange, errors = {} }: Props)
         {!hasErrors && pendientes > 0 && (
           <ValidationAlert
             severity="warning"
-            title="Documentos pendientes"
-            message={`Faltan ${pendientes} de ${total} documentos. Puedes adjuntarlos ahora o más tarde desde el detalle del embarque.`}
+            title="Documentos requeridos pendientes"
+            message={`Documentos requeridos pendientes: ${pendientes} de ${requeridos.length}. Puedes adjuntarlos ahora o más tarde desde el detalle del embarque.`}
           />
         )}
         <DocumentChecklist

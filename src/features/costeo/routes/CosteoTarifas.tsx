@@ -67,13 +67,13 @@ export default function CosteoTarifas() {
               actions={
                 <>
                 <Button variant="outline" onClick={() => setMultimodo(true)}>
-                  <Plane className="size-4 mr-2" />Aérea o terrestre
+                  <Plane className="size-4 mr-2" />Nueva tarifa aérea o terrestre
                 </Button>
                 <Button
                   onClick={s.nuevo}
                   title="Puedes capturar una tarifa o seleccionar varias rutas para crearlas en lote."
                 >
-                  <Plus className="size-4 mr-2" />Nueva tarifa
+                  <Plus className="size-4 mr-2" />Nueva tarifa marítima
                 </Button>
                 </>
               }
@@ -150,6 +150,7 @@ export default function CosteoTarifas() {
               onOpenChange={s.setOpen}
               initial={s.initial}
               tarifaId={s.editId}
+              tituloOverride={s.editId ? undefined : "Nueva tarifa marítima"}
             />
 
             <ConfirmDeleteAlert

@@ -9,6 +9,7 @@ import { SwitchVisibilidadOrg } from "./SwitchVisibilidadOrg";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useAllNavieras, useAdminNavieras } from "@/features/catalogos/hooks";
 import SearchInput from "@/components/shared/SearchInput";
+import { normalizarBusqueda } from "@/lib/text/normalizarBusqueda";
 import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import { NavieraFormDialog } from "@/components/shared/NavieraFormDialog";
 import DoubleConfirmDeleteDialog from "@/components/shared/DoubleConfirmDeleteDialog";
@@ -44,11 +45,11 @@ export default function TabNavieras() {
     );
   };
 
-  const filtradas = navieras.filter((n) => {
-    if (!busqueda) return true;
-    const q = busqueda.toLowerCase();
-    return n.code.toLowerCase().includes(q) || n.name.toLowerCase().includes(q);
-  });
+  const termino = normalizarBusqueda(busqueda);
+  const filtradas = termino
+    ? navieras.filter((n) => [n.code, n.name]
+      .some((valor) => normalizarBusqueda(valor).includes(termino)))
+    : navieras;
 
   const columns: ColumnDef<Naviera, unknown>[] = defineColumns<Naviera>([
     { id: "code", header: "Código", meta: { className: "font-mono text-xs" }, cell: ({ row }) => row.original.code },
@@ -121,7 +122,7 @@ export default function TabNavieras() {
             isError={isError}
             errorState={<CatalogQueryError error={error} onRetry={() => void refetch()} retrying={isFetching} />}
             emptyMessage="No se encontraron navieras"
-            emptyState={navieras.length > 0 && busqueda.trim() ? (
+            emptyState={navieras.length > 0 && termino ? (
               <EmptyStateInline message="Sin coincidencias" action={{ label: "Limpiar búsqueda", onClick: () => setBusqueda("") }} />
             ) : undefined}
             rowKey={(n) => n.id}
@@ -129,7 +130,12 @@ export default function TabNavieras() {
             density={TABLE_DENSITY.embebida}
           />
         </div>
-        {!isLoading && !isError && <p className="text-xs text-muted-foreground">{navieras.length} navieras en total · {navieras.filter(visibleOrg).length} visibles en mi empresa</p>}
+        {!isLoading && !isError && (
+          <div className="text-xs text-muted-foreground">
+            {termino && <p role="status">{filtradas.length} de {navieras.length} navieras coinciden con la búsqueda.</p>}
+            <p>Catálogo completo · {navieras.length} navieras en total · {navieras.filter(visibleOrg).length} visibles en mi empresa</p>
+          </div>
+        )}
       </CardContent>
       <NavieraFormDialog
         open={!!navieraEnEdicion}

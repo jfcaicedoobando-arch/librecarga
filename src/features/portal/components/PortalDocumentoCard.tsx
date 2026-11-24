@@ -20,14 +20,13 @@ const DOC_ESTADO_ICON: Record<string, { icon: typeof FileCheck; color: string }>
 
 interface Props {
   doc: Doc;
-  downloadingId: string | null;
+  downloading: boolean;
   onDownload: (archivo: string, id: string) => void;
 }
 
-export function PortalDocumentoCard({ doc, downloadingId, onDownload }: Props) {
+export function PortalDocumentoCard({ doc, downloading, onDownload }: Props) {
   const info = DOC_ESTADO_ICON[doc.estado] || DOC_ESTADO_ICON.Pendiente;
   const Icon = info.icon;
-  const downloading = downloadingId === doc.id;
 
   return (
     <Card>
@@ -46,19 +45,19 @@ export function PortalDocumentoCard({ doc, downloadingId, onDownload }: Props) {
             variant="outline"
             size="sm"
             className="w-full"
-            aria-label={`Descargar ${doc.nombre}`}
-            disabled={downloading}
+            aria-label={downloading ? `Descargando ${doc.nombre}` : `Descargar ${doc.nombre}`}
             loading={downloading}
             onClick={() => onDownload(doc.archivo!, doc.id)}
           >
             {!downloading && <Download className="h-4 w-4 mr-2" />}
-            Descargar
+            {downloading ? "Descargando…" : "Descargar"}
           </Button>
         ) : (
           <p className="text-label text-muted-foreground text-center py-1">
             Sin archivo disponible
           </p>
         )}
+        <span role="status" className="sr-only">{downloading ? `Descargando ${doc.nombre}` : ""}</span>
       </CardContent>
     </Card>
   );

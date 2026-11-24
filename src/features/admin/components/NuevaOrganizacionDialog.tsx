@@ -11,6 +11,8 @@ import { useNuevaOrganizacionUsuarios } from "@/features/admin/hooks/useNuevaOrg
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 
+const LIMITE_OPCIONES_ADMIN = 50;
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -37,20 +39,24 @@ export function NuevaOrganizacionDialog({
     query.trim() === "" || u.email.toLowerCase().includes(query.trim().toLowerCase()),
   );
 
-  const canSubmit = nombre.trim().length > 0 && ownerUserId.length > 0 && !isPending && !isLoading && !isError;
+  const selectorBloqueado = isPending || isLoading || isError;
+  const canSubmit = nombre.trim().length > 0 && ownerUserId.length > 0 && !selectorBloqueado;
 
   return (
     <FormDialogShell
       open={open}
       onOpenChange={onOpenChange}
+      busy={isPending}
       icon={Building2}
       title="Nueva organización"
       description="Crea una organización y asigna a su administrador inicial en un solo paso."
       size="md"
       footer={
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={onCreate} disabled={!canSubmit}>Crear</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>Cancelar</Button>
+          <Button onClick={onCreate} disabled={!canSubmit} loading={isPending}>
+            {isPending ? "Creando organización…" : "Crear"}
+          </Button>
         </>
       }
     >
@@ -60,6 +66,7 @@ export function NuevaOrganizacionDialog({
             value={nombre}
             onChange={(e) => onNombreChange(e.target.value)}
             placeholder="Nombre de la empresa"
+            disabled={isPending}
           />
         </FormField>
         <FormField label="RFC" hint="opcional">
@@ -67,6 +74,7 @@ export function NuevaOrganizacionDialog({
             value={rfc}
             onChange={(e) => onRfcChange(e.target.value)}
             placeholder="RFC (opcional)"
+            disabled={isPending}
           />
         </FormField>
         <div className="space-y-1.5">
@@ -76,19 +84,24 @@ export function NuevaOrganizacionDialog({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar por correo…"
-              disabled={isLoading || isError}
+              disabled={selectorBloqueado}
             />
           </FormField>
+          {filtered.length > LIMITE_OPCIONES_ADMIN && (
+            <p className="text-body-sm text-muted-foreground" role="status">
+              Mostrando {LIMITE_OPCIONES_ADMIN} de {filtered.length} candidatos. Busca por correo para ver más opciones.
+            </p>
+          )}
           <Select
             value={ownerUserId || undefined}
             onValueChange={onOwnerUserIdChange}
-            disabled={isLoading || isError}
+            disabled={selectorBloqueado}
           >
             <SelectTrigger id="nueva-org-owner">
               <SelectValue placeholder={isLoading ? "Cargando usuarios…" : "Selecciona un usuario"} />
             </SelectTrigger>
             <SelectContent>
-              {filtered.slice(0, 50).map((u) => (
+              {filtered.slice(0, LIMITE_OPCIONES_ADMIN).map((u) => (
                 <SelectItem key={u.id} value={u.id}>{u.email}</SelectItem>
               ))}
               {filtered.length === 0 && !isLoading && (

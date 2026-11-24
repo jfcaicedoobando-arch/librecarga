@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { FacturaEstadoCuenta } from "@/features/facturacion/estadoCuenta/services/estadoCuenta";
 import { DialogEnviarEstadoCuenta } from "../DialogEnviarEstadoCuenta";
 
@@ -31,7 +31,8 @@ describe("resumen para enviar el estado de cuenta", () => {
     />);
 
     expect(screen.getByText("Resumen de filas visibles")).toBeVisible();
-    expect(screen.getByText("El correo incluye el estado del cliente para el período seleccionado.")).toBeVisible();
+    expect(screen.getByText(`${formatDate("2026-11-01")} al ${formatDate("2026-11-30")}`)).toBeVisible();
+    expect(screen.getByText("El correo toma el periodo completo. Los importes de abajo resumen las filas visibles.")).toBeVisible();
     for (const [moneda, importes] of [["MXN", [500, 233, 123]], ["USD", [50, 30, 0]], ["EUR", [19, 15, 15]]] as const) {
       const importesMostrados = within(screen.getByLabelText(`Importes en ${moneda}`)).getAllByRole("definition");
       expect(importesMostrados.map((elemento) => elemento.textContent)).toEqual(importes.map((valor) => formatCurrency(valor, moneda)));

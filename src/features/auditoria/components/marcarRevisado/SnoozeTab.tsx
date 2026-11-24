@@ -53,7 +53,7 @@ export function SnoozeTab({ ctrl }: Props) {
         </Button>
         {ctrl.snoozeActivo && (
           <Button variant="outline" size="sm" onClick={ctrl.handleQuitarSnooze} disabled={ctrl.cargando}>
-            Quitar snooze
+            Volver a mostrar hallazgo
           </Button>
         )}
       </div>

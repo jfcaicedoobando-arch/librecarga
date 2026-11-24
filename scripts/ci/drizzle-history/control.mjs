@@ -98,6 +98,11 @@ export const HISTORY = [
   { file: '0102_pricing_banderas_aereas.sql', sha256: '88d10454835d9bab3c0e5793ab33f3cc693bef33b15f70c5a96eb77563a317ff', eligibleName: '20261123200700_replay_pricing_banderas_aereas.sql' },
   { file: '0103_cotizacion_banderas_aereas.sql', sha256: 'a3c832d6f963f47d679f5ebd459567bb70f7317012cccdbefb5576953192e1bc', eligibleName: '20261123200800_replay_cotizacion_banderas_aereas.sql' },
   { file: '0104_costeo_tarifa_tramos_tenant_scope.sql', sha256: '81588859e3f96db447c1c4434b602dbbd9a8ffaac829e50fb9afd7621eeaf39c', eligibleName: '20261123200900_replay_costeo_tarifa_tramos_tenant_scope.sql' },
+  { file: '0105_tarifa_aerea_escalas_reorden.sql', sha256: '5603a48d33b5f7f4e260b8b4d3c5b7294444a02c0790d310ed95fe909b27d0de', eligibleName: '20261123201000_replay_tarifa_aerea_escalas_reorden.sql' },
+  { file: '0106_recargo_minimo_proveedor.sql', sha256: '7f171df29599c839bae60d23610e4d1960d877f93da9ded91db6bb7328fe6438', eligibleName: '20261123201100_replay_recargo_minimo_proveedor.sql' },
+  { file: '0107_pricing_solicitud_terrestre.sql', sha256: '05e74bac735c09c4a9c37c25a2392bff0902d77db2ba49cf3903972cd6f03da3', eligibleName: '20261123201200_replay_pricing_solicitud_terrestre.sql' },
+  { file: '0108_pricing_fase5_operacion.sql', sha256: '94ee8ac23a955fa078d9ce0b724e72a3456e13a008aff71eb2503a240ad62c31', eligibleName: '20261123201300_replay_pricing_fase5_operacion.sql' },
+  { file: '0109_pricing_modos_tenant_scope.sql', sha256: '7931d640d25178d77af48ae1bbffcde9b34e34a1b7c4dd53399a89994882ffec', eligibleName: '20261123201400_replay_pricing_modos_tenant_scope.sql' },
 ];
 const ARCHIVED_METADATA = [
   [`${ARCHIVE}/meta/0022_snapshot.json`, '002a1cff39197fe3431f23193a4229e1c845cbcd0ab5eaa074efded812b0081d'],

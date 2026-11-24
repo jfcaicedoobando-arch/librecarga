@@ -36,7 +36,13 @@ export function ImportacionRevisionDialog({ revision, confirmando, onConfirm, on
       <p className="text-body break-all">{revision.archivo}</p>
       <p className="text-body font-medium">{cuenta.banco} · {cuenta.alias} · {cuenta.moneda}</p>
       <p className="text-body-sm text-muted-foreground">Fechas interpretadas: {formatDate(r.desde)} a {formatDate(r.hasta)}.</p>
-      <p className="text-body-sm">{r.filas.length} filas: {r.nuevas} nuevas, {r.duplicadas} duplicadas y {r.vinculables} vinculables.</p>
+      <p className="text-body-sm">
+        {r.filas.length} filas: {r.nuevas} nuevas{r.ambiguas > 0 && ` (con coincidencia ambigua: ${r.ambiguas})`},
+        {" "}{r.duplicadas} duplicadas y {r.vinculables} vinculables.
+      </p>
+      {requiereRevision && <p className="text-body-sm text-muted-foreground">
+        Consulta «Coincidencias que requieren revisión» antes de confirmar.
+      </p>}
       <p className="text-body-sm">Totales del archivo: cargos {formatCurrency(r.cargos, cuenta.moneda)} · abonos {formatCurrency(r.abonos, cuenta.moneda)} · neto {formatCurrency(r.abonos - r.cargos, cuenta.moneda)}.</p>
       {revision.sinImporte > 0 && <p className="text-body-sm text-muted-foreground">{revision.sinImporte} filas sin importe se omitirán.</p>}
     </FormDialogSection>

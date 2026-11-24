@@ -43,6 +43,16 @@ describe("PortalFilterSheet", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
+  it("explica la aplicación inmediata y usa Listo para cerrar la hoja", () => {
+    const onClear = vi.fn();
+    render(<PortalFilterSheet {...baseProps} activeCount={2} onClear={onClear}><div>Estado</div></PortalFilterSheet>);
+    fireEvent.click(screen.getByRole("button", { name: /Filtros/ }));
+    expect(screen.getByRole("dialog")).toHaveAccessibleDescription("Los filtros se aplican al seleccionarlos.");
+    fireEvent.click(screen.getByRole("button", { name: "Listo" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(onClear).not.toHaveBeenCalled();
+  });
+
   it("respeta placeholder personalizado", () => {
     render(
       <PortalFilterSheet {...baseProps} searchPlaceholder="Buscar factura…">

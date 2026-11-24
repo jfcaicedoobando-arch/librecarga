@@ -28,7 +28,12 @@ describe("Cuenta bancaria", () => {
     expect(editar).toHaveBeenCalledWith(cuenta);
     expect(screen.getByText("/tesoreria/cuentas")).toBeInTheDocument();
 
-    const estadoCuenta = screen.getByRole("button", { name: "Ver estado de cuenta" });
+    const conciliacion = screen.getByRole("link", { name: "Ver conciliación de Operativa" });
+    expect(conciliacion).toHaveAttribute("href", "/tesoreria/conciliacion?cuenta=cuenta-1");
+    fireEvent.click(conciliacion);
+    expect(screen.getByText("/tesoreria/conciliacion")).toBeInTheDocument();
+
+    const estadoCuenta = screen.getByRole("link", { name: "Ver estado de cuenta de Operativa" });
     expect(fireEvent.keyDown(estadoCuenta, { key: "Enter" })).toBe(true);
     fireEvent.click(estadoCuenta);
     expect(screen.getByText("/tesoreria/estado-cuenta")).toBeInTheDocument();

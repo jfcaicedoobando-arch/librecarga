@@ -120,7 +120,8 @@ export function EmbarqueDetalleTabsBar({ mostrarGarantias = true, soloHistorico 
           // las flechas y el degradado, visibles también en escritorio.
           "w-full overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
           // TABS-UX-02: `calc` requiere espacios (escritos con `_` en Tailwind).
-          canScrollLeft && "[mask-image:linear-gradient(to_right,transparent_0,black_24px,black_calc(100%_-_24px),transparent_100%)]",
+          canScrollLeft && canScrollRight && "[mask-image:linear-gradient(to_right,transparent_0,black_24px,black_calc(100%_-_24px),transparent_100%)]",
+          canScrollLeft && !canScrollRight && "[mask-image:linear-gradient(to_right,transparent_0,black_24px,black_100%)]",
           !canScrollLeft && canScrollRight && "[mask-image:linear-gradient(to_right,black_0,black_calc(100%_-_24px),transparent_100%)]",
 
         )}

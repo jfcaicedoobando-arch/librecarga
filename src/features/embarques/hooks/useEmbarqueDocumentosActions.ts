@@ -61,7 +61,7 @@ export function useEmbarqueDocumentosActions(embarque: EmbarqueRow | undefined, 
   };
 
   const handleDeleteDoc = async (doc: DocumentoEmbarqueRow) => {
-    if (!id || !doc.archivo) return;
+    if (!id || !doc.archivo) return false;
     try {
       await deleteDoc.mutateAsync({ embarqueId: id, docId: doc.id, archivoPath: doc.archivo });
       registrarActividad.mutate({
@@ -70,6 +70,7 @@ export function useEmbarqueDocumentosActions(embarque: EmbarqueRow | undefined, 
         detalles: { documento: doc.nombre },
       });
       notifySuccess(undefined, { title: "Documento eliminado correctamente" });
+      return true;
     } catch (err: unknown) {
       notifyError(undefined, {
         phase: "eliminación de documento",
@@ -79,6 +80,7 @@ export function useEmbarqueDocumentosActions(embarque: EmbarqueRow | undefined, 
         context: { embarqueId: id, documentoId: doc.id, archivoPath: doc.archivo, documentoNombre: doc.nombre },
         method: "HANDLE_DELETE_DOC",
       });
+      return false;
     }
   };
 

@@ -8,7 +8,7 @@ import type { SeguroEmbarqueInput } from "@/features/embarques/services/seguros"
 type FormState = Omit<SeguroEmbarqueInput, "embarque_id">;
 
 /** Devuelve `true` si el formulario es válido; en caso contrario notifica el error. */
-export function validarSeguroForm(form: FormState, isEdit: boolean): boolean {
+export function validarSeguroForm(form: FormState, isEdit: boolean, onSumaRequerida: () => void): boolean {
   if (!form.aseguradora.trim() || !form.numero_poliza.trim()) {
     notifyError(undefined, {
       title: "Faltan datos de la póliza",
@@ -37,11 +37,7 @@ export function validarSeguroForm(form: FormState, isEdit: boolean): boolean {
   // En altas (donde la póliza es obligatoria) la suma asegurada debe ser > 0;
   // en edición se respetan registros históricos que pudieron quedar en 0.
   if (!isEdit && form.suma_asegurada <= 0) {
-    notifyError(undefined, {
-      title: "Suma asegurada requerida",
-      description: "Captura una suma asegurada mayor a cero.",
-      method: "SEGURO_FORM_SUBMIT",
-    });
+    onSumaRequerida();
     return false;
   }
   if (form.vigencia_hasta < form.vigencia_desde) {

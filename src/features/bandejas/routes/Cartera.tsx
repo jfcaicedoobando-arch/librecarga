@@ -86,6 +86,7 @@ export default function Cartera() {
         vencidoNativo={vencidoNativo}
         eqTotal={eqTotal}
         eqVencido={eqVencido}
+        mostrarAlcance={Boolean(paged.search?.trim() || paged.dateFrom || paged.dateTo)}
       />
       <UnifiedFiltersBar
         search={paged.search}

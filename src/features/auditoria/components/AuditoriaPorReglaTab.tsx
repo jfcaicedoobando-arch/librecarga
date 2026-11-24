@@ -16,8 +16,9 @@ interface Props {
 
 export function AuditoriaPorReglaTab({ c }: Props) {
   if (c.isLoading) return <ListSkeleton rows={6} />;
+  const reglasConHallazgos = REGLAS_ORDEN.filter((regla) => (c.porRegla[regla]?.length ?? 0) > 0);
   return (
-    <Accordion type="multiple" defaultValue={REGLAS_ORDEN} className="space-y-2">
+    <Accordion type="multiple" defaultValue={reglasConHallazgos} className="space-y-2">
       {REGLAS_ORDEN.map((regla) => {
         const cfg = REGLA_INFO[regla];
         const items = c.porRegla[regla] ?? [];

@@ -26,8 +26,11 @@ interface CuentaOption {
   moneda: string;
 }
 
+type ConsultaCuentas = { isLoading: boolean; isError: boolean; isFetching: boolean; refetch: () => unknown };
+
 interface Props {
   cuentas: CuentaOption[];
+  consultaCuentas?: ConsultaCuentas;
   monedas: string[];
   metodos: string[];
   filtros: FiltrosLibroPagos;
@@ -39,7 +42,7 @@ interface Props {
 const FILTROS_SECUNDARIOS = ["cuentaId", "moneda", "metodo", "conciliacion", "rep"] as const;
 
 export function LibroPagosToolbar({
-  cuentas, monedas, metodos, filtros, onFiltrosChange, rango, onRangoChange,
+  cuentas, consultaCuentas, monedas, metodos, filtros, onFiltrosChange, rango, onRangoChange,
 }: Props) {
   const idRango = useId();
   const activos = FILTROS_SECUNDARIOS.filter((filtro) =>
@@ -47,7 +50,8 @@ export function LibroPagosToolbar({
   ).length;
   const filtrosSecundarios = (
     <>
-      <FiltroCuenta cuentas={cuentas} value={filtros.cuentaId} onChange={(cuentaId) => onFiltrosChange({ cuentaId })} />
+      <FiltroCuenta cuentas={cuentas} value={filtros.cuentaId} consulta={consultaCuentas}
+        onChange={(cuentaId) => onFiltrosChange({ cuentaId })} />
       <FiltroSelect label="Moneda" value={filtros.moneda} options={["todas", ...monedas]} onChange={(moneda) => onFiltrosChange({ moneda })} />
       <FiltroSelect label="Medio de pago" value={filtros.metodo} options={["todos", ...metodos]} onChange={(metodo) => onFiltrosChange({ metodo })} />
       <FiltroSelect label="Conciliación" value={filtros.conciliacion} options={["todos", "conciliados", "pendientes"]} onChange={(conciliacion) => onFiltrosChange({ conciliacion: conciliacion as FiltroConciliacion })} />
@@ -135,7 +139,9 @@ function FiltroSelect({ label, value, options, onChange }: { label: string; valu
   );
 }
 
-function FiltroCuenta({ cuentas, value, onChange }: { cuentas: CuentaOption[]; value: string; onChange: (value: string) => void }) {
+function FiltroCuenta({ cuentas, consulta, value, onChange }: {
+  cuentas: CuentaOption[]; consulta?: ConsultaCuentas; value: string; onChange: (value: string) => void;
+}) {
   return (
     <div className="col-span-2 md:col-span-3">
       <p className="mb-1 text-body-sm text-muted-foreground">Cuenta bancaria</p>
@@ -146,6 +152,16 @@ function FiltroCuenta({ cuentas, value, onChange }: { cuentas: CuentaOption[]; v
           {cuentas.map((c) => <SelectItem key={c.id} value={c.id}>{c.alias} · {c.moneda}</SelectItem>)}
         </SelectContent>
       </Select>
+      {consulta?.isLoading && <p role="status" className="mt-1 text-body-sm text-muted-foreground">Consultando cuentas…</p>}
+      {consulta?.isError && (
+        <div className="mt-1 text-body-sm">
+          <p role="alert" className="text-destructive">No se pudieron consultar las cuentas bancarias.</p>
+          <Button type="button" size="sm" variant="link" className="px-0"
+            onClick={() => void consulta.refetch()} loading={consulta.isFetching}>
+            Reintentar cuentas
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

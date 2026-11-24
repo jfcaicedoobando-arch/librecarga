@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import type { ReactNode } from "react";
-const registrar = vi.hoisted(() => vi.fn());
-vi.mock("@/features/tesoreria/hooks/useTraspasos", () => ({ useRegistrarTraspaso: () => ({ mutate: registrar, isPending: false }) }));
+const registro = vi.hoisted(() => ({ registrar: vi.fn(), pendiente: false }));
+vi.mock("@/features/tesoreria/hooks/useTraspasos", () => ({ useRegistrarTraspaso: () => ({ mutate: registro.registrar, isPending: registro.pendiente }) }));
 vi.mock("@/features/tesoreria/hooks/useTraspasoForm", () => ({
   useTraspasoForm: () => ({
     state: { origenId: "a", destinoId: "b", fecha: "2026-09-30", montoOrigen: 100, comision: 0, concepto: "", referencia: "" },
@@ -12,11 +12,12 @@ vi.mock("@/features/tesoreria/hooks/useTraspasoForm", () => ({
   traspasoSucio: () => false, partesTraspaso: () => ({}), conceptoTraspaso: () => "Traspaso",
 }));
 vi.mock("@/components/shared/FormDialogShell", () => ({
-  FormDialogShell: ({ children, footer, onSubmit }: { children: ReactNode; footer: ReactNode; onSubmit: React.FormEventHandler }) =>
-    <form onSubmit={onSubmit}>{children}{footer}<button type="submit">Intentar submit</button></form>,
+  FormDialogShell: ({ children, footer, onSubmit, busy }: { children: ReactNode; footer: ReactNode; onSubmit: React.FormEventHandler; busy: boolean }) =>
+    <form onSubmit={onSubmit} aria-busy={busy} data-testid="traspaso-form">{children}{footer}<button type="submit">Intentar submit</button></form>,
 }));
 vi.mock("@/components/shared/FormDialogFooter", () => ({
-  FormDialogFooter: ({ disabled }: { disabled: boolean }) => <button type="submit" disabled={disabled}>Registrar traspaso</button>,
+  FormDialogFooter: ({ disabled, confirmLabel }: { disabled: boolean; confirmLabel: string }) =>
+    <button type="submit" disabled={disabled}>{confirmLabel}</button>,
 }));
 vi.mock("../TraspasoImportes", () => ({ TraspasoImportes: () => null }));
 vi.mock("../TraspasoCuentaSelect", () => ({ TraspasoCuentaSelect: () => null }));
@@ -27,6 +28,13 @@ describe("N03 · candado del modal", () => {
     expect(screen.getByRole("button", { name: "Registrar traspaso" })).toBeDisabled();
     expect(screen.getByText(/Se necesitan al menos dos cuentas/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Intentar submit" }));
-    expect(registrar).not.toHaveBeenCalled();
+    expect(registro.registrar).not.toHaveBeenCalled();
+  });
+
+  it("marca el diálogo ocupado mientras espera el resultado del traspaso", () => {
+    registro.pendiente = true;
+    render(<DialogTraspasoCuentas open onOpenChange={vi.fn()} cuentas={[]} />);
+    expect(screen.getByTestId("traspaso-form")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("button", { name: "Registrando traspaso…" })).toBeDisabled();
   });
 });

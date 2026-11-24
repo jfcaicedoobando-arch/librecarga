@@ -55,7 +55,7 @@ export function FacturaPagosMobileCard({ row, facturaId, monedaFactura, canEdit,
             {labelDeCatalogo(FORMAS_PAGO_SAT, row.forma_pago)}
           </div>
           {row.referencia && (
-            <div className="text-label text-muted-foreground truncate">{row.referencia}</div>
+            <div className="wrap-anywhere text-label text-muted-foreground">{row.referencia}</div>
           )}
         </div>
         <MoneyCell

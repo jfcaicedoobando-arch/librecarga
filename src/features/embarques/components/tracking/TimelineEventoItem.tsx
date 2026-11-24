@@ -45,16 +45,18 @@ export function TimelineEventoItem({ evento, ultimo }: ItemProps) {
           </span>
         </div>
         {evento.descripcion && <p className="text-body text-foreground">{evento.descripcion}</p>}
-        <div className="flex items-center gap-3 text-body-sm text-muted-foreground">
+        <div className="flex flex-wrap items-start gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
           {evento.ubicacion && (
-            <span className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> {evento.ubicacion}
+            <span className="flex min-w-0 items-start gap-1">
+              <MapPin className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
+              <span className="[overflow-wrap:anywhere]">{evento.ubicacion}</span>
             </span>
           )}
           {evento.usuario && (
             <Hint label={evento.usuario}>
-              <span className="flex items-center gap-1">
-                <User className="h-3 w-3" /> {evento.usuario}
+              <span className="flex min-w-0 items-start gap-1">
+                <User className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
+                <span className="[overflow-wrap:anywhere]">{evento.usuario}</span>
               </span>
             </Hint>
           )}

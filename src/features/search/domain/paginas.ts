@@ -4,6 +4,7 @@
  * fijas del ERP, filtradas por acceso de rol y coincidencia de texto.
  */
 import { hasRouteAccess } from "@/lib/access/roleRouteMatrix";
+import { normalizarBusqueda } from "@/lib/text/normalizarBusqueda";
 import type { AppRole } from "@/types/appRole";
 import type { GlobalSearchResult } from "@/types/search";
 
@@ -21,15 +22,6 @@ const PAGINAS: readonly PaginaDestino[] = [
   { id: "pagina-costeo-navieras", label: "Navieras", sublabel: "Costeo", url: "/costeo/navieras" },
 ];
 
-/** Quita diacríticos y normaliza a minúsculas para comparar sin acentos. */
-function normalizar(texto: string): string {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
 /**
  * Páginas accesibles para `role` cuyo texto coincide con `query`. Con
  * `query` vacío no regresa nada (el buscador ya muestra "Recientes").
@@ -38,12 +30,12 @@ export function buscarPaginas(
   query: string,
   role: AppRole | null | undefined,
 ): GlobalSearchResult[] {
-  const termino = normalizar(query);
+  const termino = normalizarBusqueda(query);
   if (!termino) return [];
 
   return PAGINAS.filter((pagina) => hasRouteAccess(role, pagina.url))
     .filter((pagina) => {
-      const texto = normalizar(`${pagina.label} ${pagina.sublabel ?? ""}`);
+      const texto = normalizarBusqueda(`${pagina.label} ${pagina.sublabel ?? ""}`);
       return texto.includes(termino);
     })
     .map((pagina) => ({

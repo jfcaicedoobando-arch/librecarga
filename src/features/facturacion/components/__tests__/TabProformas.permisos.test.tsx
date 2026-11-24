@@ -171,6 +171,6 @@ describe("TabProformas — selección según permiso de emisión", () => {
     controller.selectedProformas = [proforma, proformaFixture({ id: "p2", evaluacion_fiscal: { estado: "confirmado" } })];
     render(<MemoryRouter><TabProformas /></MemoryRouter>);
     expect(screen.getByRole("button", { name: "Consolidar proformas" })).toBeDisabled();
-    expect(screen.getByRole("alert")).toHaveTextContent(/mismo embarque, cliente y plazo de crédito/);
+    expect(screen.getByRole("alert")).toHaveTextContent("P-0001 no tiene evaluación fiscal.");
   });
 });

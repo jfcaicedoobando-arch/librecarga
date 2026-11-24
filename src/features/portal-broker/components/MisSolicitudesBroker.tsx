@@ -31,7 +31,8 @@ export default function MisSolicitudesBroker() {
               <div className="min-w-0">
                 <p className="font-medium truncate">{s.empresa}</p>
                 <p className="text-muted-foreground">
-                  {s.organizacion} · {formatDate(s.created_at)}
+                  {s.organizacion} · Enviada {formatDate(s.created_at)}
+                  {s.resuelto_at ? ` · Resuelta ${formatDate(s.resuelto_at)}` : ""}
                   {s.motivo ? ` · ${s.motivo}` : ""}
                 </p>
               </div>

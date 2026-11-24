@@ -34,13 +34,21 @@ import { todayLocalISO } from "@/lib/date/today";
 import { priorizarNavierasAgente } from "./_sections/agenteGarantiasPrioridad";
 import { AgenteGarantiaRequisitoDialog } from "./_sections/AgenteGarantiaRequisitoDialog";
 
+function ReintentarPrioridad({ pendiente, onRetry }: { pendiente: boolean; onRetry: () => void }) {
+  return (
+    <Button variant="link" size="sm" onClick={onRetry} loading={pendiente}>
+      {pendiente ? "Actualizando prioridad…" : "Reintentar tarifas"}
+    </Button>
+  );
+}
+
 export default function AgenteGarantias() {
   useDocumentTitle('Carta Garantía y Demoras');
   const { data: navieras = [], isLoading: loadingNav, isError: errorNav, refetch: refetchNav } = useNavierasCatalogo();
   const { data: condiciones = [], isLoading: loadingCond, isError: errorCond, refetch: refetchCond } = useCondicionesNaviera();
   // Una consulta compartida con el formulario; nunca una consulta por fila.
   const { data: proveedores = [], isLoading: loadingProv, isError: errorProv, refetch: refetchProv } = useProveedoresNaviera();
-  const { data: tarifas = [], isLoading: loadingTar, isError: errorTar, refetch: refetchTar } = useAgenteTarifas();
+  const { data: tarifas = [], isLoading: loadingTar, isError: errorTar, isFetching: fetchingTar, refetch: refetchTar } = useAgenteTarifas();
   const proveedorDisponible = proveedores.length > 0;
   const [seleccion, setSeleccion] = useState<FilaNaviera | null>(null);
   const isMobile = useIsMobile();
@@ -118,7 +126,7 @@ export default function AgenteGarantias() {
           />
           <p className="text-body-sm text-muted-foreground">
             {errorTar ? <>No se pudieron priorizar tus navieras; se muestra el catálogo completo.
-              {" "}<Button variant="link" size="sm" onClick={() => void refetchTar()}>Reintentar tarifas</Button></>
+              {" "}<ReintentarPrioridad pendiente={fetchingTar} onRetry={() => void refetchTar()} /></>
               : loadingTar ? "Revisando tus tarifas para priorizar navieras…"
                 : `Navieras con tarifas vigentes o programadas: ${prioridad.ids.size} (se muestran primero) · Catálogo completo: ${filas.length}`}
           </p>

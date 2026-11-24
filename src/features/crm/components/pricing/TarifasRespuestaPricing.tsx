@@ -7,8 +7,7 @@ import { Plus } from "lucide-react";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { TarifaForm } from "@/features/costeo";
-import { NuevaTarifaMultimodoDialog } from "@/features/costeo/tarifario/multimodo/NuevaTarifaMultimodoDialog";
+import { NuevaTarifaMultimodoDialog, TarifaForm } from "@/features/costeo";
 import { iataDeEtiqueta, textoEscalas } from "@/features/crm/services/pricing/tarifasAereasSugeridas";
 import type { TarifaRespuestaRow } from "@/features/crm/services/pricing/tarifasRespuesta";
 import { formatCurrency } from "@/lib/formatters/numbers";
@@ -45,6 +44,10 @@ function AccionCotizarRespuesta({ tarifaId, onCotizar }: { tarifaId: string; onC
   );
 }
 
+function textoRuta(ruta: TarifaRespuestaRow["ruta"]) {
+  return `${ruta?.origen?.name ?? "—"} → ${ruta?.destino?.name ?? "—"}`;
+}
+
 function FilaTarifa({ t, n, onCotizar }: { t: TarifaRespuestaRow; n: number; onCotizar?: Props["onCotizar"] }) {
   return (
     <Card>
@@ -53,7 +56,7 @@ function FilaTarifa({ t, n, onCotizar }: { t: TarifaRespuestaRow; n: number; onC
         <div><span className="text-muted-foreground">Agente: </span>{t.agente?.nombre ?? "—"}</div>
         <div><span className="text-muted-foreground">Carrier: </span>{t.naviera?.name ?? t.aerolinea ?? "—"}</div>
         {t.unidad_flete === "kg" && <div><span className="text-muted-foreground">Vuelo: </span>{textoEscalas(t.escalas)}</div>}
-        <div><span className="text-muted-foreground">Ruta: </span>{t.ruta?.origen?.name ?? "—"} → {t.ruta?.destino?.name ?? "—"}</div>
+        <div><span className="text-muted-foreground">Ruta: </span>{textoRuta(t.ruta)}</div>
         <div><span className="text-muted-foreground">Contenedor: </span>{t.tipo?.code ?? "—"}</div>
         <div><span className="text-muted-foreground">Flete: </span>{moneda(t.flete_base, t.moneda)} {t.unidad_flete ?? ""}</div>
         <div><span className="text-muted-foreground">Tránsito: </span>{t.transit_time_dias != null ? `${t.transit_time_dias} días` : "—"}</div>
@@ -64,6 +67,28 @@ function FilaTarifa({ t, n, onCotizar }: { t: TarifaRespuestaRow; n: number; onC
         <AccionCotizarRespuesta tarifaId={t.id} onCotizar={onCotizar} />
       </CardContent>
     </Card>
+  );
+}
+
+function AltaTarifaRespuesta({ solicitudId, onSaved, aereo, terrestre, onOpenChange }: Pick<
+  Props, "solicitudId" | "onSaved" | "aereo" | "terrestre"
+> & { onOpenChange: (open: boolean) => void }) {
+  if (aereo) {
+    return (
+      <NuevaTarifaMultimodoDialog open onOpenChange={onOpenChange} onSaved={onSaved}
+        inicial={{ solicitud_pricing_id: solicitudId, origen: iataDeEtiqueta(aereo.pol) ?? "", destino: iataDeEtiqueta(aereo.pod) ?? "" }} />
+    );
+  }
+  if (terrestre) {
+    return (
+      <NuevaTarifaMultimodoDialog open onOpenChange={onOpenChange} onSaved={onSaved}
+        inicial={{ modo: "Terrestre", solicitud_pricing_id: solicitudId, submodalidad: terrestre.submodalidad ?? "",
+          origen: terrestre.origen ?? "", destino: terrestre.destino ?? "", tipo_unidad: terrestre.tipoUnidad ?? "" }} />
+    );
+  }
+  return (
+    <TarifaForm open onOpenChange={onOpenChange} onSaved={onSaved}
+      initial={{ solicitud_pricing_id: solicitudId, carta_garantia: null, unidad_flete: null }} />
   );
 }
 
@@ -84,18 +109,9 @@ export function TarifasRespuestaPricing({ solicitudId, editable, hayOpcionesViej
           <Plus className="mr-1 size-4" /> Agregar tarifa
         </Button>
       )}
-      {abierto && aereo && (
-        <NuevaTarifaMultimodoDialog open={abierto} onOpenChange={setAbierto} onSaved={onSaved}
-          inicial={{ solicitud_pricing_id: solicitudId, origen: iataDeEtiqueta(aereo.pol) ?? "", destino: iataDeEtiqueta(aereo.pod) ?? "" }} />
-      )}
-      {abierto && !aereo && terrestre && (
-        <NuevaTarifaMultimodoDialog open={abierto} onOpenChange={setAbierto} onSaved={onSaved}
-          inicial={{ modo: "Terrestre", solicitud_pricing_id: solicitudId, submodalidad: terrestre.submodalidad ?? "",
-            origen: terrestre.origen ?? "", destino: terrestre.destino ?? "", tipo_unidad: terrestre.tipoUnidad ?? "" }} />
-      )}
-      {abierto && !aereo && !terrestre && (
-        <TarifaForm open={abierto} onOpenChange={setAbierto} onSaved={onSaved}
-          initial={{ solicitud_pricing_id: solicitudId, carta_garantia: null, unidad_flete: null }} />
+      {abierto && (
+        <AltaTarifaRespuesta solicitudId={solicitudId} onOpenChange={setAbierto}
+          onSaved={onSaved} aereo={aereo} terrestre={terrestre} />
       )}
     </div>
   );

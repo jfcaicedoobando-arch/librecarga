@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
@@ -22,6 +23,22 @@ const DIALOGO = {
   sin_opcion: { titulo: "Cerrar sin opción", texto: "El solicitante recibirá el motivo y la solicitud quedará cerrada.", etiqueta: "Motivo" },
 } as const;
 
+function AvisosFlujoPricing({ solicitud }: { solicitud: SolicitudPricingRow }) {
+  if (solicitud.estado === "info_requerida" && solicitud.info_motivo) {
+    return (
+      <Alert role="status" variant="warning" className="p-3">
+        <AlertDescription className="text-body-sm">
+          <strong>Pricing pide información:</strong> {solicitud.info_motivo}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  if (solicitud.estado === "sin_opcion" && solicitud.motivo_sin_opcion) {
+    return <p className="rounded-md border bg-muted p-3 text-body-sm"><strong>Sin opción:</strong> {solicitud.motivo_sin_opcion}</p>;
+  }
+  return null;
+}
+
 export function AccionesFlujoPricing({ solicitud: s }: { solicitud: SolicitudPricingRow }) {
   const { effectiveRole, user } = useAuth();
   const m = useCambiarEstadoPricing();
@@ -36,14 +53,7 @@ export function AccionesFlujoPricing({ solicitud: s }: { solicitud: SolicitudPri
   const minimo = dialogo ? MOTIVO_MINIMO[dialogo] ?? 0 : 0;
   return (
     <div className="space-y-2">
-      {s.estado === "info_requerida" && s.info_motivo && (
-        <p className="rounded-md border border-warning/40 bg-warning/10 p-3 text-body-sm">
-          <strong>Pricing pide información:</strong> {s.info_motivo}
-        </p>
-      )}
-      {s.estado === "sin_opcion" && s.motivo_sin_opcion && (
-        <p className="rounded-md border bg-muted p-3 text-body-sm"><strong>Sin opción:</strong> {s.motivo_sin_opcion}</p>
-      )}
+      <AvisosFlujoPricing solicitud={s} />
       {acciones.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {acciones.map((a) => (

@@ -9,7 +9,7 @@ BEGIN
   SELECT * INTO v FROM crm_solicitudes_pricing WHERE id = p_id AND deleted_at IS NULL FOR UPDATE;
   IF v.id IS NULL OR v.organization_id IS DISTINCT FROM org_scope() THEN RAISE EXCEPTION 'LC_PRICING_NO_ENCONTRADA' USING ERRCODE = 'P0001'; END IF;
   IF NOT _crm_pricing_es_gerente_ops(v.organization_id) THEN RAISE EXCEPTION 'LC_PRICING_SOLO_GERENTE_OPS' USING ERRCODE = '42501'; END IF;
-  IF v.estado <> 'enviada' THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
+  IF v.estado NOT IN ('enviada','asignada','en_proceso','info_requerida') THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
   IF p_complejidad NOT IN ('baja','media','alta') THEN RAISE EXCEPTION 'LC_PRICING_COMPLEJIDAD_INVALIDA' USING ERRCODE = 'P0001'; END IF;
   IF length(trim(coalesce(p_motivo, ''))) < 10 THEN RAISE EXCEPTION 'LC_PRICING_MOTIVO_REQUERIDO' USING ERRCODE = 'P0001'; END IF;
   IF p_complejidad = v.complejidad THEN RETURN jsonb_build_object('id', v.id, 'sin_cambio', true); END IF;

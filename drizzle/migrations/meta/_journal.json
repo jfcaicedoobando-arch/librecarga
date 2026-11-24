@@ -764,6 +764,13 @@
       "when": 1795475981910,
       "tag": "0108_pricing_fase5_operacion",
       "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1795481722544,
+      "tag": "0109_pricing_modos_tenant_scope",
+      "breakpoints": true
     }
   ]
 }

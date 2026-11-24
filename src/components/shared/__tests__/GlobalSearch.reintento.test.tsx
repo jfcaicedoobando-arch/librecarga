@@ -41,4 +41,9 @@ it("ofrece un reintento con el mismo término y da nombres en español a los con
     ["busqueda_global", { termino: "qa-unico", limite: 5 }],
     ["busqueda_global", { termino: "qa-unico", limite: 5 }],
   ]);
+
+  fireEvent.click(screen.getByRole("button", { name: "Limpiar búsqueda" }));
+  expect(input).toHaveValue("");
+  expect(input).toHaveFocus();
+  expect(screen.queryByRole("option", { name: "Expediente de prueba" })).not.toBeInTheDocument();
 });

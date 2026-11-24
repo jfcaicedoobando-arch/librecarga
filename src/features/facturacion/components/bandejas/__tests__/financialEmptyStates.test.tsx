@@ -10,7 +10,7 @@ import { BandejaPorFacturar } from "../BandejaPorFacturar";
 import { BandejaProformasListas } from "../BandejaProformasListas";
 
 const state = vi.hoisted(() => ({
-  empty: false, loading: false, error: false, mobile: false, ventaUsd: 100, ventaMxn: 0,
+  empty: false, loading: false, error: false, mobile: false, ventaUsd: 100, ventaMxn: 0, proformaMxn: 0,
   refetch: vi.fn(), setMoneda: vi.fn(), exportarHueco: vi.fn(),
 }));
 const agingRow = {
@@ -41,7 +41,7 @@ vi.mock("@/features/facturacion/hooks", () => ({
 }));
 vi.mock("@/features/facturacion/hooks/useProformasListas", () => ({
   useProformasListas: () => ({
-    ...queryState(), data: state.empty ? [] : [{ id: "proforma-ficticia", numero: "PR-PRUEBA", cliente_nombre: "Cliente de prueba", expediente: "EXP-PRUEBA", total_usd: 100, total_mxn: 0, created_at: "2026-11-02" }],
+    ...queryState(), data: state.empty ? [] : [{ id: "proforma-ficticia", numero: "PR-PRUEBA", cliente_nombre: "Cliente de prueba", expediente: "EXP-PRUEBA", total_usd: 100, total_mxn: state.proformaMxn, created_at: "2026-11-02" }],
   }),
 }));
 
@@ -58,7 +58,7 @@ function wrapper(params = "") {
 }
 beforeEach(() => {
   vi.clearAllMocks();
-  Object.assign(state, { empty: false, loading: false, error: false, mobile: false, ventaUsd: 100, ventaMxn: 0 });
+  Object.assign(state, { empty: false, loading: false, error: false, mobile: false, ventaUsd: 100, ventaMxn: 0, proformaMxn: 0 });
 });
 
 it("exporta el conjunto filtrado de embarques sin factura y bloquea el filtro sin coincidencias", async () => {
@@ -78,6 +78,19 @@ it("muestra ventas en MXN y distingue ETA de hoy en la tarjeta móvil", () => {
   render(<BandejaPorFacturar />, { wrapper: wrapper() });
   expect(screen.getByText("ETA hoy")).toBeInTheDocument();
   expect(screen.getByText("MXN 500.00")).toBeInTheDocument();
+});
+
+it.each([false, true])("muestra los importes de la proforma por moneda y su fecha de creación (móvil=%s)", (mobile) => {
+  Object.assign(state, { mobile, proformaMxn: 800 });
+  render(<BandejaProformasListas />, { wrapper: wrapper() });
+  expect(screen.getByText("USD 100.00")).toBeInTheDocument();
+  expect(screen.getByText("MXN 800.00")).toBeInTheDocument();
+  if (mobile) {
+    expect(screen.getByText(/Creada el/)).toBeInTheDocument();
+  } else {
+    expect(screen.getByRole("columnheader", { name: "Importes por moneda" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: /Creada/ })).toBeInTheDocument();
+  }
 });
 
 describe.each([false, true])("vacíos financieros, móvil=%s", (mobile) => {

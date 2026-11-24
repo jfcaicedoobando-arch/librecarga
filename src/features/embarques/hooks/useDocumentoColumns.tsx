@@ -61,6 +61,7 @@ export function useDocumentoColumns(opts: Options): ColumnDef<DocumentoEmbarqueR
               <Button
                 variant="outline"
                 size="sm"
+                aria-label={`${doc.archivo ? "Reemplazar archivo" : "Subir archivo"} de ${doc.nombre}`}
                 loading={uploadingDocId === doc.id}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -83,6 +84,7 @@ export function useDocumentoColumns(opts: Options): ColumnDef<DocumentoEmbarqueR
                   variant="ghost"
                   size="sm"
                   loading={togglingNoAplicaDocId === doc.id}
+                  aria-label={`${esNoAplica ? "Marcar pendiente" : "No aplica"} · ${doc.nombre}`}
                   onClick={(e) => { e.stopPropagation(); onToggleNoAplica!(doc); }}
                 >
                   {togglingNoAplicaDocId !== doc.id && (
@@ -100,6 +102,7 @@ export function useDocumentoColumns(opts: Options): ColumnDef<DocumentoEmbarqueR
                   variant="ghost"
                   size="sm"
                   loading={downloadingDocId === doc.id}
+                  aria-label={`Descargar ${doc.nombre}`}
                   onClick={(e) => { e.stopPropagation(); onDownload(doc.archivo!, doc.id); }}
                 >
                   {downloadingDocId !== doc.id && <Download className="h-4 w-4 mr-1" />}
@@ -112,6 +115,7 @@ export function useDocumentoColumns(opts: Options): ColumnDef<DocumentoEmbarqueR
                       size="sm"
                       className="text-warning hover:text-warning hover:bg-warning/10"
                       loading={rechazandoDocId === doc.id}
+                      aria-label={`Rechazar ${doc.nombre}`}
                       onClick={(e) => { e.stopPropagation(); onRequestRechazo(doc); }}
                     >
                       {rechazandoDocId !== doc.id && <XCircle className="h-4 w-4 mr-1" />}
@@ -125,6 +129,7 @@ export function useDocumentoColumns(opts: Options): ColumnDef<DocumentoEmbarqueR
                     size="sm"
                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
                     loading={deletingDocId === doc.id}
+                    aria-label={`Eliminar ${doc.nombre}`}
                     onClick={(e) => { e.stopPropagation(); onRequestDelete(doc); }}
                   >
                     {deletingDocId !== doc.id && <Trash2 className="h-4 w-4 mr-1" />}

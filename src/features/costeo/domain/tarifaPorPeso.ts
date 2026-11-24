@@ -29,7 +29,7 @@ export interface CobroPeso { kgCobrados: number; precio: number }
  */
 export function escalonMasBarato(tramos: TramoPeso[], pesoKg: number, fleteBase: number): CobroPeso {
   let mejor: CobroPeso = { kgCobrados: pesoKg, precio: precioPorTramo(tramos, pesoKg, fleteBase) };
-  const costo = (c: CobroPeso) => Math.round(c.precio * c.kgCobrados * 100) / 100;
+  const costo = (c: CobroPeso) => subtotalLinea(c.kgCobrados, c.precio);
   for (const t of tramos) {
     if (!(t.desde_kg > pesoKg) || !(t.precio > 0)) continue;
     const cand = { kgCobrados: t.desde_kg, precio: t.precio };

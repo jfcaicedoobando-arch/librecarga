@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CrmReportes from "../ReportesCrm";
 
@@ -16,7 +16,8 @@ vi.mock("@/hooks/shared", async (original) => ({
 
 function mostrar() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={client}><CrmReportes /></QueryClientProvider>);
+  render(<QueryClientProvider client={client}><CrmReportes /></QueryClientProvider>);
+  return client;
 }
 
 beforeEach(() => {
@@ -55,5 +56,18 @@ describe("CRM Reportes y tableros", () => {
     expect(await screen.findByText("Este tablero no tiene reportes")).toBeInTheDocument();
     expect(consultarCuentas).toHaveBeenCalledTimes(2);
     expect(listTableros).toHaveBeenCalledOnce();
+  });
+
+  it("mantiene panel accesible y restablece el primer tablero si desaparece el seleccionado", async () => {
+    const client = mostrar();
+    expect(await screen.findByRole("tabpanel", { name: "Ventas" })).toBeVisible();
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Cuentas" }), { key: "Enter" });
+    expect(await screen.findByRole("tabpanel", { name: "Cuentas" })).toBeVisible();
+
+    listTableros.mockResolvedValueOnce([{ id: "ventas", nombre: "Ventas" }]);
+    await act(async () => { await client.invalidateQueries(); });
+    expect(await screen.findByRole("tabpanel", { name: "Ventas" })).toBeVisible();
+    expect(screen.getByRole("tab", { name: "Ventas" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "Cuentas" })).not.toBeInTheDocument();
   });
 });

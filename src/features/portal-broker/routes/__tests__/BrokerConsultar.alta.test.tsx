@@ -88,11 +88,11 @@ describe("BrokerConsultar · botón de alta", () => {
     const vista = render(<BrokerConsultar />);
     const input = screen.getByLabelText("Buscar empresa");
     fireEvent.change(input, { target: { value: "Naviera Alfa" } });
-    expect(screen.getByRole("button", { name: "Solicitar" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Solicitar asignación de Naviera Alfa" })).toBeEnabled();
 
     fireEvent.change(input, { target: { value: "Naviera Beta" } });
     expect(screen.getByRole("status")).toHaveTextContent("Buscando");
-    expect(screen.queryByRole("button", { name: "Solicitar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Solicitar asignación/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Registrar empresa nueva" })).toBeNull();
 
     terminoConsultado = "Naviera Beta";

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useEstadoCuentaEmail } from "@/features/cobranza/hooks/useEstadoCuentaEmail";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { FacturaEstadoCuenta } from "@/features/facturacion/estadoCuenta/services/estadoCuenta";
 
 interface Props {
@@ -24,6 +24,13 @@ interface Props {
   desde: string;
   hasta: string;
   rows: ReadonlyArray<FacturaEstadoCuenta>;
+}
+
+function describirPeriodo(desde: string, hasta: string) {
+  if (desde && hasta) return `${formatDate(desde)} al ${formatDate(hasta)}`;
+  if (desde) return `Desde ${formatDate(desde)}`;
+  if (hasta) return `Hasta ${formatDate(hasta)}`;
+  return "Histórico";
 }
 
 export function DialogEnviarEstadoCuenta({
@@ -93,9 +100,12 @@ export function DialogEnviarEstadoCuenta({
       footer={footer}
     >
       <div className="space-y-4">
+        <p className="text-body-sm">
+          Periodo del correo: <strong>{describirPeriodo(desde, hasta)}</strong>
+        </p>
         <div className="space-y-2 text-sm">
           <p className="font-medium">Resumen de filas visibles</p>
-          <p className="text-muted-foreground">El correo incluye el estado del cliente para el período seleccionado.</p>
+          <p className="text-muted-foreground">El correo toma el periodo completo. Los importes de abajo resumen las filas visibles.</p>
           {totales.length === 0 && <p className="text-muted-foreground">Sin importes disponibles en las filas visibles.</p>}
           {totales.map(([moneda, importes]) => (
             <dl key={moneda} aria-label={`Importes en ${moneda}`} className="grid grid-cols-1 gap-2 rounded-md border p-3 sm:grid-cols-3">

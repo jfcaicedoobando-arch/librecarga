@@ -3,7 +3,7 @@
  * Extraída de `TesoreriaCuentas` para respetar el límite Power-of-10 (≤200 líneas).
  */
 import { Trash2, Pencil } from "lucide-react";
-import { useNavigate } from "react-router";
+import { Link } from "react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -38,24 +38,10 @@ export function CuentaBancariaCard({
   onEditar,
   onEliminar,
 }: CuentaBancariaCardProps) {
-  const navigate = useNavigate();
-  const irAConciliacion = () =>
-    navigate(`${ROUTES.TESORERIA_CONCILIACION}?cuenta=${c.id}`);
+  const cuentaParam = `?cuenta=${encodeURIComponent(c.id)}`;
 
   return (
-    <Card
-      role={c.activa ? "button" : undefined}
-      tabIndex={c.activa ? 0 : undefined}
-      aria-label={c.activa ? `Ver movimientos de la cuenta ${c.alias}, ${c.banco}` : undefined}
-      className={c.activa ? "transition-shadow hover:shadow-raised focus:outline-hidden focus:ring-2 focus:ring-ring cursor-pointer" : "opacity-60"}
-      onClick={c.activa ? irAConciliacion : undefined}
-      onKeyDown={c.activa ? (e) => {
-        if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
-          e.preventDefault();
-          irAConciliacion();
-        }
-      } : undefined}
-    >
+    <Card className={c.activa ? undefined : "opacity-60"}>
       <CardContent className="p-4 space-y-1">
         <div className="flex items-start justify-between">
           <div>
@@ -68,7 +54,7 @@ export function CuentaBancariaCard({
                 <Button
                   variant="ghost" size="icon"
                   aria-label={`Editar cuenta ${c.alias}`}
-                  onClick={(e) => { e.stopPropagation(); onEditar(c); }}
+                  onClick={() => onEditar(c)}
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -76,7 +62,7 @@ export function CuentaBancariaCard({
               <Button
                 variant="ghost" size="icon"
                 aria-label={`Eliminar cuenta ${c.alias}`}
-                onClick={(e) => { e.stopPropagation(); onEliminar(c.id, c.alias); }}
+                onClick={() => onEliminar(c.id, c.alias)}
               >
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
@@ -94,15 +80,16 @@ export function CuentaBancariaCard({
           Saldo inicial {formatCurrency(Number(c.saldo_inicial), c.moneda)} al{" "}
           {formatDate(c.fecha_saldo_inicial)}
         </p>
-        {c.activa ? <div className="pt-2">
-          <Button
-            variant="link" size="sm" className="h-auto p-0 text-body-sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`${ROUTES.TESORERIA_ESTADO_CUENTA}?cuenta=${c.id}`);
-            }}
-          >
-            Ver estado de cuenta
+        {c.activa ? <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2">
+          <Button asChild variant="link" size="sm" className="px-0 text-body-sm">
+            <Link to={ROUTES.TESORERIA_CONCILIACION + cuentaParam} aria-label={`Ver conciliación de ${c.alias}`}>
+              Ver conciliación
+            </Link>
+          </Button>
+          <Button asChild variant="link" size="sm" className="px-0 text-body-sm">
+            <Link to={ROUTES.TESORERIA_ESTADO_CUENTA + cuentaParam} aria-label={`Ver estado de cuenta de ${c.alias}`}>
+              Ver estado de cuenta
+            </Link>
           </Button>
         </div> : (
           <p className="text-body-sm text-muted-foreground italic">

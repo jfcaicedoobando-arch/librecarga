@@ -1,5 +1,5 @@
 /** /crm/contactos/:id — Ficha de contacto con empresas y oportunidades ligadas. */
-import { useParams } from "react-router";
+import { useLocation, useParams } from "react-router";
 import { UserRound } from "lucide-react";
 import { DetailHeader } from "@/components/shared/DetailHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
@@ -24,6 +24,7 @@ function DatosContacto({ email, telefono }: { email: string | null; telefono: st
 
 export default function CrmContactoDetalle() {
   const { id = "" } = useParams<{ id: string }>();
+  const { search } = useLocation();
   const { data, isLoading, isError, refetch } = useContactoCrm(id);
   const { canEditCrm } = usePermissions();
   useDocumentTitle(data ? `Contacto · ${data.nombre}` : "Contacto");
@@ -31,7 +32,7 @@ export default function CrmContactoDetalle() {
   const datos = data ? <DatosContacto email={data.email} telefono={data.telefono} /> : undefined;
   return (
     <PageContainer>
-      <DetailHeader backTo="/crm/contactos" icon={<UserRound className="size-6 text-accent" />} title={data?.nombre ?? "Contacto"} subtitle={datos} />
+      <DetailHeader backTo={`/crm/contactos${search}`} icon={<UserRound className="size-6 text-accent" />} title={data?.nombre ?? "Contacto"} subtitle={datos} />
       {isLoading ? <LoadingState label="Cargando contacto…" /> : isError || !data ? (
         <ErrorState title={isError ? "No se pudo cargar el contacto" : "Contacto no encontrado"}
           description="Revisa el enlace o vuelve a la lista." onRetry={isError ? () => void refetch() : undefined} />

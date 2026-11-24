@@ -44,6 +44,7 @@ interface DatePickerMxProps {
    */
   avisarInhabil?: boolean;
   "aria-label"?: string;
+  "aria-required"?: boolean;
   "aria-describedby"?: string;
 }
 
@@ -60,6 +61,7 @@ export function DatePickerMx({
   value, onChange, placeholder = PLACEHOLDER_FECHA, className, title, calendarLabel,
   disabled = false, readOnly = false, min, max, calendarMin, calendarMax, errorText, id, name,
   autoFocus = false, avisarInhabil = false, "aria-label": ariaLabel, "aria-describedby": ariaDescribedBy,
+  "aria-required": ariaRequired,
 }: DatePickerMxProps) {
 
   const autoErrorId = useId();
@@ -129,6 +131,7 @@ export function DatePickerMx({
           disabled={disabled}
           readOnly={readOnly}
           aria-label={ariaLabel ?? (id ? undefined : title)}
+          aria-required={ariaRequired}
           aria-invalid={showError || undefined}
           aria-describedby={describedBy}
 

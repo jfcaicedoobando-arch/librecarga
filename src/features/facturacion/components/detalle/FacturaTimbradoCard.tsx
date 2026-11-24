@@ -63,7 +63,7 @@ export function FacturaTimbradoCard(props: Props) {
           <div className="flex items-center gap-2 text-body text-muted-foreground border-b pb-3">
             <Building2 className="h-4 w-4 shrink-0" />
             <span className="truncate">
-              Emitido por{" "}
+              Perfil fiscal actual de la organización{" · "}
               <span className="font-medium text-foreground">{emisor.razonSocial}</span>
               {emisor.rfc && (
                 <>

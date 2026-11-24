@@ -130,6 +130,11 @@ const REVIEWED_FORWARD_FIXES: ReadonlyArray<readonly [string, string]> = [
   ["0102_pricing_banderas_aereas.sql", "88d10454835d9bab3c0e5793ab33f3cc693bef33b15f70c5a96eb77563a317ff"],
   ["0103_cotizacion_banderas_aereas.sql", "a3c832d6f963f47d679f5ebd459567bb70f7317012cccdbefb5576953192e1bc"],
   ["0104_costeo_tarifa_tramos_tenant_scope.sql", "81588859e3f96db447c1c4434b602dbbd9a8ffaac829e50fb9afd7621eeaf39c"],
+  ["0105_tarifa_aerea_escalas_reorden.sql", "5603a48d33b5f7f4e260b8b4d3c5b7294444a02c0790d310ed95fe909b27d0de"],
+  ["0106_recargo_minimo_proveedor.sql", "7f171df29599c839bae60d23610e4d1960d877f93da9ded91db6bb7328fe6438"],
+  ["0107_pricing_solicitud_terrestre.sql", "05e74bac735c09c4a9c37c25a2392bff0902d77db2ba49cf3903972cd6f03da3"],
+  ["0108_pricing_fase5_operacion.sql", "94ee8ac23a955fa078d9ce0b724e72a3456e13a008aff71eb2503a240ad62c31"],
+  ["0109_pricing_modos_tenant_scope.sql", "7931d640d25178d77af48ae1bbffcde9b34e34a1b7c4dd53399a89994882ffec"],
 ];
 
 function verificarOrdenJournal(sources: ReadonlyMap<string, string>, journal: JournalEntry[]): void {

@@ -66,11 +66,11 @@ export function ProveedorBrechaCard({ brecha, huerfanas, proveedorId, proveedorN
                 <Link to="/compras/por-capturar">Ir a Por capturar (global)</Link>
               </Button>
               <Button asChild size="sm" variant="outline">
-                <Link to={`/compras/facturas?proveedorId=${encodeURIComponent(proveedorId)}`}>Ver facturas</Link>
+                <Link to={`/compras/facturas?proveedorId=${encodeURIComponent(proveedorId)}`}>Ver todas las facturas del proveedor</Link>
               </Button>
             </div>
             <p className="text-body-sm text-muted-foreground">
-              Por capturar muestra embarques de todos los proveedores. Ver facturas muestra sólo las de {proveedorNombre}.
+              Por capturar muestra embarques de todos los proveedores. El segundo enlace abre las facturas de {proveedorNombre}.
             </p>
           </div>
         </div>
@@ -91,6 +91,11 @@ export function ProveedorBrechaCard({ brecha, huerfanas, proveedorId, proveedorN
                 </li>
               ))}
             </ul>
+            {huerfanas.length > 5 && (
+              <p className="mt-2 text-body-sm text-muted-foreground">
+                Se muestran 5 de {huerfanas.length} facturas con partidas sin vincular.
+              </p>
+            )}
           </div>
         )}
       </CardContent>

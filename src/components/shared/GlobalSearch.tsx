@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useDeferredValue, useMemo, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { atajoBusquedaGlobal, atajoCrmPalette } from "@/lib/ui/atajoTeclado";
 import {
   CommandDialog,
@@ -28,6 +29,7 @@ type SearchResult = GlobalSearchResult;
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [busquedaFallo, setBusquedaFallo] = useState(false);
   const [buscando, setBuscando] = useState(false);
@@ -131,11 +133,30 @@ export function GlobalSearch() {
           `loop`: las flechas ↑/↓ dan la vuelta para operar sin mouse. */}
       <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false} loop inputLabel="Buscar en LibreCarga">
 
-        <CommandInput
-          placeholder="Buscar un módulo o un registro (ej. Clientes)…"
-          value={query}
-          onValueChange={setQuery}
-        />
+        <div className="relative">
+          <CommandInput
+            ref={inputRef}
+            placeholder="Buscar un módulo o un registro (ej. Clientes)…"
+            value={query}
+            onValueChange={setQuery}
+            className="pr-28"
+          />
+          {query !== "" && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-label="Limpiar búsqueda"
+              className="absolute right-10 top-1/2 -translate-y-1/2"
+              onClick={() => {
+                setQuery("");
+                inputRef.current?.focus();
+              }}
+            >
+              Limpiar
+            </Button>
+          )}
+        </div>
         {!cargando && busquedaFallo && query.trim() && (
           <GlobalSearchVacio busquedaFallo onRetry={() => void buscar(query)} />
         )}
@@ -151,7 +172,7 @@ export function GlobalSearch() {
           {!cargando && showRecents && (
             <GlobalSearchRecientes recents={recents} onSelect={handleSelect} />
           )}
-          {!cargando &&
+          {!cargando && query.trim() !== "" &&
             Object.entries(grouped).map(([type, items]) => (
               <GlobalSearchGrupo
                 key={type}

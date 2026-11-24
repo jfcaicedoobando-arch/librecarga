@@ -2293,20 +2293,26 @@ CREATE FUNCTION public._comision_kam_broker() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
-DECLARE b public.crm_brokers%ROWTYPE; v_cliente uuid;
+DECLARE v_motivo constant text := '[broker] Comisión exclusiva del broker; KAM sin comisión';
 BEGIN
-  IF NEW.estado <> 'Devengada' OR NEW.vendedora_id IS NULL THEN RETURN NEW; END IF;
-  b := public._broker_de_pago(NEW.organization_id, NEW.pago_factura_id, NEW.factura_id);
-  IF b.id IS NULL OR b.comision_kam_pct IS NULL THEN RETURN NEW; END IF;
-  SELECT cliente_id INTO v_cliente FROM public.facturas WHERE id = NEW.factura_id;
-  IF EXISTS (SELECT 1 FROM public.comisiones_excepciones x
-              WHERE x.organization_id = NEW.organization_id AND x.vendedora_id = NEW.vendedora_id
-                AND x.activa AND x.deleted_at IS NULL
-                AND ((NEW.embarque_id IS NOT NULL AND x.embarque_id = NEW.embarque_id) OR x.cliente_id = v_cliente)) THEN
+  IF NEW.estado <> 'Devengada' OR NEW.liquidacion_id IS NOT NULL
+     OR NEW.deleted_at IS NOT NULL OR NEW.estado_previo_liquidacion = 'Por recuperar' THEN
     RETURN NEW;
   END IF;
-  NEW.porcentaje_aplicado := b.comision_kam_pct;
-  NEW.comision_mxn := GREATEST(0, ROUND(NEW.utilidad_prorrateada_mxn * b.comision_kam_pct / 100.0, 2));
+  IF EXISTS (
+    SELECT 1 FROM public.pagos_factura p
+    JOIN public.facturas f ON f.id = p.factura_id AND f.organization_id = p.organization_id
+    JOIN public.crm_empresas e ON e.cliente_id = f.cliente_id AND e.organization_id = f.organization_id
+    JOIN public.crm_brokers b ON b.id = e.broker_id AND b.organization_id = e.organization_id
+    WHERE p.id = NEW.pago_factura_id AND f.id = NEW.factura_id
+      AND p.organization_id = NEW.organization_id AND e.deleted_at IS NULL
+  ) THEN
+    NEW.porcentaje_aplicado := 0;
+    NEW.comision_mxn := 0;
+    IF strpos(coalesce(NEW.nota, ''), v_motivo) = 0 THEN
+      NEW.nota := concat_ws(' ', nullif(btrim(NEW.nota), ''), v_motivo);
+    END IF;
+  END IF;
   RETURN NEW;
 END $$;
 CREATE FUNCTION public._convertir_proformas_insertar_conceptos(p_factura_id uuid, p_proforma_ids uuid[], p_org uuid, p_es_consolidada boolean, p_moneda public.moneda) RETURNS void
@@ -2485,7 +2491,7 @@ BEGIN
     IF v_org IS DISTINCT FROM NEW.organization_id THEN
       RAISE EXCEPTION 'LC_PRICING_NO_ENCONTRADA' USING ERRCODE = 'P0001';
     END IF;
-    IF v_estado IS NULL OR v_estado NOT IN ('enviada','respondida') THEN
+    IF v_estado IS NULL OR v_estado NOT IN ('enviada','asignada','en_proceso','info_requerida','respondida') THEN
       RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001';
     END IF;
     IF NOT public._crm_es_pricing(v_org) THEN
@@ -3534,6 +3540,16 @@ CREATE FUNCTION public._crm_pricing_avisar_cambio(p_org uuid, p_sol uuid, p_soli
         UNION SELECT user_id FROM organization_members WHERE organization_id = p_org AND role IN ('admin_org','admin')) x
   WHERE x.uid IS NOT NULL
 $$;
+CREATE FUNCTION public._crm_pricing_destinatarios_modo(p_org uuid, p_modo text) RETURNS SETOF uuid
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  SELECT DISTINCT om.user_id FROM organization_members om
+   WHERE om.organization_id = p_org AND om.role IN ('ejecutivo_pricing','gerente_operaciones')
+     AND (om.role = 'gerente_operaciones'
+       OR NOT EXISTS (SELECT 1 FROM crm_pricing_modos_ejecutivo m WHERE m.organization_id = p_org AND m.modo = p_modo)
+       OR EXISTS (SELECT 1 FROM crm_pricing_modos_ejecutivo m WHERE m.organization_id = p_org AND m.modo = p_modo AND m.user_id = om.user_id));
+$$;
 CREATE FUNCTION public._crm_pricing_es_gerente_ops(p_org uuid) RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
@@ -3542,11 +3558,81 @@ CREATE FUNCTION public._crm_pricing_es_gerente_ops(p_org uuid) RETURNS boolean
     SELECT 1 FROM organization_members
     WHERE organization_id = p_org AND user_id = auth.uid() AND role IN ('gerente_operaciones','admin_org','admin'))
 $$;
+CREATE FUNCTION public._crm_pricing_hay_tarifa_vigente(p_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $_$
+  WITH s AS (
+    SELECT sp.*, greatest((now() AT TIME ZONE 'America/Mexico_City')::date,
+             coalesce(sp.fecha_tentativa_carga::date, (now() AT TIME ZONE 'America/Mexico_City')::date)) AS f
+      FROM public.crm_solicitudes_pricing sp WHERE sp.id = p_id
+  )
+  SELECT EXISTS (
+    SELECT 1 FROM s JOIN public.costeo_tarifas t ON t.organization_id = s.organization_id
+     WHERE t.estado = 'vigente' AND t.estado_aprobacion = 'vigente'
+       AND t.vigente_desde <= s.f AND t.vigente_hasta >= s.f
+       AND (
+         (s.servicio = 'Aéreo' AND t.modo = 'Aéreo'
+           AND t.aeropuerto_origen = upper(substring(s.pol from '^\s*([A-Za-z]{3})(?:\s|$|—|-)'))
+           AND t.aeropuerto_destino = upper(substring(s.pod from '^\s*([A-Za-z]{3})(?:\s|$|—|-)')))
+         OR
+         (s.servicio = 'Marítimo' AND s.submodalidad = 'FCL' AND coalesce(t.modo, 'Marítimo') = 'Marítimo'
+           AND EXISTS (SELECT 1 FROM public.costeo_rutas r
+               JOIN public.puertos po ON po.id = r.puerto_origen_id
+               JOIN public.puertos pd ON pd.id = r.puerto_destino_id
+              WHERE r.id = t.ruta_id
+                AND upper(po.code) = upper(substring(s.pol from '\(([A-Za-z0-9]{5})\)\s*$'))
+                AND upper(pd.code) = upper(substring(s.pod from '\(([A-Za-z0-9]{5})\)\s*$')))
+           AND EXISTS (SELECT 1 FROM public.tipos_contenedor tc WHERE tc.id = t.tipo_contenedor_id
+                AND lower(tc.name) = lower(trim(coalesce(nullif(s.tipo_carga, ''), s.container_size)))))
+         OR
+         (s.servicio = 'Terrestre' AND t.modo = 'Terrestre' AND t.submodalidad = s.submodalidad
+           AND ((s.origen_cp IS NOT NULL AND t.origen_cp = s.origen_cp)
+                OR lower(trim(t.origen_ciudad)) = lower(trim(s.pol)))
+           AND ((s.destino_cp IS NOT NULL AND t.destino_cp = s.destino_cp)
+                OR lower(trim(t.destino_ciudad)) = lower(trim(s.pod)))
+           AND (s.submodalidad <> 'FTL' OR lower(trim(t.tipo_unidad)) = lower(trim(s.tipo_unidad))))
+       )
+  )
+$_$;
 CREATE FUNCTION public._crm_pricing_horas(p_complejidad text) RETURNS integer
     LANGUAGE sql IMMUTABLE
     SET search_path TO 'public'
     AS $$
   SELECT CASE p_complejidad WHEN 'baja' THEN NULL WHEN 'alta' THEN 48 ELSE 36 END
+$$;
+CREATE FUNCTION public._crm_pricing_horas_habiles_entre(p_desde timestamp with time zone, p_hasta timestamp with time zone) RETURNS numeric
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'public'
+    AS $$
+DECLARE d date; v_fin date; ini timestamptz; fin timestamptz; dow int; total numeric := 0;
+BEGIN
+  IF p_desde IS NULL OR p_hasta IS NULL OR p_hasta <= p_desde THEN RETURN 0; END IF;
+  d := (p_desde AT TIME ZONE 'America/Mexico_City')::date;
+  v_fin := (p_hasta AT TIME ZONE 'America/Mexico_City')::date;
+  WHILE d <= v_fin AND d - (p_desde AT TIME ZONE 'America/Mexico_City')::date <= 400 LOOP
+    dow := extract(isodow FROM d);
+    IF dow <= 6 THEN
+      ini := (d + time '09:00') AT TIME ZONE 'America/Mexico_City';
+      fin := (d + CASE WHEN dow = 6 THEN time '14:00' ELSE time '18:00' END) AT TIME ZONE 'America/Mexico_City';
+      ini := greatest(ini, p_desde); fin := least(fin, p_hasta);
+      IF fin > ini THEN total := total + extract(epoch FROM fin - ini) / 3600; END IF;
+    END IF;
+    d := d + 1;
+  END LOOP;
+  RETURN round(total, 2);
+END $$;
+CREATE FUNCTION public._crm_pricing_horas_modo(p_complejidad text, p_servicio text) RETURNS integer
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'public'
+    AS $$
+  -- baja = estándar sin contador; las submodalidades heredan el plazo de su modo.
+  SELECT CASE
+    WHEN p_complejidad = 'baja' THEN NULL
+    WHEN p_servicio = 'Aéreo' THEN CASE WHEN p_complejidad = 'alta' THEN 24 ELSE 12 END
+    WHEN p_servicio = 'Terrestre' THEN CASE WHEN p_complejidad = 'alta' THEN 48 ELSE 24 END
+    ELSE CASE WHEN p_complejidad = 'alta' THEN 48 ELSE 36 END
+  END
 $$;
 CREATE FUNCTION public._crm_pricing_opcion_guard() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
@@ -3556,7 +3642,7 @@ DECLARE v_sol record;
 BEGIN
   SELECT organization_id, estado INTO v_sol FROM public.crm_solicitudes_pricing
    WHERE id = coalesce(NEW.solicitud_id, OLD.solicitud_id);
-  IF v_sol.estado IS NULL OR v_sol.estado NOT IN ('enviada','respondida') THEN
+  IF v_sol.estado IS NULL OR v_sol.estado NOT IN ('enviada','asignada','en_proceso','info_requerida','respondida') THEN
     RAISE EXCEPTION 'LC_PRICING_NO_EDITABLE' USING ERRCODE = 'P0001';
   END IF;
   IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
@@ -3569,6 +3655,31 @@ BEGIN
   IF TG_OP = 'INSERT' THEN NEW.created_by := auth.uid(); END IF;
   NEW.updated_at := now();
   RETURN NEW;
+END $$;
+CREATE FUNCTION public._crm_pricing_sumar_horas_habiles(p_inicio timestamp with time zone, p_horas integer) RETURNS timestamp with time zone
+    LANGUAGE plpgsql STABLE
+    SET search_path TO 'public'
+    AS $$
+DECLARE v_local timestamp; v_rest numeric; v_dow int; v_ab timestamp; v_ci timestamp; v_disp numeric; i int;
+BEGIN
+  IF p_inicio IS NULL OR p_horas IS NULL THEN RETURN NULL; END IF;
+  v_local := p_inicio AT TIME ZONE 'America/Mexico_City';
+  v_rest := p_horas * 60;
+  FOR i IN 1..500 LOOP
+    v_dow := extract(isodow FROM v_local)::int;
+    v_ab := date_trunc('day', v_local) + interval '9 hours';
+    v_ci := date_trunc('day', v_local) + CASE WHEN v_dow = 6 THEN interval '14 hours' ELSE interval '18 hours' END;
+    IF v_dow <> 7 AND v_local < v_ci THEN
+      IF v_local < v_ab THEN v_local := v_ab; END IF;
+      v_disp := extract(epoch FROM v_ci - v_local) / 60;
+      IF v_rest <= v_disp THEN
+        RETURN (v_local + make_interval(mins => v_rest::int)) AT TIME ZONE 'America/Mexico_City';
+      END IF;
+      v_rest := v_rest - v_disp;
+    END IF;
+    v_local := date_trunc('day', v_local) + interval '1 day';
+  END LOOP;
+  RAISE EXCEPTION 'LC_PRICING_PLAZO_FUERA_DE_RANGO' USING ERRCODE = 'P0001';
 END $$;
 CREATE FUNCTION public._crm_probabilidad_terminal() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
@@ -3667,6 +3778,9 @@ BEGIN
      NEW.estado IS DISTINCT FROM OLD.estado OR NEW.enviada_at IS DISTINCT FROM OLD.enviada_at
      OR NEW.vence_at IS DISTINCT FROM OLD.vence_at OR NEW.respondida_at IS DISTINCT FROM OLD.respondida_at
      OR NEW.complejidad_motivo IS DISTINCT FROM OLD.complejidad_motivo OR NEW.plazo_motivo IS DISTINCT FROM OLD.plazo_motivo
+     OR NEW.asignada_a IS DISTINCT FROM OLD.asignada_a OR NEW.pausada_at IS DISTINCT FROM OLD.pausada_at
+     OR NEW.info_motivo IS DISTINCT FROM OLD.info_motivo OR NEW.motivo_sin_opcion IS DISTINCT FROM OLD.motivo_sin_opcion
+     OR NEW.aviso_80_at IS DISTINCT FROM OLD.aviso_80_at OR NEW.aviso_vencida_at IS DISTINCT FROM OLD.aviso_vencida_at
      OR (OLD.estado <> 'borrador' AND (NEW.complejidad IS DISTINCT FROM OLD.complejidad
          OR NEW.tipo_solicitud IS DISTINCT FROM OLD.tipo_solicitud))) THEN
     RAISE EXCEPTION 'LC_PRICING_ESTADO_SOLO_RPC' USING ERRCODE = 'P0001';
@@ -3933,6 +4047,7 @@ DECLARE
   v_vinculos int := 0;
   v_ajustes int := 0;
   v_entrantes int := 0;
+  v_ids uuid[];
 BEGIN
   SELECT * INTO v_row FROM public.proveedor_facturas WHERE id = p_id FOR UPDATE;
   IF v_row.id IS NULL THEN
@@ -3945,8 +4060,12 @@ BEGIN
     RAISE EXCEPTION 'LC_CXP_RECHAZO_CON_PAGOS: la factura tiene pagos aplicados; anúlalos antes de rechazarla.'
       USING ERRCODE = '22023';
   END IF;
-  -- Cancelar la factura: dispara la reversión de conceptos de ajuste
-  -- (tg_reverse_ajustes_factura_proveedor) dentro de la misma transacción.
+  -- Guardamos los documentos del buzón ANTES de cancelar: el trigger
+  -- trg_reabrir_entrantes_factura los devuelve a "por_capturar" y borra el
+  -- vínculo, así que después ya no podríamos encontrarlos por factura.
+  SELECT array_agg(id) INTO v_ids
+  FROM public.embarque_facturas_entrantes
+  WHERE proveedor_factura_id = p_id AND deleted_at IS NULL;
   IF v_row.estado <> 'Cancelada'::public.estado_proveedor_factura THEN
     PERFORM set_config('app.cancelando_cxp', '1', true);
     UPDATE public.proveedor_facturas
@@ -3964,21 +4083,18 @@ BEGIN
   WHERE pfc.proveedor_factura_id = p_id
     AND cc.origen = 'ajuste_factura_proveedor'
     AND cc.deleted_at IS NOT NULL;
-  -- Romper el vínculo con los conceptos de costo: vuelven a "pendiente de factura".
   DELETE FROM public.proveedor_facturas_conceptos WHERE proveedor_factura_id = p_id;
   GET DIAGNOSTICS v_vinculos = ROW_COUNT;
-  -- Soltar el embarque.
   UPDATE public.proveedor_facturas SET embarque_id = NULL, updated_at = now() WHERE id = p_id;
-  -- Ola 6 · RG5-3: el archivo entrante queda rechazado Y SIN VÍNCULO a la
-  -- factura cancelada, para que pueda retirarse o reactivarse después.
   UPDATE public.embarque_facturas_entrantes
      SET estado = 'rechazada',
          rechazo_motivo = COALESCE(NULLIF(btrim(p_motivo), ''), 'Factura rechazada'),
          proveedor_factura_id = NULL,
          capturado_por = NULL,
          updated_at = now()
-   WHERE proveedor_factura_id = p_id
-     AND deleted_at IS NULL;
+   WHERE deleted_at IS NULL
+     AND (proveedor_factura_id = p_id
+          OR (v_ids IS NOT NULL AND id = ANY(v_ids)));
   GET DIAGNOSTICS v_entrantes = ROW_COUNT;
   RETURN jsonb_build_object(
     'vinculos_eliminados', v_vinculos,
@@ -7861,6 +7977,24 @@ BEGIN
       FROM public.cuentas_bancarias cb
      WHERE cb.id = p_cuenta_id
        AND cb.deleted_at IS NULL
+       AND (
+         auth.role() = 'service_role'
+         OR (
+           auth.uid() IS NOT NULL
+           AND (NOT public.has_role(auth.uid(), 'super_admin'::public.app_role)
+                OR public.rls_tenant_scope_ok(cb.organization_id))
+           AND (
+             ((cb.organization_id = public.current_user_org_id()
+               OR public.has_role(auth.uid(), 'super_admin'::public.app_role))
+              AND (public.has_role(auth.uid(), 'admin'::public.app_role)
+                   OR public.has_role(auth.uid(), 'admin_org'::public.app_role)
+                   OR public.has_role(auth.uid(), 'super_admin'::public.app_role)))
+             OR (cb.organization_id = public.current_user_org_id()
+                 AND (public.has_role(auth.uid(), 'tesorero'::public.app_role)
+                      OR public.has_role(auth.uid(), 'contador'::public.app_role)))
+           )
+         )
+       )
      FOR UPDATE;
 END;
 $$;
@@ -10080,8 +10214,9 @@ BEGIN
                 THEN 'estado|' || to_char(b.created_at, 'YYYYMMDDHH24MI') END,
            b.detalles
     FROM public.bitacora_actividad b
-    WHERE b.entidad_id = p_embarque_id
-       OR (b.entidad_id IS NULL AND v_exp IS NOT NULL AND b.entidad_nombre = v_exp)
+    WHERE b.organization_id = v_org
+      AND (b.entidad_id = p_embarque_id
+           OR (b.entidad_id IS NULL AND v_exp IS NOT NULL AND b.entidad_nombre = v_exp))
     UNION ALL
     SELECT ('trk-' || t.id), 'operacion', 'tracking', t.created_at,
            COALESCE(t.usuario_email, ''),
@@ -10106,7 +10241,7 @@ BEGIN
            COALESCE(b.usuario_email, ''), b.accion, 'Cotización: ' || b.accion, NULL,
            NULL, NULL, 'cotizacion', v_cot, NULL, b.detalles
     FROM public.bitacora_actividad b
-    WHERE v_cot IS NOT NULL AND b.entidad_id = v_cot
+    WHERE b.organization_id = v_org AND v_cot IS NOT NULL AND b.entidad_id = v_cot
     UNION ALL
     SELECT ('prof-' || pr.id), 'finanzas', 'proforma', pr.created_at, COALESCE(u.email, ''),
            'Proforma generada', 'Proforma ' || COALESCE(pr.numero, ''), NULL,
@@ -10131,7 +10266,7 @@ BEGIN
            COALESCE(b.usuario_email, ''), b.accion, 'Proforma: ' || b.accion, NULL,
            NULL, NULL, 'proforma', b.entidad_id, NULL, b.detalles
     FROM public.bitacora_actividad b
-    WHERE b.entidad_id IN (SELECT pr.id FROM prof_emb pr)
+    WHERE b.organization_id = v_org AND b.entidad_id IN (SELECT pr.id FROM prof_emb pr)
     UNION ALL
     SELECT ('fac-' || f.id), 'finanzas', 'factura', f.created_at, '',
            'Factura creada',
@@ -10170,7 +10305,7 @@ BEGIN
            COALESCE(b.usuario_email, ''), b.accion, 'Factura: ' || b.accion, NULL,
            NULL, NULL, 'factura', b.entidad_id, NULL, b.detalles
     FROM public.bitacora_actividad b
-    WHERE b.entidad_id IN (SELECT f.id FROM facturas_emb f)
+    WHERE b.organization_id = v_org AND b.entidad_id IN (SELECT f.id FROM facturas_emb f)
     UNION ALL
     SELECT ('pag-' || pg.id), 'finanzas', 'pago', COALESCE(pg.fecha_pago::timestamptz, pg.created_at),
            COALESCE(u.email, ''), 'Pago recibido',
@@ -10207,7 +10342,7 @@ BEGIN
            COALESCE(b.usuario_email, ''), b.accion, 'CxP: ' || b.accion, NULL,
            NULL, NULL, 'cxp', b.entidad_id, NULL, b.detalles
     FROM public.bitacora_actividad b
-    WHERE b.entidad_id IN (SELECT pf.id FROM pf_emb pf)
+    WHERE b.organization_id = v_org AND b.entidad_id IN (SELECT pf.id FROM pf_emb pf)
     UNION ALL
     SELECT ('pp-' || pp.id), 'finanzas', 'pago_proveedor',
            COALESCE(pp.fecha_pago::timestamptz, pp.created_at), COALESCE(u.email, ''),
@@ -10992,8 +11127,6 @@ BEGIN
     IF v_concepto = '' OR v_monto <= 0 THEN CONTINUE; END IF;
     v_lado := COALESCE(NULLIF(v_recargo->>'lado', ''), 'origen');
     v_id := NULLIF(v_recargo->>'id', '')::uuid;
-    -- Compatibilidad con clientes anteriores que todavía no envían id:
-    -- reutilizar sólo una fila idéntica, sin adivinar ante duplicados.
     IF v_id IS NULL THEN
       SELECT r.id INTO v_id
       FROM public.costeo_tarifa_recargos r
@@ -11010,21 +11143,27 @@ BEGIN
         lado = v_lado,
         monto = v_monto,
         moneda = 'USD',
-        incluido_en_total = COALESCE((v_recargo->>'incluido_en_total')::boolean, true)
+        base = CASE WHEN NOT (v_recargo ? 'base') THEN base
+          WHEN v_recargo->>'base' = 'por_embarque' THEN 'por_embarque' ELSE 'por_unidad' END,
+        incluido_en_total = COALESCE((v_recargo->>'incluido_en_total')::boolean, true),
+        minimo = CASE WHEN NOT (v_recargo ? 'minimo') THEN minimo
+          ELSE NULLIF(NULLIF(v_recargo->>'minimo', '')::numeric, 0) END,
+        proveedor = CASE WHEN NOT (v_recargo ? 'proveedor') THEN proveedor
+          ELSE NULLIF(btrim(COALESCE(v_recargo->>'proveedor', '')), '') END
       WHERE id = v_id AND tarifa_id = p_id AND organization_id = v_org;
       IF NOT FOUND THEN RAISE EXCEPTION 'LC_RECARGO_AJENO_O_INEXISTENTE'; END IF;
     ELSE
       INSERT INTO public.costeo_tarifa_recargos (
-        tarifa_id, organization_id, concepto, lado, monto, moneda, incluido_en_total
+        tarifa_id, organization_id, concepto, lado, monto, moneda, base, incluido_en_total, minimo, proveedor
       ) VALUES (
-        p_id, v_org, v_concepto, v_lado, v_monto, 'USD',
-        COALESCE((v_recargo->>'incluido_en_total')::boolean, true)
+        p_id, v_org, v_concepto, v_lado, v_monto, 'USD', CASE WHEN NULLIF(v_recargo->>'base', '') = 'por_embarque' THEN 'por_embarque' ELSE 'por_unidad' END,
+        COALESCE((v_recargo->>'incluido_en_total')::boolean, true),
+        NULLIF(NULLIF(v_recargo->>'minimo', '')::numeric, 0),
+        NULLIF(btrim(COALESCE(v_recargo->>'proveedor', '')), '')
       ) RETURNING id INTO v_id;
     END IF;
     v_ids := array_append(v_ids, v_id);
   END LOOP;
-  -- Una tarifa ya cotizada no puede perder silenciosamente el recargo fuente.
-  -- Crear una versión nueva es más seguro que romper la trazabilidad.
   IF EXISTS (
     SELECT 1 FROM public.costeo_tarifa_recargos r
     JOIN public.cotizacion_costos cc ON cc.costeo_tarifa_recargo_id = r.id
@@ -14070,7 +14209,7 @@ $$;
 CREATE FUNCTION public.broker_alta_prospecto(p_broker_id uuid, p_empresa jsonb, p_contactos jsonb) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
-    AS $$
+    AS $_$
 DECLARE
   v public.crm_brokers%ROWTYPE;
   v_nombre text := btrim(coalesce(p_empresa->>'nombre', ''));
@@ -14090,7 +14229,6 @@ BEGIN
   SELECT id INTO v_etapa FROM public.crm_etapas_pipeline
    WHERE organization_id = v.organization_id AND nombre = 'Prospecto' AND deleted_at IS NULL ORDER BY orden LIMIT 1;
   IF v_etapa IS NULL THEN RAISE EXCEPTION 'LC_CRM_ETAPA_PROSPECTO_FALTANTE'; END IF;
-  -- Turno rotativo: el KAM que hace más tiempo no recibe un prospecto de broker.
   SELECT om.user_id INTO v_kam FROM public.organization_members om
    WHERE om.organization_id = v.organization_id AND om.role::text = 'vendedor'
    ORDER BY (SELECT max(op.created_at) FROM public.crm_oportunidades op
@@ -14112,7 +14250,7 @@ BEGIN
     p_empresa->>'destino', p_empresa->>'incoterm', p_empresa->>'proveedor_actual', v_notas)
   RETURNING id INTO v_lead;
   INSERT INTO public.crm_empresas (organization_id, nombre, lead_origen_id, estado_crm, broker_id, created_by)
-  VALUES (v.organization_id, v_nombre, v_lead, 'Prospecto', v.id, auth.uid()) RETURNING id INTO v_emp;
+  VALUES (v.organization_id, v_nombre, v_lead, 'Prospecto externo', v.id, auth.uid()) RETURNING id INTO v_emp;
   INSERT INTO public.crm_oportunidades (organization_id, nombre, cliente_nombre, lead_id, etapa_id, vendedor_id,
     vendedor_email, created_by, origen, destino, incoterm, proveedor_actual, sector, rutas, volumen, modo, notas)
   VALUES (v.organization_id, v_nombre, v_nombre, v_lead, v_etapa, v_kam, coalesce(v_kam_email, ''), auth.uid(),
@@ -14130,12 +14268,24 @@ BEGIN
     RETURNING id INTO v_cont;
     INSERT INTO public.crm_empresa_contacto (organization_id, empresa_id, contacto_id) VALUES (v.organization_id, v_emp, v_cont);
   END LOOP;
+  INSERT INTO public.crm_valores (organization_id, propiedad_id, registro_id, valor_texto, valor_numero)
+  SELECT v.organization_id, p.id, v_emp,
+         CASE WHEN p.tipo = 'numero' THEN NULL ELSE x.val END,
+         CASE WHEN p.tipo = 'numero' THEN x.val::numeric END
+    FROM (VALUES ('pais', p_empresa->>'pais'), ('rfc', upper(p_empresa->>'rfc')), ('sector', p_empresa->>'sector'),
+                 ('origen', p_empresa->>'origen'), ('destino', p_empresa->>'destino'), ('incoterm', p_empresa->>'incoterm'),
+                 ('proveedor_actual', p_empresa->>'proveedor_actual'), ('rutas_principales', p_empresa->>'rutas'),
+                 ('volumen_importacion_usd', replace(p_empresa->>'volumen_usd', ',', ''))) AS x(clave, val)
+    JOIN public.crm_propiedades p ON p.objeto = 'empresa' AND p.clave = x.clave AND NOT p.archivada
+   WHERE nullif(btrim(coalesce(x.val, '')), '') IS NOT NULL
+     AND (p.tipo <> 'numero' OR x.val ~ '^[0-9]+(\.[0-9]+)?$')
+  ON CONFLICT (propiedad_id, registro_id) DO NOTHING;
   INSERT INTO public.notificaciones_internas (organization_id, usuario_id, tipo, titulo, mensaje, enlace, entidad_tipo, entidad_id)
   VALUES (v.organization_id, v_kam, 'broker_prospecto', 'Nuevo prospecto externo',
           v.nombre || ' registró la empresa ' || v_nombre || ' y te tocó por turno.', '/crm/oportunidades/' || v_op,
           'crm_oportunidad', v_op);
   RETURN jsonb_build_object('empresa_id', v_emp, 'oportunidad_id', v_op);
-END $$;
+END $_$;
 CREATE FUNCTION public.broker_buscar_empresa(p_broker_id uuid, p_texto text) RETURNS TABLE(empresa_id uuid, nombre text, tipo text, etapa text, es_mia boolean)
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public'
@@ -14926,7 +15076,7 @@ BEGIN
 END;
 $$;
 CREATE FUNCTION public.calcular_costo_demoras(p_naviera_condicion_id uuid, p_tipo_contenedor_id uuid, p_dias_excedidos integer) RETURNS TABLE(total numeric, moneda text, desglose jsonb)
-    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    LANGUAGE plpgsql STABLE
     SET search_path TO 'public'
     AS $$
 DECLARE
@@ -15008,7 +15158,22 @@ DECLARE
   v_bloqueados_costo jsonb;
   v_moneda_tier text;
 BEGIN
-  SELECT * INTO v_embarque FROM public.embarques WHERE id = p_embarque_id;
+  -- Same SELECT audience and restrictive tenant rule as public.embarques RLS.
+  -- Filter before reading the shipment or touching generated financial concepts.
+  SELECT * INTO v_embarque FROM public.embarques e
+  WHERE e.id = p_embarque_id AND auth.uid() IS NOT NULL
+    AND (NOT public.has_role(auth.uid(), 'super_admin'::public.app_role)
+         OR public.rls_tenant_scope_ok(e.organization_id))
+    AND (
+      ((e.organization_id = public.current_user_org_id()
+        OR public.has_role(auth.uid(), 'super_admin'::public.app_role))
+       AND public.has_any_role(auth.uid(), ARRAY['viewer']::public.app_role[]))
+      OR (e.deleted_at IS NULL AND public.has_role(auth.uid(), 'cliente'::public.app_role)
+          AND e.cliente_id IN (SELECT public.current_user_client_ids()))
+      OR (public.has_role(auth.uid(), 'agente_carga'::public.app_role)
+          AND e.organization_id = public.current_agente_org()
+          AND e.agente_id IS NOT NULL AND e.agente_id = public.current_agente_id())
+    );
   IF NOT FOUND THEN
     RETURN jsonb_build_object('error','embarque no encontrado');
   END IF;
@@ -19534,6 +19699,10 @@ BEGIN
     v_org := current_user_org_id();
   END IF;
   PERFORM public._assert_writer(v_org);
+  IF NOT public.has_any_role_in_org(auth.uid(),
+    ARRAY['admin','operador','contador']::public.app_role[], v_org) THEN
+    RAISE EXCEPTION 'Permisos insuficientes' USING ERRCODE = '42501';
+  END IF;
   -- Ola E1 · C5: el embarque debe existir en la organización y coincidir con
   -- el cliente recibido; antes se confiaba en los argumentos del cliente.
   IF NOT EXISTS (
@@ -19701,9 +19870,9 @@ CREATE TABLE public.costeo_tarifas (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     organization_id uuid NOT NULL,
     agente_id uuid NOT NULL,
-    naviera_id uuid NOT NULL,
-    ruta_id uuid NOT NULL,
-    tipo_contenedor_id uuid NOT NULL,
+    naviera_id uuid,
+    ruta_id uuid,
+    tipo_contenedor_id uuid,
     moneda text DEFAULT 'USD'::text NOT NULL,
     flete_base numeric(12,2) NOT NULL,
     dias_libres_demoras integer DEFAULT 0 NOT NULL,
@@ -19725,13 +19894,32 @@ CREATE TABLE public.costeo_tarifas (
     solicitud_pricing_id uuid,
     carta_garantia boolean,
     unidad_flete text,
+    modo text DEFAULT 'Marítimo'::text NOT NULL,
+    aeropuerto_origen text,
+    aeropuerto_destino text,
+    aerolinea text,
+    origen_cp text,
+    destino_cp text,
+    origen_ciudad text,
+    destino_ciudad text,
+    submodalidad text,
+    tipo_unidad text,
+    minimo numeric(14,2),
+    escalas text[],
+    CONSTRAINT costeo_tarifas_campos_por_modo CHECK ((((modo = 'Marítimo'::text) AND (naviera_id IS NOT NULL) AND (ruta_id IS NOT NULL) AND (tipo_contenedor_id IS NOT NULL)) OR ((modo = 'Aéreo'::text) AND (aeropuerto_origen IS NOT NULL) AND (aeropuerto_destino IS NOT NULL) AND (aeropuerto_origen <> aeropuerto_destino)) OR ((modo = 'Terrestre'::text) AND (submodalidad IS NOT NULL) AND ((origen_cp IS NOT NULL) OR (NULLIF(btrim(origen_ciudad), ''::text) IS NOT NULL)) AND ((destino_cp IS NOT NULL) OR (NULLIF(btrim(destino_ciudad), ''::text) IS NOT NULL))))),
     CONSTRAINT costeo_tarifas_check CHECK ((vigente_hasta >= vigente_desde)),
+    CONSTRAINT costeo_tarifas_destino_cp_check CHECK (((destino_cp IS NULL) OR (destino_cp ~ '^[0-9]{5}$'::text))),
     CONSTRAINT costeo_tarifas_dias_libres_almacenaje_lcl_chk CHECK (((dias_libres_almacenaje_lcl IS NULL) OR (dias_libres_almacenaje_lcl >= 0))),
     CONSTRAINT costeo_tarifas_dias_libres_demoras_check CHECK ((dias_libres_demoras >= 0)),
+    CONSTRAINT costeo_tarifas_escalas_aereo CHECK (((escalas IS NULL) OR ((modo = 'Aéreo'::text) AND ((cardinality(escalas) >= 1) AND (cardinality(escalas) <= 3)) AND (array_to_string(escalas, ','::text) ~ '^[A-Z0-9]{3}(,[A-Z0-9]{3}){0,2}$'::text)))),
     CONSTRAINT costeo_tarifas_estado_aprobacion_check CHECK ((estado_aprobacion = ANY (ARRAY['borrador'::text, 'vigente'::text, 'rechazada'::text]))),
     CONSTRAINT costeo_tarifas_estado_check CHECK ((estado = ANY (ARRAY['borrador'::text, 'vigente'::text, 'vencida'::text, 'reemplazada'::text]))),
     CONSTRAINT costeo_tarifas_flete_base_check CHECK ((flete_base >= (0)::numeric)),
-    CONSTRAINT costeo_tarifas_frecuencia_override_chk CHECK (((frecuencia_override IS NULL) OR (frecuencia_override = ANY (ARRAY['Diaria'::text, 'Semanal'::text, 'Quincenal'::text, 'Mensual'::text, 'Bajo demanda'::text]))))
+    CONSTRAINT costeo_tarifas_frecuencia_override_chk CHECK (((frecuencia_override IS NULL) OR (frecuencia_override = ANY (ARRAY['Diaria'::text, 'Semanal'::text, 'Quincenal'::text, 'Mensual'::text, 'Bajo demanda'::text])))),
+    CONSTRAINT costeo_tarifas_minimo_check CHECK (((minimo IS NULL) OR (minimo >= (0)::numeric))),
+    CONSTRAINT costeo_tarifas_modo_check CHECK ((modo = ANY (ARRAY['Marítimo'::text, 'Aéreo'::text, 'Terrestre'::text]))),
+    CONSTRAINT costeo_tarifas_origen_cp_check CHECK (((origen_cp IS NULL) OR (origen_cp ~ '^[0-9]{5}$'::text))),
+    CONSTRAINT costeo_tarifas_submodalidad_check CHECK (((submodalidad IS NULL) OR (submodalidad = ANY (ARRAY['FTL'::text, 'LTL'::text, 'Arrastre'::text]))))
 );
 CREATE FUNCTION public.crear_tarifa_con_recargos_rpc(p_organization_id uuid, p_tarifa jsonb, p_recargos jsonb) RETURNS public.costeo_tarifas
     LANGUAGE plpgsql
@@ -19739,12 +19927,27 @@ CREATE FUNCTION public.crear_tarifa_con_recargos_rpc(p_organization_id uuid, p_t
     AS $$
 DECLARE
   v_row public.costeo_tarifas;
+  v_modo text := COALESCE(NULLIF(p_tarifa->>'modo', ''), 'Marítimo');
+  v_moneda text := upper(COALESCE(NULLIF(btrim(p_tarifa->>'moneda'), ''), 'USD'));
+  v_escalas text[];
 BEGIN
+  IF v_modo = 'Marítimo' THEN
+    v_moneda := 'USD';
+  ELSIF v_moneda NOT IN ('USD', 'MXN') THEN
+    RAISE EXCEPTION 'Moneda no soportada para tarifa %: %', v_modo, v_moneda USING ERRCODE = '22023';
+  END IF;
+  IF jsonb_typeof(p_tarifa->'escalas') = 'array' THEN
+    SELECT array_agg(upper(btrim(e)) ORDER BY o) INTO v_escalas
+    FROM jsonb_array_elements_text(p_tarifa->'escalas') WITH ORDINALITY AS x(e, o)
+    WHERE btrim(e) <> '';
+  END IF;
   INSERT INTO public.costeo_tarifas (
     organization_id, agente_id, naviera_id, ruta_id, tipo_contenedor_id,
     flete_base, dias_libres_demoras, vigente_desde, vigente_hasta,
     transit_time_dias, notas, moneda, estado,
-    solicitud_pricing_id, carta_garantia, unidad_flete
+    solicitud_pricing_id, carta_garantia, unidad_flete,
+    modo, aeropuerto_origen, aeropuerto_destino, aerolinea,
+    origen_cp, destino_cp, origen_ciudad, destino_ciudad, submodalidad, tipo_unidad, minimo, escalas
   ) VALUES (
     p_organization_id,
     NULLIF(p_tarifa->>'agente_id', '')::uuid,
@@ -19757,27 +19960,43 @@ BEGIN
     NULLIF(p_tarifa->>'vigente_hasta', '')::date,
     NULLIF(p_tarifa->>'transit_time_dias', '')::integer,
     NULLIF(p_tarifa->>'notas', ''),
-    'USD',
+    v_moneda,
     'vigente',
     NULLIF(p_tarifa->>'solicitud_pricing_id', '')::uuid,
     NULLIF(p_tarifa->>'carta_garantia', '')::boolean,
-    NULLIF(btrim(COALESCE(p_tarifa->>'unidad_flete', '')), '')
+    NULLIF(btrim(COALESCE(p_tarifa->>'unidad_flete', '')), ''),
+    v_modo,
+    NULLIF(upper(btrim(COALESCE(p_tarifa->>'aeropuerto_origen', ''))), ''),
+    NULLIF(upper(btrim(COALESCE(p_tarifa->>'aeropuerto_destino', ''))), ''),
+    NULLIF(btrim(COALESCE(p_tarifa->>'aerolinea', '')), ''),
+    NULLIF(btrim(COALESCE(p_tarifa->>'origen_cp', '')), ''),
+    NULLIF(btrim(COALESCE(p_tarifa->>'destino_cp', '')), ''),
+    NULLIF(btrim(COALESCE(p_tarifa->>'origen_ciudad', '')), ''),
+    NULLIF(btrim(COALESCE(p_tarifa->>'destino_ciudad', '')), ''),
+    NULLIF(p_tarifa->>'submodalidad', ''),
+    NULLIF(btrim(COALESCE(p_tarifa->>'tipo_unidad', '')), ''),
+    NULLIF(p_tarifa->>'minimo', '')::numeric,
+    v_escalas
   )
   RETURNING * INTO v_row;
   INSERT INTO public.costeo_tarifa_recargos (
-    tarifa_id, organization_id, concepto, lado, monto, moneda, incluido_en_total
+    tarifa_id, organization_id, concepto, lado, monto, moneda, base, incluido_en_total, minimo, proveedor
   )
   SELECT
-    v_row.id,
-    v_row.organization_id,
-    btrim(r->>'concepto'),
+    v_row.id, v_row.organization_id, btrim(r->>'concepto'),
     COALESCE(NULLIF(r->>'lado', ''), 'origen'),
-    (r->>'monto')::numeric,
-    'USD',
-    COALESCE((r->>'incluido_en_total')::boolean, true)
+    (r->>'monto')::numeric, v_moneda,
+    CASE WHEN NULLIF(r->>'base', '') = 'por_embarque' THEN 'por_embarque' ELSE 'por_unidad' END,
+    COALESCE((r->>'incluido_en_total')::boolean, true),
+    NULLIF(NULLIF(r->>'minimo', '')::numeric, 0),
+    NULLIF(btrim(COALESCE(r->>'proveedor', '')), '')
   FROM jsonb_array_elements(COALESCE(p_recargos, '[]'::jsonb)) AS r
   WHERE NULLIF(btrim(COALESCE(r->>'concepto', '')), '') IS NOT NULL
     AND COALESCE((r->>'monto')::numeric, 0) > 0;
+  INSERT INTO public.costeo_tarifa_tramos (tarifa_id, organization_id, desde_kg, precio)
+  SELECT v_row.id, v_row.organization_id, (t->>'desde_kg')::numeric, (t->>'precio')::numeric
+  FROM jsonb_array_elements(COALESCE(p_tarifa->'tramos', '[]'::jsonb)) AS t
+  WHERE NULLIF(t->>'desde_kg', '') IS NOT NULL AND NULLIF(t->>'precio', '') IS NOT NULL;
   RETURN v_row;
 END;
 $$;
@@ -19914,7 +20133,7 @@ BEGIN
   IF v.estado = 'respondida' AND v.tarifa_tarifario_id = p_tarifa_id THEN
     RETURN jsonb_build_object('id', v.id, 'ya_respondida', true);
   END IF;
-  IF v.estado NOT IN ('borrador','enviada') THEN
+  IF v.estado NOT IN ('borrador','enviada','asignada','en_proceso','info_requerida') THEN
     RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001';
   END IF;
   SELECT * INTO t FROM public.costeo_tarifas
@@ -20250,7 +20469,7 @@ BEGIN
     RAISE EXCEPTION 'LC_PRICING_SIN_PERMISO' USING ERRCODE = '42501';
   END IF;
   IF v.estado = 'cancelada' THEN RETURN; END IF;
-  IF v.estado = 'respondida' THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
+  IF v.estado IN ('respondida','sin_opcion') THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
   PERFORM set_config('lc.pricing_rpc', '1', true);
   UPDATE public.crm_solicitudes_pricing SET estado = 'cancelada' WHERE id = p_id;
   PERFORM set_config('lc.pricing_rpc', '', true);
@@ -20675,46 +20894,54 @@ BEGIN
   IF v.created_by IS DISTINCT FROM auth.uid() AND NOT public._crm_es_pricing(v.organization_id) THEN
     RAISE EXCEPTION 'LC_PRICING_SIN_PERMISO' USING ERRCODE = '42501';
   END IF;
-  -- Obligatorios: todo excepto notas, delivery, fecha tentativa de carga y adjuntos.
   IF v.solicitante_id IS NULL THEN v_faltan := v_faltan || 'Solicitante'::text; END IF;
   IF v.fecha IS NULL THEN v_faltan := v_faltan || 'Fecha'::text; END IF;
   IF coalesce(trim(v.cliente), '') = '' THEN v_faltan := v_faltan || 'Cliente'::text; END IF;
   IF v.servicio IS NULL THEN v_faltan := v_faltan || 'Modo de transporte'::text; END IF;
+  IF v.servicio IN ('Marítimo','Terrestre') AND v.submodalidad IS NULL THEN v_faltan := v_faltan || 'Submodalidad'::text; END IF;
   IF v.tipo_operacion IS NULL THEN v_faltan := v_faltan || 'Tipo de operación'::text; END IF;
   IF v.incoterm IS NULL THEN v_faltan := v_faltan || 'Incoterm'::text; END IF;
   IF v.sector_economico IS NULL THEN v_faltan := v_faltan || 'Sector económico'::text; END IF;
   IF v.imo IS NULL THEN v_faltan := v_faltan || 'IMO'::text; END IF;
   IF coalesce(trim(v.commodity), '') = '' THEN v_faltan := v_faltan || 'Commodity'::text; END IF;
-  IF v.tipo_carga IS NULL THEN v_faltan := v_faltan || 'Tipo de contenedor'::text; END IF;
+  IF v.tipo_carga IS NULL AND v.submodalidad IN ('FCL','Arrastre') THEN v_faltan := v_faltan || 'Tipo de contenedor'::text; END IF;
   IF v.cantidad IS NULL THEN v_faltan := v_faltan || 'Cantidad'::text; END IF;
   IF v.estibable IS NULL THEN v_faltan := v_faltan || 'Estibable'::text; END IF;
   IF coalesce(trim(v.peso), '') = '' THEN v_faltan := v_faltan || 'Peso'::text; END IF;
   IF v.unidad_medida IS NULL THEN v_faltan := v_faltan || 'Unidad de medida'::text; END IF;
   IF coalesce(trim(v.dimensiones), '') = '' THEN v_faltan := v_faltan || 'Dimensiones'::text; END IF;
   IF coalesce(trim(v.origen), '') = '' THEN v_faltan := v_faltan || 'País de origen'::text; END IF;
-  IF coalesce(trim(v.pol), '') = '' THEN v_faltan := v_faltan || 'Puerto de origen'::text; END IF;
+  IF coalesce(trim(v.pol), '') = '' THEN v_faltan := v_faltan || CASE WHEN v.servicio = 'Terrestre' THEN 'Ciudad de origen' ELSE 'Puerto de origen' END; END IF;
   IF coalesce(trim(v.destino), '') = '' THEN v_faltan := v_faltan || 'País de destino'::text; END IF;
-  IF coalesce(trim(v.pod), '') = '' THEN v_faltan := v_faltan || 'Puerto de destino'::text; END IF;
+  IF coalesce(trim(v.pod), '') = '' THEN v_faltan := v_faltan || CASE WHEN v.servicio = 'Terrestre' THEN 'Ciudad de destino' ELSE 'Puerto de destino' END; END IF;
+  IF v.servicio = 'Terrestre' AND v.submodalidad = 'FTL' AND coalesce(trim(v.tipo_unidad), '') = '' THEN v_faltan := v_faltan || 'Tipo de unidad'::text; END IF;
+  IF v.servicio = 'Terrestre' AND v.submodalidad = 'LTL' AND v.tarimas IS NULL THEN v_faltan := v_faltan || 'Tarimas'::text; END IF;
+  IF v.submodalidad = 'LCL' AND v.volumen_cbm IS NULL THEN v_faltan := v_faltan || 'Volumen (CBM)'::text; END IF;
+  IF v.imo IS TRUE AND v.imo_clase IS NULL THEN v_faltan := v_faltan || 'Clase IMO'::text; END IF;
+  IF v.imo IS TRUE AND v.imo_un IS NULL THEN v_faltan := v_faltan || 'Número UN'::text; END IF;
   IF array_length(v_faltan, 1) > 0 THEN
     RAISE EXCEPTION 'LC_PRICING_INCOMPLETA: %', array_to_string(v_faltan, ', ') USING ERRCODE = 'P0001';
   END IF;
-  -- Complejidad automática: especial si hay IMO, carga proyecto o contenedor especial.
+  IF v.servicio <> 'Marítimo' AND v.incoterm IN ('FAS','FOB','CFR','CIF') THEN
+    RAISE EXCEPTION 'LC_PRICING_INCOTERM_MODO' USING ERRCODE = 'P0001';
+  END IF;
   v_comp := CASE WHEN v.imo IS TRUE OR v.sector_economico = 'Carga Proyecto'
       OR v.tipo_carga ~* '(open ?top|flat ?rack|reefer|refriger|platform|plataforma|tank|isotanque|special|especial)'
-    THEN 'alta' ELSE 'media' END;
-  v_horas := public._crm_pricing_horas(v_comp);
+    THEN 'alta' WHEN public._crm_pricing_hay_tarifa_vigente(p_id) THEN 'baja' ELSE 'media' END;
+  v_horas := public._crm_pricing_horas_modo(v_comp, v.servicio);
   PERFORM set_config('lc.pricing_rpc', '1', true);
   UPDATE public.crm_solicitudes_pricing SET estado = 'enviada', enviada_at = now(), complejidad = v_comp,
     tipo_solicitud = coalesce(v.tipo_solicitud, 'nueva_ruta'),
-    vence_at = now() + make_interval(hours => v_horas) WHERE id = p_id;
+    vence_at = CASE WHEN v_horas IS NULL THEN NULL ELSE public._crm_pricing_sumar_horas_habiles(now(), v_horas) END WHERE id = p_id;
   PERFORM set_config('lc.pricing_rpc', '', true);
   INSERT INTO public.notificaciones_internas (organization_id, usuario_id, tipo, titulo, mensaje, enlace, entidad_tipo, entidad_id)
   SELECT DISTINCT v.organization_id, om.user_id, 'crm_pricing_solicitud', 'Nueva solicitud de pricing ' || v.folio,
          coalesce(v.cliente, 'Sin cliente') || ' · ' || coalesce(v.pol, v.origen, '') || ' → ' || coalesce(v.pod, v.destino, '')
-           || ' · responder en ' || v_horas || ' h',
+           || CASE WHEN v_horas IS NULL THEN ' · tarifa vigente disponible' ELSE ' · responder en ' || v_horas || ' h hábiles' END,
          '/costeo/solicitudes?id=' || v.id, 'crm_solicitud_pricing', v.id
     FROM public.organization_members om
-   WHERE om.organization_id = v.organization_id AND om.role IN ('ejecutivo_pricing','gerente_operaciones');
+   WHERE om.organization_id = v.organization_id AND om.role IN ('ejecutivo_pricing','gerente_operaciones')
+     AND om.user_id IN (SELECT public._crm_pricing_destinatarios_modo(v.organization_id, v.servicio));
   RETURN jsonb_build_object('id', v.id, 'ya_enviada', false);
 END $$;
 CREATE FUNCTION public.crm_generar_liquidacion_broker(p_broker_id uuid, p_periodo text) RETURNS uuid
@@ -20926,6 +21153,40 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+CREATE FUNCTION public.crm_oportunidad_vendedor_externo(p_oportunidad_id uuid) RETURNS text
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE v_op public.crm_oportunidades%ROWTYPE; v_nombre text;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'No autorizado' USING ERRCODE='42501'; END IF;
+  SELECT * INTO v_op FROM public.crm_oportunidades WHERE id=p_oportunidad_id AND deleted_at IS NULL;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  IF v_op.organization_id IS DISTINCT FROM public.current_user_org_id()
+     OR public.rls_tenant_scope_ok(v_op.organization_id) IS NOT TRUE
+     OR (
+       public.has_role(auth.uid(),'super_admin'::public.app_role)
+       OR public.has_role(auth.uid(),'admin'::public.app_role)
+       OR public.has_role(auth.uid(),'admin_org'::public.app_role)
+       OR public.has_role(auth.uid(),'gerente_comercial'::public.app_role)
+       OR public.has_role(auth.uid(),'operador'::public.app_role)
+       OR public.has_role(auth.uid(),'viewer'::public.app_role)
+       OR (public.has_role(auth.uid(),'vendedor'::public.app_role) AND v_op.vendedor_id=auth.uid())
+     ) IS NOT TRUE THEN RAISE EXCEPTION 'No autorizado' USING ERRCODE='42501'; END IF;
+  SELECT string_agg(n.nombre, ', ' ORDER BY n.nombre) INTO v_nombre
+  FROM (
+    SELECT DISTINCT b.nombre
+    FROM public.crm_empresas e
+    JOIN public.crm_brokers b ON b.id=e.broker_id AND b.organization_id=e.organization_id
+    WHERE e.organization_id=v_op.organization_id AND e.deleted_at IS NULL
+      AND (
+        EXISTS (SELECT 1 FROM public.crm_oportunidad_empresa oe WHERE oe.oportunidad_id=v_op.id AND oe.empresa_id=e.id)
+        OR (v_op.lead_id IS NOT NULL AND e.lead_origen_id=v_op.lead_id)
+      )
+  ) n;
+  RETURN v_nombre;
+END;
+$$;
 CREATE FUNCTION public.crm_pagar_liquidacion_broker(p_id uuid, p_fecha date, p_referencia text) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -20949,17 +21210,50 @@ BEGIN
   SELECT * INTO v FROM crm_solicitudes_pricing WHERE id = p_id AND deleted_at IS NULL FOR UPDATE;
   IF v.id IS NULL OR v.organization_id IS DISTINCT FROM org_scope() THEN RAISE EXCEPTION 'LC_PRICING_NO_ENCONTRADA' USING ERRCODE = 'P0001'; END IF;
   IF NOT _crm_pricing_es_gerente_ops(v.organization_id) THEN RAISE EXCEPTION 'LC_PRICING_SOLO_GERENTE_OPS' USING ERRCODE = '42501'; END IF;
-  IF v.estado <> 'enviada' OR v.complejidad <> 'alta' THEN RAISE EXCEPTION 'LC_PRICING_PLAZO_NO_AMPLIABLE' USING ERRCODE = 'P0001'; END IF;
+  IF v.estado NOT IN ('enviada','asignada','en_proceso') OR v.complejidad <> 'alta' THEN RAISE EXCEPTION 'LC_PRICING_PLAZO_NO_AMPLIABLE' USING ERRCODE = 'P0001'; END IF;
   IF now() > v.enviada_at + interval '8 hours' THEN RAISE EXCEPTION 'LC_PRICING_PLAZO_FUERA_DE_TIEMPO' USING ERRCODE = 'P0001'; END IF;
   IF p_horas IS NULL OR p_horas <= 48 OR p_horas > 720 THEN RAISE EXCEPTION 'LC_PRICING_HORAS_INVALIDAS' USING ERRCODE = 'P0001'; END IF;
   IF length(trim(coalesce(p_motivo, ''))) < 10 THEN RAISE EXCEPTION 'LC_PRICING_MOTIVO_REQUERIDO' USING ERRCODE = 'P0001'; END IF;
   PERFORM set_config('lc.pricing_rpc', '1', true);
-  UPDATE crm_solicitudes_pricing SET vence_at = enviada_at + make_interval(hours => p_horas), plazo_motivo = trim(p_motivo)
+  UPDATE crm_solicitudes_pricing SET vence_at = public._crm_pricing_sumar_horas_habiles(enviada_at, p_horas), plazo_motivo = trim(p_motivo)
    WHERE id = p_id;
   PERFORM set_config('lc.pricing_rpc', '', true);
   PERFORM _crm_pricing_avisar_cambio(v.organization_id, v.id, v.solicitante_id, 'Nuevo plazo ' || v.folio,
     'Plazo de respuesta: ' || p_horas || ' h · Motivo: ' || trim(p_motivo));
   RETURN jsonb_build_object('id', v.id);
+END $$;
+CREATE FUNCTION public.crm_pricing_avisos_sla() RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE r record; n int := 0; v_tipo text;
+BEGIN
+  PERFORM set_config('lc.pricing_rpc', '1', true);
+  FOR r IN
+    SELECT * FROM crm_solicitudes_pricing
+     WHERE deleted_at IS NULL AND estado IN ('enviada','asignada','en_proceso')
+       AND vence_at IS NOT NULL AND enviada_at IS NOT NULL
+       AND ((aviso_vencida_at IS NULL AND now() >= vence_at)
+         OR (aviso_80_at IS NULL AND now() >= enviada_at + (vence_at - enviada_at) * 0.8))
+     ORDER BY vence_at LIMIT 500 FOR UPDATE SKIP LOCKED
+  LOOP
+    v_tipo := CASE WHEN now() >= r.vence_at THEN 'vencida' ELSE '80' END;
+    INSERT INTO notificaciones_internas (organization_id, usuario_id, tipo, titulo, mensaje, enlace, entidad_tipo, entidad_id)
+    SELECT r.organization_id, x.u, 'crm_pricing_solicitud',
+           CASE WHEN v_tipo = 'vencida' THEN 'Solicitud vencida ' ELSE 'Solicitud por vencer ' END || r.folio,
+           coalesce(r.cliente, 'Sin cliente') || CASE WHEN v_tipo = 'vencida' THEN ' · el plazo de respuesta ya venció'
+             ELSE ' · se consumió el 80 % del plazo' END,
+           '/costeo/solicitudes?id=' || r.id, 'crm_solicitud_pricing', r.id
+      FROM (SELECT r.asignada_a AS u WHERE r.asignada_a IS NOT NULL
+            UNION SELECT d FROM _crm_pricing_destinatarios_modo(r.organization_id, r.servicio) d WHERE r.asignada_a IS NULL) x;
+    UPDATE crm_solicitudes_pricing SET
+      aviso_80_at = coalesce(aviso_80_at, now()),
+      aviso_vencida_at = CASE WHEN v_tipo = 'vencida' THEN now() ELSE aviso_vencida_at END
+     WHERE id = r.id;
+    n := n + 1;
+  END LOOP;
+  PERFORM set_config('lc.pricing_rpc', '', true);
+  RETURN n;
 END $$;
 CREATE FUNCTION public.crm_pricing_cambiar_complejidad(p_id uuid, p_complejidad text, p_motivo text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
@@ -20970,19 +21264,98 @@ BEGIN
   SELECT * INTO v FROM crm_solicitudes_pricing WHERE id = p_id AND deleted_at IS NULL FOR UPDATE;
   IF v.id IS NULL OR v.organization_id IS DISTINCT FROM org_scope() THEN RAISE EXCEPTION 'LC_PRICING_NO_ENCONTRADA' USING ERRCODE = 'P0001'; END IF;
   IF NOT _crm_pricing_es_gerente_ops(v.organization_id) THEN RAISE EXCEPTION 'LC_PRICING_SOLO_GERENTE_OPS' USING ERRCODE = '42501'; END IF;
-  IF v.estado <> 'enviada' THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
+  IF v.estado NOT IN ('enviada','asignada','en_proceso','info_requerida') THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
   IF p_complejidad NOT IN ('baja','media','alta') THEN RAISE EXCEPTION 'LC_PRICING_COMPLEJIDAD_INVALIDA' USING ERRCODE = 'P0001'; END IF;
   IF length(trim(coalesce(p_motivo, ''))) < 10 THEN RAISE EXCEPTION 'LC_PRICING_MOTIVO_REQUERIDO' USING ERRCODE = 'P0001'; END IF;
   IF p_complejidad = v.complejidad THEN RETURN jsonb_build_object('id', v.id, 'sin_cambio', true); END IF;
-  v_horas := _crm_pricing_horas(p_complejidad);
+  v_horas := _crm_pricing_horas_modo(p_complejidad, v.servicio);
   PERFORM set_config('lc.pricing_rpc', '1', true);
   UPDATE crm_solicitudes_pricing SET complejidad = p_complejidad, complejidad_motivo = trim(p_motivo), plazo_motivo = NULL,
-    vence_at = CASE WHEN v_horas IS NULL THEN NULL ELSE enviada_at + make_interval(hours => v_horas) END
+    vence_at = CASE WHEN v_horas IS NULL THEN NULL ELSE public._crm_pricing_sumar_horas_habiles(enviada_at, v_horas) END
    WHERE id = p_id;
   PERFORM set_config('lc.pricing_rpc', '', true);
   PERFORM _crm_pricing_avisar_cambio(v.organization_id, v.id, v.solicitante_id, 'Cambio de complejidad ' || v.folio,
     'Nueva complejidad: ' || p_complejidad || ' · Motivo: ' || trim(p_motivo));
   RETURN jsonb_build_object('id', v.id, 'sin_cambio', false);
+END $$;
+CREATE FUNCTION public.crm_pricing_cambiar_estado(p_id uuid, p_accion text, p_motivo text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE v record; v_motivo text := nullif(trim(coalesce(p_motivo, '')), ''); v_pricing boolean; v_h numeric;
+BEGIN
+  SELECT * INTO v FROM crm_solicitudes_pricing WHERE id = p_id AND deleted_at IS NULL FOR UPDATE;
+  IF v.id IS NULL OR v.organization_id IS DISTINCT FROM org_scope() THEN
+    RAISE EXCEPTION 'LC_PRICING_NO_ENCONTRADA' USING ERRCODE = 'P0001';
+  END IF;
+  v_pricing := _crm_es_pricing(v.organization_id);
+  PERFORM set_config('lc.pricing_rpc', '1', true);
+  IF p_accion = 'tomar' THEN
+    IF NOT v_pricing THEN RAISE EXCEPTION 'LC_PRICING_SIN_PERMISO' USING ERRCODE = '42501'; END IF;
+    IF v.estado NOT IN ('enviada','asignada') THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
+    UPDATE crm_solicitudes_pricing SET estado = 'asignada', asignada_a = auth.uid() WHERE id = p_id;
+  ELSIF p_accion = 'iniciar' THEN
+    IF NOT v_pricing THEN RAISE EXCEPTION 'LC_PRICING_SIN_PERMISO' USING ERRCODE = '42501'; END IF;
+    IF v.estado NOT IN ('enviada','asignada') THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
+    UPDATE crm_solicitudes_pricing SET estado = 'en_proceso', asignada_a = coalesce(asignada_a, auth.uid()) WHERE id = p_id;
+  ELSIF p_accion = 'pedir_info' THEN
+    IF NOT v_pricing THEN RAISE EXCEPTION 'LC_PRICING_SIN_PERMISO' USING ERRCODE = '42501'; END IF;
+    IF v.estado NOT IN ('enviada','asignada','en_proceso') THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
+    IF length(coalesce(v_motivo, '')) < 5 THEN RAISE EXCEPTION 'LC_PRICING_MOTIVO_REQUERIDO' USING ERRCODE = 'P0001'; END IF;
+    UPDATE crm_solicitudes_pricing SET estado = 'info_requerida', pausada_at = now(), info_motivo = v_motivo,
+      asignada_a = coalesce(asignada_a, auth.uid()) WHERE id = p_id;
+    PERFORM _crm_pricing_avisar_cambio(v.organization_id, v.id, v.solicitante_id, 'Pricing necesita información ' || v.folio,
+      'El plazo está en pausa hasta que respondas: ' || v_motivo);
+  ELSIF p_accion = 'reanudar' THEN
+    IF NOT v_pricing AND v.solicitante_id IS DISTINCT FROM auth.uid() AND v.created_by IS DISTINCT FROM auth.uid() THEN
+      RAISE EXCEPTION 'LC_PRICING_SIN_PERMISO' USING ERRCODE = '42501';
+    END IF;
+    IF v.estado <> 'info_requerida' THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
+    v_h := _crm_pricing_horas_habiles_entre(v.pausada_at, now());
+    UPDATE crm_solicitudes_pricing SET estado = 'en_proceso', pausada_at = NULL,
+      vence_at = CASE WHEN vence_at IS NULL OR v_h <= 0 THEN vence_at
+                      ELSE _crm_pricing_sumar_horas_habiles(vence_at, ceil(v_h)::int) END,
+      aviso_80_at = NULL, aviso_vencida_at = NULL WHERE id = p_id;
+    IF v.asignada_a IS NOT NULL AND v.asignada_a IS DISTINCT FROM auth.uid() THEN
+      INSERT INTO notificaciones_internas (organization_id, usuario_id, tipo, titulo, mensaje, enlace, entidad_tipo, entidad_id)
+      VALUES (v.organization_id, v.asignada_a, 'crm_pricing_solicitud', 'Información recibida ' || v.folio,
+              'La solicitud volvió a En proceso y su plazo se reanudó.', '/costeo/solicitudes?id=' || v.id, 'crm_solicitud_pricing', v.id);
+    END IF;
+  ELSIF p_accion = 'sin_opcion' THEN
+    IF NOT v_pricing THEN RAISE EXCEPTION 'LC_PRICING_SIN_PERMISO' USING ERRCODE = '42501'; END IF;
+    IF v.estado NOT IN ('enviada','asignada','en_proceso','info_requerida') THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
+    IF length(coalesce(v_motivo, '')) < 10 THEN RAISE EXCEPTION 'LC_PRICING_MOTIVO_REQUERIDO' USING ERRCODE = 'P0001'; END IF;
+    UPDATE crm_solicitudes_pricing SET estado = 'sin_opcion', motivo_sin_opcion = v_motivo, pausada_at = NULL,
+      respondida_at = now(), asignada_a = coalesce(asignada_a, auth.uid()) WHERE id = p_id;
+    PERFORM _crm_pricing_avisar_cambio(v.organization_id, v.id, v.solicitante_id, 'Sin opción de tarifa ' || v.folio,
+      'Pricing no encontró opción: ' || v_motivo);
+  ELSE
+    RAISE EXCEPTION 'LC_PRICING_ACCION_INVALIDA' USING ERRCODE = 'P0001';
+  END IF;
+  PERFORM set_config('lc.pricing_rpc', '', true);
+  RETURN jsonb_build_object('id', v.id);
+END $$;
+CREATE FUNCTION public.crm_pricing_set_modos_ejecutivo(p_user_id uuid, p_modos text[]) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+DECLARE v_org uuid := public.org_scope();
+BEGIN
+  IF v_org IS NULL OR NOT public._crm_pricing_es_gerente_ops(v_org) THEN
+    RAISE EXCEPTION 'LC_PRICING_SOLO_GERENTE_OPS' USING ERRCODE = '42501';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM organization_members WHERE organization_id = v_org AND user_id = p_user_id
+                   AND role IN ('ejecutivo_pricing','gerente_operaciones')) THEN
+    RAISE EXCEPTION 'LC_PRICING_NO_ES_EJECUTIVO' USING ERRCODE = 'P0001';
+  END IF;
+  IF EXISTS (SELECT 1 FROM unnest(coalesce(p_modos, '{}')) m WHERE m NOT IN ('Marítimo','Aéreo','Terrestre')) THEN
+    RAISE EXCEPTION 'LC_PRICING_MODO_INVALIDO' USING ERRCODE = 'P0001';
+  END IF;
+  DELETE FROM crm_pricing_modos_ejecutivo WHERE organization_id = v_org AND user_id = p_user_id
+     AND modo <> ALL (coalesce(p_modos, '{}'));
+  INSERT INTO crm_pricing_modos_ejecutivo (organization_id, user_id, modo)
+  SELECT DISTINCT v_org, p_user_id, m FROM unnest(coalesce(p_modos, '{}')) m
+  ON CONFLICT (organization_id, user_id, modo) DO NOTHING;
 END $$;
 CREATE FUNCTION public.crm_propagar_conversion_cliente(p_oportunidad_id uuid, p_cliente_id uuid, p_cliente_nombre text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
@@ -21227,7 +21600,7 @@ BEGIN
   END IF;
   IF NOT public._crm_es_pricing(v.organization_id) THEN RAISE EXCEPTION 'LC_PRICING_SIN_PERMISO' USING ERRCODE = '42501'; END IF;
   IF v.estado = 'respondida' THEN RETURN jsonb_build_object('id', v.id, 'ya_respondida', true); END IF;
-  IF v.estado <> 'enviada' THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
+  IF v.estado NOT IN ('enviada','asignada','en_proceso','info_requerida') THEN RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001'; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.costeo_tarifas WHERE solicitud_pricing_id = p_id)
      AND NOT EXISTS (SELECT 1 FROM public.crm_pricing_opciones WHERE solicitud_id = p_id) THEN
     RAISE EXCEPTION 'LC_PRICING_SIN_OPCIONES' USING ERRCODE = 'P0001';
@@ -21351,7 +21724,11 @@ BEGIN
   END IF;
   IF NOT public.is_org_member(v_org)
      OR NOT public.rls_tenant_scope_ok(v_org)
-     OR NOT public.puede_escribir_cotizaciones() THEN
+     OR NOT public.puede_escribir_cotizaciones()
+     OR NOT public.has_any_role_in_org(auth.uid(),
+       ARRAY['admin','admin_org','gerente_comercial','vendedor','ejecutivo_pricing',
+             'coordinador_logistico','gerente_operaciones','operador','customer_service']::public.app_role[],
+       v_org) THEN
     RAISE EXCEPTION 'LC_COTIZACION_SIN_PERMISO_ESCRITURA' USING ERRCODE = '42501';
   END IF;
   IF v_cliente_id IS NOT NULL OR v_es_prospecto = false THEN
@@ -21534,7 +21911,7 @@ BEGIN
     'volatility',p.provolatile) ORDER BY p.oid::regprocedure::text) INTO v_catalog
     FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
     WHERE n.nspname='public' AND p.proname IN ('_crm_es_pricing','current_agente_id','current_agente_org','current_user_client_ids','current_user_org_id','default_user_org_id','es_admin_catalogo','get_user_org_ids','has_role','is_org_admin','is_org_member','org_scope','puede_escribir_cotizaciones','rls_tenant_scope_ok','roles_jerarquia');
-  IF v_catalog IS DISTINCT FROM $helpers$[{"config":["search_path=public"],"signature":"_crm_es_pricing(uuid)","source_md5":"9712ff3986b38c8c69918c3b2bfd3d9e","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_agente_id()","source_md5":"e78c421a6384475f8ff90aad18e6a1ec","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_agente_org()","source_md5":"e1ae96bc348feaa34313802621c837e1","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_user_client_ids()","source_md5":"344c708ed02e90960553abd5219cc9b2","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_user_org_id()","source_md5":"8ae92929010ad9d586e7fcc033443c92","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"default_user_org_id()","source_md5":"86ebf4f6d06138fd93c9c201b3fde611","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"es_admin_catalogo(uuid)","source_md5":"3dcbffcd27fdccb6514d56edbb68e62a","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"get_user_org_ids(uuid)","source_md5":"a14933dceef9739a9e351dbdfcf4ea7c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"has_role(uuid,app_role)","source_md5":"978b46d0f372e2715710482b0e15247c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"is_org_admin(uuid,uuid)","source_md5":"c4c0810cc8a7060585fc96e20746d3b2","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"is_org_member(uuid)","source_md5":"cb3b222b94be33a45916863643576934","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"org_scope()","source_md5":"7c33bde220e8debd95ca9e3be3e8f30e","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"puede_escribir_cotizaciones(uuid)","source_md5":"1c14f940ee4f07e2710b5ff45b163c2c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"rls_tenant_scope_ok(uuid)","source_md5":"59dddd53956cd142cb142266bbe6430c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"roles_jerarquia(app_role)","source_md5":"0319faa0f75b5caa86e2eef8f6df157f","volatility":"i","security_definer":false}]$helpers$::jsonb THEN
+  IF v_catalog IS DISTINCT FROM $helpers$[{"config":["search_path=public"],"signature":"_crm_es_pricing(uuid)","source_md5":"9712ff3986b38c8c69918c3b2bfd3d9e","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_agente_id()","source_md5":"e78c421a6384475f8ff90aad18e6a1ec","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_agente_org()","source_md5":"e1ae96bc348feaa34313802621c837e1","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_user_client_ids()","source_md5":"344c708ed02e90960553abd5219cc9b2","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_user_org_id()","source_md5":"8ae92929010ad9d586e7fcc033443c92","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"default_user_org_id()","source_md5":"86ebf4f6d06138fd93c9c201b3fde611","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"es_admin_catalogo(uuid)","source_md5":"3dcbffcd27fdccb6514d56edbb68e62a","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"get_user_org_ids(uuid)","source_md5":"a14933dceef9739a9e351dbdfcf4ea7c","volatility":"s","security_definer":false},{"config":["search_path=public"],"signature":"has_role(uuid,app_role)","source_md5":"978b46d0f372e2715710482b0e15247c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"is_org_admin(uuid,uuid)","source_md5":"c4c0810cc8a7060585fc96e20746d3b2","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"is_org_member(uuid)","source_md5":"cb3b222b94be33a45916863643576934","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"org_scope()","source_md5":"7c33bde220e8debd95ca9e3be3e8f30e","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"puede_escribir_cotizaciones(uuid)","source_md5":"1c14f940ee4f07e2710b5ff45b163c2c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"rls_tenant_scope_ok(uuid)","source_md5":"59dddd53956cd142cb142266bbe6430c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"roles_jerarquia(app_role)","source_md5":"0319faa0f75b5caa86e2eef8f6df157f","volatility":"i","security_definer":false}]$helpers$::jsonb THEN
     RAISE EXCEPTION 'LC_PRICING_ACL_DRIFT' USING ERRCODE='42501';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
@@ -23230,6 +23607,10 @@ BEGIN
   SELECT * INTO origen FROM embarques WHERE id = p_embarque_origen_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'Embarque origen no encontrado'; END IF;
   PERFORM public._assert_writer(origen.organization_id);
+  IF NOT public.has_any_role_in_org(auth.uid(),
+    ARRAY['admin','operador','contador']::public.app_role[], origen.organization_id) THEN
+    RAISE EXCEPTION 'Permisos insuficientes' USING ERRCODE = '42501';
+  END IF;
   FOR copia IN SELECT * FROM jsonb_array_elements(p_copias)
   LOOP
     INSERT INTO embarques (
@@ -24162,21 +24543,23 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'LC_PAGO_NO_ENCONTRADO: el pago % no existe', _pago_id USING ERRCODE = 'P0002';
   END IF;
+  IF NOT public.has_role(v_uid, 'super_admin'::app_role)
+     AND v_pago.organization_id IS DISTINCT FROM public.current_user_org_id() THEN
+    RAISE EXCEPTION 'LC_ORG_FORBIDDEN: el pago pertenece a otra organizacion'
+      USING ERRCODE = '42501';
+  END IF;
+  IF NOT public.has_any_role_in_org_exact(v_uid,
+    ARRAY['super_admin','admin','admin_org','contador','tesorero','ejecutivo_cobranza']::public.app_role[],
+    v_pago.organization_id) THEN
+    RAISE EXCEPTION 'LC_PAGO_SIN_PERMISO: tu rol no puede eliminar pagos'
+      USING ERRCODE = '42501';
+  END IF;
   IF v_pago.deleted_at IS NOT NULL THEN
     -- Idempotente: no se vuelve a tocar el banco ni la bitacora.
     RETURN jsonb_build_object(
       'pago_id', _pago_id, 'ya_eliminado', true,
       'movimientos_baja', 0, 'movimientos_desvinculados', 0
     );
-  END IF;
-  IF NOT public.has_role(v_uid, 'super_admin'::app_role)
-     AND v_pago.organization_id IS DISTINCT FROM public.current_user_org_id() THEN
-    RAISE EXCEPTION 'LC_ORG_FORBIDDEN: el pago pertenece a otra organizacion'
-      USING ERRCODE = '42501';
-  END IF;
-  IF NOT public.es_escritor_financiero(v_uid) THEN
-    RAISE EXCEPTION 'LC_PAGO_SIN_PERMISO: tu rol no puede eliminar pagos'
-      USING ERRCODE = '42501';
   END IF;
   IF v_pago.uuid_rep IS NOT NULL AND v_pago.rep_cancelado_en IS NULL THEN
     RAISE EXCEPTION 'LC_PAGO_CON_REP_VIVO: cancela el complemento de pago (REP) antes de eliminar el pago'
@@ -26705,8 +27088,14 @@ CREATE TABLE public.costeo_tarifa_recargos (
     incluido_en_total boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     organization_id uuid NOT NULL,
+    base text DEFAULT 'por_unidad'::text NOT NULL,
+    minimo numeric(14,2),
+    proveedor text,
+    CONSTRAINT costeo_tarifa_recargos_base_check CHECK ((base = ANY (ARRAY['por_unidad'::text, 'por_embarque'::text]))),
     CONSTRAINT costeo_tarifa_recargos_lado_check CHECK ((lado = ANY (ARRAY['origen'::text, 'destino'::text]))),
-    CONSTRAINT costeo_tarifa_recargos_monto_check CHECK ((monto >= (0)::numeric))
+    CONSTRAINT costeo_tarifa_recargos_minimo_positivo CHECK (((minimo IS NULL) OR (minimo > (0)::numeric))),
+    CONSTRAINT costeo_tarifa_recargos_monto_check CHECK ((monto >= (0)::numeric)),
+    CONSTRAINT costeo_tarifa_recargos_proveedor_largo CHECK (((proveedor IS NULL) OR (char_length(proveedor) <= 200)))
 );
 CREATE TABLE public.navieras (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -26973,7 +27362,7 @@ CREATE FUNCTION public.get_user_context() RETURNS jsonb
   );
 $$;
 CREATE FUNCTION public.get_user_org_ids(_user_id uuid) RETURNS SETOF uuid
-    LANGUAGE sql STABLE SECURITY DEFINER
+    LANGUAGE sql STABLE
     SET search_path TO 'public'
     AS $$
   SELECT organization_id FROM public.organization_members WHERE user_id = _user_id;
@@ -28151,7 +28540,7 @@ CREATE TABLE public.crm_empresas (
     deleted_at timestamp with time zone,
     estado_crm text DEFAULT 'Lead'::text NOT NULL,
     broker_id uuid,
-    CONSTRAINT crm_empresas_estado_crm_chk CHECK ((estado_crm = ANY (ARRAY['Lead'::text, 'Sospechoso'::text, 'Prospecto'::text, 'Cliente'::text])))
+    CONSTRAINT crm_empresas_estado_crm_chk CHECK ((estado_crm = ANY (ARRAY['Lead'::text, 'Sospechoso'::text, 'Prospecto'::text, 'Prospecto externo'::text, 'Cliente'::text])))
 );
 CREATE FUNCTION public.letra_empresa_crm(public.crm_empresas) RETURNS text
     LANGUAGE sql STABLE
@@ -28311,7 +28700,7 @@ BEGIN
 END;
 $$;
 CREATE FUNCTION public.libro_pagos(p_desde date, p_hasta date, p_org uuid DEFAULT NULL::uuid) RETURNS jsonb
-    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    LANGUAGE plpgsql STABLE
     SET search_path TO 'public'
     AS $$
 DECLARE
@@ -29289,13 +29678,21 @@ BEGIN
   IF v_org IS NULL THEN RETURN; END IF;
   IF NOT EXISTS (SELECT 1 FROM organization_members WHERE organization_id=v_org AND user_id=auth.uid()) THEN
     RAISE EXCEPTION 'No autorizado' USING ERRCODE='42501'; END IF;
+  IF NOT (
+    (v_org = public.current_user_org_id() OR public.has_role(auth.uid(), 'super_admin'::public.app_role))
+    AND public.rls_tenant_scope_ok(v_org)
+    AND (public.puede_ver_costos_cotizacion(auth.uid())
+         OR public.puede_ver_costos_cotizacion_propia(p_cotizacion_id, auth.uid()))
+  ) THEN
+    RAISE EXCEPTION 'No autorizado' USING ERRCODE = '42501';
+  END IF;
   v_target := COALESCE(p_version, v_actual);
   IF v_target = v_actual THEN
     RETURN QUERY SELECT to_jsonb(cc) FROM cotizacion_costos cc
-      WHERE cc.cotizacion_id = p_cotizacion_id AND cc.deleted_at IS NULL;
+      WHERE cc.cotizacion_id = p_cotizacion_id AND cc.organization_id = v_org AND cc.deleted_at IS NULL;
   ELSE
     RETURN QUERY SELECT to_jsonb(ch) FROM cotizacion_costos_historico ch
-      WHERE ch.cotizacion_id = p_cotizacion_id AND ch.version = v_target;
+      WHERE ch.cotizacion_id = p_cotizacion_id AND ch.organization_id = v_org AND ch.version = v_target;
   END IF;
 END $$;
 CREATE FUNCTION public.obtener_defaults_facturacion_cliente(p_cliente_id uuid) RETURNS TABLE(uso_cfdi text, forma_pago text, metodo_pago text, cc_emails text[], destinatarios_emails text[])
@@ -29866,7 +30263,7 @@ CREATE FUNCTION public.org_scope() RETURNS uuid
   END
 $$;
 CREATE FUNCTION public.pago_detalle(p_tipo text, p_id uuid) RETURNS jsonb
-    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    LANGUAGE plpgsql STABLE
     SET search_path TO 'public'
     AS $$
 DECLARE
@@ -36972,7 +37369,7 @@ CREATE FUNCTION public.resolver_porcentaje_comision(p_organization_id uuid, p_ve
   );
 $$;
 CREATE FUNCTION public.resolver_producto_sat(p_org uuid, p_nombre text) RETURNS TABLE(id uuid, nombre text, clave_sat text, tipo_iva text, tasa_iva_default numeric, clave_unidad_sat text, nombre_unidad text)
-    LANGUAGE sql STABLE SECURITY DEFINER
+    LANGUAGE sql STABLE
     SET search_path TO 'public'
     AS $$
   SELECT id, patron AS nombre, clave_sat, tipo_iva, tasa_iva_default, clave_unidad_sat, nombre_unidad
@@ -41655,6 +42052,17 @@ BEGIN
   RETURN v_row;
 END;
 $$;
+CREATE TABLE public.aeropuertos (
+    iata text NOT NULL,
+    icao text,
+    nombre text NOT NULL,
+    ciudad text,
+    region text,
+    pais text,
+    codigo_pais text,
+    hub_carga boolean DEFAULT false NOT NULL,
+    CONSTRAINT aeropuertos_iata_check CHECK ((iata ~ '^[A-Z0-9]{3}$'::text))
+);
 CREATE TABLE public.agente_users (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
@@ -42111,6 +42519,16 @@ CREATE TABLE public.costeo_demoras_venta_tarifa (
     CONSTRAINT costeo_demoras_venta_tarifa_desde_dia_check CHECK ((desde_dia >= 1)),
     CONSTRAINT costeo_demoras_venta_tarifa_monto_por_dia_usd_check CHECK ((monto_por_dia_usd >= (0)::numeric))
 );
+CREATE TABLE public.costeo_tarifa_tramos (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    tarifa_id uuid NOT NULL,
+    organization_id uuid NOT NULL,
+    desde_kg numeric(12,2) NOT NULL,
+    precio numeric(14,4) NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT costeo_tarifa_tramos_desde_kg_check CHECK ((desde_kg >= (0)::numeric)),
+    CONSTRAINT costeo_tarifa_tramos_precio_check CHECK ((precio >= (0)::numeric))
+);
 CREATE TABLE public.cotizacion_costos (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     cotizacion_id uuid NOT NULL,
@@ -42330,12 +42748,16 @@ CREATE TABLE public.cotizaciones (
     margen_autorizado_pct numeric,
     autorizacion_motivo text,
     evaluacion_fiscal jsonb,
+    baterias_litio boolean,
+    known_shipper boolean,
+    tipo_aeronave text,
     CONSTRAINT cotizaciones_estado_revalidacion_chk CHECK ((estado_revalidacion = ANY (ARRAY['ninguna'::text, 'pendiente_reaprobacion'::text, 'reaprobada'::text, 'rechazada'::text]))),
     CONSTRAINT cotizaciones_peso_fisico_kg_valido CHECK (((peso_fisico_kg IS NULL) OR ((peso_fisico_kg >= (0)::numeric) AND (peso_fisico_kg < 'Infinity'::numeric) AND (peso_fisico_kg <> 'NaN'::numeric)))),
     CONSTRAINT cotizaciones_peso_nonneg CHECK ((peso_kg >= (0)::numeric)),
     CONSTRAINT cotizaciones_piezas_nonneg CHECK ((piezas >= 0)),
     CONSTRAINT cotizaciones_puertos_distintos_chk CHECK (((puerto_origen_id IS NULL) OR (puerto_destino_id IS NULL) OR (puerto_origen_id <> puerto_destino_id))),
     CONSTRAINT cotizaciones_subtotal_nonneg CHECK ((subtotal >= (0)::numeric)),
+    CONSTRAINT cotizaciones_tipo_aeronave_check CHECK (((tipo_aeronave IS NULL) OR (tipo_aeronave = ANY (ARRAY['PAX'::text, 'CAO'::text])))),
     CONSTRAINT cotizaciones_tipo_documento_check CHECK ((tipo_documento = ANY (ARRAY['transaccional'::text, 'informativa'::text]))),
     CONSTRAINT cotizaciones_volumen_nonneg CHECK ((volumen_m3 >= (0)::numeric))
 );
@@ -42601,6 +43023,14 @@ CREATE TABLE public.crm_presupuesto_mensual (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT crm_presupuesto_mensual_mes_check CHECK (((mes >= 1) AND (mes <= 12)))
 );
+CREATE TABLE public.crm_pricing_modos_ejecutivo (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    organization_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    modo text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT crm_pricing_modos_ejecutivo_modo_check CHECK ((modo = ANY (ARRAY['Marítimo'::text, 'Aéreo'::text, 'Terrestre'::text])))
+);
 CREATE TABLE public.crm_pricing_opciones (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     organization_id uuid NOT NULL,
@@ -42752,14 +43182,46 @@ CREATE TABLE public.crm_solicitudes_pricing (
     tipo_solicitud text,
     complejidad_motivo text,
     plazo_motivo text,
+    submodalidad text,
+    volumen_cbm numeric(12,3),
+    imo_clase text,
+    imo_un text,
+    modalidad_negocio text,
+    baterias_litio boolean,
+    known_shipper boolean,
+    tipo_aeronave text,
+    origen_cp text,
+    destino_cp text,
+    paradas text[],
+    cruce_fronterizo boolean,
+    in_bond boolean,
+    tipo_unidad text,
+    tarimas integer,
+    arrastre_puerto text,
+    retorno_vacio boolean,
+    sobrepeso boolean,
+    asignada_a uuid,
+    pausada_at timestamp with time zone,
+    info_motivo text,
+    motivo_sin_opcion text,
+    aviso_80_at timestamp with time zone,
+    aviso_vencida_at timestamp with time zone,
+    CONSTRAINT crm_sol_pricing_terrestre_campos CHECK (((servicio = 'Terrestre'::text) OR ((origen_cp IS NULL) AND (destino_cp IS NULL) AND (paradas IS NULL) AND (cruce_fronterizo IS NULL) AND (in_bond IS NULL) AND (tipo_unidad IS NULL) AND (tarimas IS NULL) AND (arrastre_puerto IS NULL) AND (retorno_vacio IS NULL) AND (sobrepeso IS NULL)))),
+    CONSTRAINT crm_sol_pricing_terrestre_valores CHECK ((((origen_cp IS NULL) OR (origen_cp ~ '^[0-9]{5}$'::text)) AND ((destino_cp IS NULL) OR (destino_cp ~ '^[0-9]{5}$'::text)) AND ((paradas IS NULL) OR ((cardinality(paradas) >= 1) AND (cardinality(paradas) <= 5))) AND ((in_bond IS NULL) OR (cruce_fronterizo IS TRUE)) AND ((tarimas IS NULL) OR ((tarimas >= 1) AND (tarimas <= 60))) AND ((tipo_unidad IS NULL) OR (char_length(tipo_unidad) <= 60)) AND ((arrastre_puerto IS NULL) OR (char_length(arrastre_puerto) <= 200)))),
     CONSTRAINT crm_solicitudes_pricing_cantidad_check CHECK (((cantidad IS NULL) OR (cantidad > 0))),
     CONSTRAINT crm_solicitudes_pricing_complejidad_check CHECK ((complejidad = ANY (ARRAY['baja'::text, 'media'::text, 'alta'::text]))),
-    CONSTRAINT crm_solicitudes_pricing_estado_check CHECK ((estado = ANY (ARRAY['borrador'::text, 'enviada'::text, 'respondida'::text, 'cancelada'::text]))),
-    CONSTRAINT crm_solicitudes_pricing_incoterm_check CHECK ((incoterm = ANY (ARRAY['EXW'::text, 'FAS'::text, 'FCA'::text, 'FOB'::text, 'CFR'::text, 'CIF'::text, 'DAP'::text, 'DDP'::text, 'DPU'::text]))),
+    CONSTRAINT crm_solicitudes_pricing_estado_check CHECK ((estado = ANY (ARRAY['borrador'::text, 'enviada'::text, 'asignada'::text, 'en_proceso'::text, 'info_requerida'::text, 'respondida'::text, 'sin_opcion'::text, 'cancelada'::text]))),
+    CONSTRAINT crm_solicitudes_pricing_imo_clase_check CHECK (((imo_clase IS NULL) OR (imo_clase = ANY (ARRAY['1'::text, '2'::text, '3'::text, '4'::text, '5'::text, '6'::text, '7'::text, '8'::text, '9'::text])))),
+    CONSTRAINT crm_solicitudes_pricing_imo_un_check CHECK (((imo_un IS NULL) OR (imo_un ~ '^[0-9]{4}$'::text))),
+    CONSTRAINT crm_solicitudes_pricing_incoterm_check CHECK ((incoterm = ANY (ARRAY['EXW'::text, 'FAS'::text, 'FCA'::text, 'FOB'::text, 'CFR'::text, 'CIF'::text, 'CPT'::text, 'CIP'::text, 'DAP'::text, 'DDP'::text, 'DPU'::text]))),
+    CONSTRAINT crm_solicitudes_pricing_modalidad_negocio_check CHECK (((modalidad_negocio IS NULL) OR (modalidad_negocio = ANY (ARRAY['Spot'::text, 'Contrato'::text, 'Licitación'::text])))),
     CONSTRAINT crm_solicitudes_pricing_servicio_check CHECK ((servicio = ANY (ARRAY['Marítimo'::text, 'Terrestre'::text, 'Aéreo'::text]))),
+    CONSTRAINT crm_solicitudes_pricing_submodalidad_chk CHECK (((submodalidad IS NULL) OR ((servicio = 'Marítimo'::text) AND (submodalidad = ANY (ARRAY['FCL'::text, 'LCL'::text]))) OR ((servicio = 'Terrestre'::text) AND (submodalidad = ANY (ARRAY['FTL'::text, 'LTL'::text, 'Arrastre'::text]))))),
+    CONSTRAINT crm_solicitudes_pricing_tipo_aeronave_check CHECK (((tipo_aeronave IS NULL) OR (tipo_aeronave = ANY (ARRAY['PAX'::text, 'CAO'::text])))),
     CONSTRAINT crm_solicitudes_pricing_tipo_operacion_chk CHECK (((tipo_operacion IS NULL) OR (tipo_operacion = ANY (ARRAY['Importación'::text, 'Exportación'::text, 'Nacional'::text, 'Cross Trade'::text, 'Intra USA'::text])))),
     CONSTRAINT crm_solicitudes_pricing_tipo_solicitud_chk CHECK (((tipo_solicitud IS NULL) OR (tipo_solicitud = ANY (ARRAY['nuevas_tarifas'::text, 'nueva_ruta'::text])))),
-    CONSTRAINT crm_solicitudes_pricing_unidad_medida_check CHECK (((unidad_medida IS NULL) OR (unidad_medida = ANY (ARRAY['kg'::text, 'lb'::text, 't'::text, 'g'::text]))))
+    CONSTRAINT crm_solicitudes_pricing_unidad_medida_check CHECK (((unidad_medida IS NULL) OR (unidad_medida = ANY (ARRAY['kg'::text, 'lb'::text, 't'::text, 'g'::text])))),
+    CONSTRAINT crm_solicitudes_pricing_volumen_cbm_check CHECK (((volumen_cbm IS NULL) OR (volumen_cbm > (0)::numeric)))
 );
 CREATE TABLE public.crm_tableros (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
@@ -43889,6 +44351,8 @@ CREATE TABLE public.vendedora_config (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT vendedora_config_porcentaje_default_check CHECK (((porcentaje_default >= (0)::numeric) AND (porcentaje_default <= (100)::numeric)))
 );
+ALTER TABLE ONLY public.aeropuertos
+    ADD CONSTRAINT aeropuertos_pkey PRIMARY KEY (iata);
 ALTER TABLE ONLY public.agente_users
     ADD CONSTRAINT agente_users_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.agente_users
@@ -44003,6 +44467,10 @@ ALTER TABLE ONLY public.costeo_rutas
     ADD CONSTRAINT costeo_rutas_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.costeo_tarifa_recargos
     ADD CONSTRAINT costeo_tarifa_recargos_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.costeo_tarifa_tramos
+    ADD CONSTRAINT costeo_tarifa_tramos_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.costeo_tarifa_tramos
+    ADD CONSTRAINT costeo_tarifa_tramos_tarifa_id_desde_kg_key UNIQUE (tarifa_id, desde_kg);
 ALTER TABLE ONLY public.costeo_tarifas
     ADD CONSTRAINT costeo_tarifas_organization_id_agente_id_naviera_id_ruta_id_key UNIQUE (organization_id, agente_id, naviera_id, ruta_id, tipo_contenedor_id, vigente_desde);
 ALTER TABLE ONLY public.costeo_tarifas
@@ -44093,6 +44561,10 @@ ALTER TABLE ONLY public.crm_presupuesto_mensual
     ADD CONSTRAINT crm_presupuesto_mensual_organization_id_anio_mes_key UNIQUE (organization_id, anio, mes);
 ALTER TABLE ONLY public.crm_presupuesto_mensual
     ADD CONSTRAINT crm_presupuesto_mensual_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.crm_pricing_modos_ejecutivo
+    ADD CONSTRAINT crm_pricing_modos_ejecutivo_organization_id_user_id_modo_key UNIQUE (organization_id, user_id, modo);
+ALTER TABLE ONLY public.crm_pricing_modos_ejecutivo
+    ADD CONSTRAINT crm_pricing_modos_ejecutivo_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.crm_pricing_opciones
     ADD CONSTRAINT crm_pricing_opciones_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY public.crm_propiedad_opciones
@@ -44352,6 +44824,7 @@ CREATE UNIQUE INDEX contenedores_bl_house_unico ON public.embarque_contenedores 
 CREATE UNIQUE INDEX contenedores_numero_unico ON public.embarque_contenedores USING btree (organization_id, numero_contenedor) WHERE ((numero_contenedor IS NOT NULL) AND (numero_contenedor <> ''::text) AND (deleted_at IS NULL) AND (organization_id <> '00000000-0000-0000-0000-000000000001'::uuid));
 CREATE INDEX costeo_cargos_fob_agente_org_idx ON public.costeo_cargos_fob_agente USING btree (organization_id, agente_id) WHERE (deleted_at IS NULL);
 CREATE INDEX costeo_cargos_locales_naviera_org_idx ON public.costeo_cargos_locales_naviera USING btree (organization_id, naviera_id) WHERE (deleted_at IS NULL);
+CREATE INDEX costeo_tarifa_tramos_tarifa_idx ON public.costeo_tarifa_tramos USING btree (tarifa_id);
 CREATE INDEX costeo_tarifas_solicitud_pricing_idx ON public.costeo_tarifas USING btree (solicitud_pricing_id) WHERE (solicitud_pricing_id IS NOT NULL);
 CREATE UNIQUE INDEX cotizacion_costos_origen_venta_unique ON public.cotizacion_costos USING btree (cotizacion_id, origen_venta_id) WHERE (origen_venta_id IS NOT NULL);
 CREATE INDEX cotizacion_handovers_org_coord_idx ON public.cotizacion_handovers USING btree (organization_id, coordinador_id, created_at DESC);
@@ -45322,6 +45795,12 @@ ALTER TABLE ONLY public.costeo_tarifa_recargos
     ADD CONSTRAINT costeo_tarifa_recargos_org_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.costeo_tarifa_recargos
     ADD CONSTRAINT costeo_tarifa_recargos_tarifa_id_fkey FOREIGN KEY (tarifa_id) REFERENCES public.costeo_tarifas(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.costeo_tarifa_tramos
+    ADD CONSTRAINT costeo_tarifa_tramos_tarifa_id_fkey FOREIGN KEY (tarifa_id) REFERENCES public.costeo_tarifas(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.costeo_tarifas
+    ADD CONSTRAINT costeo_tarifas_aeropuerto_destino_fkey FOREIGN KEY (aeropuerto_destino) REFERENCES public.aeropuertos(iata);
+ALTER TABLE ONLY public.costeo_tarifas
+    ADD CONSTRAINT costeo_tarifas_aeropuerto_origen_fkey FOREIGN KEY (aeropuerto_origen) REFERENCES public.aeropuertos(iata);
 ALTER TABLE ONLY public.costeo_tarifas
     ADD CONSTRAINT costeo_tarifas_agente_id_fkey FOREIGN KEY (agente_id) REFERENCES public.costeo_agentes(id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.costeo_tarifas
@@ -45438,6 +45917,8 @@ ALTER TABLE ONLY public.crm_oportunidades
     ADD CONSTRAINT crm_oportunidades_puerto_destino_id_fkey FOREIGN KEY (puerto_destino_id) REFERENCES public.puertos(id) ON DELETE SET NULL;
 ALTER TABLE ONLY public.crm_oportunidades
     ADD CONSTRAINT crm_oportunidades_puerto_origen_id_fkey FOREIGN KEY (puerto_origen_id) REFERENCES public.puertos(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.crm_pricing_modos_ejecutivo
+    ADD CONSTRAINT crm_pricing_modos_ejecutivo_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.crm_pricing_opciones
     ADD CONSTRAINT crm_pricing_opciones_naviera_id_fkey FOREIGN KEY (naviera_id) REFERENCES public.navieras(id) ON DELETE RESTRICT;
 ALTER TABLE ONLY public.crm_pricing_opciones
@@ -45567,21 +46048,15 @@ ALTER TABLE ONLY public.seguros_embarque
 ALTER TABLE ONLY public.seguros_embarque
     ADD CONSTRAINT insurance_shipment_same_org_fk FOREIGN KEY (embarque_id, organization_id) REFERENCES public.embarques(id, organization_id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.intentos_nota_credito_isr
-    ADD CONSTRAINT intentos_nota_credito_isr_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES auth.users(id);
-ALTER TABLE ONLY public.intentos_nota_credito_isr
     ADD CONSTRAINT intentos_nota_credito_isr_nota_id_fkey FOREIGN KEY (nota_id) REFERENCES public.factura_notas_credito(id);
 ALTER TABLE ONLY public.intentos_nota_credito_isr
     ADD CONSTRAINT intentos_nota_credito_isr_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
-ALTER TABLE ONLY public.intentos_rep_isr
-    ADD CONSTRAINT intentos_rep_isr_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES auth.users(id);
 ALTER TABLE ONLY public.intentos_rep_isr
     ADD CONSTRAINT intentos_rep_isr_factura_id_fkey FOREIGN KEY (factura_id) REFERENCES public.facturas(id);
 ALTER TABLE ONLY public.intentos_rep_isr
     ADD CONSTRAINT intentos_rep_isr_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
 ALTER TABLE ONLY public.intentos_rep_isr
     ADD CONSTRAINT intentos_rep_isr_pago_id_fkey FOREIGN KEY (pago_id) REFERENCES public.pagos_factura(id);
-ALTER TABLE ONLY public.intentos_timbrado_isr
-    ADD CONSTRAINT intentos_timbrado_isr_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES auth.users(id);
 ALTER TABLE ONLY public.intentos_timbrado_isr
     ADD CONSTRAINT intentos_timbrado_isr_factura_id_fkey FOREIGN KEY (factura_id) REFERENCES public.facturas(id);
 ALTER TABLE ONLY public.intentos_timbrado_isr
@@ -45648,8 +46123,6 @@ ALTER TABLE ONLY public.proforma_liberaciones_portal
     ADD CONSTRAINT proforma_liberaciones_portal_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
 ALTER TABLE ONLY public.proforma_liberaciones_portal
     ADD CONSTRAINT proforma_liberaciones_portal_proforma_id_fkey FOREIGN KEY (proforma_id) REFERENCES public.proformas(id);
-ALTER TABLE ONLY public.proformas
-    ADD CONSTRAINT proformas_ajuste_consolidacion_aprobado_por_fkey FOREIGN KEY (ajuste_consolidacion_aprobado_por) REFERENCES auth.users(id);
 ALTER TABLE ONLY public.proformas
     ADD CONSTRAINT proformas_cliente_id_fkey FOREIGN KEY (cliente_id) REFERENCES public.clientes(id);
 ALTER TABLE ONLY public.proformas
@@ -45866,6 +46339,7 @@ CREATE POLICY "Members can read recordatorios of their org" ON public.factura_re
   WHERE ((om.organization_id = factura_recordatorios.organization_id) AND (om.user_id = ( SELECT auth.uid() AS uid))))));
 CREATE POLICY "Members can update own recordatorios" ON public.factura_recordatorios FOR UPDATE TO authenticated USING ((enviado_por = ( SELECT auth.uid() AS uid))) WITH CHECK ((enviado_por = ( SELECT auth.uid() AS uid)));
 CREATE POLICY "Miembros crean catalogo_claves_sat" ON public.catalogo_claves_sat FOR INSERT TO authenticated WITH CHECK (((organization_id = public.current_user_org_id()) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role)));
+CREATE POLICY "Miembros de la organización activa leen modos de Pricing" ON public.crm_pricing_modos_ejecutivo FOR SELECT TO authenticated USING ((organization_id = public.org_scope()));
 CREATE POLICY "Miembros leen configuracion de su org" ON public.configuracion FOR SELECT TO authenticated USING ((organization_id = ( SELECT public.current_user_org_id() AS current_user_org_id)));
 CREATE POLICY "Miembros leen handovers de su org" ON public.cotizacion_handovers FOR SELECT TO authenticated USING ((organization_id = ( SELECT public.current_user_org_id() AS current_user_org_id)));
 CREATE POLICY "Miembros leen historico cotizacion" ON public.cotizacion_costos_historico FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
@@ -46181,6 +46655,8 @@ CREATE POLICY "Ver log de cierre por organización" ON public.cierre_embarque_lo
 CREATE POLICY "Ver plantillas propias o compartidas de la org" ON public.cotizacion_plantillas FOR SELECT TO authenticated USING (((deleted_at IS NULL) AND (EXISTS ( SELECT 1
    FROM public.organization_members m
   WHERE ((m.organization_id = cotizacion_plantillas.organization_id) AND (m.user_id = ( SELECT auth.uid() AS uid))))) AND ((visibilidad = 'org'::text) OR (usuario_id = ( SELECT auth.uid() AS uid)))));
+ALTER TABLE public.aeropuertos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY aeropuertos_select_auth ON public.aeropuertos FOR SELECT TO authenticated USING (true);
 ALTER TABLE public.agente_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.alertas_sistema ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.anticipos_aplicaciones ENABLE ROW LEVEL SECURITY;
@@ -46277,6 +46753,8 @@ CREATE POLICY costeo_rutas_write_org ON public.costeo_rutas USING (((EXISTS ( SE
    FROM public.organization_members m
   WHERE ((m.organization_id = costeo_rutas.organization_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND ((m.role)::text = ANY (ARRAY['admin'::text, 'admin_org'::text, 'gerente_operaciones'::text, 'ejecutivo_pricing'::text, 'operador'::text, 'coordinador_logistico'::text]))))) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role)));
 ALTER TABLE public.costeo_tarifa_recargos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.costeo_tarifa_tramos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY costeo_tarifa_tramos_tenant_restrictive ON public.costeo_tarifa_tramos AS RESTRICTIVE TO authenticated USING (((NOT ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role)) OR public.rls_tenant_scope_ok(organization_id))) WITH CHECK (((NOT ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role)) OR public.rls_tenant_scope_ok(organization_id)));
 ALTER TABLE public.costeo_tarifas ENABLE ROW LEVEL SECURITY;
 CREATE POLICY costeo_tarifas_select_org ON public.costeo_tarifas FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.organization_members m
@@ -46286,6 +46764,17 @@ CREATE POLICY costeo_tarifas_write_org ON public.costeo_tarifas USING (((EXISTS 
   WHERE ((m.organization_id = costeo_tarifas.organization_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND ((m.role)::text = ANY (ARRAY['admin'::text, 'admin_org'::text, 'gerente_operaciones'::text, 'ejecutivo_pricing'::text, 'operador'::text, 'coordinador_logistico'::text]))))) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role))) WITH CHECK (((EXISTS ( SELECT 1
    FROM public.organization_members m
   WHERE ((m.organization_id = costeo_tarifas.organization_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND ((m.role)::text = ANY (ARRAY['admin'::text, 'admin_org'::text, 'gerente_operaciones'::text, 'ejecutivo_pricing'::text, 'operador'::text, 'coordinador_logistico'::text]))))) OR ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role)));
+CREATE POLICY costeo_tramos_select_org ON public.costeo_tarifa_tramos FOR SELECT TO authenticated USING (((EXISTS ( SELECT 1
+   FROM (public.costeo_tarifas t
+     JOIN public.organization_members m ON ((m.organization_id = t.organization_id)))
+  WHERE ((t.id = costeo_tarifa_tramos.tarifa_id) AND (t.organization_id = costeo_tarifa_tramos.organization_id) AND (m.user_id = ( SELECT auth.uid() AS uid))))) AND ((NOT ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role)) OR public.rls_tenant_scope_ok(organization_id))));
+CREATE POLICY costeo_tramos_write_org ON public.costeo_tarifa_tramos TO authenticated USING ((EXISTS ( SELECT 1
+   FROM (public.costeo_tarifas t
+     JOIN public.organization_members m ON ((m.organization_id = t.organization_id)))
+  WHERE ((t.id = costeo_tarifa_tramos.tarifa_id) AND (t.organization_id = costeo_tarifa_tramos.organization_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND ((m.role)::text = ANY (ARRAY['admin'::text, 'admin_org'::text, 'gerente_operaciones'::text, 'ejecutivo_pricing'::text, 'operador'::text, 'coordinador_logistico'::text])))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM (public.costeo_tarifas t
+     JOIN public.organization_members m ON ((m.organization_id = t.organization_id)))
+  WHERE ((t.id = costeo_tarifa_tramos.tarifa_id) AND (t.organization_id = costeo_tarifa_tramos.organization_id) AND (m.user_id = ( SELECT auth.uid() AS uid)) AND ((m.role)::text = ANY (ARRAY['admin'::text, 'admin_org'::text, 'gerente_operaciones'::text, 'ejecutivo_pricing'::text, 'operador'::text, 'coordinador_logistico'::text]))))));
 ALTER TABLE public.cotizacion_costos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cotizacion_costos_historico ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cotizacion_envios ENABLE ROW LEVEL SECURITY;
@@ -46340,6 +46829,8 @@ CREATE POLICY crm_oportunidad_empresa_tenant_restrictive ON public.crm_oportunid
 ALTER TABLE public.crm_oportunidades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_plantillas_mensaje ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_presupuesto_mensual ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.crm_pricing_modos_ejecutivo ENABLE ROW LEVEL SECURITY;
+CREATE POLICY crm_pricing_modos_ejecutivo_tenant_restrictive ON public.crm_pricing_modos_ejecutivo AS RESTRICTIVE TO authenticated USING (((NOT ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role)) OR public.rls_tenant_scope_ok(organization_id))) WITH CHECK (((NOT ( SELECT public.has_role(( SELECT auth.uid() AS uid), 'super_admin'::public.app_role) AS has_role)) OR public.rls_tenant_scope_ok(organization_id)));
 CREATE POLICY crm_pricing_op_escribir ON public.crm_pricing_opciones TO authenticated USING (((organization_id = public.org_scope()) AND public._crm_es_pricing(organization_id))) WITH CHECK (((organization_id = public.org_scope()) AND public._crm_es_pricing(organization_id)));
 CREATE POLICY crm_pricing_op_leer ON public.crm_pricing_opciones FOR SELECT TO authenticated USING ((organization_id = public.org_scope()));
 ALTER TABLE public.crm_pricing_opciones ENABLE ROW LEVEL SECURITY;
@@ -46610,10 +47101,18 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.crm_brokers TO authenticated;
 GRANT ALL ON TABLE public.crm_brokers TO service_role;
 REVOKE ALL ON FUNCTION public._broker_actual(p_broker_id uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._broker_comision_embarque(p_embarque_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._broker_comision_embarque(p_embarque_id uuid) TO authenticated;
+GRANT ALL ON FUNCTION public._broker_comision_embarque(p_embarque_id uuid) TO service_role;
 REVOKE ALL ON FUNCTION public._broker_de_pago(p_org uuid, p_pago_id uuid, p_factura_id uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._broker_es_despacho(p_texto text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._broker_es_despacho(p_texto text) TO authenticated;
+GRANT ALL ON FUNCTION public._broker_es_despacho(p_texto text) TO service_role;
 REVOKE ALL ON FUNCTION public._broker_monto_renglon(p_embarque_id uuid, p_cobrado_mxn numeric) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._broker_monto_renglon(p_embarque_id uuid, p_cobrado_mxn numeric) TO authenticated;
+GRANT ALL ON FUNCTION public._broker_monto_renglon(p_embarque_id uuid, p_cobrado_mxn numeric) TO service_role;
 REVOKE ALL ON FUNCTION public._broker_tabulador(p_servicio text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._broker_tabulador(p_servicio text) TO authenticated;
+GRANT ALL ON FUNCTION public._broker_tabulador(p_servicio text) TO service_role;
 REVOKE ALL ON FUNCTION public._calcular_demoras_montos_contenedor(p_cond_id uuid, p_org uuid, p_tipo_cont_id uuid, p_dias_excedidos integer, p_moneda_default text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public._calcular_demoras_montos_contenedor(p_cond_id uuid, p_org uuid, p_tipo_cont_id uuid, p_dias_excedidos integer, p_moneda_default text) TO service_role;
 REVOKE ALL ON FUNCTION public._cerrar_entrantes_por_uuid() FROM PUBLIC;
@@ -46623,8 +47122,6 @@ REVOKE ALL ON FUNCTION public._ci_ensure_proformas_es_consolidada() FROM PUBLIC;
 GRANT ALL ON FUNCTION public._ci_ensure_proformas_es_consolidada() TO authenticated;
 GRANT ALL ON FUNCTION public._ci_ensure_proformas_es_consolidada() TO service_role;
 REVOKE ALL ON FUNCTION public._cliente_coordinador_guard() FROM PUBLIC;
-GRANT ALL ON FUNCTION public._cliente_coordinador_guard() TO authenticated;
-GRANT ALL ON FUNCTION public._cliente_coordinador_guard() TO service_role;
 REVOKE ALL ON FUNCTION public._comision_broker_sync() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._comision_kam_broker() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public._convertir_proformas_insertar_conceptos(p_factura_id uuid, p_proforma_ids uuid[], p_org uuid, p_es_consolidada boolean, p_moneda public.moneda) FROM PUBLIC;
@@ -46634,8 +47131,6 @@ REVOKE ALL ON FUNCTION public._copiar_conceptos_factura_reemplazo(p_nueva_id uui
 REVOKE ALL ON FUNCTION public._costeo_tarifa_solicitud_guard() FROM PUBLIC;
 GRANT ALL ON FUNCTION public._costeo_tarifa_solicitud_guard() TO service_role;
 REVOKE ALL ON FUNCTION public._cotizacion_autorizacion_guard() FROM PUBLIC;
-GRANT ALL ON FUNCTION public._cotizacion_autorizacion_guard() TO authenticated;
-GRANT ALL ON FUNCTION public._cotizacion_autorizacion_guard() TO service_role;
 REVOKE ALL ON FUNCTION public._cotizacion_bloquear_cierre_con_embarque() FROM PUBLIC;
 GRANT ALL ON FUNCTION public._cotizacion_bloquear_cierre_con_embarque() TO authenticated;
 GRANT ALL ON FUNCTION public._cotizacion_bloquear_cierre_con_embarque() TO service_role;
@@ -46643,8 +47138,6 @@ REVOKE ALL ON FUNCTION public._cotizacion_costos_invalidar_autorizacion() FROM P
 GRANT ALL ON FUNCTION public._cotizacion_costos_invalidar_autorizacion() TO authenticated;
 GRANT ALL ON FUNCTION public._cotizacion_costos_invalidar_autorizacion() TO service_role;
 REVOKE ALL ON FUNCTION public._cotizacion_crear_handover() FROM PUBLIC;
-GRANT ALL ON FUNCTION public._cotizacion_crear_handover() TO authenticated;
-GRANT ALL ON FUNCTION public._cotizacion_crear_handover() TO service_role;
 REVOKE ALL ON FUNCTION public._cotizacion_embarque_al_aceptar() FROM PUBLIC;
 GRANT ALL ON FUNCTION public._cotizacion_embarque_al_aceptar() TO authenticated;
 GRANT ALL ON FUNCTION public._cotizacion_embarque_al_aceptar() TO service_role;
@@ -46714,14 +47207,27 @@ GRANT ALL ON FUNCTION public._crm_oportunidad_requiere_origen() TO service_role;
 REVOKE ALL ON FUNCTION public._crm_pricing_avisar_cambio(p_org uuid, p_sol uuid, p_solicitante uuid, p_titulo text, p_msg text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public._crm_pricing_avisar_cambio(p_org uuid, p_sol uuid, p_solicitante uuid, p_titulo text, p_msg text) TO authenticated;
 GRANT ALL ON FUNCTION public._crm_pricing_avisar_cambio(p_org uuid, p_sol uuid, p_solicitante uuid, p_titulo text, p_msg text) TO service_role;
+REVOKE ALL ON FUNCTION public._crm_pricing_destinatarios_modo(p_org uuid, p_modo text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._crm_pricing_destinatarios_modo(p_org uuid, p_modo text) TO service_role;
 REVOKE ALL ON FUNCTION public._crm_pricing_es_gerente_ops(p_org uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public._crm_pricing_es_gerente_ops(p_org uuid) TO authenticated;
 GRANT ALL ON FUNCTION public._crm_pricing_es_gerente_ops(p_org uuid) TO service_role;
+GRANT ALL ON FUNCTION public._crm_pricing_hay_tarifa_vigente(p_id uuid) TO authenticated;
+GRANT ALL ON FUNCTION public._crm_pricing_hay_tarifa_vigente(p_id uuid) TO service_role;
 GRANT ALL ON FUNCTION public._crm_pricing_horas(p_complejidad text) TO authenticated;
 GRANT ALL ON FUNCTION public._crm_pricing_horas(p_complejidad text) TO service_role;
+REVOKE ALL ON FUNCTION public._crm_pricing_horas_habiles_entre(p_desde timestamp with time zone, p_hasta timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._crm_pricing_horas_habiles_entre(p_desde timestamp with time zone, p_hasta timestamp with time zone) TO authenticated;
+GRANT ALL ON FUNCTION public._crm_pricing_horas_habiles_entre(p_desde timestamp with time zone, p_hasta timestamp with time zone) TO service_role;
+REVOKE ALL ON FUNCTION public._crm_pricing_horas_modo(p_complejidad text, p_servicio text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._crm_pricing_horas_modo(p_complejidad text, p_servicio text) TO authenticated;
+GRANT ALL ON FUNCTION public._crm_pricing_horas_modo(p_complejidad text, p_servicio text) TO service_role;
 REVOKE ALL ON FUNCTION public._crm_pricing_opcion_guard() FROM PUBLIC;
 GRANT ALL ON FUNCTION public._crm_pricing_opcion_guard() TO authenticated;
 GRANT ALL ON FUNCTION public._crm_pricing_opcion_guard() TO service_role;
+REVOKE ALL ON FUNCTION public._crm_pricing_sumar_horas_habiles(p_inicio timestamp with time zone, p_horas integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public._crm_pricing_sumar_horas_habiles(p_inicio timestamp with time zone, p_horas integer) TO authenticated;
+GRANT ALL ON FUNCTION public._crm_pricing_sumar_horas_habiles(p_inicio timestamp with time zone, p_horas integer) TO service_role;
 REVOKE ALL ON FUNCTION public._crm_probabilidad_terminal() FROM PUBLIC;
 GRANT ALL ON FUNCTION public._crm_probabilidad_terminal() TO service_role;
 REVOKE ALL ON FUNCTION public._crm_registrar_cambio_etapa() FROM PUBLIC;
@@ -46749,7 +47255,6 @@ REVOKE ALL ON FUNCTION public._cxp_anchor_fase_o() FROM PUBLIC;
 GRANT ALL ON FUNCTION public._cxp_anchor_fase_o() TO authenticated;
 GRANT ALL ON FUNCTION public._cxp_anchor_fase_o() TO service_role;
 REVOKE ALL ON FUNCTION public._cxp_desvincular_por_rechazo(p_id uuid, p_motivo text) FROM PUBLIC;
-GRANT ALL ON FUNCTION public._cxp_desvincular_por_rechazo(p_id uuid, p_motivo text) TO authenticated;
 GRANT ALL ON FUNCTION public._cxp_desvincular_por_rechazo(p_id uuid, p_motivo text) TO service_role;
 REVOKE ALL ON FUNCTION public._cxp_validar_aprobacion(p_factura_id uuid, p_justificacion text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public._cxp_validar_aprobacion(p_factura_id uuid, p_justificacion text) TO service_role;
@@ -47149,6 +47654,7 @@ GRANT ALL ON FUNCTION public.broker_buscar_empresa(p_broker_id uuid, p_texto tex
 GRANT ALL ON FUNCTION public.broker_buscar_empresa(p_broker_id uuid, p_texto text) TO service_role;
 REVOKE ALL ON FUNCTION public.broker_mis_comisiones() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.broker_mis_comisiones() TO authenticated;
+GRANT ALL ON FUNCTION public.broker_mis_comisiones() TO service_role;
 REVOKE ALL ON FUNCTION public.broker_mis_empresas() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.broker_mis_empresas() TO authenticated;
 GRANT ALL ON FUNCTION public.broker_mis_empresas() TO service_role;
@@ -47404,6 +47910,7 @@ GRANT ALL ON FUNCTION public.crm_brokers_comisiones_resumen() TO authenticated;
 GRANT ALL ON FUNCTION public.crm_brokers_comisiones_resumen() TO service_role;
 REVOKE ALL ON FUNCTION public.crm_brokers_recalcular_comisiones() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.crm_brokers_recalcular_comisiones() TO authenticated;
+GRANT ALL ON FUNCTION public.crm_brokers_recalcular_comisiones() TO service_role;
 REVOKE ALL ON FUNCTION public.crm_calificar_prospecto(p_lead_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.crm_calificar_prospecto(p_lead_id uuid) TO authenticated;
 GRANT ALL ON FUNCTION public.crm_calificar_prospecto(p_lead_id uuid) TO service_role;
@@ -47444,15 +47951,26 @@ GRANT ALL ON FUNCTION public.crm_leads_buscar_duplicados(p_claves jsonb) TO auth
 GRANT ALL ON FUNCTION public.crm_leads_buscar_duplicados(p_claves jsonb) TO service_role;
 REVOKE ALL ON FUNCTION public.crm_notify_comentario_oportunidad() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.crm_notify_comentario_oportunidad() TO service_role;
+REVOKE ALL ON FUNCTION public.crm_oportunidad_vendedor_externo(p_oportunidad_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.crm_oportunidad_vendedor_externo(p_oportunidad_id uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.crm_oportunidad_vendedor_externo(p_oportunidad_id uuid) TO service_role;
 REVOKE ALL ON FUNCTION public.crm_pagar_liquidacion_broker(p_id uuid, p_fecha date, p_referencia text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.crm_pagar_liquidacion_broker(p_id uuid, p_fecha date, p_referencia text) TO authenticated;
 GRANT ALL ON FUNCTION public.crm_pagar_liquidacion_broker(p_id uuid, p_fecha date, p_referencia text) TO service_role;
 REVOKE ALL ON FUNCTION public.crm_pricing_ampliar_plazo(p_id uuid, p_horas integer, p_motivo text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.crm_pricing_ampliar_plazo(p_id uuid, p_horas integer, p_motivo text) TO authenticated;
 GRANT ALL ON FUNCTION public.crm_pricing_ampliar_plazo(p_id uuid, p_horas integer, p_motivo text) TO service_role;
+REVOKE ALL ON FUNCTION public.crm_pricing_avisos_sla() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.crm_pricing_avisos_sla() TO service_role;
 REVOKE ALL ON FUNCTION public.crm_pricing_cambiar_complejidad(p_id uuid, p_complejidad text, p_motivo text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.crm_pricing_cambiar_complejidad(p_id uuid, p_complejidad text, p_motivo text) TO authenticated;
 GRANT ALL ON FUNCTION public.crm_pricing_cambiar_complejidad(p_id uuid, p_complejidad text, p_motivo text) TO service_role;
+REVOKE ALL ON FUNCTION public.crm_pricing_cambiar_estado(p_id uuid, p_accion text, p_motivo text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.crm_pricing_cambiar_estado(p_id uuid, p_accion text, p_motivo text) TO authenticated;
+GRANT ALL ON FUNCTION public.crm_pricing_cambiar_estado(p_id uuid, p_accion text, p_motivo text) TO service_role;
+REVOKE ALL ON FUNCTION public.crm_pricing_set_modos_ejecutivo(p_user_id uuid, p_modos text[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.crm_pricing_set_modos_ejecutivo(p_user_id uuid, p_modos text[]) TO authenticated;
+GRANT ALL ON FUNCTION public.crm_pricing_set_modos_ejecutivo(p_user_id uuid, p_modos text[]) TO service_role;
 REVOKE ALL ON FUNCTION public.crm_propagar_conversion_cliente(p_oportunidad_id uuid, p_cliente_id uuid, p_cliente_nombre text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.crm_propagar_conversion_cliente(p_oportunidad_id uuid, p_cliente_id uuid, p_cliente_nombre text) TO service_role;
 REVOKE ALL ON FUNCTION public.crm_puntaje_detalle(p_objeto text, p_id uuid) FROM PUBLIC;
@@ -48562,6 +49080,8 @@ GRANT ALL ON FUNCTION public.venta_facturada_embarques(p_embarque_ids uuid[]) TO
 REVOKE ALL ON FUNCTION public.vincular_anticipo_embarque(p_id uuid, p_embarque_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.vincular_anticipo_embarque(p_id uuid, p_embarque_id uuid) TO authenticated;
 GRANT ALL ON FUNCTION public.vincular_anticipo_embarque(p_id uuid, p_embarque_id uuid) TO service_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.aeropuertos TO authenticated;
+GRANT ALL ON TABLE public.aeropuertos TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.agente_users TO authenticated;
 GRANT ALL ON TABLE public.agente_users TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.alertas_sistema TO anon;
@@ -48577,7 +49097,7 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.auditoria_revisiones TO anon;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.auditoria_revisiones TO authenticated;
 GRANT ALL ON TABLE public.auditoria_revisiones TO service_role;
 GRANT SELECT ON TABLE public.auditoria_snapshots TO anon;
-GRANT SELECT ON TABLE public.auditoria_snapshots TO authenticated;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.auditoria_snapshots TO authenticated;
 GRANT ALL ON TABLE public.auditoria_snapshots TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.bbva_movimientos TO authenticated;
 GRANT ALL ON TABLE public.bbva_movimientos TO service_role;
@@ -48631,6 +49151,8 @@ GRANT SELECT,INSERT,UPDATE ON TABLE public.costeo_cargos_locales_naviera TO auth
 GRANT ALL ON TABLE public.costeo_cargos_locales_naviera TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.costeo_demoras_venta_tarifa TO authenticated;
 GRANT ALL ON TABLE public.costeo_demoras_venta_tarifa TO service_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.costeo_tarifa_tramos TO authenticated;
+GRANT ALL ON TABLE public.costeo_tarifa_tramos TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.cotizacion_costos TO anon;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.cotizacion_costos TO authenticated;
 GRANT ALL ON TABLE public.cotizacion_costos TO service_role;
@@ -48696,6 +49218,8 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.crm_plantillas_mensaje TO auth
 GRANT ALL ON TABLE public.crm_plantillas_mensaje TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.crm_presupuesto_mensual TO authenticated;
 GRANT ALL ON TABLE public.crm_presupuesto_mensual TO service_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.crm_pricing_modos_ejecutivo TO authenticated;
+GRANT ALL ON TABLE public.crm_pricing_modos_ejecutivo TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.crm_pricing_opciones TO authenticated;
 GRANT ALL ON TABLE public.crm_pricing_opciones TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.crm_propiedad_opciones TO authenticated;

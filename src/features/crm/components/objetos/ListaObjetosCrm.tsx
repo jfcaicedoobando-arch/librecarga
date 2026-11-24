@@ -73,7 +73,7 @@ export function ListaObjetosCrm<T extends { id: string }>({ placeholder, rutaBas
   const paginas = Math.max(1, Math.ceil(total / OBJETOS_PAGE_SIZE));
   const filtrado = Boolean(texto.trim()) || filtroEstado !== "todos" || letra !== "todas";
   const limpiar = () => void setFiltros({ q: null, letra: null, pagina: null, estado: null });
-  const contexto = conPuntaje ? serializarFiltros({ q: texto, pagina, letra, estado }) : "";
+  const contexto = serializarFiltros(conPuntaje ? { q: texto, pagina, letra, estado } : { q: texto, pagina });
 
   const tableColumns = defineColumns<T>(cols.map((c) => ({
     id: c.titulo, header: c.titulo, enableSorting: false,

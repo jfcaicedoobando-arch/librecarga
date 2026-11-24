@@ -11,7 +11,7 @@ BEGIN
     IF v_org IS DISTINCT FROM NEW.organization_id THEN
       RAISE EXCEPTION 'LC_PRICING_NO_ENCONTRADA' USING ERRCODE = 'P0001';
     END IF;
-    IF v_estado <> 'enviada' THEN
+    IF v_estado IS NULL OR v_estado NOT IN ('enviada','asignada','en_proceso','info_requerida','respondida') THEN
       RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001';
     END IF;
     IF NOT public._crm_es_pricing(v_org) THEN

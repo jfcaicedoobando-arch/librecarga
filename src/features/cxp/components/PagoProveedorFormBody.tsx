@@ -24,6 +24,9 @@ import type {
 } from "./PagoProveedorFormBody.types";
 
 export function PagoProveedorFormBody(p: Props) {
+  const errorVisible = p.monto === "" ? null : p.validacion.error;
+  const campoError = p.validacion.campoError;
+  const errorMonto = campoError === "monto" ? errorVisible : null;
   return (
     <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
       {p.validacion.avisos.length > 0 && (
@@ -40,13 +43,14 @@ export function PagoProveedorFormBody(p: Props) {
       <FormSection title="Fecha y método">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
-            <Label>Fecha de pago</Label>
-            <DatePickerMx value={p.fecha} onChange={p.setFecha} className="w-full" />
+            <Label htmlFor="pago-prov-fecha">Fecha de pago</Label>
+            <DatePickerMx id="pago-prov-fecha" value={p.fecha} onChange={p.setFecha} className="w-full"
+              errorText={campoError === "fecha" ? errorVisible : null} />
           </div>
           <div className="space-y-1">
-            <Label>Método</Label>
+            <Label htmlFor="pago-prov-metodo">Método</Label>
             <Select value={p.metodo} onValueChange={p.setMetodo}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="pago-prov-metodo"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {p.metodosDisponibles.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
               </SelectContent>
@@ -69,20 +73,12 @@ export function PagoProveedorFormBody(p: Props) {
 
       <FormSection title="Monto">
         <div className={cn("grid grid-cols-1 gap-3", p.showTc ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
-          <div className="space-y-1">
-            <Label htmlFor="pago-prov-monto">Monto</Label>
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-body text-muted-foreground">$</span>
-              <Input id="pago-prov-monto" type="number" step="0.01" inputMode="decimal" placeholder="0.00"
-                className="pl-7 text-right tabular-nums"
-                value={p.monto} onChange={(e) => p.setMonto(e.target.value)} />
-            </div>
-          </div>
+          <CampoMontoPago monto={p.monto} onChange={p.setMonto} error={errorMonto} />
 
           <div className="space-y-1">
-            <Label>Moneda pago</Label>
+            <Label htmlFor="pago-prov-moneda">Moneda de pago</Label>
             <Select value={p.moneda} onValueChange={(v) => p.setMoneda(v as Moneda)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="pago-prov-moneda"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="MXN">MXN</SelectItem>
                 <SelectItem value="USD">USD</SelectItem>
@@ -103,8 +99,8 @@ export function PagoProveedorFormBody(p: Props) {
 
         </div>
 
-        {p.validacion.error && p.monto !== "" && (
-          <p className="text-body-sm text-destructive">{p.validacion.error}</p>
+        {!campoError && errorVisible && (
+          <p className="text-body-sm text-destructive">{errorVisible}</p>
         )}
 
         <PagoSaldoRestante factura={p.factura} saldoRestante={p.saldoRestante} excede={p.excede} />
@@ -148,6 +144,26 @@ export function PagoProveedorFormBody(p: Props) {
             placeholder="Observaciones internas…" />
         </div>
       </FormSection>
+    </div>
+  );
+}
+
+function CampoMontoPago({ monto, onChange, error }: {
+  monto: string;
+  onChange: (value: string) => void;
+  error: string | null;
+}) {
+  return (
+    <div className="space-y-1">
+      <Label htmlFor="pago-prov-monto">Monto</Label>
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-body text-muted-foreground">$</span>
+        <Input id="pago-prov-monto" type="number" step="0.01" inputMode="decimal" placeholder="0.00"
+          className="pl-7 text-right tabular-nums" aria-invalid={Boolean(error) || undefined}
+          aria-describedby={error ? "pago-prov-monto-error" : undefined}
+          value={monto} onChange={(e) => onChange(e.target.value)} />
+      </div>
+      {error && <p id="pago-prov-monto-error" className="text-body-sm text-destructive">{error}</p>}
     </div>
   );
 }

@@ -22,10 +22,18 @@ interface Props {
   togglingNoAplicaDocId?: string | null;
   onUpload: (docId: string, file: File) => void;
   onDownload: (archivo: string, docId: string) => void;
-  onDelete?: (doc: DocumentoEmbarqueRow) => Promise<void> | void;
+  onDelete?: (doc: DocumentoEmbarqueRow) => Promise<boolean>;
   onToggleNoAplica?: (doc: DocumentoEmbarqueRow) => void;
   rechazandoDocId?: string | null;
   onRechazar?: (doc: DocumentoEmbarqueRow, motivo: string) => Promise<boolean>;
+}
+
+function nombreDelAdjunto(ruta?: string | null) {
+  const partes = ruta?.split("/") ?? [];
+  const nombre = partes.at(-1) || "Archivo adjunto";
+  return partes[0] === "embarques" && partes.length === 4
+    ? nombre.replace(/^[a-f0-9]{12}-(?=.)/, "")
+    : nombre;
 }
 
 export function TabDocumentos({
@@ -33,6 +41,8 @@ export function TabDocumentos({
   onUpload, onDownload, onDelete, onToggleNoAplica, rechazandoDocId, onRechazar,
 }: Props) {
   const [docToDelete, setDocToDelete] = useState<DocumentoEmbarqueRow | null>(null);
+  const [falloEliminar, setFalloEliminar] = useState(false);
+  const eliminando = !!docToDelete && deletingDocId === docToDelete.id;
   const [docToReject, setDocToReject] = useState<DocumentoEmbarqueRow | null>(null);
   const [replacement, setReplacement] = useState<{ documento: DocumentoEmbarqueRow; archivo: File } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -56,7 +66,7 @@ export function TabDocumentos({
   const columns = useDocumentoColumns({
     canEdit, uploadingDocId, downloadingDocId, deletingDocId, togglingNoAplicaDocId,
     onUpload: requestUpload, onDownload, onDelete, onToggleNoAplica,
-    onRequestDelete: setDocToDelete,
+    onRequestDelete: (doc) => { setFalloEliminar(false); setDocToDelete(doc); },
     rechazandoDocId,
     onRequestRechazo: onRechazar ? setDocToReject : undefined,
   });
@@ -128,27 +138,35 @@ export function TabDocumentos({
           onUpload(replacement.documento.id, replacement.archivo);
         }}
         description={
-          <>Se reemplazará el archivo adjunto de “{replacement?.documento.nombre}” por “{replacement?.archivo.name}”. El archivo anterior dejará de estar disponible en este documento. Descárgalo antes de continuar si necesitas conservarlo.</>
+          <>
+            Se reemplazará “{nombreDelAdjunto(replacement?.documento.archivo)}” por “{replacement?.archivo.name}”
+            en el documento “{replacement?.documento.nombre}”. El archivo anterior dejará de estar disponible.
+            Descárgalo antes de continuar si necesitas conservarlo.
+          </>
         }
       />
 
       <ConfirmActionDialog
         open={!!docToDelete}
-        onOpenChange={(open) => { if (!open) setDocToDelete(null); }}
+        onOpenChange={(open) => { if (!open && !eliminando) setDocToDelete(null); }}
         title="¿Eliminar documento?"
         variant="destructive"
         confirmLabel="Eliminar"
-        isPending={!!docToDelete && deletingDocId === docToDelete.id}
+        isPending={eliminando}
         onConfirm={async () => {
-          // DOC-UX-01: esperar la mutación antes de cerrar; si falla, el
-          // diálogo sigue abierto y el usuario ve el error del hook.
-          if (docToDelete && onDelete) await onDelete(docToDelete);
-          setDocToDelete(null);
+          if (!docToDelete || !onDelete || eliminando) return;
+          setFalloEliminar(false);
+          if (await onDelete(docToDelete)) setDocToDelete(null);
+          else setFalloEliminar(true);
         }}
         description={
           <>El archivo <strong>{docToDelete?.nombre}</strong> será eliminado permanentemente. Esta acción no se puede deshacer.</>
         }
-      />
+      >
+        {falloEliminar && <p role="alert" className="text-body-sm text-destructive">
+          No se pudo confirmar la eliminación del archivo. Vuelve a intentar.
+        </p>}
+      </ConfirmActionDialog>
     </>
   );
 }

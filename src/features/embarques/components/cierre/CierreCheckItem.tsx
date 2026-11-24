@@ -99,10 +99,11 @@ export function CierreCheckItem({
       <div className="flex items-center gap-2 sm:shrink-0">
         <Badge variant={estadoBadge.variant}>{estadoBadge.label}</Badge>
         {href && (
-          <ExternalLink
-            className="h-3.5 w-3.5 text-muted-foreground opacity-60"
-            aria-hidden="true"
-          />
+          <span className="inline-flex items-center gap-1 text-body-sm text-primary">
+            {meta.ctaLabel}
+            <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span className="sr-only"> (abre en una nueva pestaña)</span>
+          </span>
         )}
       </div>
     </>

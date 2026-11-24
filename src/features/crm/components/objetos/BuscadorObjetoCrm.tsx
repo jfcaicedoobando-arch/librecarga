@@ -8,12 +8,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useDebounce } from "@/hooks/shared";
 import { useContactosCrm, useEmpresasCrm } from "@/features/crm/hooks/useObjetosCrm";
+import type { ContactoRow, EmpresaRow } from "@/features/crm/services/objetosCrm";
 
 interface Props {
   objeto: "empresa" | "contacto";
   excluir: string[];
   onElegir: (id: string) => void;
   disabled?: boolean;
+}
+
+function identificadorContacto(opcion: ContactoRow | EmpresaRow) {
+  return "email" in opcion ? opcion.email?.trim() || opcion.telefono?.trim() : undefined;
 }
 
 export function BuscadorObjetoCrm({ objeto, excluir, onElegir, disabled }: Props) {
@@ -38,15 +43,22 @@ export function BuscadorObjetoCrm({ objeto, excluir, onElegir, disabled }: Props
           <CommandList>
             {!q.isError && <CommandEmpty>{q.isFetching ? "Buscando…" : "Sin resultados"}</CommandEmpty>}
             <CommandGroup>
-              {opciones.map((o) => (
-                <CommandItem
-                  key={o.id}
-                  value={o.id}
-                  onSelect={() => { onElegir(o.id); setOpen(false); setTexto(""); }}
-                >
-                  {o.nombre}
-                </CommandItem>
-              ))}
+              {opciones.map((o) => {
+                const identificador = identificadorContacto(o);
+                return (
+                  <CommandItem
+                    key={o.id}
+                    value={o.id}
+                    aria-label={identificador ? `${o.nombre}, ${identificador}` : undefined}
+                    onSelect={() => { onElegir(o.id); setOpen(false); setTexto(""); }}
+                  >
+                    <span className="grid min-w-0">
+                      <span>{o.nombre}</span>
+                      {identificador && <span className="wrap-anywhere text-body-sm text-muted-foreground">{identificador}</span>}
+                    </span>
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
         </Command>

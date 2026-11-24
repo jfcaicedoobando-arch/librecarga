@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FILTROS_LIBRO_PAGOS_INICIALES, type FiltrosLibroPagos } from "@/features/tesoreria/domain/libroPagos";
 import { LibroPagosToolbar } from "../_sections/LibroPagosToolbar";
@@ -13,6 +13,19 @@ const props = {
 };
 
 describe("Más filtros en Libro de pagos", () => {
+  it("ofrece reintentar las cuentas sin tocar el filtro actual", () => {
+    const refetch = vi.fn();
+    const onFiltrosChange = vi.fn();
+    render(<LibroPagosToolbar {...props} cuentas={[]} onFiltrosChange={onFiltrosChange}
+      filtros={{ ...FILTROS_LIBRO_PAGOS_INICIALES, cuentaId: "cuenta" }}
+      consultaCuentas={{ isLoading: false, isError: true, isFetching: false, refetch }} />);
+    const panel = screen.getByText("Más filtros").closest("details")!;
+    panel.open = true;
+    expect(within(panel).getByRole("alert")).toHaveTextContent("No se pudieron consultar las cuentas bancarias.");
+    fireEvent.click(within(panel).getByRole("button", { name: "Reintentar cuentas" }));
+    expect(refetch).toHaveBeenCalledOnce();
+    expect(onFiltrosChange).not.toHaveBeenCalled();
+  });
   it("distingue las dos fechas y cada filtro del panel por su nombre accesible", () => {
     render(<LibroPagosToolbar {...props} filtros={FILTROS_LIBRO_PAGOS_INICIALES} />);
     expect(screen.getByRole("textbox", { name: "Desde" })).toHaveValue("01/10/2026");

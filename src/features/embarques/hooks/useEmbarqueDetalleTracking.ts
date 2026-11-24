@@ -9,6 +9,7 @@ interface EnlaceCopiado {
   embarqueId: string;
   linkId: string;
   expiresAt: string | null;
+  urlParaCopiar?: string;
   avisoAbierto: boolean;
   revocado: boolean;
 }
@@ -74,11 +75,16 @@ export function useEmbarqueDetalleTracking(embarqueId: string | undefined) {
       if (!esContextoActual()) return;
       if (link.embarque_id !== embarqueId) throw new Error("No se pudo confirmar el embarque del enlace.");
       const url = `${window.location.origin}/tracking/${link.token}`;
-      await navigator.clipboard.writeText(url);
+      let urlParaCopiar: string | undefined;
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        urlParaCopiar = url;
+      }
       if (!esContextoActual()) return;
       actualizarCopiado({ contexto, embarqueId, linkId: link.id, expiresAt: link.expires_at,
-        avisoAbierto: true, revocado: false });
-      notifySuccess(undefined, { title: "Enlace público copiado", description: "Revisa su alcance y vencimiento antes de enviarlo." });
+        avisoAbierto: true, revocado: false, urlParaCopiar });
+      if (!urlParaCopiar) notifySuccess(undefined, { title: "Enlace público copiado", description: "Revisa su alcance y vencimiento antes de enviarlo." });
     } catch (error) {
       if (!esContextoActual()) return;
       notifyError(undefined, { title: "Error al generar enlace", error,
@@ -102,7 +108,7 @@ export function useEmbarqueDetalleTracking(embarqueId: string | undefined) {
       if (contextoActual.current !== contexto) return;
       const actual = enlaceCopiadoActual.current;
       if (actual?.contexto === contexto && actual.linkId === objetivo.linkId) {
-        actualizarCopiado({ ...actual, revocado: true, avisoAbierto: false });
+        actualizarCopiado({ ...actual, revocado: true, avisoAbierto: false, urlParaCopiar: undefined });
       }
     } catch {
       // el onError de la mutación ya notifica
@@ -112,10 +118,13 @@ export function useEmbarqueDetalleTracking(embarqueId: string | undefined) {
   return {
     handleCompartirTracking,
     handleRevocarTracking,
-    avisoEnlace: copiadoActual?.avisoAbierto && !copiadoActual.revocado ? { expiresAt: copiadoActual.expiresAt } : null,
+    avisoEnlace: copiadoActual?.avisoAbierto && !copiadoActual.revocado ? {
+      expiresAt: copiadoActual.expiresAt,
+      ...(copiadoActual.urlParaCopiar ? { urlParaCopiar: copiadoActual.urlParaCopiar } : {}),
+    } : null,
     cerrarAvisoEnlace: () => {
       const actual = enlaceCopiadoActual.current;
-      if (actual?.contexto === contexto) actualizarCopiado({ ...actual, avisoAbierto: false });
+      if (actual?.contexto === contexto) actualizarCopiado({ ...actual, avisoAbierto: false, urlParaCopiar: undefined });
     },
     tieneLinkActivo: objetivoRevocacion !== null,
     isPending: copiando === contexto || createTrackingLink.isPending || deleteTrackingLink.isPending,

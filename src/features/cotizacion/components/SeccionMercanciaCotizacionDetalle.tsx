@@ -1,5 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DimensionLCL, DimensionAerea } from "@/features/cotizacion/hooks";
+import { itemsBanderasAereas, type BanderasAereas } from "@/features/cotizacion/domain/banderasAereas";
+import { pesoTasable } from "@/features/costeo/domain/tarifaPorPeso";
+import { formatNumber } from "@/lib/formatters";
 import { MercanciaInfoGrid } from "./seccionMercancia/MercanciaInfoGrid";
 import { DimensionesLCLTable } from "./seccionMercancia/DimensionesLCLTable";
 import { DimensionesAereasTable } from "./seccionMercancia/DimensionesAereasTable";
@@ -21,7 +24,47 @@ interface Props {
     msds_archivo: string | null;
     dimensiones_lcl: unknown;
     dimensiones_aereas: unknown;
-  };
+  } & Partial<BanderasAereas>;
+}
+
+function MedidasAereasGuardadas({ cotizacion, conDimensiones }: { cotizacion: Props["cotizacion"]; conDimensiones: boolean }) {
+  const fisico = cotizacion.peso_fisico_kg;
+  const cbm = cotizacion.volumen_m3;
+  const tasable = fisico != null && fisico > 0 && cbm > 0 ? pesoTasable(fisico, cbm) : null;
+  // peso_kg guarda el peso volumétrico histórico del modo aéreo.
+  const medidas: Array<[string, number | null | undefined, string]> = conDimensiones ? [] : [
+    ["Peso físico", fisico, "kg"],
+    ["Peso volumétrico", cotizacion.peso_kg, "kg"],
+    ["Volumen total", cbm, "m³"],
+  ];
+  medidas.push(["Peso tasable", tasable, "kg"]);
+  const disponibles = medidas.filter(([, valor]) => valor != null && Number.isFinite(valor) && valor > 0);
+  if (!disponibles.length) return null;
+  return (
+    <dl className="grid grid-cols-2 gap-4 text-body md:grid-cols-4">
+      {disponibles.map(([nombre, valor, sufijo]) => <div key={nombre}>
+        <dt className="text-muted-foreground">{nombre}</dt>
+        <dd className="font-medium">{formatNumber(valor, { maximumFractionDigits: 3, suffix: sufijo })}</dd>
+      </div>)}
+    </dl>
+  );
+}
+
+function CondicionesAereasGuardadas({ cotizacion }: { cotizacion: Props["cotizacion"] }) {
+  const banderas = itemsBanderasAereas({
+    baterias_litio: cotizacion.baterias_litio ?? null,
+    known_shipper: cotizacion.known_shipper ?? null,
+    tipo_aeronave: cotizacion.tipo_aeronave ?? null,
+  });
+  if (!banderas.length) return null;
+  return (
+    <dl aria-label="Condiciones de transporte aéreo" className="grid grid-cols-2 gap-4 text-body md:grid-cols-4">
+      {banderas.map(([etiqueta, valor]) => <div key={etiqueta}>
+        <dt className="text-muted-foreground">{etiqueta}</dt>
+        <dd className="font-medium">{valor}</dd>
+      </div>)}
+    </dl>
+  );
 }
 
 export default function SeccionMercanciaCotizacionDetalle({ cotizacion }: Props) {
@@ -60,6 +103,8 @@ export default function SeccionMercanciaCotizacionDetalle({ cotizacion }: Props)
         {esAereo && dimensionesAereas.length > 0 && (
           <DimensionesAereasTable dimensiones={dimensionesAereas} totalPiezas={cotizacion.piezas} pesoFisico={cotizacion.peso_fisico_kg} />
         )}
+        {esAereo && <MedidasAereasGuardadas cotizacion={cotizacion} conDimensiones={dimensionesAereas.length > 0} />}
+        {esAereo && <CondicionesAereasGuardadas cotizacion={cotizacion} />}
       </CardContent>
     </Card>
   );

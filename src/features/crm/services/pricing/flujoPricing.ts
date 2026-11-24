@@ -2,6 +2,7 @@
  * Escrituras de la Fase 5 de Pricing: transiciones de estado y modos por ejecutivo (sólo por RPC).
  */
 import { supabase } from "@/integrations/supabase/client";
+import { CAP_LISTA } from "@/constants/queryCaps";
 import type { AccionFlujoPricing } from "./estadosPricing";
 
 export async function cambiarEstadoPricing(id: string, accion: AccionFlujoPricing, motivo?: string): Promise<void> {
@@ -12,7 +13,7 @@ export async function cambiarEstadoPricing(id: string, accion: AccionFlujoPricin
 export interface ModoEjecutivo { user_id: string; modo: string }
 
 export async function listarModosEjecutivo(): Promise<ModoEjecutivo[]> {
-  const { data, error } = await supabase.from("crm_pricing_modos_ejecutivo").select("user_id, modo").limit(500);
+  const { data, error } = await supabase.from("crm_pricing_modos_ejecutivo").select("user_id, modo").limit(CAP_LISTA);
   if (error) throw error;
   return data ?? [];
 }
