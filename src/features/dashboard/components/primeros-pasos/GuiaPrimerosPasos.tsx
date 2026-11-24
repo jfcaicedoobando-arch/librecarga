@@ -11,12 +11,12 @@ import { ContenidoPrimerosPasos } from "./ContenidoPrimerosPasos";
 
 interface Props {
   ubicacion?: "inicio" | "ayuda";
-  abrirEnPrimeraVisita?: boolean;
+  recordarApertura?: boolean;
 }
 
 const CLAVE_TAREA_RECIENTE = "lc:guia-primeros-pasos:tarea-reciente";
 
-export function GuiaPrimerosPasos({ ubicacion = "inicio", abrirEnPrimeraVisita = false }: Props) {
+export function GuiaPrimerosPasos({ ubicacion = "inicio", recordarApertura = false }: Props) {
   const { resultado, claveContexto, clavePreferencia, reintentar } = usePrimerosPasos();
   const { key: entrada, pathname } = useLocation();
   const navegacion = useNavigationType();
@@ -37,7 +37,7 @@ export function GuiaPrimerosPasos({ ubicacion = "inicio", abrirEnPrimeraVisita =
       key={prefijoTarea ?? claveContexto}
       resultado={resultado}
       ubicacion={ubicacion}
-      clavePreferencia={abrirEnPrimeraVisita ? clavePreferencia : undefined}
+      clavePreferencia={recordarApertura ? clavePreferencia : undefined}
       prefijoTarea={prefijoTarea}
       volverPorHistorial={navegacion === "POP"}
       onRetry={reintentar}
@@ -47,7 +47,8 @@ export function GuiaPrimerosPasos({ ubicacion = "inicio", abrirEnPrimeraVisita =
   );
 }
 
-interface PanelProps extends Props {
+interface PanelProps {
+  ubicacion: NonNullable<Props["ubicacion"]>;
   clavePreferencia?: string;
   prefijoTarea?: string;
   volverPorHistorial: boolean;
@@ -66,9 +67,10 @@ function PanelPrimerosPasos({
     return reciente?.startsWith(prefijoTarea) ? reciente.slice(prefijoTarea.length) : "";
   });
   const [tareaAbierta, setTareaAbierta] = useState(tareaRetomada);
-  const [open, setOpen] = useState(() => clavePreferencia
-    ? safeLocalStorage.getItem(clavePreferencia) !== "cerrada"
-    : tareaRetomada !== "");
+  const [open, setOpen] = useState(() => {
+    const preferencia = clavePreferencia ? safeLocalStorage.getItem(clavePreferencia) : null;
+    return preferencia === "abierta" || (preferencia !== "cerrada" && tareaRetomada !== "");
+  });
   const disponible = resultado.estado === "disponible";
   const [disponibilidadAnterior, setDisponibilidadAnterior] = useState(disponible);
   if (disponible !== disponibilidadAnterior) {
