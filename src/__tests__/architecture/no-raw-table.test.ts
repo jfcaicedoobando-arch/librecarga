@@ -110,7 +110,6 @@ const ALLOWLIST: readonly string[] = [
   "src/features/anticipos-proveedor/components/AnticiposAplicadosSection.tsx",
   "src/features/compras/routes/_sections/ConciliacionDetalleCuerpoTabla.tsx",
   "src/features/compras/routes/_sections/ConciliacionDetalleFilaRenglon.tsx",
-  "src/features/cotizacion/components/plantillas/PlantillasTabla.tsx",
   "src/features/cotizacion/components/revalidacion/RevalidarTarifaModal.tsx",
   "src/features/cotizacion/routes/CotizacionInformativaDetalle.tsx",
   "src/features/crm/components/ImportarLeadsCsvPreview.tsx",
@@ -178,7 +177,7 @@ describe("architecture — no raw @/components/ui/table imports", () => {
    * archivo a DataTable y bajas la lista, BAJA también el tope.
    */
   it("la allowlist de ui/table no crece por encima del tope", () => {
-    const TOPE = 69; // 69 actuales; el catálogo baja una entrada neta.
+    const TOPE = 68; // Plantillas de cotización ya usa ResponsiveDataTable.
     expect(
       ALLOWLIST.length,
       `La allowlist tiene ${ALLOWLIST.length} entradas (tope ${TOPE}).\n` +
@@ -187,7 +186,7 @@ describe("architecture — no raw @/components/ui/table imports", () => {
   });
 
   it("si bajaste entradas de la allowlist, baja el tope", () => {
-    const TOPE = 69;
+    const TOPE = 68;
     expect(
       ALLOWLIST.length,
       "Bajaste entradas de la allowlist: ajusta TOPE a la nueva cuenta + 1 de holgura.",

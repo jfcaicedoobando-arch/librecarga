@@ -1,91 +1,121 @@
-/**
- * Tabla de plantillas — extraída de `CotizacionPlantillas.tsx` en v13.297.4
- * para respetar el límite `max-lines`.
- */
-import { MoreVertical, Pencil, Trash2, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { defineColumns } from "@/components/shared/DataTable";
+import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
+import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatDate } from "@/lib/formatters";
 import type { CotizacionPlantilla } from "@/features/cotizacion/hooks/useCotizacionPlantillas";
+import { formatDate } from "@/lib/formatters";
 
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { DetailTableHead } from "@/components/shared/DetailTable";
-interface Props {
-  plantillas: CotizacionPlantilla[];
+interface Acciones {
   onEditar: (p: CotizacionPlantilla) => void;
   onEliminar: (p: CotizacionPlantilla) => void;
   onUsar: (p: CotizacionPlantilla) => void;
 }
 
-export function PlantillasTabla({ plantillas, onEditar, onEliminar, onUsar }: Props) {
+interface Props extends Acciones {
+  plantillas: CotizacionPlantilla[];
+}
+
+function Visibilidad({ plantilla }: { plantilla: CotizacionPlantilla }) {
+  const deOrganizacion = plantilla.visibilidad === "org";
   return (
-    <div className="overflow-x-auto">
-      <Table className="w-full text-body">
-        <TableHeader className="text-body-sm uppercase text-muted-foreground border-b">
-          <TableRow>
-            <DetailTableHead>Nombre</DetailTableHead>
-            <DetailTableHead>Descripción</DetailTableHead>
-            <DetailTableHead>Visibilidad</DetailTableHead>
-            <DetailTableHead className="text-right">Usos</DetailTableHead>
-            <DetailTableHead>Actualizada</DetailTableHead>
-            <DetailTableHead className="w-10" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {plantillas.map((p, i) => (
-            <TableRow key={p.id} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"} data-testid={`plantilla-row-${p.id}`}>
-              <TableCell className="font-medium">{p.nombre}</TableCell>
-              <TableCell className="text-muted-foreground max-w-[280px] truncate">
-                {p.descripcion ?? "—"}
-              </TableCell>
-              <TableCell>
-                <Badge variant={p.visibilidad === "org" ? "default" : "secondary"}>
-                  {p.visibilidad === "org" ? "Organización" : "Sólo yo"}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right tabular-nums">{p.veces_usada}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {formatDate(p.updated_at)}
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => e.stopPropagation()}
-                      aria-label={`Acciones ${p.nombre}`}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={(e) => { e.stopPropagation(); onEditar(p); }}
-                    >
-                      <Pencil className="h-4 w-4 mr-2" /> Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => { e.stopPropagation(); onUsar(p); }}
-                    >
-                      <ArrowUpRight className="h-4 w-4 mr-2" /> Usar en cotización
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => { e.stopPropagation(); onEliminar(p); }}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" /> Eliminar
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <Badge variant={deOrganizacion ? "default" : "secondary"}>
+      {deOrganizacion ? "Organización" : "Sólo yo"}
+    </Badge>
+  );
+}
+
+function MenuPlantilla({ plantilla, onEditar, onEliminar, onUsar }: Acciones & { plantilla: CotizacionPlantilla }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="shrink-0" aria-label={`Acciones ${plantilla.nombre}`}>
+          <MoreVertical className="size-4" aria-hidden />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={() => onEditar(plantilla)}>
+          <Pencil className="mr-2 size-4" aria-hidden /> Editar
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onUsar(plantilla)}>
+          <ArrowUpRight className="mr-2 size-4" aria-hidden /> Usar en cotización
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => onEliminar(plantilla)}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="mr-2 size-4" aria-hidden /> Eliminar
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export function PlantillasTabla({ plantillas, ...acciones }: Props) {
+  const columns = defineColumns<CotizacionPlantilla>([
+    {
+      accessorKey: "nombre", header: "Nombre", enableSorting: false,
+      meta: { className: "font-medium" },
+    },
+    {
+      id: "descripcion", header: "Descripción", enableSorting: false,
+      cell: ({ row }) => <span className="block max-w-72 truncate">{row.original.descripcion ?? "—"}</span>,
+      meta: { className: "text-muted-foreground" },
+    },
+    {
+      id: "visibilidad", header: "Visibilidad", enableSorting: false,
+      cell: ({ row }) => <Visibilidad plantilla={row.original} />,
+    },
+    {
+      accessorKey: "veces_usada", header: "Usos", enableSorting: false,
+      meta: { align: "right", className: "tabular-nums" },
+    },
+    {
+      id: "updated_at", header: "Actualizada", enableSorting: false,
+      cell: ({ row }) => formatDate(row.original.updated_at),
+      meta: { className: "text-muted-foreground" },
+    },
+    {
+      id: "actions", header: "", enableSorting: false, meta: { width: "w-12" },
+      cell: ({ row }) => <MenuPlantilla plantilla={row.original} {...acciones} />,
+    },
+  ]);
+
+  return (
+    <ResponsiveDataTable
+      columns={columns}
+      data={plantillas}
+      rowKey={(plantilla) => plantilla.id}
+      density={TABLE_DENSITY.embebida}
+      striped
+      mobileCard={(plantilla) => (
+        <article className="space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 space-y-1">
+              <h2 className="text-card-title wrap-anywhere">{plantilla.nombre}</h2>
+              {plantilla.descripcion && (
+                <p className="text-body-sm text-muted-foreground wrap-anywhere">{plantilla.descripcion}</p>
+              )}
+            </div>
+            <MenuPlantilla plantilla={plantilla} {...acciones} />
+          </div>
+          <Visibilidad plantilla={plantilla} />
+          <dl className="flex flex-wrap gap-x-4 gap-y-2 text-body-sm">
+            <div>
+              <dt className="text-muted-foreground">Usos</dt>
+              <dd className="tabular-nums">{plantilla.veces_usada}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Actualizada</dt>
+              <dd>{formatDate(plantilla.updated_at)}</dd>
+            </div>
+          </dl>
+        </article>
+      )}
+    />
   );
 }

@@ -24,7 +24,7 @@ export function PnlComparativaTable({ titulo, rows, invertirAlerta }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{titulo}</CardTitle>
+        <CardTitle>{titulo}</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>

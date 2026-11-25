@@ -1,6 +1,7 @@
 /** Pestaña «Cotizado vs real»: solicitudes respondidas con su comparación de costos. */
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/shared/PageHeader";
 import PaginationControls from "@/components/shared/PaginationControls";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
@@ -47,15 +48,19 @@ export function CostoVsRealPanel() {
               {filas.map((s) => {
                 const resumen = costos.data?.get(s.id);
                 return (
-                  <li key={s.id} className="space-y-2 rounded-lg border bg-card p-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{s.folio}</span>
-                      <span className="text-body-sm">{s.cliente ?? "Sin cliente"}</span>
-                      <span className="text-body-sm text-muted-foreground">{s.servicio}</span>
-                      <Badge variant="outline">{costos.isLoading ? "Calculando…" : ETIQUETA_ESTADO_COSTO[resumen?.estado ?? "sin_cotizacion"]}</Badge>
-                      {resumen?.expediente && <span className="text-caption text-muted-foreground">{resumen.expediente}</span>}
-                    </div>
-                    {resumen && <TablaCostoReal resumen={resumen} />}
+                  <li key={s.id}>
+                    <Card>
+                      <CardContent density="tight" className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">{s.folio}</span>
+                          <span className="text-body-sm">{s.cliente ?? "Sin cliente"}</span>
+                          <span className="text-body-sm text-muted-foreground">{s.servicio}</span>
+                          <Badge variant="outline">{costos.isLoading ? "Calculando…" : ETIQUETA_ESTADO_COSTO[resumen?.estado ?? "sin_cotizacion"]}</Badge>
+                          {resumen?.expediente && <span className="text-caption text-muted-foreground">{resumen.expediente}</span>}
+                        </div>
+                        {resumen && <TablaCostoReal resumen={resumen} />}
+                      </CardContent>
+                    </Card>
                   </li>
                 );
               })}

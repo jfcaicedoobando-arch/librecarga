@@ -16,7 +16,7 @@ export function PnlProveedoresTable({ proveedores }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Desglose por proveedor</CardTitle>
+        <CardTitle>Desglose por proveedor</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>

@@ -2,6 +2,7 @@
 import { DataTable, defineColumns } from "@/components/shared/DataTable";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, formatPercent } from "@/lib/formatters/numbers";
 import { useCostoVsReal } from "@/features/crm/hooks/useRecotizarPricing";
 import { ETIQUETA_ESTADO_COSTO, type MonedaCostoReal, type ResumenCostoReal } from "@/features/crm/services/pricing/costoVsRealPricing";
@@ -62,15 +63,21 @@ export function CostoVsRealPricing({ solicitudId }: { solicitudId: string }) {
   const resumen = consulta.data?.get(solicitudId);
   if (consulta.isLoading || !resumen || resumen.estado === "sin_cotizacion") return null;
   return (
-    <section aria-label="Costo cotizado vs real" className="space-y-2 rounded-lg border bg-card p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <h3 className="text-subsection">Costo cotizado vs real</h3>
-        <Badge variant="outline">{ETIQUETA_ESTADO_COSTO[resumen.estado]}</Badge>
-        {resumen.cotizacionFolio && <span className="text-caption text-muted-foreground">
-          {[resumen.cotizacionFolio, resumen.expediente].filter(Boolean).join(" · ")}</span>}
-      </div>
-      <TablaCostoReal resumen={resumen} />
-      <p className="text-caption text-muted-foreground">Real = facturas de proveedor vigentes del embarque, antes de IVA. Cada moneda se compara por separado.</p>
+    <section aria-label="Costo cotizado vs real">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle as="h3">Costo cotizado vs real</CardTitle>
+            <Badge variant="outline">{ETIQUETA_ESTADO_COSTO[resumen.estado]}</Badge>
+            {resumen.cotizacionFolio && <span className="text-caption text-muted-foreground">
+              {[resumen.cotizacionFolio, resumen.expediente].filter(Boolean).join(" · ")}</span>}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <TablaCostoReal resumen={resumen} />
+          <p className="text-caption text-muted-foreground">Real = facturas de proveedor vigentes del embarque, antes de IVA. Cada moneda se compara por separado.</p>
+        </CardContent>
+      </Card>
     </section>
   );
 }
