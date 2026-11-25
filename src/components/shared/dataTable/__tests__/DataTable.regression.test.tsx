@@ -60,7 +60,17 @@ describe("DataTable — render", () => {
       "Desplaza horizontalmente para consultar las demás columnas.",
     );
     expect(scrollArea).toHaveAttribute("role", "region");
+    expect(scrollArea).toHaveAccessibleName("Tabla con desplazamiento horizontal");
     expect(scrollArea).toHaveAttribute("tabindex", "0");
+  });
+
+  it("permite enfocar el área con altura acotada sin anunciar desbordamiento horizontal", () => {
+    render(<DataTable columns={embarqueColumns} data={embarques} rowKey={(r) => r.id}
+      scrollClassName="max-h-52" stickyHeader />);
+    const scrollArea = screen.getByRole("region", { name: "Tabla con desplazamiento" });
+    expect(scrollArea).toHaveClass("max-h-52");
+    expect(scrollArea).toHaveAttribute("tabindex", "0");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });
 

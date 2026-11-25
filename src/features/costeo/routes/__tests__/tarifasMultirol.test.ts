@@ -53,9 +53,7 @@ describe("MR-UI-02: tabla usable en 1280x720", () => {
   it("el DataTable compartido comunica y hace accesible el desplazamiento horizontal", () => {
     expect(contenidoDataTable).toContain("Desplaza horizontalmente para consultar las demás columnas.");
     expect(contenidoDataTable).toContain('role="status"');
-    expect(contenidoDataTable).toContain('role={overflowing ? "region" : undefined}');
-    expect(contenidoDataTable).toContain('aria-label={overflowing ? "Tabla con desplazamiento horizontal" : undefined}');
-    expect(contenidoDataTable).toContain("tabIndex={overflowing ? 0 : undefined}");
+    // La prueba de render de DataTable verifica el rol, nombre y Tab con datos.
     expect(contenidoDataTable).toContain("focus-visible:ring-2");
   });
   it("usa fondos opacos en las celdas fijas para impedir texto superpuesto", () => {

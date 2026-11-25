@@ -46,6 +46,8 @@ export function DataTableContent<T extends object>(props: DataTableContentProps<
   } = props;
 
   const { ref: scrollRef, atStart, atEnd, overflowing } = useHorizontalScrollEdges<HTMLDivElement>();
+  const scrollLabel = overflowing ? "Tabla con desplazamiento horizontal"
+    : scrollClassName ? "Tabla con desplazamiento" : undefined;
 
   React.useEffect(() => {
     onHorizontalOverflowChange?.(overflowing);
@@ -66,9 +68,9 @@ export function DataTableContent<T extends object>(props: DataTableContentProps<
         <div
           ref={scrollRef}
           data-testid="datatable-scroll"
-          role={overflowing || scrollClassName ? "region" : undefined}
-          aria-label={overflowing ? "Tabla con desplazamiento horizontal" : scrollClassName ? "Tabla con desplazamiento" : undefined}
-          tabIndex={overflowing || scrollClassName ? 0 : undefined}
+          role={scrollLabel ? "region" : undefined}
+          aria-label={scrollLabel}
+          tabIndex={scrollLabel ? 0 : undefined}
           /* E-3 (auditoría visual 2026-08-24): colchón derecho para que la última
              columna (p. ej. ESTADO) no quede a ras del borde bajo el degradado. */
           className={cn("relative w-full overflow-x-auto rounded-md pr-2 [scrollbar-width:thin] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset", scrollClassName)}
