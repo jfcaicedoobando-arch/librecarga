@@ -50,8 +50,7 @@ interface Props {
    */
   formId?: string;
   onSubmit?: (e: FormEvent<HTMLFormElement>) => void;
-  /** Enfoca el primer campo útil al abrir (default: true si hay `formId`). */
-  autoFocusFirstField?: boolean;
+  /** Permite devolver el foco a un disparador externo al diálogo. */
   onCloseAutoFocus?: (event: Event) => void;
   /** Banda fija bajo el header, fuera del área scrolleable (KPIs, avisos). */
   stickyTop?: ReactNode;
@@ -87,7 +86,6 @@ export function FormDialogShell({
   footer,
   formId,
   onSubmit,
-  autoFocusFirstField,
   onCloseAutoFocus,
   stickyTop,
   stickyBottom,
@@ -98,8 +96,7 @@ export function FormDialogShell({
 }: Props) {
   const busy = typeof busyState === "boolean" ? busyState : busyState.active;
   const suppressDiscardConfirmation = typeof busyState === "boolean" ? false : Boolean(busyState.suppressDiscardConfirmation);
-  const enfocar = autoFocusFirstField ?? Boolean(formId);
-  const bodyRef = useAutoFocusPrimerCampo(open, enfocar);
+  const bodyRef = useAutoFocusPrimerCampo(open, Boolean(formId));
   const bodyClass = cn("flex-1 overflow-y-auto px-6 py-5 space-y-5", bodyClassName);
   const [confirmarDescartar, setConfirmarDescartar] = useState(false);
 
