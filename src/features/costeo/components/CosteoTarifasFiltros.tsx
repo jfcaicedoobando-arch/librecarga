@@ -51,7 +51,7 @@ export function CosteoTarifasFiltros({
           value={busqueda}
           onChange={onBusquedaChange}
           placeholder="Buscar ruta, agente o naviera"
-          inputClassName="pr-11 md:pr-9 md:h-9 [&::-webkit-search-cancel-button]:appearance-none"
+          inputClassName="pr-11 md:h-9"
           aria-label="Buscar tarifas por puerto, ruta, agente o naviera"
         />
         {busqueda && (
@@ -60,7 +60,7 @@ export function CosteoTarifasFiltros({
             size="icon"
             type="button"
             onClick={() => onBusquedaChange("")}
-            className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground md:size-9"
+            className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground md:h-9 md:w-9"
             aria-label="Limpiar búsqueda"
           >
             <X className="size-4" aria-hidden />
