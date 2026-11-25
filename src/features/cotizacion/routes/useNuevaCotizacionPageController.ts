@@ -30,23 +30,11 @@ import {
 import { usePrefillProspectoOportunidad } from "@/features/cotizacion/hooks/wizard/usePrefillProspectoOportunidad";
 import { usePrefillContextoPricing } from "@/features/cotizacion/hooks/wizard/usePrefillContextoPricing";
 import { useDraftRestore } from "./useDraftRestore";
-import { usePrefillClienteTarifa } from "@/features/cotizacion/hooks/wizard/usePrefillClienteTarifa";
+import { permitePrecargarClienteDeFicha, usePrefillClienteTarifa } from "@/features/cotizacion/hooks/wizard/usePrefillClienteTarifa";
 import { usePrefillTarifaAerea } from "@/features/cotizacion/hooks/wizard/usePrefillTarifaAerea";
 
 function permitePrefill(id: string | null, permitePrefillProspecto: boolean, cotizacionId: string | null) {
   return Boolean(id) && permitePrefillProspecto && !cotizacionId;
-}
-
-function permitePrecargarClienteDeFicha({ params, clientes, organizationId, error, habilitado }: {
-  params: URLSearchParams;
-  clientes: { id: string }[];
-  organizationId: string | null;
-  error: boolean;
-  habilitado: boolean;
-}) {
-  const clienteId = params.get("cliente");
-  const otroContexto = ["tarifa", "tarifaAerea", "oportunidad", "plantilla"].some((clave) => params.has(clave));
-  return Boolean(organizationId) && !error && habilitado && !otroContexto && clientes.some((cliente) => cliente.id === clienteId);
 }
 
 export function useNuevaCotizacionPageController() {

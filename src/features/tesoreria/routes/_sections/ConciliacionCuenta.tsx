@@ -149,9 +149,7 @@ export function ConciliacionCuenta({ cuentaId: cuentaSolicitada, cambiarCuenta }
             moneda={moneda} alias={alias} />
         ) : <div className="grid lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 space-y-1">
-            <div className="text-body-sm text-muted-foreground px-1 flex justify-between">
-              <span>{movs.length} movimientos · {alias}</span>
-            </div>
+            <p className="px-1 text-body-sm text-muted-foreground">{movs.length} movimientos · {alias}</p>
             <VirtualDataTable
               columns={columns}
               data={movs}
