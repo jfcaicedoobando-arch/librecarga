@@ -9,7 +9,7 @@ vi.mock("@/features/catalogos/hooks/useNavieras", () => ({
   useNavieras: vi.fn(),
 }));
 
-vi.mock("@/components/shared/NavieraFormDialog", () => ({
+vi.mock("@/features/catalogos/components/NavieraFormDialog", () => ({
   NavieraFormDialog: () => null,
 }));
 

@@ -1,8 +1,6 @@
 // Auto-generated barrel for hooks/shared
-// `useBitacora` y `useGlobalSearch` se reexportan desde sus features (Paso 9
-// de la auditoría: dueños movidos a auditoria/search) para no romper consumers.
+// `useBitacora` se reexporta desde auditoria por compatibilidad.
 export * from '@/features/auditoria/hooks/useBitacora';
-export * from '@/features/search/hooks/useGlobalSearch';
 export * from './useDebounce';
 export * from './useFiltroUrl';
 export * from './useListPageState';

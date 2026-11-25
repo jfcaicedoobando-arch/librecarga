@@ -9,7 +9,7 @@ import { useAllNavieras, useAdminNavieras } from "@/features/catalogos/hooks";
 import { CatalogListPanel } from "./CatalogListPanel";
 import { normalizarBusqueda } from "@/lib/text/normalizarBusqueda";
 import { defineColumns, type ColumnDef } from "@/components/shared/DataTable";
-import { NavieraFormDialog } from "@/components/shared/NavieraFormDialog";
+import { NavieraFormDialog } from "@/features/catalogos";
 import DoubleConfirmDeleteDialog from "@/components/shared/DoubleConfirmDeleteDialog";
 import type { Naviera } from "@/features/catalogos/services";
 import { usePermissions } from "@/hooks/shared";

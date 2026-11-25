@@ -1,20 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-vi.mock("@/features/cotizacion/services/envios", () => ({
-  esContactoProveedor: (c: { tipo?: string }) =>
-    c?.tipo === "proveedor" || c?.tipo === "shipper",
-  CLIENTE_PRINCIPAL_ID: "__cliente_principal__",
-}));
-
 import { DestinatariosPicker } from "../DestinatariosPicker";
 
 const contactoCliente = {
-  id: "c1",
+  id: "__cliente_principal__",
   nombre: "Juan",
   contacto: "Juan",
   email: "juan@cliente.com",
-  tipo: "principal",
+  tipo: "Cliente",
 };
 const contactoProveedor = {
   id: "p1",
@@ -28,7 +22,7 @@ function make(overrides: Partial<React.ComponentProps<typeof DestinatariosPicker
   const props = {
     contactos: [contactoCliente, contactoProveedor],
     loadingContactos: false,
-    seleccionados: { c1: true },
+    seleccionados: { [contactoCliente.id]: true },
     onToggle: vi.fn(),
     ...overrides,
   };
@@ -36,11 +30,16 @@ function make(overrides: Partial<React.ComponentProps<typeof DestinatariosPicker
 }
 
 describe("DestinatariosPicker", () => {
-  it("renderiza contactos cliente y oculta proveedores/shippers", () => {
-    make();
-    expect(screen.getByText("juan@cliente.com")).toBeInTheDocument();
-    expect(screen.queryByText("prov@x.com")).not.toBeInTheDocument();
-  });
+  it.each(["Proveedor", "Shipper", "Exportador", "Fabricante"])(
+    "renderiza el correo principal y oculta contactos de tipo %s",
+    (tipo) => {
+      make({ contactos: [contactoCliente, { ...contactoProveedor, tipo }] });
+      expect(screen.getByText("Email principal del cliente")).toBeInTheDocument();
+      expect(screen.getByText("juan@cliente.com")).toBeInTheDocument();
+      expect(screen.getByRole("checkbox")).toBeChecked();
+      expect(screen.queryByText("prov@x.com")).not.toBeInTheDocument();
+    },
+  );
 
   it("muestra loading y no renderiza cuando la lista está vacía", () => {
     const { unmount } = make({ contactos: [], loadingContactos: true });

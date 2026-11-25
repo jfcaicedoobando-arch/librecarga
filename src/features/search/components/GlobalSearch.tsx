@@ -9,12 +9,13 @@ import {
   CommandInput,
   CommandList,
 } from "@/components/ui/command";
-import { useGlobalSearch, type GlobalSearchResult } from "@/hooks/shared";
-import { useRecentPages } from "@/hooks/shared";
+import { useGlobalSearch } from "../hooks/useGlobalSearch";
+import type { GlobalSearchResult } from "@/types/search";
+import { useRecentPages } from "@/hooks/shared/useRecentPages";
 import { useDebouncedValue } from "@/lib/hooks";
 import { trackNavEvent } from "@/services/observability";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { buscarPaginas } from "@/features/search/domain/paginas";
+import { buscarPaginas } from "../domain/paginas";
 import {
   GlobalSearchAtajos,
   GlobalSearchCargando,

@@ -19,7 +19,7 @@ vi.mock('@/features/catalogos/hooks/useTipoCambioDof', () => ({
   useHistorialTcDof:() => state.query,useUpsertTcDofManual:() => mutation,
 }));
 vi.mock('@/features/admin/hooks', () => ({usePlanes:() => state.query,useUpdatePlan:() => mutation}));
-vi.mock('@/components/shared/NavieraFormDialog', () => ({NavieraFormDialog:() => null}));
+vi.mock('@/features/catalogos', () => ({NavieraFormDialog:() => null}));
 vi.mock('@/components/shared/DoubleConfirmDeleteDialog', () => ({default:() => null}));
 vi.mock('@/components/shared/FormField', () => ({FormField:({label,children}:{label:string;children:ReactNode}) => <label>{label}{children}</label>}));
 vi.mock('@/components/ui/date-picker-mx', () => ({DatePickerMx:() => <input aria-label='Fecha'/>}));

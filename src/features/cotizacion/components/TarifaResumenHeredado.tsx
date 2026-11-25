@@ -13,7 +13,7 @@ import { Pencil, Lock, Info } from "lucide-react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HeredadoBadge } from "@/components/shared/HeredadoBadge";
-import { CartaGarantiaBadge } from "@/components/shared/CartaGarantiaBadge";
+import { CartaGarantiaBadge } from "@/features/costeo";
 import TarifaResumenHeredadoEditMode from "./TarifaResumenHeredadoEditMode";
 import { usePermissions } from "@/hooks/shared/usePermissions";
 import type { CotizacionFormValues } from "@/features/cotizacion/types";

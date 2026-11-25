@@ -9,12 +9,13 @@
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { type Contacto } from "@/hooks/emails";
-import { CLIENTE_PRINCIPAL_ID, esContactoProveedor } from "@/features/cotizacion/services/envios";
+import {
+  CLIENTE_PRINCIPAL_ID, esContactoProveedor, type ContactoClienteEmail,
+} from "@/lib/domain/contactoClienteEmail";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 
 interface Props {
-  contactos: Contacto[];
+  contactos: ContactoClienteEmail[];
   loadingContactos: boolean;
   seleccionados: Record<string, boolean>;
   onToggle: (id: string, v: boolean) => void;
@@ -23,7 +24,7 @@ interface Props {
 function ContactoRow({
   c, checked, onToggle,
 }: {
-  c: Contacto; checked: boolean; onToggle: (v: boolean) => void;
+  c: ContactoClienteEmail; checked: boolean; onToggle: (v: boolean) => void;
 }) {
   const esPrincipal = c.id === CLIENTE_PRINCIPAL_ID;
   return (

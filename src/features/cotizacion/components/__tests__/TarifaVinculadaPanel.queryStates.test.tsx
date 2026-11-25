@@ -11,7 +11,7 @@ import type { TopTarifaRow } from "@/features/costeo/types";
 
 vi.mock("@/features/cotizacion/services/tarifaVinculada", () => ({ fetchTarifaVinculada: vi.fn() }));
 vi.mock("@/features/catalogos/hooks", () => ({ useTiposContenedor: () => ({ data: [] }) }));
-vi.mock("@/features/costeo", () => ({ destinoDe: vi.fn(), origenDe: vi.fn(), etiquetaRutaCompleta: () => "Ruta ficticia" }));
+vi.mock("@/features/costeo", () => ({ CartaGarantiaBadge: () => null, destinoDe: vi.fn(), origenDe: vi.fn(), etiquetaRutaCompleta: () => "Ruta ficticia" }));
 vi.mock("@/features/costeo/components/BuscarTarifaDialog", () => ({ BuscarTarifaDialog: () => null }));
 vi.mock("@/features/catalogos", () => ({ claveIdentidadCatalogo: vi.fn() }));
 vi.mock("../TarifaResumenHeredado", () => ({ default: () => null }));

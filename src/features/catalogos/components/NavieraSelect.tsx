@@ -10,7 +10,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useNavieras } from "@/features/catalogos/hooks/useNavieras";
-import { NavieraFormDialog } from "@/components/shared/NavieraFormDialog";
+import { NavieraFormDialog } from "./NavieraFormDialog";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { usePermissions } from "@/hooks/shared";
 

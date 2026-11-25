@@ -4,7 +4,7 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { defineColumns, type ColumnDef } from "@/components/shared/DataTable";
-import { CartaGarantiaBadge } from "@/components/shared/CartaGarantiaBadge";
+import { CartaGarantiaBadge } from "../components/CartaGarantiaBadge";
 import { COL_W } from "@/components/shared/dataTable/columnWidths";
 import { Settings2 } from "lucide-react";
 import type { FilaNaviera } from "@/features/costeo/types/filaNaviera";

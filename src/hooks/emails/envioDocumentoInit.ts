@@ -7,10 +7,9 @@
 import {
   esContactoPrioridadCliente,
   CLIENTE_PRINCIPAL_ID,
+  EMAIL_RE,
   type ContactoClienteEmail,
-} from "@/features/cotizacion/services/envios";
-
-export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+} from "@/lib/domain/contactoClienteEmail";
 
 export interface PrecargaEnvio {
   precargaCc: string[];

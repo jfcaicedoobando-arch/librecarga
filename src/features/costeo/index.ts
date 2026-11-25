@@ -20,6 +20,7 @@ export type { FilaConPuertos, PuertoIdentidad } from "./utils/puertoLabel";
 export { esTarifaUsableEn, resolverEstadoVigenciaTarifa } from "./utils/vigenciaTarifa";
 export type { EstadoCanonicoTarifa, TarifaVigenciaLike } from "./utils/vigenciaTarifa";
 export { TarifaForm } from "./components/TarifaForm";
+export { CartaGarantiaBadge } from "./components/CartaGarantiaBadge";
 export { NuevaTarifaMultimodoDialog } from "./tarifario/multimodo/NuevaTarifaMultimodoDialog";
 export { TIPOS_UNIDAD } from "./domain/tarifaMultimodo";
 

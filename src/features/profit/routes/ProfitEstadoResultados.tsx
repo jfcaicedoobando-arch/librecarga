@@ -29,7 +29,7 @@ import { ErrorState } from "@/components/shared/states/ErrorState";
 import { NotaCreditoSinDesgloseError } from "@/lib/financial/baseNotaCredito";
 // EC-10: el EERR devengado valúa filas sin embarque con `tcFallbackDof`
 // (estadoResultadosTc), que puede caer al TC de respaldo 17.25/18.5.
-import { TipoCambioFallbackBanner } from "@/components/shared/TipoCambioFallbackBanner";
+import { TipoCambioFallbackBanner } from "@/features/catalogos";
 
 const COPY_POR_FUENTE = {
   facturas: {

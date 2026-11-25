@@ -12,7 +12,11 @@ import { buildEstadoResultados } from "@/features/profit/domain/estadoResultados
 vi.mock("@/features/profit/hooks/useEstadoResultados", () => ({ useEstadoResultados: vi.fn() }));
 vi.mock("@/features/profit/hooks/useFuenteEerr", () => ({ useFuenteEerr: () => ({ fuente: "facturas", setFuente: vi.fn() }) }));
 vi.mock("@/features/catalogos/hooks", () => ({ useExchangeRates: () => ({ data: { esFallback: false } }) }));
-vi.mock("@/features/catalogos/services", () => ({ fetchExchangeRates: vi.fn(), EXCHANGE_RATES_FALLBACK: { usdMxn: 20, eurMxn: 22 } }));
+vi.mock("@/features/catalogos/services", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/features/catalogos/services")>(),
+  fetchExchangeRates: vi.fn(),
+  EXCHANGE_RATES_FALLBACK: { usdMxn: 20, eurMxn: 22 },
+}));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 vi.mock("@/hooks/shared", () => ({ usePdfExport: vi.fn() }));
 vi.mock("@/generators/exportCsv", () => ({ exportToCsv: vi.fn() }));

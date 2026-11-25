@@ -22,7 +22,7 @@ vi.mock("@/features/catalogos/hooks", () => ({ useTiposContenedor: () => leerTip
 vi.mock("@/features/cotizacion/hooks/useTarifaVinculada", () => ({
   useTarifaVinculada: () => ({ data: { tipo_contenedor_id: "22222222-2222-4222-8222-222222222222", tipo_contenedor_nombre: "40' High Cube" } }),
 }));
-vi.mock("@/features/costeo", () => ({ destinoDe: vi.fn(), origenDe: vi.fn(), etiquetaRutaCompleta: () => "Ningbo → Manzanillo" }));
+vi.mock("@/features/costeo", () => ({ CartaGarantiaBadge: () => null, destinoDe: vi.fn(), origenDe: vi.fn(), etiquetaRutaCompleta: () => "Ningbo → Manzanillo" }));
 vi.mock("@/features/costeo/components/BuscarTarifaDialog", () => ({ BuscarTarifaDialog: () => null }));
 vi.mock("../TarifaResumenHeredado", () => ({ default: () => null }));
 vi.mock("../seccionRuta/SugerenciasTarifaInline", () => ({ default: () => null }));

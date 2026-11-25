@@ -5,21 +5,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import {
-  fetchContactosClienteConEmail,
-  type ContactoClienteEmail,
-} from "@/features/cotizacion/services/envios";
+import { fetchContactosClienteConEmail } from "@/services/emails/contactosCliente";
+import { EMAIL_RE, type ContactoClienteEmail } from "@/lib/domain/contactoClienteEmail";
 import { queryKeys } from "@/lib/query";
-import {
-  EMAIL_RE,
-  computeInitialPrecarga,
-} from "@/hooks/emails/envioDocumentoInit";
+import { computeInitialPrecarga } from "@/hooks/emails/envioDocumentoInit";
 import {
   computeDestinatarios,
   computeCcEmails,
 } from "@/hooks/emails/envioDocumentoDerivados";
 export type Contacto = ContactoClienteEmail;
-export { EMAIL_RE } from "@/hooks/emails/envioDocumentoInit";
+export { EMAIL_RE } from "@/lib/domain/contactoClienteEmail";
 const EMPTY_CONTACTOS: readonly Contacto[] = Object.freeze([]);
 
 export interface EnvioFormState {
