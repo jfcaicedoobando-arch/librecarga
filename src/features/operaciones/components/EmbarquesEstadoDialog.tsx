@@ -1,9 +1,9 @@
 import { useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import { Badge } from "@/components/ui/badge";
-import { Search, AlertTriangle, Ship } from "lucide-react";
+import { AlertTriangle, Search, Ship } from "lucide-react";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 
 import { nombreDesdeEmail } from "@/lib/formatters";
@@ -79,19 +79,15 @@ export function EmbarquesEstadoDialog({ open, onOpenChange, operador, estado, bu
       size="3xl"
       footer={footer}
     >
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          ref={buscador}
-          aria-label="Buscar por expediente o cliente"
-          aria-describedby={truncated ? alcanceId : undefined}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por expediente o cliente…"
-          className="pl-9"
-          autoFocus
-        />
-      </div>
+      <SearchInput
+        ref={buscador}
+        aria-label="Buscar por expediente o cliente"
+        aria-describedby={truncated ? alcanceId : undefined}
+        value={search}
+        onChange={setSearch}
+        placeholder="Buscar por expediente o cliente…"
+        autoFocus
+      />
 
       {truncated && (
         <div id={alcanceId} className="flex items-start gap-2 text-xs text-warning bg-warning/10 border border-warning/30 rounded-md p-2">

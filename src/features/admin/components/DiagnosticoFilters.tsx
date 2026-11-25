@@ -2,7 +2,7 @@
  * DiagnosticoFilters — Controles de filtrado para `/admin/diagnostico`.
  * Sin lógica de datos: sólo recibe valores y callbacks.
  */
-import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
 import { Label } from "@/components/ui/label";
 import {
@@ -50,10 +50,10 @@ export function DiagnosticoFilters({
     <div className="grid grid-cols-1 gap-3 rounded-md border bg-card p-4 md:grid-cols-6">
       <div className="md:col-span-2">
         <Label htmlFor="diag-search">Buscar en mensaje</Label>
-        <Input
+        <SearchInput
           id="diag-search"
           value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={onSearchChange}
           placeholder="texto contenido en msg…"
         />
       </div>

@@ -5,8 +5,8 @@
  * operador sabe de qué expediente es el dinero adelantado.
  */
 import { useState } from "react";
-import { Loader2, Search, X, Ship } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Loader2, X, Ship } from "lucide-react";
+import SearchInput from "@/components/shared/SearchInput";
 import { Badge } from "@/components/ui/badge";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Button } from "@/components/ui/button";
@@ -57,16 +57,13 @@ export function EmbarqueAnticipoPicker({ value, expediente, onChange }: Props) {
 
   return (
     <div className="space-y-2">
-      <div className="relative">
-        <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={term}
-          onChange={(e) => setTerm(e.target.value)}
-          placeholder="Buscar por expediente, BL o cliente…"
-          className="h-9 pl-8"
-          aria-label="Buscar embarque para el anticipo"
-        />
-      </div>
+      <SearchInput
+        value={term}
+        onChange={setTerm}
+        placeholder="Buscar por expediente, BL o cliente…"
+        aria-label="Buscar embarque para el anticipo"
+        inputClassName="md:h-9"
+      />
 
       {estado === "cargando" && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">

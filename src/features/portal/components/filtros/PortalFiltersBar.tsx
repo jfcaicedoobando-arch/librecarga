@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
-import { Search, Filter } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Filter } from "lucide-react";
+import SearchInput from "@/components/shared/SearchInput";
 import {
   Select,
   SelectContent,
@@ -62,16 +62,13 @@ export function PortalFiltersBar({
         className,
       )}
     >
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          aria-label={searchPlaceholder ?? "Buscar"}
-          placeholder={searchPlaceholder}
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+      <SearchInput
+        aria-label={searchPlaceholder ?? "Buscar"}
+        placeholder={searchPlaceholder}
+        value={search}
+        onChange={onSearchChange}
+        className="flex-1"
+      />
       {selects.map((s, i) => (
         <Select key={i} value={s.value} onValueChange={s.onChange}>
           <SelectTrigger
