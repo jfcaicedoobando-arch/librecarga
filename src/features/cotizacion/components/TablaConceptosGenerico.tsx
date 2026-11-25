@@ -41,7 +41,7 @@ export default function TablaConceptosGenerico({ moneda, conceptos, subtotal, iv
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">
+        <CardTitle>
           Conceptos en {moneda}{hayIva ? " + IVA" : ""}
         </CardTitle>
       </CardHeader>

@@ -11,7 +11,7 @@ import { PageContainer } from "@/components/shared/PageContainer";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DoubleConfirmDeleteDialog from "@/components/shared/DoubleConfirmDeleteDialog";
 import {
@@ -80,13 +80,13 @@ export default function CotizacionPlantillas() {
       />
 
       <Card>
-        <CardContent className="p-4 space-y-4">
+        <CardContent density="compact" className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-            <Input
+            <SearchInput
               placeholder="Buscar por nombre o descripción…"
               value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="max-w-xs"
+              onChange={setBusqueda}
+              className="w-full md:max-w-xs"
               aria-label="Buscar plantilla"
             />
             <Select value={filtroVis} onValueChange={(v) => setFiltroVis(v as FiltroVis)}>

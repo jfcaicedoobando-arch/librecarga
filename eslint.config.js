@@ -808,7 +808,6 @@ export default tseslint.config(
   "src/features/anticipos-proveedor/components/AnticiposAplicadosSection.tsx",
   "src/features/compras/routes/_sections/ConciliacionDetalleCuerpoTabla.tsx",
   "src/features/compras/routes/_sections/ConciliacionDetalleFilaRenglon.tsx",
-  "src/features/cotizacion/components/plantillas/PlantillasTabla.tsx",
   "src/features/cotizacion/components/revalidacion/RevalidarTarifaModal.tsx",
   "src/features/cotizacion/routes/CotizacionInformativaDetalle.tsx",
   "src/features/crm/components/ImportarLeadsCsvPreview.tsx",

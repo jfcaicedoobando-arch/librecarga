@@ -52,7 +52,7 @@ export default function TablaCostosDetalle({ filas, filasMoneda, moneda, title, 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">{icon} {title}</CardTitle>
+        <CardTitle className="flex items-center gap-2">{icon} {title}</CardTitle>
       </CardHeader>
       <CardContent>
         <CostosCotizacionMobile filas={filasMoneda} moneda={moneda} canEdit={canEdit} onUpdate={(idx, field, value) => onUpdate(getGlobalIndex(filas, moneda, idx), field, value)} />

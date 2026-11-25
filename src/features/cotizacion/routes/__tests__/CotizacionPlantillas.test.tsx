@@ -9,6 +9,12 @@ import { MemoryRouter, useLocation } from "react-router";
 import type { ReactNode } from "react";
 import CotizacionPlantillas from "@/features/cotizacion/routes/CotizacionPlantillas";
 
+const viewport = vi.hoisted(() => ({ mobile: false }));
+vi.mock("@/hooks/shared", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/hooks/shared")>(),
+  useIsMobile: () => viewport.mobile,
+}));
+
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 vi.mock("@/lib/contexts/OrganizationContext", () => ({
@@ -82,12 +88,25 @@ function UbicacionActual() {
   return <output>{pathname}{search}</output>;
 }
 
-describe("CotizacionPlantillas página (P2 cierre)", () => {
-  beforeEach(() => vi.clearAllMocks());
+describe.each([
+  { nombre: "escritorio", mobile: false },
+  { nombre: "móvil", mobile: true },
+])("CotizacionPlantillas en $nombre", ({ mobile }) => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    viewport.mobile = mobile;
+  });
 
   it("renderiza las plantillas de la organización", async () => {
     render(<CotizacionPlantillas />, { wrapper });
     expect(await screen.findByText("Shanghai → MZLO")).toBeInTheDocument();
+    if (mobile) {
+      expect(screen.getAllByRole("article")).toHaveLength(2);
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    } else {
+      expect(screen.getByRole("table")).toBeInTheDocument();
+      expect(screen.queryByRole("article")).not.toBeInTheDocument();
+    }
     expect(screen.getByText("Nueva particular")).toBeInTheDocument();
   });
 
@@ -109,7 +128,7 @@ describe("CotizacionPlantillas página (P2 cierre)", () => {
     render(<CotizacionPlantillas />, { wrapper });
     await screen.findByText("Shanghai → MZLO");
 
-    fireEvent.change(screen.getByPlaceholderText(/buscar/i), {
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar plantilla" }), {
       target: { value: "Nueva" },
     });
 
@@ -126,5 +145,27 @@ describe("CotizacionPlantillas página (P2 cierre)", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: "Usar en cotización" }));
 
     expect(screen.getByText("/cotizaciones/nueva?plantilla=p2")).toBeInTheDocument();
+  });
+
+  it("abre el diálogo de edición para la plantilla elegida", async () => {
+    render(<CotizacionPlantillas />, { wrapper });
+    const menu = await screen.findByRole("button", { name: "Acciones Nueva particular" });
+    fireEvent.keyDown(menu, { key: "Enter" });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Editar" }));
+
+    expect(await screen.findByRole("dialog", { name: "Editar plantilla" })).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Nueva particular")).toBeInTheDocument();
+  });
+
+  it("conserva la doble confirmación al eliminar", async () => {
+    render(<CotizacionPlantillas />, { wrapper });
+    const menu = await screen.findByRole("button", { name: "Acciones Nueva particular" });
+    fireEvent.keyDown(menu, { key: "Enter" });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Eliminar" }));
+
+    expect(await screen.findByRole("alertdialog", { name: "¿Eliminar Nueva particular?" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(await screen.findByRole("alertdialog", { name: "Confirmar eliminación" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Eliminar" })).toBeDisabled();
   });
 });
