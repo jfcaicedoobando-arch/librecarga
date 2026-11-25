@@ -13,7 +13,7 @@ import { useNavigate } from "react-router";
 import { useToast } from "@/hooks/shared";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { useRegistrarActividad } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import {
   useCreateEmbarque,
   type ExpedienteCliente,

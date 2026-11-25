@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { exportToCsv } from "@/generators/exportCsv";
 import { exportarLayoutContable } from "@/generators/layoutContable";
-import { useRegistrarActividad } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
 import { todayLocalISO } from "@/lib/date/today";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/ui/appFeedback";

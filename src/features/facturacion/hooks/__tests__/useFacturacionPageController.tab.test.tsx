@@ -18,10 +18,10 @@ vi.mock("@/hooks/shared", () => ({
     setSearch: vi.fn(), setFilter: vi.fn(), setPage: vi.fn(), setPageSize: vi.fn(),
   }),
   useDebounce: <T,>(v: T) => v,
-  useRegistrarActividad: () => ({ mutate: vi.fn() }),
   useToast: () => ({ toast: vi.fn() }),
   usePermissions: () => ({ canEdit: true }),
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: vi.fn() }) }));
 
 import { useFacturacionPageController } from "../useFacturacionPageController";
 

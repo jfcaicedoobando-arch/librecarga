@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useRegistrarActividad } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { getErrorMessage } from "@/lib/errors";
 import {
   useAvanzarEstadoEmbarque,

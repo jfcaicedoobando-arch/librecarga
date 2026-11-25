@@ -29,8 +29,8 @@ vi.mock("@/features/facturacion/hooks", () => ({
 }));
 vi.mock("@/hooks/shared", () => ({
   useToast: () => ({ toast: vi.fn() }),
-  useRegistrarActividad: () => ({ mutate: registrarActividadMutate }),
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: registrarActividadMutate }) }));
 vi.mock("@/lib/formatters", () => ({
   formatCurrency: (n: number, m: string) => `${m} ${n}`,
 }));

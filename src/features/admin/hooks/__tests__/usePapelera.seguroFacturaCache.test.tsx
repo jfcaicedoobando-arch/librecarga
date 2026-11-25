@@ -42,6 +42,18 @@ describe("restauración refresca las lecturas relacionadas con seguro", () => {
     await act(async () => { await result.current.restore.mutateAsync("registro-a"); });
     for (const key of cache.afectadas) expect(cache.client.getQueryState(key)?.isInvalidated).toBe(false);
   });
+  it.each(["clientes", "contactos_cliente"] as const)("restaurar %s refresca contactos y destinatarios", async (tabla) => {
+    const ficha = ["contactos_cliente", "registro-a"];
+    const correo = [...ficha, "para-correo", "usuario", "org", "admin_org", 1];
+    const otro = ["contactos_cliente", "otro-cliente"];
+    for (const key of [ficha, correo, otro]) cache.client.setQueryData(key, []);
+    const { result } = renderHook(() => usePapelera(false), { wrapper });
+    act(() => result.current.setTabla(tabla));
+    await act(async () => { await result.current.restore.mutateAsync("registro-a"); });
+    expect(cache.client.getQueryState(ficha)?.isInvalidated).toBe(true);
+    expect(cache.client.getQueryState(correo)?.isInvalidated).toBe(true);
+    expect(cache.client.getQueryState(otro)?.isInvalidated).toBe(tabla === "contactos_cliente");
+  });
   it("una restauración rechazada conserva la caché", async () => {
     svc.restore.mockRejectedValue(new Error("No se restauró"));
     const { result } = renderHook(() => usePapelera(false), { wrapper });

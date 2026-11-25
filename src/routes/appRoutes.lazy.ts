@@ -4,7 +4,20 @@
  */
 import { lazy } from "react";
 
-export const Dashboard = lazy(() => import("@/features/dashboard/routes/Dashboard"));
+const rutasFrecuentes = {
+  Embarques: () => import("@/features/embarques/routes/Embarques"),
+  Cotizaciones: () => import("@/features/cotizacion/routes/Cotizaciones"),
+  Dashboard: () => import("@/features/dashboard/routes/Dashboard"),
+  Clientes: () => import("@/features/cliente/routes/Clientes"),
+  Proveedores: () => import("@/features/proveedor/routes/Proveedores"),
+  Facturacion: () => import("@/features/facturacion/routes/Facturacion"),
+};
+
+export function precargarRutasFrecuentes() {
+  for (const cargar of Object.values(rutasFrecuentes)) void cargar();
+}
+
+export const Dashboard = lazy(rutasFrecuentes.Dashboard);
 export const Operaciones = lazy(() => import("@/features/operaciones/routes/Operaciones"));
 export const Reportes = lazy(() => import("@/features/reportes/routes/Reportes"));
 export const ReportesCartera = lazy(() => import("@/features/reportes/cartera/routes/ReportesCartera"));
@@ -16,12 +29,12 @@ export const Idempotencia = lazy(() => import("@/features/admin/routes/Idempoten
 export const Auditoria = lazy(() => import("@/features/auditoria/routes/AuditoriaPage"));
 export const SentryDiagnostico = lazy(() => import("@/features/admin/routes/SentryDiagnostico"));
 
-export const Embarques = lazy(() => import("@/features/embarques/routes/Embarques"));
+export const Embarques = lazy(rutasFrecuentes.Embarques);
 export const EmbarqueDetalle = lazy(() => import("@/features/embarques/routes/EmbarqueDetalle"));
 export const NuevoEmbarque = lazy(() => import("@/features/embarques/routes/NuevoEmbarque"));
 export const EditarEmbarque = lazy(() => import("@/features/embarques/routes/EditarEmbarque"));
 
-export const Cotizaciones = lazy(() => import("@/features/cotizacion/routes/Cotizaciones"));
+export const Cotizaciones = lazy(rutasFrecuentes.Cotizaciones);
 export const NuevaCotizacion = lazy(() => import("@/features/cotizacion/routes/NuevaCotizacion"));
 export const NuevaCotizacionInformativa = lazy(() => import("@/features/cotizacion/routes/NuevaCotizacionInformativa"));
 export const CotizacionDetalle = lazy(() => import("@/features/cotizacion/routes/CotizacionDetalle"));
@@ -29,11 +42,11 @@ export const EditarCotizacion = lazy(() => import("@/features/cotizacion/routes/
 export const CotizacionPlantillas = lazy(() => import("@/features/cotizacion/routes/CotizacionPlantillas"));
 export const PdfPreviewCotizacion = lazy(() => import("@/features/dev/routes/PdfPreviewCotizacion"));
 
-export const Clientes = lazy(() => import("@/features/cliente/routes/Clientes"));
+export const Clientes = lazy(rutasFrecuentes.Clientes);
 export const ClienteDetalle = lazy(() => import("@/features/cliente/routes/ClienteDetalle"));
-export const Proveedores = lazy(() => import("@/features/proveedor/routes/Proveedores"));
+export const Proveedores = lazy(rutasFrecuentes.Proveedores);
 export const ProveedorDetalle = lazy(() => import("@/features/proveedor/routes/ProveedorDetalle"));
-export const Facturacion = lazy(() => import("@/features/facturacion/routes/Facturacion"));
+export const Facturacion = lazy(rutasFrecuentes.Facturacion);
 export const FacturaDetalle = lazy(() => import("@/features/facturacion/routes/FacturaDetalle"));
 export const EstadoCuentaInterno = lazy(() => import("@/features/facturacion/estadoCuenta/routes/EstadoCuentaInterno"));
 export const ProformaDetalle = lazy(() => import("@/features/proformas/routes/ProformaDetalle"));

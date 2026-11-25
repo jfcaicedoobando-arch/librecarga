@@ -21,7 +21,6 @@
  *   - info      → sonner.info ("Ver detalles" si hay debug)
  */
 import { toast as sonnerToast } from "sonner";
-import { STEP_LABELS } from "@/features/embarques/domain/embarqueWizardConstants";
 import { buildErrorReport } from "./errorReport";
 import { openErrorReport, rememberErrorReport, offerErrorRecovery } from "@/lib/diagnostics/errorDetailsStore";
 import { reportCaughtError } from "@/lib/observability/reportCaughtError";
@@ -43,10 +42,10 @@ export * from "./appFeedback.sentry";
 /** Emite un toast bloqueante (error) con payload de debug copiable. */
 /** Título por defecto del toast de error según paso/fase (extraído para
  *  mantener `notifyError` bajo el límite de complejidad del linter). */
-function tituloPorDefecto(step: number | undefined, phase: string | undefined): string {
+function tituloPorDefecto(step: number | undefined, stepLabel: string | undefined, phase: string | undefined): string {
   if (typeof step === "number") {
-    const label = STEP_LABELS[step] ?? `Paso ${step}`;
-    return `Revisa el Paso ${step}: ${label}`;
+    const label = sanitizeToastText(stepLabel);
+    return label ? `Revisa el Paso ${step}: ${label}` : `Revisa el Paso ${step}`;
   }
   if (phase) return `Error: ${phase}`;
   return "Error";
@@ -89,7 +88,7 @@ function originalDescription(opts: ErrorNotifyOptions): string | undefined {
 
 export function notifyError(_toast: AnyToastFn | undefined, opts: ErrorNotifyOptions) {
   const {
-    step, phase, errors, title, error, context,
+    step, stepLabel, phase, errors, title, error, context,
     errorCode, method, payload, requestId,
   } = opts;
   // R-07: nunca imprimimos HTML crudo (páginas de error de proxy) en el toast.
@@ -111,7 +110,7 @@ export function notifyError(_toast: AnyToastFn | undefined, opts: ErrorNotifyOpt
 
   // R-07: el título también puede venir de `err.message` con HTML crudo.
   const computedTitle =
-    sanitizeToastText(title) ?? tituloPorDefecto(step, phase);
+    sanitizeToastText(title) ?? tituloPorDefecto(step, stepLabel, phase);
 
   const debug = buildErrorReport({
     title: title ?? computedTitle,

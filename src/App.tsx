@@ -11,6 +11,7 @@ import { RouteScrollReset } from "./components/layout/RouteScrollReset";
 import { BreadcrumbProvider } from "./lib/contexts/BreadcrumbContext";
 
 import { AppRoutes } from "./routes";
+import { PrecargaRutasFrecuentes } from "./routes/PrecargaRutasFrecuentes";
 import { DemoModeBanner } from "@/features/marketing/components/DemoModeBanner";
 import { useRadixPointerEventsRescue } from "@/hooks/shared";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
@@ -56,6 +57,7 @@ const App = () => {
       <Toaster />
       <ErrorDetailsDialog />
       <BrowserRouter>
+        <PrecargaRutasFrecuentes />
         <RouteToastCleanup />
         <RouteScrollReset />
         <NuqsAdapter>

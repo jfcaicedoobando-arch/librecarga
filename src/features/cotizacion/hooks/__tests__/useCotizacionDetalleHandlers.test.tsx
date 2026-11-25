@@ -42,8 +42,8 @@ const {
 vi.mock("react-router", () => ({ useNavigate: () => navigateMock }));
 vi.mock("@/hooks/shared", () => ({
   useToast: () => ({ toast: toastFn }),
-  useRegistrarActividad: () => ({ mutate: registrarActividadMutate }),
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: registrarActividadMutate }) }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({

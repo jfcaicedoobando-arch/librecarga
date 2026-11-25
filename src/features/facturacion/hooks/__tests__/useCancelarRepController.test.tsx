@@ -27,7 +27,7 @@ vi.mock("@/features/facturacion/hooks", () => ({
   })),
 }));
 
-vi.mock("@/hooks/shared", () => ({
+vi.mock("@/features/auditoria", () => ({
   useRegistrarActividad: vi.fn(() => ({
     mutate: registrarActividadMutate,
   })),

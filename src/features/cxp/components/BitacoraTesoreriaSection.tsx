@@ -10,7 +10,7 @@
 import { useMemo, useState } from "react";
 import { ListSkeleton } from "@/components/shared/states/ListSkeleton";
 import { SectionHeading } from "@/components/shared/SectionHeading";
-import { useBitacora } from "@/features/auditoria/hooks/useBitacora";
+import { useBitacora } from "@/features/auditoria";
 import { useCuentasBancarias } from "@/features/tesoreria";
 import { BitacoraTesoreriaFila } from "./BitacoraTesoreriaSection.fila";
 import { BitacoraTesoreriaToolbar } from "./BitacoraTesoreriaToolbar";

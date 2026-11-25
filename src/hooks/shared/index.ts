@@ -1,6 +1,4 @@
 // Auto-generated barrel for hooks/shared
-// `useBitacora` se reexporta desde auditoria por compatibilidad.
-export * from '@/features/auditoria/hooks/useBitacora';
 export * from './useDebounce';
 export * from './useFiltroUrl';
 export * from './useListPageState';

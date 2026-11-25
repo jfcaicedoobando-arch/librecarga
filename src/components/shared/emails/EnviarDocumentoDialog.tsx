@@ -2,7 +2,7 @@
  * Diálogo de correo con destinatarios y copias editables.
  * La copia automática se limita a contactos registrados cuando el flujo lo exige.
  */
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,12 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Send } from "lucide-react";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
-import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
+import { captureAuthDataScope } from "@/lib/auth/authOperationScope";
+import { getSessionCacheGeneration, subscribeSessionCacheGeneration } from "@/lib/auth/sessionCacheRegistry";
 import {
   useEnvioDocumentoForm,
   type EnvioFormState,
 } from "@/hooks/emails";
-import { DestinatariosPicker } from "@/components/shared/emails/DestinatariosPicker";
+import { ContactosEnvio } from "./ContactosEnvio";
 import { EmailChipsField } from "@/components/shared/emails/EmailChipsField";
 import { useEnvioChips } from "@/components/shared/emails/useEnvioChips";
 
@@ -46,16 +47,25 @@ interface Props {
   onEnviar: (payload: EnviarDocumentoPayload, form: EnvioFormState) => Promise<void> | void;
 }
 
-export function EnviarDocumentoDialog({
+export function EnviarDocumentoDialog(props: Props) {
+  const generation = useSyncExternalStore(
+    subscribeSessionCacheGeneration, getSessionCacheGeneration, getSessionCacheGeneration,
+  );
+  const scope = captureAuthDataScope();
+  return <EnviarDocumentoForm key={JSON.stringify([props.clienteId, generation])} {...props} scope={scope} />;
+}
+
+function EnviarDocumentoForm({
   open, onOpenChange, clienteId, titulo, descripcion,
   buildAsuntoInicial, mostrarMarcarEnviada, labelMarcarEnviada,
   labelBotonEnviar = "Enviar", labelBotonReenviar = "Reenviar",
-  esReenvio, loading, ccInicial, destinatariosInicial, soloContactosRegistrados, onEnviar,
-}: Props) {
+  esReenvio, loading, ccInicial, destinatariosInicial, soloContactosRegistrados, onEnviar, scope,
+}: Props & { scope: ReturnType<typeof captureAuthDataScope> }) {
   const form = useEnvioDocumentoForm(open, clienteId, buildAsuntoInicial, {
     ccInicial,
     destinatariosManualesInicial: destinatariosInicial,
     copiaSoloContacto: soloContactosRegistrados,
+    scope,
   });
   const permitidos = useMemo(() => soloContactosRegistrados
     ? new Set(form.contactos.map(({ email }) => email.trim().toLowerCase()))
@@ -67,7 +77,7 @@ export function EnviarDocumentoDialog({
     && !(soloContactosRegistrados && contactosNoDisponibles) && !hayCorreosInvalidos;
 
   const handleSubmit = async () => {
-    if (!puedeEnviar) return;
+    if (!puedeEnviar || !scope.isCurrent()) return;
     await onEnviar(
       {
         destinatarios: form.destinatarios,
@@ -171,21 +181,6 @@ function ConteoDestinatarios({ destinatarios, copias }: { destinatarios: number;
       {copias > 0 && <> · {copias} en copia</>}
     </div>
   );
-}
-
-function ContactosEnvio({ form, mostrarError }: { form: EnvioFormState; mostrarError?: boolean }) {
-  if (mostrarError && form.errorContactos) {
-    return <ErrorStateInline title="No pudimos consultar los contactos"
-      message="Reintenta para comprobar los destinatarios registrados."
-      onRetry={form.reintentarContactos} />;
-  }
-
-  return <DestinatariosPicker
-    contactos={form.contactos}
-    loadingContactos={form.loadingContactos}
-    seleccionados={form.seleccionados}
-    onToggle={(id, v) => form.setSeleccionados((s) => ({ ...s, [id]: v }))}
-  />;
 }
 
 function chipCopiaPropia(email: string | null, soloContactosRegistrados?: boolean) {

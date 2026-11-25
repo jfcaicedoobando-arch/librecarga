@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type { EntradaBitacora } from "@/hooks/shared";
+import type { EntradaBitacora } from "@/types/bitacora";
 import { FilaEntrada } from "./FilaEntrada";
 
 /**

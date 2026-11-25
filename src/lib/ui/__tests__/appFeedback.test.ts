@@ -35,12 +35,17 @@ beforeEach(() => {
 });
 
 describe("appFeedback (sonner)", () => {
-  it("notifyError con step usa título 'Revisa el Paso N: <nombre>'", () => {
-    notifyError(undefined, { step: 2, errors: { puertoOrigen: "Puerto de origen: campo obligatorio." } });
+  it("incorpora la etiqueta del paso que aporta el asistente", () => {
+    notifyError(undefined, { step: 2, stepLabel: "Ruta", errors: { puertoOrigen: "Puerto de origen: campo obligatorio." } });
     expect(m.error).toHaveBeenCalledWith(
       "Revisa el Paso 2: Ruta",
       expect.objectContaining({ description: "Puerto de origen: campo obligatorio." }),
     );
+  });
+
+  it("usa un título genérico cuando recibe sólo el número de paso", () => {
+    notifyError(undefined, { step: 2 });
+    expect(m.error).toHaveBeenCalledWith("Revisa el Paso 2", expect.any(Object));
   });
 
   it("notifyError con phase usa título 'Error: <fase>'", () => {

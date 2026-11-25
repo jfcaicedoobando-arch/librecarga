@@ -3,7 +3,7 @@ import { useUpdateEmbarque } from "@/features/embarques/hooks/useEmbarques";
 import { useContactosCliente } from "@/features/cliente/hooks/useClientes";
 import { useDatosEditarEmbarque } from "./useDatosEditarEmbarque";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { useRegistrarActividad } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import {
   useConceptosForm,
   useCotizacion,
@@ -13,6 +13,7 @@ import { useEmbarqueForm } from "@/features/embarques/hooks/useEmbarqueForm";
 import { useHidratacionEditarEmbarque } from "./useHidratacionEditarEmbarque";
 import { ejecutarGuardarEmbarque } from "./useEditarEmbarqueWizard.save";
 import { validateStepRuta, type StepRutaInput, type StepValidationErrors } from "@/features/embarques/domain/embarqueWizardSchemas";
+import { STEP_LABELS } from "@/features/embarques/domain/embarqueWizardConstants";
 import { notifyError } from "@/lib/ui/appFeedback";
 import { ERROR_CODES } from "@/lib/domain/errorCatalog";
 import { useMargenMinimo } from "@/features/configuracion/hooks/useMargenMinimo";
@@ -113,7 +114,7 @@ export function useEditarEmbarqueWizard(id: string | undefined) {
     setValidationErrors((prev) => ({ ...prev, [step]: errors }));
     if (Object.keys(errors).length > 0) {
       notifyError(undefined, {
-        step, errors, method: "USE_EDITAR_EMBARQUE_WIZARD",
+        step, stepLabel: STEP_LABELS[step], errors, method: "USE_EDITAR_EMBARQUE_WIZARD",
         errorCode: ERROR_CODES.VALIDATION_FAILED,
       });
       return false;

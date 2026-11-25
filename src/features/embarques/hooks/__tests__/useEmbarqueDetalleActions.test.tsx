@@ -7,8 +7,8 @@ vi.mock("@/lib/contexts/AuthContext", () => ({
 }));
 vi.mock("@/hooks/shared", () => ({
   useToast: () => ({ toast: vi.fn() }),
-  useRegistrarActividad: () => ({ mutate: vi.fn() }),
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: vi.fn() }) }));
 vi.mock("@/services/storage/index", () => ({
   getSignedUrl: vi.fn().mockResolvedValue("https://example.com/doc.pdf"),
   uploadFile: vi.fn().mockResolvedValue({}),

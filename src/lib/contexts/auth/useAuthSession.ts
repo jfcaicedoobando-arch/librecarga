@@ -5,7 +5,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import {
   subscribeToAuthChanges,
   getCurrentSession,
-} from "@/features/auth/services";
+} from "@/features/auth/services/session";
 
 /**
  * Maneja exclusivamente la sesión Supabase: usuario, token y listener de

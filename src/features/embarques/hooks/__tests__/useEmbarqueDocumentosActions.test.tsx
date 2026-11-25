@@ -23,8 +23,8 @@ vi.mock("sonner", () => ({
 
 vi.mock("@/hooks/shared", () => ({
   useToast: () => ({ toast: toastFn }),
-  useRegistrarActividad: () => ({ mutate: registrarActividadFn }),
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: registrarActividadFn }) }));
 
 vi.mock("@/services/storage/index", () => ({
   getSignedUrl: getSignedUrlMock,

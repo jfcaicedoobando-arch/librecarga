@@ -15,6 +15,7 @@ import { useConceptosForm } from "@/features/cotizacion/hooks";
 import { useEmbarqueForm } from "@/features/embarques/hooks/useEmbarqueForm";
 import type { StepValidationErrors } from "@/features/embarques/domain/embarqueWizardSchemas";
 import { validateWizardStep } from "@/features/embarques/domain/embarqueWizardStepValidator";
+import { STEP_LABELS } from "@/features/embarques/domain/embarqueWizardConstants";
 import { notifyError } from "@/lib/ui/appFeedback";
 import { useNuevoEmbarqueExpediente } from "./useNuevoEmbarqueExpediente";
 import { useNuevoEmbarqueCotVinculada } from "./useNuevoEmbarqueCotVinculada";
@@ -75,7 +76,10 @@ export function useNuevoEmbarqueWizard() {
       setValidationErrors((prev) => ({ ...prev, [step]: errors }));
 
       if (Object.keys(errors).length > 0) {
-        notifyError(undefined, { step, errors, method: "USE_NUEVO_EMBARQUE_WIZARD", errorCode: ERROR_CODES.VALIDATION_FAILED });
+        notifyError(undefined, {
+          step, stepLabel: STEP_LABELS[step], errors,
+          method: "USE_NUEVO_EMBARQUE_WIZARD", errorCode: ERROR_CODES.VALIDATION_FAILED,
+        });
         return false;
       }
       return true;

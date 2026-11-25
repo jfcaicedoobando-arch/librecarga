@@ -5,6 +5,7 @@
 import * as Sentry from "@sentry/react";
 import { ERROR_CODES } from "@/lib/domain/errorCatalog";
 import { notifyError } from "@/lib/ui/appFeedback";
+import { STEP_LABELS } from "@/features/embarques/domain/embarqueWizardConstants";
 import { useEmbarqueSubmitOrchestrator } from "@/features/embarques/hooks/useEmbarqueSubmitOrchestrator";
 import type { useEmbarqueForm } from "@/features/embarques/hooks/useEmbarqueForm";
 import type { useConceptosForm } from "@/features/cotizacion/hooks";
@@ -51,6 +52,7 @@ export function useNuevoEmbarqueFinish(deps: FinishDeps) {
       setCurrentStep(1);
       notifyError(undefined, {
         step: 1,
+        stepLabel: STEP_LABELS[1],
         errors: { cotizacion: "Debes iniciar el embarque desde una cotización Aceptada." },
         method: "USE_NUEVO_EMBARQUE_WIZARD",
         errorCode: ERROR_CODES.VALIDATION_FAILED,

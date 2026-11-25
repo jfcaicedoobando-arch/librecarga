@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/shared";
 import { useClientesForSelect } from "@/features/cliente/hooks";
 import { useCotizacion, useUpdateCotizacion, useCreateCotizacion } from "@/features/cotizacion/hooks";
 import { useCotizacionCostos, useUpsertCotizacionCostos } from "@/features/cotizacion/hooks";
-import { useRegistrarActividad } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { usePermissions } from "@/hooks/shared";
 import { useCotizacionWizardForm } from "@/features/cotizacion/hooks";

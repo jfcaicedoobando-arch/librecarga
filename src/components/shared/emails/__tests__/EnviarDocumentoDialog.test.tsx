@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent } from "@testing-library/react";
 import { useEnvioDocumentoForm, type EnvioFormState } from "@/hooks/emails";
+import { resetSessionCaches } from "@/lib/auth/sessionCacheRegistry";
 
 const formState: EnvioFormState = {
   destinatarios: [{ email: "a@b.com" }],
@@ -30,7 +31,6 @@ const formState: EnvioFormState = {
 
 vi.mock("@/hooks/emails/useEnvioDocumentoForm", () => ({
   useEnvioDocumentoForm: vi.fn(() => formState),
-  EMAIL_RE: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
 }));
 
 vi.mock("@/components/shared/emails/DestinatariosPicker", () => ({
@@ -71,6 +71,15 @@ describe("EnviarDocumentoDialog", () => {
     render(<EnviarDocumentoDialog {...baseProps} onOpenChange={onOpenChange} />);
     fireEvent.click(screen.getByRole("button", { name: /Cancelar/ }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("reinicia el borrador montado cuando cambia el ámbito de sesión", async () => {
+    const { rerender } = render(<EnviarDocumentoDialog {...baseProps} />);
+    const mensaje = screen.getByLabelText("Mensaje (opcional)");
+    rerender(<EnviarDocumentoDialog {...baseProps} loading />);
+    expect(screen.getByLabelText("Mensaje (opcional)")).toBe(mensaje);
+    await act(async () => resetSessionCaches());
+    expect(screen.getByLabelText("Mensaje (opcional)")).not.toBe(mensaje);
   });
 
   it("muestra 'Reenviar' cuando esReenvio=true", () => {

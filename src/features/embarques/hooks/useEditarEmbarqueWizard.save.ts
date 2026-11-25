@@ -12,7 +12,7 @@ import { resolverRutaAlGuardar, buildBitacoraDetallesEdit } from "./useEditarEmb
 import type { useEmbarqueForm } from "@/features/embarques/hooks/useEmbarqueForm";
 import type { useConceptosForm } from "@/features/cotizacion/hooks";
 import type { useUpdateEmbarque, useEmbarque } from "@/features/embarques/hooks/useEmbarques";
-import type { useRegistrarActividad } from "@/hooks/shared";
+import type { useRegistrarActividad } from "@/features/auditoria";
 import type { Tables } from "@/integrations/supabase/types";
 import type { ConceptoLike } from "@/lib/domain/auditDiffConceptos";
 import { evaluarMargenMinimo } from "@/lib/domain/margenMinimo";

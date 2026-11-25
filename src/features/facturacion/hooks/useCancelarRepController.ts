@@ -12,7 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCancelarRep } from "@/features/facturacion/hooks/useTimbrarRep";
 import { useEliminarPagoFactura } from "@/features/facturacion/hooks";
 import { MOTIVOS_CANCELACION_REP } from "@/constants/catalogosSAT";
-import { useRegistrarActividad } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { queryKeys } from "@/lib/query";
 import type { MotivoCancelacionSat } from "@/features/facturacion/services/facturapi";
 

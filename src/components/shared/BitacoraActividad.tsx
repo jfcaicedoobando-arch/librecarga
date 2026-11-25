@@ -1,4 +1,4 @@
-import type { EntradaBitacora } from "@/hooks/shared";
+import type { EntradaBitacora } from "@/types/bitacora";
 import { FilaEntrada } from "./bitacora/FilaEntrada";
 import { VirtualTimeline } from "./bitacora/VirtualTimeline";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";

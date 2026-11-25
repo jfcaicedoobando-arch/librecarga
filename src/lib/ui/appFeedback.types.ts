@@ -12,6 +12,7 @@ export type AnyToastFn = (props: never) => unknown;
 
 export interface ErrorNotifyOptions {
   step?: number;
+  stepLabel?: string;
   phase?: string;
   errors?: Record<string, string>;
   message?: string;

@@ -11,7 +11,8 @@ import {
   useCotizacionesCliente,
 } from "@/features/cliente/hooks/useClientes";
 import { useClienteFinancials } from "@/features/cliente/hooks/useClienteFinancials";
-import { usePermissions, useRegistrarActividad } from "@/hooks/shared";
+import { usePermissions } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { useClienteDetalleHandlers } from "./useClienteDetalleHandlers";
 
 ;

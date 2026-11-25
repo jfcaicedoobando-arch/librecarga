@@ -14,7 +14,7 @@ const { mockUnsubscribe, mockSubscribe, mockGetSession } = vi.hoisted(() => {
   };
 });
 
-vi.mock("@/features/auth/services", () => ({
+vi.mock("@/features/auth/services/session", () => ({
   subscribeToAuthChanges: mockSubscribe,
   getCurrentSession: mockGetSession,
 }));

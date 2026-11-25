@@ -1,6 +1,6 @@
 /**
  * Tipos de dominio para la bitácora de actividad.
- * Fuente única — `services/bitacora` y `hooks/shared/useBitacora` re-exportan.
+ * Fuente única de los contratos de lectura y presentación.
  */
 
 export interface EntradaBitacora {

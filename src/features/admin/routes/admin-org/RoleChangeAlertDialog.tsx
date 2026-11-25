@@ -1,7 +1,7 @@
 import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 import type { UserRow } from "@/features/admin/hooks/usuario";
 import type { AppRole } from "@/types/appRole";
-import { obtenerEtiquetaRol } from "@/lib/ui/uiMappings";
+import { obtenerEtiquetaRol } from "@/features/admin/domain";
 
 export interface PendingRoleChange {
   user: UserRow;
