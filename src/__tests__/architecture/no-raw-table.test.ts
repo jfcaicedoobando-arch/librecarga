@@ -88,7 +88,6 @@ const ALLOWLIST: readonly string[] = [
   // CRM: editores con inputs por celda y tabla de higiene read-only compacta.
   "src/features/crm/components/MetasActividadEditor.tsx",
   "src/features/crm/components/PresupuestoCrmEditor.tsx",
-  "src/features/crm/components/higiene/HigieneTabla.tsx",
   // Estado de resultados: subtotales con colSpan y fila de margen con fondo
   // propio — patrón no soportado por <DataTable />.
   "src/features/profit/components/EstadoResultadosTable.tsx",
@@ -104,16 +103,12 @@ const ALLOWLIST: readonly string[] = [
   // Ola 5.2 — migrados de `<table>` crudo a primitivas + DetailTable
   // (tablas de detalle read-only / sub-tablas sin sort ni paginación).
   "src/components/shared/LoteRenglonesTable.tsx",
-  "src/features/admin/components/MigrarRolesLegacyPreviewTable.tsx",
-  "src/features/admin/components/diagnosticoHealth/HealthSlowestTable.tsx",
   "src/features/admin/routes/AdminDemoLeads.tsx",
   "src/features/anticipos-proveedor/components/AnticiposAplicadosSection.tsx",
   "src/features/compras/routes/_sections/ConciliacionDetalleCuerpoTabla.tsx",
   "src/features/compras/routes/_sections/ConciliacionDetalleFilaRenglon.tsx",
   "src/features/cotizacion/components/revalidacion/RevalidarTarifaModal.tsx",
-  "src/features/cotizacion/routes/CotizacionInformativaDetalle.tsx",
   "src/features/crm/components/ImportarLeadsCsvPreview.tsx",
-  "src/features/crm/components/OportunidadCotizacionesList.tsx",
   "src/features/crm/routes/Analitica.tsx",
   "src/features/crm/routes/CrmDashboard.tsx",
   "src/features/cxp/components/CfdiConceptosPreview.tsx",
@@ -177,7 +172,7 @@ describe("architecture — no raw @/components/ui/table imports", () => {
    * archivo a DataTable y bajas la lista, BAJA también el tope.
    */
   it("la allowlist de ui/table no crece por encima del tope", () => {
-    const TOPE = 68; // Plantillas de cotización ya usa ResponsiveDataTable.
+    const TOPE = 63; // Cinco listados adoptaron DataTable o ResponsiveDataTable.
     expect(
       ALLOWLIST.length,
       `La allowlist tiene ${ALLOWLIST.length} entradas (tope ${TOPE}).\n` +
@@ -186,7 +181,7 @@ describe("architecture — no raw @/components/ui/table imports", () => {
   });
 
   it("si bajaste entradas de la allowlist, baja el tope", () => {
-    const TOPE = 68;
+    const TOPE = 63;
     expect(
       ALLOWLIST.length,
       "Bajaste entradas de la allowlist: ajusta TOPE a la nueva cuenta + 1 de holgura.",

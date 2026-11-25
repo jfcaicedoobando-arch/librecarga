@@ -14,9 +14,9 @@ vi.mock("@/components/shared/dataTable/ResponsiveDataTable", () => ({
   ResponsiveDataTable: ({ data, isLoading, emptyMessage }: { data: FacturaCobranza[]; isLoading: boolean; emptyMessage: string }) =>
     <div>{isLoading ? "Cargando facturas" : data.length ? data.map(f => <p key={f.id}>{f.numero}:{f.dias_vencido}</p>) : emptyMessage}</div>,
 }));
-vi.mock("../CxcAgingDrillDownDialog.parts", () => ({
-  CxcAgingKpiRow: () => null,
-  CxcAgingActionBar: ({ onChange, onExport, exportDisabled }: { onChange: (v: string) => void; onExport: () => void; exportDisabled: boolean }) => <div><button onClick={() => onChange("mas_90")}>+90</button><button disabled={exportDisabled} onClick={onExport}>CSV</button><button onClick={onExport}>Invocar exportación</button></div>,
+vi.mock("../CxcAgingDrillDownDialog.parts", () => ({ CxcAgingKpiRow: () => null }));
+vi.mock("@/components/shared/AgingActionBar", () => ({
+  AgingActionBar: ({ onChange, onExport, exportDisabled }: { onChange: (v: string) => void; onExport: () => void; exportDisabled: boolean }) => <div><button onClick={() => onChange("mas_90")}>+90</button><button disabled={exportDisabled} onClick={onExport}>CSV</button><button onClick={onExport}>Invocar exportación</button></div>,
 }));
 
 const cliente: CxcAgingRow = { cliente_id: "c1", cliente_nombre: "Cliente", moneda: "MXN", saldo_total: 116.04, vigente: 0, d_1_30: 0, d_31_60: 116.04, d_61_90: 0, mas_90: 0, num_facturas: 3 };

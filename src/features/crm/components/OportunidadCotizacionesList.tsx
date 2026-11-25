@@ -1,25 +1,54 @@
-/**
- * Lista las cotizaciones vinculadas a una oportunidad (Sprint D).
- * 11.13.0: la query se mueve a `useOportunidadCotizaciones`.
- */
-import { useNavigate } from "react-router";
+import { Link } from "react-router";
 import { ClipboardList, Ship } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { defineColumns } from "@/components/shared/DataTable";
+import { MobileRowDetails } from "@/components/shared/dataTable/MobileRowDetails";
+import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
+import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { formatCurrencyCompact } from "@/lib/formatters";
 import { useOportunidadCotizaciones } from "@/features/crm/hooks";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { diffDiasMx } from "@/lib/date/mx";
+import type { OportunidadCotizacionRow } from "@/features/crm/services/oportunidadCotizaciones";
 
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { DetailTableHead } from "@/components/shared/DetailTable";
-interface Props {
-  oportunidadId: string;
+function EstadoCotizacion({ cotizacion }: { cotizacion: OportunidadCotizacionRow }) {
+  // Se cuenta desde el envío real, en el calendario de negocio.
+  const diasEnviada = cotizacion.estado === "Enviada" && cotizacion.fecha_envio
+    ? (diffDiasMx(cotizacion.fecha_envio, new Date()) ?? 0)
+    : 0;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <Badge variant="outline">{cotizacion.estado}</Badge>
+      {diasEnviada > 5 && (
+        <Badge variant="destructive" className="text-label">Sin respuesta · {diasEnviada}d</Badge>
+      )}
+    </div>
+  );
 }
 
-export default function OportunidadCotizacionesList({ oportunidadId }: Props) {
-  const navigate = useNavigate();
+function EnlaceEmbarque({ cotizacion }: { cotizacion: OportunidadCotizacionRow }) {
+  if (!cotizacion.embarque_id) return <span className="text-muted-foreground">—</span>;
+  return (
+    <Button variant="link" size="sm" className="h-auto p-0 inline-flex items-center gap-1" asChild>
+      <Link to={`/embarques/${cotizacion.embarque_id}`} aria-label={`Ver embarque de ${cotizacion.folio}`}>
+        <Ship className="h-3 w-3" aria-hidden /> Ver
+      </Link>
+    </Button>
+  );
+}
+
+const monto = (c: OportunidadCotizacionRow) => formatCurrencyCompact(Number(c.subtotal ?? 0), c.moneda);
+
+const columns = defineColumns<OportunidadCotizacionRow>([
+  { id: "folio", header: "Folio", meta: { className: "font-medium" }, cell: ({ row }) => row.original.folio },
+  { id: "estado", header: "Estado", cell: ({ row }) => <EstadoCotizacion cotizacion={row.original} /> },
+  { id: "monto", header: "Monto", meta: { align: "right" }, cell: ({ row }) => monto(row.original) },
+  { id: "embarque", header: "Embarque", meta: { align: "center" }, cell: ({ row }) => <EnlaceEmbarque cotizacion={row.original} /> },
+]);
+
+export default function OportunidadCotizacionesList({ oportunidadId }: { oportunidadId: string }) {
   const { data = [], isLoading } = useOportunidadCotizaciones(oportunidadId);
 
   return (
@@ -32,79 +61,32 @@ export default function OportunidadCotizacionesList({ oportunidadId }: Props) {
       <CardContent>
         {isLoading ? (
           <EmptyStateInline loading message="Cargando…" />
-        ) : data.length === 0 ? (
-          <EmptyStateInline
-            icon={ClipboardList}
-            message="Aún no se ha creado ninguna cotización para esta oportunidad."
-            hint='Usa el botón "Nueva cotización" arriba.'
-          />
         ) : (
-          <div className="overflow-x-auto">
-          <Table className="w-full text-body">
-            <TableHeader>
-              <TableRow className="text-body-sm text-muted-foreground border-b">
-                <DetailTableHead>Folio</DetailTableHead>
-                <DetailTableHead>Estado</DetailTableHead>
-                <DetailTableHead className="text-right">Monto</DetailTableHead>
-                <DetailTableHead className="text-center">Embarque</DetailTableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((c) => {
-                // CRM-P2.4: los días sin respuesta se cuentan desde el ENVÍO
-                // real, no desde la creación del borrador. Sin `fecha_envio` no
-                // se puede afirmar cuántos días lleva esperando: no hay badge.
-                const diasEnviada =
-                  c.estado === "Enviada" && c.fecha_envio
-                    ? (diffDiasMx(c.fecha_envio, new Date()) ?? 0)
-                    : 0;
-                return (
-                  <TableRow
-                    key={c.id}
-                    className="border-b hover:bg-muted/50 cursor-pointer"
-                    onClick={() => navigate(`/cotizaciones/${c.id}`)}
-                    role="link"
-                    tabIndex={0}
-                    aria-label={`Abrir cotización ${c.folio}`}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        navigate(`/cotizaciones/${c.id}`);
-                      }
-                    }}
-                  >
-                    <TableCell className="font-medium">{c.folio}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <Badge variant="outline">{c.estado}</Badge>
-                        {c.estado === "Enviada" && diasEnviada > 5 && (
-                          <Badge variant="destructive" className="text-label">
-                            Sin respuesta · {diasEnviada}d
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">{formatCurrencyCompact(Number(c.subtotal ?? 0), c.moneda)}</TableCell>
-                    <TableCell className="text-center">
-                      {c.embarque_id ? (
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="h-auto p-0 inline-flex items-center gap-1"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/embarques/${c.embarque_id}`); }}
-                        >
-                          <Ship className="h-3 w-3" /> Ver
-                        </Button>
-                      ) : (
-                        <span className="text-body-sm text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          </div>
+          <ResponsiveDataTable
+            columns={columns}
+            data={data}
+            density={TABLE_DENSITY.embebida}
+            rowKey={(c) => c.id}
+            getRowHref={(c) => `/cotizaciones/${c.id}`}
+            getRowAriaLabel={(c) => `Abrir cotización ${c.folio}`}
+            emptyState={
+              <EmptyStateInline
+                icon={ClipboardList}
+                message="Aún no se ha creado ninguna cotización para esta oportunidad."
+                hint='Usa el botón "Nueva cotización" arriba.'
+              />
+            }
+            mobileCard={(c) => (
+              <>
+                <span className="font-medium">{c.folio}</span>
+                <MobileRowDetails fields={[
+                  { label: "Estado", value: <EstadoCotizacion cotizacion={c} /> },
+                  { label: "Monto", value: monto(c) },
+                  { label: "Embarque", value: <EnlaceEmbarque cotizacion={c} /> },
+                ]} />
+              </>
+            )}
+          />
         )}
       </CardContent>
     </Card>

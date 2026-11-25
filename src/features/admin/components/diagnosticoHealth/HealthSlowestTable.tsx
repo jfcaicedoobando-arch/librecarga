@@ -8,8 +8,8 @@ import { formatNumber } from "@/lib/formatters";
 import { Gauge } from "lucide-react";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { DetailTableHead } from "@/components/shared/DetailTable";
+import { DataTable, defineColumns } from "@/components/shared/DataTable";
+import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 interface Row {
   fn: string;
   p50_ms: number | null;
@@ -21,6 +21,13 @@ function formatMs(v: number | null): string {
   if (v === null) return "—";
   return v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${Math.round(v)} ms`;
 }
+
+const columns = defineColumns<Row>([
+  { accessorKey: "fn", header: "Función", enableSorting: false, meta: { className: "font-mono" } },
+  { id: "p50", header: "p50", meta: { align: "right" }, cell: ({ row }) => formatMs(row.original.p50_ms) },
+  { id: "p95", header: "p95", meta: { align: "right", className: "font-medium" }, cell: ({ row }) => formatMs(row.original.p95_ms) },
+  { id: "eventos", header: "Eventos", meta: { align: "right" }, cell: ({ row }) => formatNumber(row.original.total) },
+]);
 
 interface Props {
   loading: boolean;
@@ -39,28 +46,8 @@ export default function HealthSlowestTable({ loading, data }: Props) {
         ) : data.length === 0 ? (
           <EmptyStateInline icon={Gauge} message="Sin mediciones de latencia." className="py-10" />
         ) : (
-          <div className="overflow-x-auto">
-          <Table className="w-full text-body-sm">
-            <TableHeader className="text-muted-foreground">
-              <TableRow className="border-b">
-                <DetailTableHead>Función</DetailTableHead>
-                <DetailTableHead className="text-right">p50</DetailTableHead>
-                <DetailTableHead className="text-right">p95</DetailTableHead>
-                <DetailTableHead className="text-right">Eventos</DetailTableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((r) => (
-                <TableRow key={r.fn} className="border-b last:border-0">
-                  <TableCell className="font-mono">{r.fn}</TableCell>
-                  <TableCell className="text-right">{formatMs(r.p50_ms)}</TableCell>
-                  <TableCell className="text-right font-medium">{formatMs(r.p95_ms)}</TableCell>
-                  <TableCell className="text-right">{formatNumber(r.total)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          </div>
+          <DataTable columns={columns} data={data} density={TABLE_DENSITY.embebida}
+            rowKey={(row) => row.fn} striped={false} hoverable={false} />
         )}
       </CardContent>
     </Card>

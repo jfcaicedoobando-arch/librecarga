@@ -12,8 +12,8 @@ vi.mock("@/components/shared/DataTable", () => ({
   defineColumns: (columns: unknown) => columns,
   DataTable: ({ data }: { data: { id: string; folio_proveedor: string }[] }) => <div>{data.map(f => <span key={f.id}>{f.folio_proveedor}</span>)}</div>,
 }));
-vi.mock("../AgingDrillDownDialog.parts", () => ({
-  AgingKpiRow: () => null,
+vi.mock("../AgingDrillDownDialog.parts", () => ({ AgingKpiRow: () => null }));
+vi.mock("@/components/shared/AgingActionBar", () => ({
   AgingActionBar: ({ onChange, onExport, exportCount }: { onChange: (v: string) => void; onExport: () => void; exportCount: number }) => <div><button onClick={() => onChange("d_1_30")}>Vencidas</button><button onClick={onExport}>CSV {exportCount}</button></div>,
 }));
 const proveedor: CxpAgingRow = { proveedor_id: "p", proveedor_nombre: "Proveedor", moneda: "USD", saldo_total: 795, vigente: 95, d_1_30: 700, d_31_60: 0, d_61_90: 0, mas_90: 0, num_facturas: 2 };

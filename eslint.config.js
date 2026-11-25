@@ -785,7 +785,6 @@ export default tseslint.config(
       // CRM: editores con inputs por celda y tabla de higiene read-only compacta.
       "src/features/crm/components/MetasActividadEditor.tsx",
       "src/features/crm/components/PresupuestoCrmEditor.tsx",
-      "src/features/crm/components/higiene/HigieneTabla.tsx",
       // Estado de resultados: subtotales con colSpan y fila de margen con
       // fondo propio — patrón no soportado por <DataTable />.
       "src/features/profit/components/EstadoResultadosTable.tsx",
@@ -802,16 +801,12 @@ export default tseslint.config(
 
       // Ola 5.2 — tablas de detalle migradas de `<table>` crudo a primitivas.
   "src/components/shared/LoteRenglonesTable.tsx",
-  "src/features/admin/components/MigrarRolesLegacyPreviewTable.tsx",
-  "src/features/admin/components/diagnosticoHealth/HealthSlowestTable.tsx",
   "src/features/admin/routes/AdminDemoLeads.tsx",
   "src/features/anticipos-proveedor/components/AnticiposAplicadosSection.tsx",
   "src/features/compras/routes/_sections/ConciliacionDetalleCuerpoTabla.tsx",
   "src/features/compras/routes/_sections/ConciliacionDetalleFilaRenglon.tsx",
   "src/features/cotizacion/components/revalidacion/RevalidarTarifaModal.tsx",
-  "src/features/cotizacion/routes/CotizacionInformativaDetalle.tsx",
   "src/features/crm/components/ImportarLeadsCsvPreview.tsx",
-  "src/features/crm/components/OportunidadCotizacionesList.tsx",
   "src/features/crm/routes/Analitica.tsx",
   "src/features/crm/routes/CrmDashboard.tsx",
   "src/features/cxp/components/CfdiConceptosPreview.tsx",
