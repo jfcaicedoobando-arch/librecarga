@@ -27,7 +27,6 @@ const BASELINE_SIN_SCHEMA: Record<string, number> = {
   portal: 0,
   proformas: 6,
   proveedor: 2,
-  lib: 1,
 };
 
 describe("architecture: adopción de zod en fromDb (ratchet)", () => {
