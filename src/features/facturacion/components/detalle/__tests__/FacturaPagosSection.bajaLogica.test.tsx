@@ -4,7 +4,7 @@ import { act, render } from "@testing-library/react";
 const mocks = vi.hoisted(() => ({ eliminar: vi.fn(), registrar: vi.fn(), cancelar: vi.fn(), onEliminar: null as null | ((id: string) => void), onCancelar: null as null | ((p: object) => void), confirmarEliminar: null as null | (() => Promise<void>), confirmarCancelar: null as null | (() => Promise<void>) }));
 vi.mock("@/features/facturacion/hooks", () => ({ usePagosFactura: () => ({ data: [{ id: "p1", monto: 50, monto_aplicado_factura: 50, estado_rep: "NoAplica" }], isLoading: false }), useEliminarPagoFactura: () => ({ mutateAsync: mocks.eliminar }) }));
 vi.mock("@/features/facturacion/hooks/useSaldoFactura", () => ({ useNotasCreditoAplicadas: () => ({ data: [] }), useSaldoFacturaServidor: () => ({ data: 50 }) }));
-vi.mock("@/hooks/shared", () => ({ useRegistrarActividad: () => ({ mutate: mocks.registrar }) }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: mocks.registrar }) }));
 vi.mock("@/features/facturacion/hooks/useCancelarRepController", () => ({ useCancelarRepController: () => ({ confirmar: mocks.cancelar }) }));
 vi.mock("../FacturaPagosTabla", () => ({ FacturaPagosTabla: ({ onEliminar, onCancelarRep }: { onEliminar: (id: string) => void; onCancelarRep: (p: object) => void }) => { mocks.onEliminar = onEliminar; mocks.onCancelar = onCancelarRep; return <p>Pagos históricos</p>; } }));
 vi.mock("@/components/shared/dialogs/ConfirmActionDialog", () => ({ ConfirmActionDialog: ({ onConfirm }: { onConfirm: () => Promise<void> }) => { mocks.confirmarEliminar = onConfirm; return null; } }));

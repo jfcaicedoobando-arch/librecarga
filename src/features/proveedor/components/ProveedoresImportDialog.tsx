@@ -3,7 +3,8 @@ import { queryKeys } from "@/lib/query";
 import { BulkImportDialog } from "@/components/shared/BulkImportDialog";
 import { PROVEEDOR_TEMPLATE_HEADERS, mapProveedorRows } from "@/lib/csv/importSchemas";
 import { insertProveedoresLote } from "@/features/proveedor/services";
-import { useRegistrarActividad, useOrgFilter } from "@/hooks/shared";
+import { useOrgFilter } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { notifySuccess } from "@/lib/ui/appFeedback";
 
 interface Props {

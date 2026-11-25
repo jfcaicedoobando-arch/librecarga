@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/query";
+import { authQueryKeys } from "@/lib/query/authKeys";
 import type { AppRole } from "@/types/appRole";
-import { fetchUserContext, type CachedOrganization } from "@/features/auth/services";
+import { fetchUserContext, type CachedOrganization } from "@/features/auth/services/session";
 
 export type { CachedOrganization };
 
@@ -36,7 +36,7 @@ export function useAuthProfile(userId: string | null) {
   const queryClient = useQueryClient();
 
   const { data, isLoading: profileLoading, isError: profileError } = useQuery({
-    queryKey: queryKeys.auth.userContext(userId),
+    queryKey: authQueryKeys.userContext(userId),
     enabled: !!userId,
     staleTime: USER_CONTEXT_STALE_MS,
     refetchOnWindowFocus: false,
@@ -68,12 +68,12 @@ export function useAuthProfile(userId: string | null) {
   const profile = userId ? (data ?? EMPTY_PROFILE) : EMPTY_PROFILE;
 
   const reset = useCallback(() => {
-    queryClient.removeQueries({ queryKey: queryKeys.auth.userContextAll });
+    queryClient.removeQueries({ queryKey: authQueryKeys.userContextAll });
   }, [queryClient]);
 
   const refresh = useCallback(async () => {
     if (!userId) return;
-    await queryClient.invalidateQueries({ queryKey: queryKeys.auth.userContextAll });
+    await queryClient.invalidateQueries({ queryKey: authQueryKeys.userContextAll });
   }, [userId, queryClient]);
 
   return {

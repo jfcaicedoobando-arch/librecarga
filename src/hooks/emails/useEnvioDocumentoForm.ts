@@ -7,14 +7,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { fetchContactosClienteConEmail } from "@/services/emails/contactosCliente";
 import { EMAIL_RE, type ContactoClienteEmail } from "@/lib/domain/contactoClienteEmail";
-import { queryKeys } from "@/lib/query";
+import { AuthOperationChangedError, captureAuthDataScope } from "@/lib/auth/authOperationScope";
+import { contactosClienteKeys } from "@/lib/query/contactoClienteKeys";
 import { computeInitialPrecarga } from "@/hooks/emails/envioDocumentoInit";
 import {
   computeDestinatarios,
   computeCcEmails,
 } from "@/hooks/emails/envioDocumentoDerivados";
 export type Contacto = ContactoClienteEmail;
-export { EMAIL_RE } from "@/lib/domain/contactoClienteEmail";
 const EMPTY_CONTACTOS: readonly Contacto[] = Object.freeze([]);
 
 export interface EnvioFormState {
@@ -45,6 +45,7 @@ export interface EnvioFormState {
 }
 
 interface OpcionesEnvioDocumento {
+  scope?: ReturnType<typeof captureAuthDataScope>;
   /**
    * Correos CC a precargar cuando se abre el dialog (además del usuario logueado).
    * Se usa para heredar los CC de la última factura enviada al mismo cliente
@@ -64,14 +65,21 @@ export function useEnvioDocumentoForm(
   open: boolean,
   clienteId: string | null,
   buildAsuntoInicial: () => string,
-  { ccInicial, destinatariosManualesInicial, copiaSoloContacto = false }: OpcionesEnvioDocumento = {},
+  { ccInicial, destinatariosManualesInicial, copiaSoloContacto = false, scope = captureAuthDataScope() }: OpcionesEnvioDocumento = {},
 ): EnvioFormState {
   const { user } = useAuth();
 
   const { data, isLoading: loadingContactos, isError: errorContactos, isSuccess: contactosResueltos, refetch } = useQuery({
-    queryKey: queryKeys.clientes.contactos(clienteId ?? "_none_"),
-    enabled: !!clienteId && open,
-    queryFn: () => fetchContactosClienteConEmail(clienteId!),
+    queryKey: contactosClienteKeys.paraCorreo(clienteId ?? "_none_", scope),
+    enabled: open && !!clienteId && !!scope.userId,
+    queryFn: async ({ signal }) => {
+      scope.assertCurrent();
+      if (!clienteId || !scope.userId || signal.aborted) throw new AuthOperationChangedError();
+      const contactos = await fetchContactosClienteConEmail(clienteId);
+      scope.assertCurrent();
+      if (signal.aborted) throw new AuthOperationChangedError();
+      return contactos;
+    },
   });
   const contactos = (data ?? EMPTY_CONTACTOS) as Contacto[];
 

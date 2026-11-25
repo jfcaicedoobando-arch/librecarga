@@ -26,8 +26,8 @@ vi.mock("@/features/cliente/hooks/useClienteFinancials", () => ({
 vi.mock("@/hooks/shared", () => ({
   useToast: vi.fn(() => ({ toast: vi.fn() })),
   usePermissions: vi.fn(() => ({ canEdit: true })),
-  useRegistrarActividad: vi.fn(() => ({ mutate: vi.fn() })),
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: vi.fn(() => ({ mutate: vi.fn() })) }));
 
 vi.mock("@/lib/ui/appFeedback", () => ({
   notifySuccess: vi.fn(),

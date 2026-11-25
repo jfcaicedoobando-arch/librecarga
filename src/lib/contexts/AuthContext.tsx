@@ -17,7 +17,6 @@ import { getSessionCacheGeneration, subscribeSessionCacheGeneration } from "@/li
 import { removeStaleCatalogQueries } from "@/lib/query/catalogScope";
 
 import { registrarActividad } from "@/services/bitacora";
-import { fromDb } from "@/lib/supabase/cast";
 import { setAuthSnapshot } from "@/lib/auth/authSnapshot";
 import { syncSentryUser } from "@/lib/observability/sentry/user";
 import { buildAuthSnapshot, buildSentryUserContext } from "@/lib/auth/authSnapshotBuilder";
@@ -77,38 +76,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profile.orgRole === "super_admin" ? null : profile.orgRole ?? null;
   const effectiveRole: AppRole | null =
     profile.role === "super_admin" ? profile.role : orgRoleSeguro ?? profile.role;
-
-  // Preload de rutas frecuentes en idle tras login → mejora TTI percibido al navegar
-  useEffect(() => {
-    if (!user || loading) return;
-    type IdleWindow = {
-      requestIdleCallback?: (cb: () => void) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
-    const w = fromDb<IdleWindow>(window);
-    let idleHandle: number | null = null;
-    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-    const cb = () => {
-      void import("@/features/embarques/routes/Embarques");
-      void import("@/features/cotizacion/routes/Cotizaciones");
-      void import("@/features/dashboard/routes/Dashboard");
-      void import("@/features/cliente/routes/Clientes");
-      void import("@/features/proveedor/routes/Proveedores");
-      void import("@/features/facturacion/routes/Facturacion");
-    };
-    if (typeof w.requestIdleCallback === "function") {
-      idleHandle = w.requestIdleCallback(cb);
-    } else {
-      timeoutHandle = setTimeout(cb, 1500);
-    }
-    return () => {
-      if (idleHandle !== null && typeof w.cancelIdleCallback === "function") {
-        w.cancelIdleCallback(idleHandle);
-      }
-      if (timeoutHandle !== null) clearTimeout(timeoutHandle);
-    };
-  }, [user, loading]);
-
 
   // Snapshot global de la sesión para consumirla fuera del árbol React (errorReport).
   setAuthSnapshot(buildAuthSnapshot(user, profile, loading ? null : effectiveRole));

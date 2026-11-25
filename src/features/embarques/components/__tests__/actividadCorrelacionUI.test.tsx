@@ -10,7 +10,8 @@ import { useBorradorNotaEmbarque } from '../../hooks/useBorradorNotaEmbarque';
 
 const m = vi.hoisted(() => ({ nota: vi.fn(), audit: vi.fn(), rpc: vi.fn(), close: vi.fn() }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { rpc: m.rpc } }));
-vi.mock('@/hooks/shared', () => ({ usePermissions: () => ({ canEdit: true }), useRegistrarActividad: () => ({ mutate: m.audit }) }));
+vi.mock('@/hooks/shared', () => ({ usePermissions: () => ({ canEdit: true }) }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: m.audit }) }));
 vi.mock('@/lib/contexts/AuthContext', () => ({ useAuth: () => ({ user: { email: 'coordinador@example.com' } }) }));
 vi.mock('../../hooks/mutations/useNotaEmbarque', () => ({
   useCreateNotaEmbarque: () => ({ mutateAsync: m.nota }),

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useDirtyGuard } from "@/hooks/shared/useDirtyGuard";
-import { useRegistrarActividad } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
 import { useCreateNotaEmbarque } from "./mutations/useNotaEmbarque";

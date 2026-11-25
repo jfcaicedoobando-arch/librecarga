@@ -144,6 +144,7 @@ export function useUpdateCliente() {
     errorMethod: "UPDATE_CLIENTE",
     onSuccess: (clienteActualizado) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.clientes.detail(clienteActualizado.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.clientes.contactos(clienteActualizado.id) });
     },
   });
 }

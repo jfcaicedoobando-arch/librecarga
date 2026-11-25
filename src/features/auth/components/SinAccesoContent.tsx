@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { SIGN_OUT_FAILURE } from "@/lib/auth/signOut";
 import { notifyError } from "@/lib/ui/appFeedback";
-import { obtenerEtiquetaRol } from "@/lib/ui/uiMappings";
+import { obtenerEtiquetaRol } from "@/features/admin/domain";
 import type { AppRole } from "@/types/appRole";
 import type { SinAccesoVariant } from "@/features/auth/utils/resolveSinAccesoVariant";
 

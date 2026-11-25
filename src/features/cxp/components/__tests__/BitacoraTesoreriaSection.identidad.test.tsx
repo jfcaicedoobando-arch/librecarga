@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ query: vi.fn() }));
-vi.mock("@/features/auditoria/hooks/useBitacora", () => ({ useBitacora: mocks.query }));
+vi.mock("@/features/auditoria", () => ({ useBitacora: mocks.query }));
 vi.mock("@/features/tesoreria", () => ({ useCuentasBancarias: () => ({ data: [] }) }));
 vi.mock("../BitacoraTesoreriaExportButtons", () => ({
   BitacoraTesoreriaExportButtons: ({ facturaId }: { facturaId: string }) => <div data-testid="export">{facturaId}</div>,

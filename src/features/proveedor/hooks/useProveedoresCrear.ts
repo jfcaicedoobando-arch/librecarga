@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
 
 import { useProveedorMutations } from "@/features/proveedor/hooks";
-import { useRegistrarActividad } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { ProveedorDuplicadoError } from "@/features/proveedor/services";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/ui/appFeedback";
 import type { TablesInsert } from "@/integrations/supabase/types";

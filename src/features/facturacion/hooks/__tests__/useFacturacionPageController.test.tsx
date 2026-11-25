@@ -36,10 +36,10 @@ vi.mock("@/hooks/shared", () => ({
     };
   },
   useDebounce: <T,>(v: T) => v,
-  useRegistrarActividad: () => ({ mutate: registrarActividadMutate }),
   useToast: () => ({ toast: toastFn }),
   usePermissions: () => ({ canEdit: true }),
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: registrarActividadMutate }) }));
 vi.mock("@/generators/exportCsv", () => ({ exportToCsv: exportToCsvMock }));
 vi.mock("@/generators/layoutContable", () => ({ exportarLayoutContable: exportarLayoutContableMock }));
 vi.mock("@/lib/auth/authOperationScope", () => ({ captureAuthOperationScope: () => scope }));

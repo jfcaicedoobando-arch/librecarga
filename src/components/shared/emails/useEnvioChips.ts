@@ -5,10 +5,8 @@
  * (Power of 10). Sin cambios funcionales.
  */
 import { useMemo } from "react";
-import {
-  EMAIL_RE,
-  type EnvioFormState,
-} from "@/hooks/emails";
+import type { EnvioFormState } from "@/hooks/emails";
+import { EMAIL_RE } from "@/lib/domain/contactoClienteEmail";
 import type { EmailChip } from "@/components/shared/emails/EmailChipsField";
 
 export interface UseEnvioChipsResult {

@@ -14,7 +14,7 @@ import {
 } from "@/features/facturacion/hooks/useSaldoFactura";
 
 import { calcularSaldoFactura } from "@/lib/financial/saldoFactura";
-import { useRegistrarActividad } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { DialogPreviewCfdiPdf } from "@/features/facturacion/components/DialogPreviewCfdiPdf";
 import { DialogCancelarRep } from "@/features/facturacion/components/DialogCancelarRep";
 import { useCancelarRepController } from "@/features/facturacion/hooks/useCancelarRepController";

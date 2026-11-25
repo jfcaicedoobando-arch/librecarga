@@ -9,7 +9,7 @@ import {
 } from "@/features/embarques/hooks";
 import { EmbarqueBloqueadoError, type MotivosBloqueoEmbarque } from "@/features/embarques/services";
 import { labelExpediente } from "@/lib/domain/labelExpediente";
-import { useRegistrarActividad } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
 import { useEmbarquePrivateScope } from "../hooks/useEmbarquePrivateScope";
 import DoubleConfirmDeleteDialog from "@/components/shared/DoubleConfirmDeleteDialog";

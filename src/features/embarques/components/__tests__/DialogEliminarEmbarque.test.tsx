@@ -27,7 +27,7 @@ vi.mock("@/features/embarques/hooks", async () => ({
   useEliminarEmbarque: () => ({ mutateAsync: state.remove, isPending: false }),
 }));
 vi.mock("@/features/embarques/services", async () => ({ EmbarqueBloqueadoError: (await import("../../services/embarqueBloqueadoError")).EmbarqueBloqueadoError }));
-vi.mock("@/hooks/shared", () => ({ useRegistrarActividad: () => ({ mutate: state.activity }) }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: state.activity }) }));
 vi.mock("react-router", () => ({ useNavigate: () => state.navigate }));
 vi.mock("@/lib/ui/appFeedback", () => ({ notifySuccess: (...args: unknown[]) => state.success(...args) }));
 

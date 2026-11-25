@@ -110,6 +110,10 @@ describe("useNuevoEmbarqueWizard", () => {
     expect(ok).toBe(false);
     expect(result.current.validationErrors[1]).toEqual({ modo: "Selecciona modo" });
     expect(notifyErrorMock).toHaveBeenCalledTimes(1);
+    expect(notifyErrorMock).toHaveBeenCalledWith(undefined, expect.objectContaining({
+      step: 1,
+      stepLabel: "Datos generales",
+    }));
   });
 
   it("validateStep devuelve true cuando no hay errores y NO notifica", () => {

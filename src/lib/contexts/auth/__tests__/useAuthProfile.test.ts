@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { auth } from "@/features/auth/queryKeys";
 import { silenciarLogEsperado } from "@/test/helpers/silenciarLogEsperado";
 
 // `vi.mock` se hoistea por encima de los imports, por lo que cualquier
@@ -8,7 +10,7 @@ const { mockFetchUserContext } = vi.hoisted(() => ({
   mockFetchUserContext: vi.fn(),
 }));
 
-vi.mock("@/features/auth/services", () => ({
+vi.mock("@/features/auth/services/session", () => ({
   fetchUserContext: mockFetchUserContext,
 }));
 
@@ -74,6 +76,23 @@ describe("useAuthProfile", () => {
     });
     await waitFor(() => expect(mockFetchUserContext).toHaveBeenCalledTimes(2));
     expect(result.current.profile.role).toBe("admin");
+  });
+
+  it("refresca el perfil con la clave pública usada por Administración", async () => {
+    const anterior = { role: "admin", organizationId: "org1", organization: null };
+    const actualizado = { ...anterior, organizationId: "org2" };
+    mockFetchUserContext.mockResolvedValueOnce(anterior).mockResolvedValueOnce(actualizado);
+    const { result } = renderHook(
+      () => ({ perfil: useAuthProfile("user-abc"), client: useQueryClient() }),
+      { wrapper: createWrapper() },
+    );
+    await waitFor(() => expect(result.current.perfil.profile.organizationId).toBe("org1"));
+    expect(result.current.client.getQueryData(["auth", "user-context", "user-abc"])).toEqual(anterior);
+
+    await act(async () => {
+      await result.current.client.invalidateQueries({ queryKey: auth.userContextAll });
+    });
+    await waitFor(() => expect(result.current.perfil.profile.organizationId).toBe("org2"));
   });
 
   it("ante error de fetchUserContext no actualiza el perfil (queda vacío)", async () => {

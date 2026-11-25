@@ -24,8 +24,8 @@ vi.mock("@/features/cotizacion/hooks", () => ({
 
 vi.mock("@/hooks/shared", () => ({
   useToast: () => ({ toast: vi.fn() }),
-  useRegistrarActividad: () => ({ mutate: vi.fn() }),
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: vi.fn() }) }));
 
 vi.mock("@/features/embarques/services", () => ({
   resolverExpediente: resolverExpedienteMock,

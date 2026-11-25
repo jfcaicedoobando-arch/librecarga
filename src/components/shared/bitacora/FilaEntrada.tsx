@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { Activity, ArrowRight } from "lucide-react";
-import type { EntradaBitacora } from "@/hooks/shared";
+import type { EntradaBitacora } from "@/types/bitacora";
 import { nombreDesdeEmail, formatDate } from "@/lib/formatters";
 import { describirEntrada } from "@/lib/domain/bitacoraDescripcion";
 import { getEstadoVisual } from "@/lib/ui/estadoConfig";

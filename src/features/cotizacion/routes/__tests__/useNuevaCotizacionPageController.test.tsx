@@ -19,9 +19,9 @@ vi.mock("react-router", async (importOriginal) => ({
 vi.mock("@/hooks/shared", () => ({
   useToast: () => ({ toast: vi.fn() }),
   usePermissions: () => ({ canCrearEmbarqueDesdeCotizacion: true }),
-  useRegistrarActividad: () => ({ mutate: vi.fn() }),
   useDocumentTitle: vi.fn(),
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: vi.fn() }) }));
 vi.mock("@/hooks/shared/useOrgActiva", () => ({
   useOrgActiva: () => ({ organizationId: "org-1" }),
 }));

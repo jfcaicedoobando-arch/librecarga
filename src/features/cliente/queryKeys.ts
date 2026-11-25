@@ -1,3 +1,5 @@
+import { contactosClienteKeys } from "@/lib/query/contactoClienteKeys";
+
 export const clientes = {
   all: ['clientes'] as const,
   coordinador: (organizationId: string | null, clienteId: string) => ['clientes', 'coordinador', organizationId, clienteId] as const,
@@ -6,7 +8,7 @@ export const clientes = {
   detail: (id: string) => ['clientes', id] as const,
   select: ['clientes', 'select'] as const,
   selectByOrg: (organizationId?: string | null) => ['clientes', 'select', organizationId] as const,
-  contactos: (id: string) => ['contactos_cliente', id] as const,
+  contactos: contactosClienteKeys.porCliente,
   documentos: (id: string) => ['clientes', 'documentos', id] as const,
   clientUsers: (id: string) => ['client_users', id] as const,
   embarques: (id: string) => ['clientes', 'embarques', id] as const,

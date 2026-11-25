@@ -12,8 +12,8 @@ const { costos, cotizacion, montarEditor } = vi.hoisted(() => ({
 vi.mock("@/hooks/shared", () => ({
   usePermissions: () => ({ canWriteCotizaciones: true }),
   useToast: () => ({ toast: vi.fn() }),
-  useRegistrarActividad: () => ({}),
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({}) }));
 vi.mock("@/lib/contexts/AuthContext", () => ({ useAuth: () => ({ user: null }) }));
 vi.mock("@/lib/contexts/BreadcrumbContext", () => ({ useRegisterBreadcrumbLabel: vi.fn() }));
 vi.mock("@/features/cliente/hooks", () => ({ useClientesForSelect: () => ({ data: [] }) }));

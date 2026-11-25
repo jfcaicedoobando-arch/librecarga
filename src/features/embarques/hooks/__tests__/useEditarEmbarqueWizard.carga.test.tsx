@@ -24,7 +24,7 @@ vi.mock("../useContenedoresEmbarque", () => ({ useContenedoresEmbarque: () => m.
 vi.mock("@/features/cliente/hooks/useClientes", () => ({
   useClientesForSelect: () => m.consultas.clientes, useContactosCliente: () => ({ data: [] }),
 }));
-vi.mock("@/hooks/shared", () => ({ useRegistrarActividad: () => ({ mutate: vi.fn() }) }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: vi.fn() }) }));
 vi.mock("@/features/cotizacion/hooks", async () => {
   const { useConceptosForm } = await import("@/features/cotizacion/hooks/wizard/useConceptosForm");
   return { useConceptosForm, useCotizacion: () => ({ data: null }), useCotizacionesAceptadas: () => ({ data: [] }) };

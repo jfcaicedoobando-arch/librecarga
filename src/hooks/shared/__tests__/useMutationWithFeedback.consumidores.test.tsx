@@ -10,7 +10,7 @@
  */
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const notifyError = vi.fn();
@@ -205,6 +205,20 @@ describe("useClientes · migración ola1 batch 2", () => {
       undefined,
       expect.objectContaining({ title: "Error al actualizar cliente", method: "UPDATE_CLIENTE" }),
     );
+  });
+
+  it("useUpdateCliente invalida la ficha y los destinatarios al quitar el correo principal", async () => {
+    updateCliente.mockResolvedValueOnce({ id: "cli1" });
+    const { Wrapper, client } = makeWrapper();
+    const ficha = ["contactos_cliente", "cli1"];
+    const correo = [...ficha, "para-correo", "usuario", "org", "admin_org", 1];
+    const otroCorreo = ["contactos_cliente", "cli2", "para-correo", "usuario", "org", "admin_org", 1];
+    for (const key of [ficha, correo, otroCorreo]) client.setQueryData(key, []);
+    const { result } = renderHook(() => useUpdateCliente(), { wrapper: Wrapper });
+    await act(async () => { await result.current.mutateAsync({ id: "cli1", email: "" }); });
+    expect(client.getQueryState(ficha)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(correo)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(otroCorreo)?.isInvalidated).toBe(false);
   });
 
   it("useDeleteContacto: error → notifyError con método correcto", async () => {

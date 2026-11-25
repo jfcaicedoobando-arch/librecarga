@@ -12,7 +12,8 @@
  */
 import { useCallback, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { useToast, usePermissions, useRegistrarActividad, useDocumentTitle } from "@/hooks/shared";
+import { useToast, usePermissions, useDocumentTitle } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { useOrgActiva } from "@/hooks/shared/useOrgActiva";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useClientesForSelect } from "@/features/cliente/hooks";

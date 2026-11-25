@@ -1,5 +1,5 @@
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { useRegistrarActividad } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { getErrorMessage } from "@/lib/errors";
 import {
   useAvanzarEstadoEmbarque,

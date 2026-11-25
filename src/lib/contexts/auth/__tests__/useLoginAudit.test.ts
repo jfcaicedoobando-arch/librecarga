@@ -10,7 +10,7 @@ const { mockInsert, mockSession } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@/features/auth/services", () => ({ insertLoginAudit: mockInsert }));
+vi.mock("@/features/auth/services/loginAudit", () => ({ insertLoginAudit: mockInsert }));
 vi.mock("@/lib/browserStorage", () => ({
   safeSessionStorage: mockSession,
   loginLoggedKey: (id: string) => `lc:login-logged:${id}`,

@@ -10,13 +10,12 @@ const io = vi.hoisted(() => ({
   subscribe: vi.fn(), getSession: vi.fn(), profile: vi.fn(), planes: vi.fn(),
   signOut: vi.fn(), persistedClear: vi.fn(),
 }));
-vi.mock('@/features/auth/services', () => ({
+vi.mock('@/features/auth/services/session', () => ({
   subscribeToAuthChanges: io.subscribe, getCurrentSession: io.getSession, fetchUserContext: io.profile,
 }));
 vi.mock('@/features/admin/services/planes', () => ({fetchPlanes: io.planes, updatePlan: vi.fn()}));
 vi.mock('@/lib/query', async () => ({queryKeys: {
   planes: (await import('@/features/admin/queryKeys')).planes,
-  auth: (await import('@/features/auth/queryKeys')).auth,
 }}));
 vi.mock('@/lib/contexts/auth/useLoginAudit', () => ({useLoginAudit: () => ({clearLoginAudit: vi.fn()})}));
 vi.mock('@/lib/observability/sentry/user', () => ({syncSentryUser: vi.fn()}));
@@ -68,9 +67,6 @@ beforeEach(() => {
   io.profile.mockImplementation(async () => profile());
   io.planes.mockImplementation(async () => role === 'super_admin' ? [activePlan,inactivePlan] : [activePlan]);
   io.signOut.mockImplementation(async () => trigger('SIGNED_OUT',null));
-  // Prevent idle route preloads and any unrelated service imports.
-  Object.defineProperty(window,'requestIdleCallback',{configurable:true,value:vi.fn(() => 1)});
-  Object.defineProperty(window,'cancelIdleCallback',{configurable:true,value:vi.fn()});
 });
 afterEach(() => {cleanup();client.clear();});
 

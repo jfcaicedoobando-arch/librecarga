@@ -27,9 +27,9 @@ vi.mock("@/features/cliente/hooks/useClientes", () => ({
 
 vi.mock("@/hooks/shared", () => ({
   useToast: () => ({ toast: vi.fn() }),
-  useRegistrarActividad: () => ({ mutate: vi.fn() }),
   useDebounce: (v: any) => v,
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: vi.fn() }) }));
 
 // v13.137.35: el wrapper se crea por test (no a nivel de módulo). Antes
 // `createWrapper()` se llamaba una sola vez al cargar el archivo y el QueryClient

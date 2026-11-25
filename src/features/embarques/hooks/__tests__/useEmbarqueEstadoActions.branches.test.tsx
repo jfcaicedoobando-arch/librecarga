@@ -34,8 +34,8 @@ vi.mock("@/lib/contexts/AuthContext", () => ({
 }));
 vi.mock("@/hooks/shared", () => ({
   useToast: () => ({ toast: vi.fn() }),
-  useRegistrarActividad: () => ({ mutate: h.registrar }),
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: h.registrar }) }));
 vi.mock("@/lib/ui/appFeedback", () => ({
   notifyError: (...args: unknown[]) => h.notifyError(...args),
   notifySuccess: (...args: unknown[]) => h.notifySuccess(...args),

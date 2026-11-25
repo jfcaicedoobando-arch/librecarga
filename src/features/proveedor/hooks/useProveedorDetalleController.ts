@@ -6,7 +6,7 @@ import { calcularAgregadosProveedor } from "@/features/proveedor/domain/agregado
 import { calcularBrechaFacturacion } from "@/features/proveedor/domain/estadoCuentaProveedor";
 import { useExchangeRates } from "@/features/catalogos/hooks";
 import { usePermissions } from "@/hooks/shared/usePermissions";
-import { useRegistrarActividad } from "@/features/auditoria/hooks/useBitacora";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { diffFields, SENSITIVE_FIELDS } from "@/lib/domain/auditDiff";
 
 

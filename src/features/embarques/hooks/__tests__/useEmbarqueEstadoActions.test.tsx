@@ -25,8 +25,8 @@ vi.mock("@/lib/contexts/AuthContext", () => ({
 
 vi.mock("@/hooks/shared", () => ({
   useToast: () => ({ toast: toastFn }),
-  useRegistrarActividad: () => ({ mutate: registrarActividadFn }),
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: () => ({ mutate: registrarActividadFn }) }));
 
 vi.mock("@/features/embarques/hooks/useEmbarques", () => ({
   useAvanzarEstadoEmbarque: () => ({ mutateAsync: avanzarMutateAsync, isPending: false }),

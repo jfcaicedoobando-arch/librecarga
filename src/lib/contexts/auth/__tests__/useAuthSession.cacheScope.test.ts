@@ -2,7 +2,7 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { Session } from "@supabase/supabase-js";
 const session = vi.hoisted(() => ({ subscribe: vi.fn(), getCurrent: vi.fn() }));
-vi.mock("@/features/auth/services", () => ({ subscribeToAuthChanges: session.subscribe, getCurrentSession: session.getCurrent }));
+vi.mock("@/features/auth/services/session", () => ({ subscribeToAuthChanges: session.subscribe, getCurrentSession: session.getCurrent }));
 import { useAuthSession } from "../useAuthSession";
 import { getAuthSnapshot, setAuthSnapshot } from "@/lib/auth/authSnapshot";
 let trigger: (event: string, session: Session | null) => void;

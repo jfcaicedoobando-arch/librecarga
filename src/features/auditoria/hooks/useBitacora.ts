@@ -4,15 +4,12 @@ import { queryKeys } from "@/lib/query";
 import {
   fetchBitacora,
   insertBitacora,
-  type EntradaBitacora,
   type FiltrosBitacora,
 } from "@/features/auditoria/services/bitacora";
 import { logger } from "@/lib/observability/logger";
 import { reportCaughtError } from "@/lib/observability/reportCaughtError";
 import type { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
 
-
-export type { EntradaBitacora };
 
 export function useBitacora(filtros: FiltrosBitacora = {}) {
   return useQuery({

@@ -12,8 +12,8 @@ vi.mock("@/features/cliente/hooks/useClientes", () => ({
 
 vi.mock("@/hooks/shared", () => ({
   useToast: vi.fn(() => ({ toast: vi.fn() })),
-  useRegistrarActividad: vi.fn(() => ({ mutate: vi.fn() })),
 }));
+vi.mock("@/features/auditoria", () => ({ useRegistrarActividad: vi.fn(() => ({ mutate: vi.fn() })) }));
 
 vi.mock("@/features/cliente/services/csf", () => ({
   parseCsf: vi.fn().mockResolvedValue({ nombre: "Parsed Org", rfc: "PAR240101AB0", cp: "12345" }),

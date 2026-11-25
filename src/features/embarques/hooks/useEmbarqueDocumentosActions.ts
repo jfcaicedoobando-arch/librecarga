@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useRegistrarActividad } from "@/hooks/shared";
+import { useRegistrarActividad } from "@/features/auditoria";
 import { getSignedUrl } from "@/services/storage/index";
 import { getErrorMessage } from "@/lib/errors";
 import {
