@@ -1,17 +1,15 @@
 /**
  * Filtros avanzados para Oportunidades (cliente-side sobre el dataset ya cargado).
  */
-import { X } from "lucide-react";
+import { FormField } from "@/components/shared/FormField";
 import { FiltroLetraSelect } from "@/features/crm/components/scoring/FiltroLetraSelect";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import type { CrmEtapaRow } from "@/features/crm/hooks";
-import { FILTROS_DEFAULT, type OportunidadesFiltros } from "./oportunidadesFiltersTypes";
+import { type OportunidadesFiltros } from "./oportunidadesFiltersTypes";
 import { rangoLabel } from "@/lib/ui/rangoFechasCopy";
 
 interface Props {
@@ -25,18 +23,9 @@ export default function OportunidadesFiltersBar({ etapas, vendedores, value, onC
   const set = <K extends keyof OportunidadesFiltros>(k: K, v: OportunidadesFiltros[K]) =>
     onChange({ ...value, [k]: v });
 
-  const isDirty =
-    value.etapaId !== "todas" ||
-    value.vendedorId !== "todos" ||
-    value.cierreDesde !== "" ||
-    value.cierreHasta !== "" ||
-    value.montoMin !== "" ||
-    value.letra !== "todas";
-
   return (
-    <div className="grid grid-cols-2 md:grid-cols-7 gap-3 items-end">
-      <div className="space-y-1">
-        <Label>Etapa</Label>
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 items-end">
+      <FormField label="Etapa" className="min-w-0">
         <Select value={value.etapaId} onValueChange={(v) => set("etapaId", v)}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -44,9 +33,8 @@ export default function OportunidadesFiltersBar({ etapas, vendedores, value, onC
             {etapas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nombre}</SelectItem>)}
           </SelectContent>
         </Select>
-      </div>
-      <div className="space-y-1">
-        <Label>Vendedor</Label>
+      </FormField>
+      <FormField label="Vendedor" className="min-w-0">
         <Select value={value.vendedorId} onValueChange={(v) => set("vendedorId", v)}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -54,17 +42,14 @@ export default function OportunidadesFiltersBar({ etapas, vendedores, value, onC
             {vendedores.map((v) => <SelectItem key={v.id} value={v.id}>{v.email}</SelectItem>)}
           </SelectContent>
         </Select>
-      </div>
-      <div className="space-y-1">
-        <Label>{rangoLabel("Cierre", "desde")}</Label>
-        <DatePickerMx value={value.cierreDesde} onChange={(v) => set("cierreDesde", v)} className="w-full" />
-      </div>
-      <div className="space-y-1">
-        <Label>{rangoLabel("Cierre", "hasta")}</Label>
-        <DatePickerMx value={value.cierreHasta} onChange={(v) => set("cierreHasta", v)} className="w-full" />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="filtro-monto-minimo">Monto mínimo</Label>
+      </FormField>
+      <FormField label={rangoLabel("Cierre", "desde")} className="min-w-0">
+        <DatePickerMx calendarLabel="Abrir calendario de cierre desde" value={value.cierreDesde} onChange={(v) => set("cierreDesde", v)} className="w-full" />
+      </FormField>
+      <FormField label={rangoLabel("Cierre", "hasta")} className="min-w-0">
+        <DatePickerMx calendarLabel="Abrir calendario de cierre hasta" value={value.cierreHasta} onChange={(v) => set("cierreHasta", v)} className="w-full" />
+      </FormField>
+      <FormField label="Monto mínimo" className="min-w-0">
         <Input
           id="filtro-monto-minimo"
           type="number" min={0} inputMode="numeric"
@@ -72,21 +57,10 @@ export default function OportunidadesFiltersBar({ etapas, vendedores, value, onC
           onChange={(e) => set("montoMin", e.target.value)}
           placeholder="0"
         />
-      </div>
-      <div className="space-y-1">
-        <Label>Puntaje</Label>
-        <FiltroLetraSelect value={value.letra} onChange={(v) => set("letra", v)} />
-      </div>
-      <div>
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => onChange(FILTROS_DEFAULT)}
-          disabled={!isDirty}
-        >
-          <X className="h-4 w-4 mr-1" /> Limpiar
-        </Button>
-      </div>
+      </FormField>
+      <FormField label="Puntaje" className="min-w-0">
+        <FiltroLetraSelect fullWidth value={value.letra} onChange={(v) => set("letra", v)} />
+      </FormField>
     </div>
   );
 }

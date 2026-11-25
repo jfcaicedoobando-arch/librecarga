@@ -1,9 +1,6 @@
 /**
  * Diálogo drill-down de aging: al abrir una fila de proveedor en /compras/aging
  * muestra sus facturas con saldo abierto, con badge de cubeta y exporta a CSV.
- *
- * v13.303.95 · Rediseño al design language del detalle CxP:
- * chip-folio inline, filtro de cubetas como chips en action bar y export en overflow.
  */
 import { useMemo, useState } from "react";
 import { FileText, X, AlertTriangle } from "lucide-react";
@@ -16,7 +13,8 @@ import { Button } from "@/components/ui/button";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { dialogSize } from "@/components/shared/utils/dialogTokens";
-import { DataTable, defineColumns } from "@/components/shared/DataTable";
+import { defineColumns } from "@/components/shared/DataTable";
+import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { useFacturasCxP } from "@/features/cxp/hooks";
 import type { FacturaCxP } from "@/features/cxp/services";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -25,7 +23,7 @@ import { bucketDeDias, BUCKET_LABELS, BUCKET_TONE, type CubetaAging } from "./ag
 import { ToneBadge } from "@/components/shared/ToneBadge";
 
 import { todayLocalISO } from "@/lib/date/today";
-import { AgingKpiRow } from "./AgingDrillDownDialog.parts";
+import { AgingKpiRow, FacturaAgingCard } from "./AgingDrillDownDialog.parts";
 import { AgingActionBar } from "@/components/shared/AgingActionBar";
 import { CUBETAS_AGING } from "@/lib/aging/buckets";
 
@@ -167,11 +165,12 @@ function AgingDrillDownBody({ proveedor, open, onOpenChange, cubetaInicial = "to
                 retrying={isFetching}
               />
             ) : (
-              <DataTable<FacturaCxP>
+              <ResponsiveDataTable<FacturaCxP>
                 columns={columns}
                 data={filtradas}
                 isLoading={isLoading}
                 rowKey={(f) => f.id}
+                mobileCard={(factura) => <FacturaAgingCard factura={factura} />}
                 emptyMessage="Este proveedor no tiene facturas con saldo en esta cubeta"
                 density={TABLE_DENSITY.embebida}
                 striped

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAutoFocusPrimerCampo } from "@/components/shared/utils/useAutoFocusPrimerCampo";
 import { Button } from "@/components/ui/button";
 import { CalendarClock, MapPin } from "lucide-react";
 import { useRegistrarEventoTracking } from "@/features/embarques/hooks/mutations/useRegistrarEventoTracking";
@@ -37,6 +38,19 @@ export function TrackingNuevoEventoForm({
   confirmarDescarte,
 }: Props) {
   const [modo, setModo] = useState<Modo>("menu");
+  const ultimoModo = useRef<Exclude<Modo, "menu"> | null>(null);
+  const etaButton = useRef<HTMLButtonElement>(null);
+  const llegadaButton = useRef<HTMLButtonElement>(null);
+  const formRef = useAutoFocusPrimerCampo<HTMLDivElement>(modo !== "menu");
+
+  useEffect(() => {
+    if (modo !== "menu" || !ultimoModo.current) return;
+    const button = ultimoModo.current === "eta" ? etaButton.current : llegadaButton.current;
+    ultimoModo.current = null;
+    if (button?.disabled) etaButton.current?.focus();
+    else button?.focus();
+  }, [modo]);
+
   const { registrar, isPending } = useRegistrarEventoTracking();
   const llegadaRegistrada = fechaLlegadaRealActual?.slice(0, 10);
   const transportista = modoTransporte === "Marítimo" ? "la naviera" : modoTransporte === "Aéreo" ? "la aerolínea" : "el transportista";
@@ -44,6 +58,7 @@ export function TrackingNuevoEventoForm({
   const volverAlMenu = () => {
     const volver = () => {
       onDirtyChange?.(false);
+      ultimoModo.current = modo === "menu" ? null : modo;
       setModo("menu");
     };
     if (confirmarDescarte) confirmarDescarte(volver);
@@ -78,6 +93,7 @@ export function TrackingNuevoEventoForm({
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <button
             type="button"
+            ref={etaButton}
             onClick={() => setModo("eta")}
             className="flex w-full items-start gap-3 rounded-lg border p-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
@@ -91,6 +107,7 @@ export function TrackingNuevoEventoForm({
           </button>
           <button
             type="button"
+            ref={llegadaButton}
             onClick={() => setModo("llegada")}
             disabled={Boolean(llegadaRegistrada)}
             className="flex w-full items-start gap-3 rounded-lg border p-4 text-left transition-colors enabled:hover:bg-muted/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed"
@@ -117,24 +134,28 @@ export function TrackingNuevoEventoForm({
 
   if (modo === "eta") {
     return (
-      <ActualizarEtaForm
-        etaActual={etaActual ?? null}
-        isPending={isPending}
-        onCancel={volverAlMenu}
-        onDirtyChange={onDirtyChange}
-        onSubmit={({ fecha, fuente }) => guardar("eta", fecha, fuente)}
-      />
+      <div ref={formRef}>
+        <ActualizarEtaForm
+          etaActual={etaActual ?? null}
+          isPending={isPending}
+          onCancel={volverAlMenu}
+          onDirtyChange={onDirtyChange}
+          onSubmit={({ fecha, fuente }) => guardar("eta", fecha, fuente)}
+        />
+      </div>
     );
   }
 
   return (
-    <MarcarLlegadaForm
-      destinoDefault={destinoDefault ?? ""}
-      etd={etd}
-      isPending={isPending}
-      onCancel={volverAlMenu}
-      onDirtyChange={onDirtyChange}
-      onSubmit={({ fecha, ubicacion }) => guardar("llegada", fecha, ubicacion)}
-    />
+    <div ref={formRef}>
+      <MarcarLlegadaForm
+        destinoDefault={destinoDefault ?? ""}
+        etd={etd}
+        isPending={isPending}
+        onCancel={volverAlMenu}
+        onDirtyChange={onDirtyChange}
+        onSubmit={({ fecha, ubicacion }) => guardar("llegada", fecha, ubicacion)}
+      />
+    </div>
   );
 }

@@ -12,6 +12,9 @@ import { Table, TableHeader, TableBody, TableCell } from "@/components/ui/table"
 import { DetailTableHead, DetailTableRow } from "@/components/shared/DetailTable";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { Card, CardContent } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { MoneyCell } from "@/components/shared/MoneyCell";
+import { useIsMobile } from "@/hooks/shared/useIsMobile";
 import { Button } from "@/components/ui/button";
 import type { DetalleFlujo, SemanaFlujo } from "@/features/tesoreria/services";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
@@ -21,6 +24,7 @@ import { cn } from "@/lib/utils";
 interface Props { semanas: SemanaFlujo[]; saldoDisponible?: boolean }
 
 export default function TablaFlujoSemanal({ semanas, saldoDisponible = true }: Props) {
+  const isMobile = useIsMobile();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const toggle = (key: string) => {
@@ -30,6 +34,15 @@ export default function TablaFlujoSemanal({ semanas, saldoDisponible = true }: P
       return next;
     });
   };
+
+  if (isMobile) return (
+    <div className="space-y-3">
+      {semanas.map((semana) => (
+        <SemanaFlujoCard key={semana.semana_iso} semana={semana} saldoDisponible={saldoDisponible}
+          open={expanded.has(semana.semana_iso)} onToggle={() => toggle(semana.semana_iso)} />
+      ))}
+    </div>
+  );
 
   return (
     <Card>
@@ -87,6 +100,39 @@ export default function TablaFlujoSemanal({ semanas, saldoDisponible = true }: P
           </TableBody>
         </Table>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SemanaFlujoCard({ semana, saldoDisponible, open, onToggle }: {
+  semana: SemanaFlujo;
+  saldoDisponible: boolean;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <Card>
+      <CardContent className="space-y-3">
+        <p className="font-medium">{semana.semana_iso}</p>
+        <p className="text-body-sm text-muted-foreground">{semana.inicio} → {semana.fin}</p>
+        <MoneyCell label="Flujo neto" value={formatCurrency(semana.flujo_neto_mxn, "MXN")}
+          valueClassName={semana.flujo_neto_mxn < 0 ? "text-destructive" : "text-success"} />
+        <MoneyCell label="Saldo proyectado"
+          value={saldoDisponible ? formatCurrency(semana.saldo_proyectado_mxn, "MXN") : "No disponible"}
+          valueClassName={saldoDisponible && semana.saldo_proyectado_mxn < 0 ? "text-destructive" : undefined} />
+        <Collapsible open={open} onOpenChange={onToggle}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" size="sm">{open ? "Ocultar movimientos" : "Ver movimientos"}</Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="grid grid-cols-2 gap-2 pt-3">
+              <MoneyCell label="Entradas" value={formatCurrency(semana.entradas_mxn, "MXN")} />
+              <MoneyCell label="Salidas" value={formatCurrency(semana.salidas_mxn, "MXN")} />
+            </div>
+            <DetalleListas s={semana} />
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );

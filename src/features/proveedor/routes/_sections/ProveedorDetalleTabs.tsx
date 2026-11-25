@@ -1,4 +1,6 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { useTabsParam } from "@/hooks/shared/useTabsParam";
+import { ScrollableTabsList } from "@/components/shared/ScrollableTabsList";
 import { DetailTabSection } from "@/components/shared/DetailTabSection";
 import { DetailTabLabel } from "@/components/shared/DetailTabLabel";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
@@ -32,11 +34,14 @@ interface Props {
  * cliente: mismo envoltorio (`DetailTabSection`) y mismo pill de contador
  * (`DetailTabLabel`) en todas las pestañas, no sólo en "Por facturar".
  */
+const PROVEEDOR_TABS = ["operaciones", "por_facturar", "estado_cuenta", "contactos", "documentos", "salud"] as const;
+
 export function ProveedorDetalleTabs({
   proveedorId, organizationId, nombreFmt, rfc, esNacional,
   partidas, partidasPendientes,
   isLoadingEstadoCuenta, isErrorEstadoCuenta, errorEstadoCuenta, refetchEstadoCuenta, isFetchingEstadoCuenta,
 }: Props) {
+  const { activeTab, setActiveTab } = useTabsParam(PROVEEDOR_TABS, "operaciones");
   const { canEditExpediente } = usePermissions();
   const tieneConteo = !isLoadingEstadoCuenta && !isErrorEstadoCuenta;
   const operacionesCount = tieneConteo ? partidas.length : undefined;
@@ -56,8 +61,8 @@ export function ProveedorDetalleTabs({
     />
   );
   return (
-    <Tabs defaultValue="operaciones">
-      <TabsList>
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <ScrollableTabsList activeValue={activeTab}>
         <TabsTrigger value="operaciones">
           <DetailTabLabel count={operacionesCount}>Operaciones</DetailTabLabel>
         </TabsTrigger>
@@ -68,7 +73,7 @@ export function ProveedorDetalleTabs({
         <TabsTrigger value="contactos">Contactos</TabsTrigger>
         <TabsTrigger value="documentos">Documentos</TabsTrigger>
         <TabsTrigger value="salud">Salud</TabsTrigger>
-      </TabsList>
+      </ScrollableTabsList>
 
       <TabsContent value="operaciones" className="mt-4">
         <DetailTabSection title="Historial de operaciones" count={operacionesCount}>

@@ -3,6 +3,7 @@ import { FormField } from "@/components/shared/FormField";
 import { Input } from "@/components/ui/input";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
 import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -22,22 +23,6 @@ const MOTIVOS: { value: MotivoNC; label: string }[] = [
   { value: "Cancelacion", label: "Cancelación" },
   { value: "Otro", label: "Otro" },
 ];
-
-export function TabButton({ active, onClick, children }: {
-  active: boolean; onClick: () => void; children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex-1 px-4 py-2.5 text-body font-medium transition-colors ${
-        active ? "bg-background text-foreground" : "text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
 
 /** Captura por XML vs manual. */
 interface OrigenNc {
@@ -95,10 +80,13 @@ export function NuevaNotaCreditoFormFields({ origen, datos, divisa }: Props) {
   const monedaExtranjera = moneda === "MXN" ? monedaFactura : moneda;
   return (
     <div className="rounded-lg border bg-muted/30">
-      <div className="flex border-b">
-        <TabButton active={mode === "manual"} onClick={() => onModeChange("manual")}>Captura manual</TabButton>
-        <TabButton active={mode === "cfdi"} onClick={() => onModeChange("cfdi")}>Cargar XML CFDI</TabButton>
-      </div>
+      <ToggleGroup type="single" value={mode} aria-label="Modo de captura de la nota"
+        className="flex flex-wrap" onValueChange={(next) => {
+          if ((next === "manual" || next === "cfdi") && next !== mode) onModeChange(next);
+        }}>
+        <ToggleGroupItem value="manual" className="flex-1">Captura manual</ToggleGroupItem>
+        <ToggleGroupItem value="cfdi" className="flex-1">Cargar XML CFDI</ToggleGroupItem>
+      </ToggleGroup>
       <div className="p-4">
         {mode === "cfdi" && (
           <CargaXmlNcSection key={facturaId} parsed={parsedCfdi} onParsed={onCfdiParsed} facturaId={facturaId} onClear={onClearCfdi} />
@@ -109,10 +97,9 @@ export function NuevaNotaCreditoFormFields({ origen, datos, divisa }: Props) {
             <Label htmlFor="nc-folio">Folio NC *</Label>
             <Input id="nc-folio" value={folio} onChange={(e) => onFolioChange(e.target.value)} placeholder="NC-001" />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="nc-fecha">Fecha *</Label>
-            <DatePickerMx value={fecha} onChange={onFechaChange} className="w-full" />
-          </div>
+          <FormField label="Fecha" required htmlFor="nc-fecha">
+            <DatePickerMx value={fecha} onChange={onFechaChange} className="w-full" aria-required />
+          </FormField>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
           <div className="space-y-1.5">

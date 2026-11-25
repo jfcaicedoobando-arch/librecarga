@@ -12,7 +12,7 @@ async function open(page: Page, scenario: string) {
   await page.goto(`/?case=xml&xmlScenario=${scenario}`);
   await page.getByTestId("open-xml").click();
   await expect(page.getByRole("dialog", { name: "Registrar nota de crédito" })).toBeVisible();
-  await page.getByRole("button", { name: "Cargar XML CFDI", exact: true }).click();
+  await page.getByRole("radio", { name: "Cargar XML CFDI", exact: true }).click();
   await page.locator('input[type="file"][accept*=".xml"]').setInputFiles(file);
   await expect(page.getByRole("button", { name: "Registrar", exact: true })).toBeDisabled();
 }
@@ -73,7 +73,7 @@ test("XML 96: rechazo visible conserva captura manual sin UUID ni adjuntos", asy
   await expect(page.getByText("El RFC emisor del XML no corresponde al proveedor de la factura seleccionada.", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Registrar", exact: true })).toBeDisabled();
   await capture(page, testInfo, "xml-rejected");
-  await page.getByRole("button", { name: "Captura manual", exact: true }).click();
+  await page.getByRole("radio", { name: "Captura manual", exact: true }).click();
   await page.getByLabel("Folio NC *", { exact: true }).fill("MANUAL-FICTICIA");
   await page.getByLabel("Monto *", { exact: true }).fill("10");
   await page.getByLabel("Base sin impuestos *", { exact: true }).fill("10");
@@ -109,7 +109,7 @@ test("XML 96: retirar XML invalida UUID, validación y ambos adjuntos", async ({
   await expect(page.getByRole("button", { name: "Registrar", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Quitar XML", exact: true }).click();
   // Moving to manual proves the retained editable amounts cannot leak old UUID/files.
-  await page.getByRole("button", { name: "Captura manual", exact: true }).click();
+  await page.getByRole("radio", { name: "Captura manual", exact: true }).click();
   await page.getByRole("button", { name: "Registrar", exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.__xmlEvidence.writes.length)).toBe(1);
   expect(await page.evaluate(() => window.__xmlEvidence.writes[0].uuid_fiscal)).toBeNull();

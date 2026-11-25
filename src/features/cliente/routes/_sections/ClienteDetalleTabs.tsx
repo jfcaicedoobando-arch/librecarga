@@ -1,5 +1,6 @@
 import { DetailTabLabel } from "@/components/shared/DetailTabLabel";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollableTabsList } from "@/components/shared/ScrollableTabsList";
 import TabPortalCliente from "@/features/cliente/components/TabPortalCliente";
 import Cliente360Panel from "@/features/crm/components/Cliente360Panel";
 import { EstadoCuentaModule } from "@/features/facturacion/estadoCuenta/components/EstadoCuentaModule";
@@ -80,7 +81,7 @@ export function ClienteDetalleTabs({
   const { activeTab, setActiveTab } = useTabsParam(CLIENTE_TABS, "informacion");
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList>
+      <ScrollableTabsList activeValue={activeTab}>
         <TabsTrigger value="informacion">Información</TabsTrigger>
         <TabsTrigger value="embarques">
           <DetailTabLabel count={embarquesCliente.length}>Embarques</DetailTabLabel>
@@ -92,7 +93,7 @@ export function ClienteDetalleTabs({
         <TabsTrigger value="documentos">Documentos</TabsTrigger>
         <TabsTrigger value="crm">CRM</TabsTrigger>
         <TabsTrigger value="portal">Portal</TabsTrigger>
-      </TabsList>
+      </ScrollableTabsList>
 
       <TabsContent
         value="informacion"
