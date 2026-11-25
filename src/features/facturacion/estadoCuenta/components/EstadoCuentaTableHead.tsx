@@ -14,11 +14,15 @@ interface Props {
 }
 
 function SortIcon({ activo, dir }: { activo: boolean; dir: "asc" | "desc" }) {
-  if (!activo) return <ChevronsUpDown className="h-3 w-3 opacity-40" />;
-  return dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
+  if (!activo) return <ChevronsUpDown className="size-3 opacity-40" aria-hidden />;
+  return dir === "asc" ? <ArrowUp className="size-3" aria-hidden /> : <ArrowDown className="size-3" aria-hidden />;
 }
 
 export function EstadoCuentaTableHead({ sort, onSort }: Props) {
+  const ariaSort = (key: OrdenEstadoCuenta): "none" | "ascending" | "descending" => {
+    if (sort.key !== key) return "none";
+    return sort.dir === "asc" ? "ascending" : "descending";
+  };
   const boton = (key: OrdenEstadoCuenta, label: string, alineadoDerecha = false) => (
     <button
       type="button"
@@ -37,14 +41,14 @@ export function EstadoCuentaTableHead({ sort, onSort }: Props) {
     <TableHeader>
       <TableRow>
         <DetailTableHead className="w-8" />
-        <DetailTableHead className="w-[92px] whitespace-nowrap">{boton("fecha", "Fecha")}</DetailTableHead>
+        <DetailTableHead className="w-[92px] whitespace-nowrap" aria-sort={ariaSort("fecha")}>{boton("fecha", "Fecha")}</DetailTableHead>
         <DetailTableHead className="w-[86px]">Folio</DetailTableHead>
         <DetailTableHead className="min-w-[110px]">Concepto</DetailTableHead>
-        <DetailTableHead className="w-[100px] whitespace-nowrap">{boton("vencimiento", "Vence")}</DetailTableHead>
+        <DetailTableHead className="w-[100px] whitespace-nowrap" aria-sort={ariaSort("vencimiento")}>{boton("vencimiento", "Vence")}</DetailTableHead>
         <DetailTableHead className="w-[60px] text-right whitespace-nowrap">Días</DetailTableHead>
         <DetailTableHead className="w-[112px] text-right whitespace-nowrap">Cargo</DetailTableHead>
         <DetailTableHead className="w-[112px] text-right whitespace-nowrap">Abono</DetailTableHead>
-        <DetailTableHead className="w-[112px] text-right whitespace-nowrap">{boton("saldo", "Saldo", true)}</DetailTableHead>
+        <DetailTableHead className="w-[112px] text-right whitespace-nowrap" aria-sort={ariaSort("saldo")}>{boton("saldo", "Saldo", true)}</DetailTableHead>
         <DetailTableHead className="hidden w-[112px] text-right whitespace-nowrap 2xl:table-cell">Acumulado</DetailTableHead>
         <DetailTableHead className="w-[104px]">Estatus</DetailTableHead>
       </TableRow>

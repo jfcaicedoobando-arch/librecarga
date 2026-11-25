@@ -1,14 +1,5 @@
-/**
- * Diálogos de confirmación destructivos usados por `<AdjuntoRow />`
- * (reemplazar / quitar adjunto CFDI). Extraídos para respetar el límite
- * de 200 líneas por archivo (Power of 10).
- */
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 import type { TipoAdjuntoCfdi } from "@/features/cxp/services";
-import { dialogSize } from "@/components/shared/utils/dialogTokens";
 
 export function ConfirmReplaceDialog({
   file, tipo, onCancel, onConfirm,
@@ -18,24 +9,18 @@ export function ConfirmReplaceDialog({
   onCancel: () => void;
   onConfirm: (file: File) => void;
 }) {
+  if (!file) return null;
+
   return (
-    <AlertDialog open={!!file} onOpenChange={(o) => !o && onCancel()}>
-      <AlertDialogContent className={dialogSize.sm}>
-        <AlertDialogHeader>
-          <AlertDialogTitle>¿Reemplazar el {tipo} actual?</AlertDialogTitle>
-          <AlertDialogDescription>
-            El archivo existente se sobreescribirá con
-            <span className="font-medium"> {file?.name}</span>. Esta acción no se puede deshacer.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={() => { if (file) onConfirm(file); }}>
-            Reemplazar
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmActionDialog
+      open
+      onOpenChange={(open) => { if (!open) onCancel(); }}
+      title={`¿Reemplazar el ${tipo} actual?`}
+      description={<>El archivo existente se sobreescribirá con <strong>{file.name}</strong>. Esta acción no se puede deshacer.</>}
+      confirmLabel="Reemplazar"
+      variant="destructive"
+      onConfirm={() => onConfirm(file)}
+    />
   );
 }
 
@@ -48,19 +33,14 @@ export function ConfirmRemoveDialog({
   onConfirm: () => void;
 }) {
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className={dialogSize.sm}>
-        <AlertDialogHeader>
-          <AlertDialogTitle>¿Quitar el {tipo} adjunto?</AlertDialogTitle>
-          <AlertDialogDescription>
-            La factura permanecerá, pero ya no tendrá el archivo {tipo}. Podrás adjuntar uno nuevo después.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>Quitar</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmActionDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`¿Quitar el ${tipo} adjunto?`}
+      description={`La factura permanecerá, pero ya no tendrá el archivo ${tipo}. Podrás adjuntar uno nuevo después.`}
+      confirmLabel="Quitar"
+      variant="destructive"
+      onConfirm={onConfirm}
+    />
   );
 }

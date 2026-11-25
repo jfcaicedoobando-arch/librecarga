@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { PresetRango } from "../hooks/useEstadoCuentaDateRange";
 
@@ -55,16 +54,14 @@ export function EstadoCuentaFilters({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={busqueda}
-            onChange={(e) => onBusquedaChange(e.target.value)}
-            placeholder="Folio o expediente"
-            aria-label="Buscar por folio o expediente"
-            className="h-8 w-48 pl-7 text-body"
-          />
-        </div>
+        <SearchInput
+          value={busqueda}
+          onChange={onBusquedaChange}
+          placeholder="Folio o expediente"
+          aria-label="Buscar por folio o expediente"
+          className="w-full sm:w-48"
+          inputClassName="md:h-8"
+        />
 
         <div className="flex items-center gap-2">
           <Label size="sm" htmlFor="ec-moneda" className="text-muted-foreground">

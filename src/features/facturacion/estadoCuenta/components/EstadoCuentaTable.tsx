@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Table, TableBody, TableCell } from "@/components/ui/table";
 import { DetailTableRow } from "@/components/shared/DetailTable";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Inbox } from "lucide-react";
 import { EstadoCuentaTableHead } from "./EstadoCuentaTableHead";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
@@ -78,7 +79,7 @@ export function EstadoCuentaTable({
   const vacio = !isLoading && grupos.length === 0;
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
+    <Card className="overflow-hidden">
       {toolbar && <div className="border-b px-3 py-2">{toolbar}</div>}
 
       {isError && (
@@ -131,7 +132,7 @@ export function EstadoCuentaTable({
           </Button>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
