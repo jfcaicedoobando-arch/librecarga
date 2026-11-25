@@ -47,6 +47,9 @@ export function CostoVsRealPanel() {
             <ul className="space-y-2">
               {filas.map((s) => {
                 const resumen = costos.data?.get(s.id);
+                const etiqueta = resumen ? ETIQUETA_ESTADO_COSTO[resumen.estado]
+                  : costos.isError ? "Comparación no disponible"
+                  : costos.isSuccess ? ETIQUETA_ESTADO_COSTO.sin_cotizacion : "Calculando…";
                 return (
                   <li key={s.id}>
                     <Card>
@@ -55,7 +58,7 @@ export function CostoVsRealPanel() {
                           <span className="font-medium">{s.folio}</span>
                           <span className="text-body-sm">{s.cliente ?? "Sin cliente"}</span>
                           <span className="text-body-sm text-muted-foreground">{s.servicio}</span>
-                          <Badge variant="outline">{costos.isLoading ? "Calculando…" : ETIQUETA_ESTADO_COSTO[resumen?.estado ?? "sin_cotizacion"]}</Badge>
+                          <Badge variant="outline">{etiqueta}</Badge>
                           {resumen?.expediente && <span className="text-caption text-muted-foreground">{resumen.expediente}</span>}
                         </div>
                         {resumen && <TablaCostoReal resumen={resumen} />}
@@ -69,7 +72,10 @@ export function CostoVsRealPanel() {
               total={total} pageSize={PAGINA_COSTO_REAL} onPageChange={setPagina} />
           </>
         )}
-      {costos.isError && <p className="text-body-sm text-destructive">No se pudo calcular la comparación de costos.</p>}
+      {costos.isError && (
+        <ErrorStateInline message="No se pudo calcular la comparación de costos."
+          onRetry={() => void costos.refetch()} retrying={costos.isFetching} />
+      )}
     </div>
   );
 }
