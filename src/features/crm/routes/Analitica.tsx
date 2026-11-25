@@ -12,6 +12,7 @@ import { useForecast, useReportesCRM } from "@/features/crm/hooks";
 import LeaderboardVendedores from "@/features/crm/components/LeaderboardVendedores";
 import { usePermissions, useDocumentTitle } from "@/hooks/shared";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { KpiStrip } from "@/components/shared/KpiStrip";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ErrorState } from "@/components/shared/states/ErrorState";
@@ -37,20 +38,20 @@ function ForecastPanel() {
         Incluye fechas anteriores al mes actual y oportunidades sin fecha; no es el total del mes.
         La columna Oportunidades cuenta también ganadas, perdidas y sin etapa clasificada.
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="space-y-4">
         {totales.length === 0 ? (
-          <>
+          <KpiStrip desktopCols={3} mobileStack>
             <KpiCard label="Oportunidades abiertas" value={formatCurrencyCompact(0, "MXN")} loading={isLoading} />
             <KpiCard label="Valor ponderado" value={formatCurrencyCompact(0, "MXN")} loading={isLoading} />
             <KpiCard label="Ganado" value={formatCurrencyCompact(0, "MXN")} loading={isLoading} variant="success" />
-          </>
+          </KpiStrip>
         ) : (
           totales.map((t) => (
-            <div key={t.moneda} className="grid grid-cols-3 gap-4 col-span-1 md:col-span-3">
+            <KpiStrip key={t.moneda} desktopCols={3} mobileStack>
               <KpiCard label={`Oportunidades abiertas (${t.moneda})`} value={formatCurrencyCompact(t.totalPipeline, t.moneda)} loading={isLoading} />
               <KpiCard label={`Valor ponderado (${t.moneda})`} value={formatCurrencyCompact(t.totalPonderado, t.moneda)} loading={isLoading} />
               <KpiCard label={`Ganado (${t.moneda})`} value={formatCurrencyCompact(t.totalGanado, t.moneda)} loading={isLoading} variant="success" />
-            </div>
+            </KpiStrip>
           ))
         )}
       </div>

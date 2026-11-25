@@ -1,9 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render as renderWithProviders, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
+import type { ReactElement } from "react";
 import { AgingDrillDownDialog } from "../AgingDrillDownDialog";
 import type { CxpAgingRow } from "../../services/cxpAging";
 import { exportarCxpAgingCsv } from "../../services/cxpAgingExport";
 import { addDaysIso } from "@/lib/date/dateOnly";
+
+const render = (ui: ReactElement) => renderWithProviders(ui, { wrapper: MemoryRouter });
 
 const { fetchMock, csvRows, aggregateCsv } = vi.hoisted(() => ({ fetchMock: vi.fn(), csvRows: vi.fn(), aggregateCsv: vi.fn() }));
 vi.mock("@/lib/ui/notifyCsvExport", () => ({ downloadCsvWithFeedback: aggregateCsv }));

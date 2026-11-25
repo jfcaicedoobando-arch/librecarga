@@ -2,7 +2,7 @@
  * EmailChipsField — Campo tipo etiquetas (chips) para captura de correos.
  *
  * Homologa la interacción de "Para" y "CC" en el modal de envío de documentos.
- * - Enter, coma, punto y coma o Tab confirman el chip.
+ * - Enter, coma, punto y coma y salir del campo confirman el chip.
  * - Backspace en input vacío elimina el último chip editable.
  * - Pegado (paste) auto-divide por comas/espacios/saltos.
  * - Chips inválidos se resaltan en `destructive`.
@@ -64,7 +64,7 @@ export function EmailChipsField({
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === "," || e.key === ";" || e.key === "Tab") {
+    if (e.key === "Enter" || e.key === "," || e.key === ";") {
       if (value.trim()) {
         e.preventDefault();
         commit(value);

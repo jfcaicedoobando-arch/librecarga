@@ -160,7 +160,7 @@ describe("DialogNotaCreditoProveedor: snapshot completo por apertura", () => {
   it.each(selecciones.flatMap((seleccion) => vias.map((via) => ({ seleccion, via }))))(
     "modo XML $seleccion sin parsed con $via conserva selección y descarta limpio", async ({ seleccion, via }) => {
       render(<Harness />);
-      fireEvent.click(screen.getByRole("button", { name: "Cargar XML CFDI" }));
+      fireEvent.click(screen.getByRole("radio", { name: "Cargar XML CFDI" }));
       const xml = new File(["<fixture/>"], "captura.xml", { type: "application/xml" });
       const pdf = new File(["fixture"], "captura.pdf", { type: "application/pdf" });
       const xmlInput = document.querySelector<HTMLInputElement>('input[type="file"][accept*=".xml"]')!;
@@ -177,7 +177,7 @@ describe("DialogNotaCreditoProveedor: snapshot completo por apertura", () => {
       await descartarReabrir(via);
       comprobarDefaults();
       expect(screen.queryByText("captura.xml")).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "Cargar XML CFDI" }));
+      fireEvent.click(screen.getByRole("radio", { name: "Cargar XML CFDI" }));
       expect(screen.getByRole("button", { name: "Adjuntar PDF (opcional)" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Procesar XML" })).toBeDisabled();
     },
@@ -185,8 +185,8 @@ describe("DialogNotaCreditoProveedor: snapshot completo por apertura", () => {
 
   it("volver de XML vacío a manual restaura el snapshot sin falso dirty", () => {
     render(<Harness />);
-    fireEvent.click(screen.getByRole("button", { name: "Cargar XML CFDI" }));
-    fireEvent.click(screen.getByRole("button", { name: "Captura manual" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Cargar XML CFDI" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Captura manual" }));
     cerrar("Cancelar");
     expect(mocks.cerrar).toHaveBeenCalledExactlyOnceWith(false);
   });

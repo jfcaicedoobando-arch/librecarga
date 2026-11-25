@@ -31,8 +31,8 @@ function esEnfocable(el: Element): el is HTMLElement {
   return el.offsetParent !== null || el.getClientRects().length > 0;
 }
 
-export function useAutoFocusPrimerCampo(open: boolean, enabled = true) {
-  const ref = useRef<HTMLElement | null>(null);
+export function useAutoFocusPrimerCampo<T extends HTMLElement = HTMLElement>(open: boolean, enabled = true) {
+  const ref = useRef<T | null>(null);
 
   useEffect(() => {
     if (!open || !enabled) return;

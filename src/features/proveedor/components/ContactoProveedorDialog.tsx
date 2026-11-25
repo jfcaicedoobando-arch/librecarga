@@ -4,6 +4,7 @@
  */
 import { useEffect, useState } from "react";
 import { UserPlus } from "lucide-react";
+import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
 import { FormField } from "@/components/shared/FormField";
@@ -33,7 +34,10 @@ const FORM_ID = "form-contacto-proveedor";
 export function ContactoProveedorDialog({
   open, onOpenChange, contacto, isPending, onGuardar,
 }: Props) {
-  const [form, setForm] = useState<ContactoProveedorForm>(CONTACTO_PROVEEDOR_VACIO);
+  const inicial = contacto ? contactoAForm(contacto) : CONTACTO_PROVEEDOR_VACIO;
+  const [form, setForm] = useState<ContactoProveedorForm>(inicial);
+  const isDirty = (Object.keys(inicial) as Array<keyof ContactoProveedorForm>)
+    .some((campo) => inicial[campo] !== form[campo]);
   const [validar, setValidar] = useState(false);
   const error = validar ? errorContactoProveedor(form) : null;
   const errorMedio = error?.campo === "medio" ? error.mensaje : undefined;
@@ -61,6 +65,8 @@ export function ContactoProveedorDialog({
     <FormDialogShell
       open={open}
       onOpenChange={onOpenChange}
+      isDirty={isDirty}
+      busy={isPending}
       icon={UserPlus}
       title={contacto ? "Editar contacto" : "Nuevo contacto del proveedor"}
       description="Registra a las personas con quienes operas: pagos, tráfico, facturación."
@@ -69,9 +75,7 @@ export function ContactoProveedorDialog({
       onSubmit={onSubmit}
       footer={
         <>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
+          <FormDialogCancelarBoton onCancelar={() => onOpenChange(false)} disabled={isPending} />
           <Button type="submit" form={FORM_ID} formNoValidate loading={isPending}>
             Guardar contacto
           </Button>
