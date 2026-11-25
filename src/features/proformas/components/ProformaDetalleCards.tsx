@@ -73,8 +73,8 @@ function FacturaAsociadaItem({ factura, showHeader }: { factura: FacturaAsociada
         </div>
         {tieneArchivos && (
           <div className="col-span-2 md:col-span-3 flex flex-wrap gap-2 pt-1 border-t">
-            <FacturaDownloadButton stored={factura.factura_pdf_url ?? null} kind="pdf" size="sm" facturaId={factura.id} />
-            <FacturaDownloadButton stored={factura.factura_xml_url ?? null} kind="xml" size="sm" facturaId={factura.id} />
+            <FacturaDownloadButton stored={factura.factura_pdf_url ?? null} kind="pdf" facturaId={factura.id} />
+            <FacturaDownloadButton stored={factura.factura_xml_url ?? null} kind="xml" facturaId={factura.id} />
           </div>
         )}
       </CardContent>

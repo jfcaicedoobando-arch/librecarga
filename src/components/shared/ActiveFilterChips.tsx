@@ -17,9 +17,10 @@ interface Props {
   searchId?: string;
   className?: string;
   title?: string;
+  clearLabel?: string;
 }
 
-export function ActiveFilterChips({ chips, onClearAll, searchId, className, title = "Activos:" }: Props) {
+export function ActiveFilterChips({ chips, onClearAll, searchId, className, title = "Activos:", clearLabel = "Limpiar todo" }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const focusSearch = () => {
     if (searchId) document.getElementById(searchId)?.focus();
@@ -55,7 +56,7 @@ export function ActiveFilterChips({ chips, onClearAll, searchId, className, titl
         onClearAll();
         requestAnimationFrame(focusSearch);
       }}>
-        Limpiar todo
+        {clearLabel}
       </Button>
     </div>
   );

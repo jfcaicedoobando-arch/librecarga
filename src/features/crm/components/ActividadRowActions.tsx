@@ -2,7 +2,7 @@
  * Menú compacto para una fila de actividad: Completar, Posponer y Notas.
  * Las notas siguen disponibles incluso en actividades completadas.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CheckCircle2, Clock, FileText, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,8 @@ export default function ActividadRowActions({ actividad }: Props) {
   const completar = useCompletarActividad();
   const posponer = usePosponerActividad();
   const [notasOpen, setNotasOpen] = useState(false);
+  const botonAccionesRef = useRef<HTMLButtonElement>(null);
+  const abreNotasRef = useRef(false);
   const [fechaMenu, setFechaMenu] = useState(() => new Date());
   const completada = !!actividad.fecha_completada;
 
@@ -52,14 +54,22 @@ export default function ActividadRowActions({ actividad }: Props) {
       <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="h-8 w-8"
+            <Button ref={botonAccionesRef} size="icon" variant="ghost" className="h-8 w-8"
               disabled={completar.isPending || posponer.isPending}
               loading={completar.isPending || posponer.isPending}
               aria-label="Acciones de actividad">
               <MoreHorizontal className="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenuContent
+            align="end"
+            onClick={(e) => e.stopPropagation()}
+            onCloseAutoFocus={(event) => {
+              if (!abreNotasRef.current) return;
+              event.preventDefault();
+              abreNotasRef.current = false;
+            }}
+          >
             {!completada && (
               <>
                 <DropdownMenuItem onSelect={() => void handleCompletar()}>
@@ -86,7 +96,10 @@ export default function ActividadRowActions({ actividad }: Props) {
                 <DropdownMenuSeparator />
               </>
             )}
-            <DropdownMenuItem onSelect={() => setNotasOpen(true)}>
+            <DropdownMenuItem onSelect={() => {
+              abreNotasRef.current = true;
+              setNotasOpen(true);
+            }}>
               <FileText className="mr-2 size-4" />Notas / resultado
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -96,6 +109,15 @@ export default function ActividadRowActions({ actividad }: Props) {
         actividad={actividad}
         open={notasOpen}
         onOpenChange={setNotasOpen}
+        onCloseAutoFocus={(event) => {
+          const button = botonAccionesRef.current;
+          const target = button?.isConnected && !button.disabled ? button :
+            document.querySelector<HTMLInputElement>('#crm-actividades input[type="search"]');
+          if (target) {
+            event.preventDefault();
+            target.focus();
+          }
+        }}
       />
     </>
   );

@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import SearchInput from "@/components/shared/SearchInput";
+import { ActiveFilterChips } from "@/components/shared/ActiveFilterChips";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MobileFiltersSheet } from "@/components/shared/MobileFiltersSheet";
 import type { Enums } from "@/types/db";
@@ -30,10 +28,11 @@ export function ProveedoresFiltros(props: Props) {
   const { search, onSearchChange, origen, onOrigenChange, tipoFiltro, onTipoChange, onLimpiar, snapshot, restore } = props;
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const filtrosActivos: { label: string; onClear: () => void }[] = [];
-  if (origen !== "todos") filtrosActivos.push({ label: `Origen: ${origen}`, onClear: () => onOrigenChange("todos") });
-  if (tipoFiltro !== "todos") filtrosActivos.push({ label: `Tipo: ${tipoFiltro}`, onClear: () => onTipoChange("todos") });
-  const activeCount = filtrosActivos.length + Number(Boolean(search.trim()));
+  const filtrosActivos = [
+    { key: "search", label: "Búsqueda", value: search.trim(), onRemove: () => onSearchChange("") },
+    { key: "origen", label: "Origen", value: origen === "todos" ? "" : origen, onRemove: () => onOrigenChange("todos") },
+    { key: "tipo", label: "Tipo", value: tipoFiltro === "todos" ? "" : tipoFiltro, onRemove: () => onTipoChange("todos") },
+  ].filter(({ value }) => value);
 
   const selectsContent = (
     <>
@@ -61,13 +60,13 @@ export function ProveedoresFiltros(props: Props) {
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center gap-2">
           <div className="flex-1 min-w-0">
-            <SearchInput value={search} onChange={onSearchChange} placeholder="Buscar por nombre, RFC, contacto o email…" />
+            <SearchInput id="buscar-proveedores" aria-label="Buscar proveedores" value={search} onChange={onSearchChange} placeholder="Buscar por nombre, RFC, contacto o email…" />
           </div>
           <div className="md:hidden">
             <MobileFiltersSheet
               open={sheetOpen}
               onOpenChange={setSheetOpen}
-              activeCount={activeCount}
+              activeCount={filtrosActivos.length}
               onClearAll={onLimpiar}
               title="Filtros de proveedores"
               snapshot={snapshot}
@@ -82,28 +81,12 @@ export function ProveedoresFiltros(props: Props) {
           {selectsContent}
         </div>
 
-        {filtrosActivos.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {filtrosActivos.map((f) => (
-              <Badge key={f.label} variant="outline" className="gap-1">
-                {f.label}
-                <button
-                  type="button"
-                  onClick={f.onClear}
-                  className="rounded-sm hover:bg-muted/60 transition-colors"
-                  aria-label={`Quitar filtro ${f.label}`}
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-        )}
-        {activeCount > 0 && (
-          <Button variant="ghost" size="sm" className="h-9" onClick={onLimpiar}>
-            Limpiar búsqueda y filtros
-          </Button>
-        )}
+        <ActiveFilterChips
+          chips={filtrosActivos}
+          searchId="buscar-proveedores"
+          clearLabel="Limpiar búsqueda y filtros"
+          onClearAll={onLimpiar}
+        />
       </CardContent>
     </Card>
   );

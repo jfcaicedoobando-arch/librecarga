@@ -1,7 +1,8 @@
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollableTabsList } from "@/components/shared/ScrollableTabsList";
 import { ESTADOS_COTIZACION } from "@/features/cotizacion/hooks";
 
 type Cliente = { id: string; nombre: string };
@@ -47,11 +48,11 @@ export function SegmentoTabs({
 }: { value: string; conteos?: SegmentoConteos; onChange: (v: string) => void }) {
   return (
     <Tabs value={value} onValueChange={onChange} className="w-full">
-      <TabsList aria-label="Segmento de cotizaciones">
+      <ScrollableTabsList activeValue={value} aria-label="Segmento de cotizaciones">
         <TabsTrigger value="clientes">De clientes{conteos && ` (${conteos.clientes})`}</TabsTrigger>
         <TabsTrigger value="prospectos">A prospectos{conteos && ` (${conteos.prospectos})`}</TabsTrigger>
         <TabsTrigger value="todas">Todas{conteos && ` (${conteos.todas})`}</TabsTrigger>
-      </TabsList>
+      </ScrollableTabsList>
       {conteos && <p className="mt-1 text-body-sm text-muted-foreground">Los conteos corresponden a cotizaciones, no a personas o empresas.</p>}
     </Tabs>
   );

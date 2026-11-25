@@ -24,9 +24,10 @@ interface Props {
   actividad: CrmActividadRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
-export default function ActividadNotasSheet({ actividad, open, onOpenChange }: Props) {
+export default function ActividadNotasSheet({ actividad, open, onOpenChange, onCloseAutoFocus }: Props) {
   const [resultado, setResultado] = useState("");
   const [confirmarDescartar, setConfirmarDescartar] = useState(false);
   const mutate = useActualizarActividadNotas();
@@ -62,7 +63,7 @@ export default function ActividadNotasSheet({ actividad, open, onOpenChange }: P
 
   return (
     <Sheet open={open} onOpenChange={pedirCierre}>
-      <SheetContent side="right" className={formSheet}>
+      <SheetContent side="right" className={formSheet} onCloseAutoFocus={onCloseAutoFocus}>
         <SheetHeader>
           <SheetTitle>Notas de actividad</SheetTitle>
           <SheetDescription className="line-clamp-1">
