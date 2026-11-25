@@ -49,10 +49,7 @@ export default function TesoreriaPagos() {
   const metodos = useMemo(() => metodosDisponibles(pagos), [pagos]);
   const visibles = useMemo(() => filtrarPagos(pagos, filtros), [pagos, filtros]);
   const filtrosBase = { ...FILTROS_LIBRO_PAGOS_INICIALES, vista: filtros.vista };
-  const hayFiltros = pagos.length > 0 && Object.keys(filtrosBase).some((key) => {
-    const campo = key as keyof typeof filtrosBase;
-    return filtros[campo] !== filtrosBase[campo];
-  });
+  const hayResultadosAlLimpiar = visibles.length === 0 && filtrarPagos(pagos, filtrosBase).length > 0;
   const totales = useMemo(() => totalesLibroPagos(visibles), [visibles]);
   const columns = useMemo(() => libroPagosColumns(), []);
   const cuentaActiva = cuentas.find((cuenta) => cuenta.id === filtros.cuentaId);
@@ -118,7 +115,7 @@ export default function TesoreriaPagos() {
           onRetry={() => void refetch()}
           onRowClick={(p) => setPagoAbierto(refPagoDeLibro(p))}
           getRowAriaLabel={(p) => `Ver detalle: ${etiquetaTipoPagoLibro(p)} · ${p.contraparte ?? "la contraparte"} · ${p.referencia || p.documento_folio || formatDate(p.fecha)}`}
-          emptyState={<FilteredListEmptyState filtered={hayFiltros}
+          emptyState={<FilteredListEmptyState filtered={hayResultadosAlLimpiar}
             message="No hay pagos registrados para este periodo y vista."
             onClearFilters={() => actualizarFiltros(filtrosBase)} />}
           mobileCard={(p) => <LibroPagosMobileCard row={p} />}

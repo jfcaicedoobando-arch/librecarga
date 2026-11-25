@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router";
 import { FILTROS_LIBRO_PAGOS_INICIALES, type FiltrosLibroPagos, type PagoLibro } from "../../domain/libroPagos";
 
 const state = vi.hoisted(() => ({
-  pagos: [] as PagoLibro[], sheet: vi.fn(() => null), filtros: null as FiltrosLibroPagos | null,
+  pagos: [] as PagoLibro[], sheet: vi.fn(() => null), actualizarFiltros: vi.fn(), filtros: null as FiltrosLibroPagos | null,
   descargarPdf: vi.fn<(documento: ReactElement, nombre: string) => Promise<void>>(),
 }));
 vi.mock("@/hooks/shared", () => ({ useDocumentTitle: vi.fn(), useIsMobile: () => true }));
@@ -17,7 +17,7 @@ vi.mock("@/features/tesoreria/hooks/useLibroPagos", () => ({
 }));
 vi.mock("@/features/tesoreria/hooks/useFiltrosLibroPagosUrl", () => ({
   useFiltrosLibroPagosUrl: () => ({ rango: { desde: "2026-10-01", hasta: "2026-10-07" },
-    filtros: state.filtros ?? FILTROS_LIBRO_PAGOS_INICIALES, setRango: vi.fn(), actualizarFiltros: vi.fn() }),
+    filtros: state.filtros ?? FILTROS_LIBRO_PAGOS_INICIALES, setRango: vi.fn(), actualizarFiltros: state.actualizarFiltros }),
 }));
 vi.mock("@/features/tesoreria/components/DetallePagoSheet", () => ({ DetallePagoSheet: state.sheet }));
 vi.mock("../_sections/LibroPagosToolbar", () => ({ LibroPagosToolbar: () => null }));
@@ -62,6 +62,20 @@ describe("AUD99/121 · pantalla de pagos en móvil", () => {
     fireEvent.click(row);
     expect(state.sheet).toHaveBeenLastCalledWith(expect.objectContaining({ ref_pago: { tipo: "pago", id } }), undefined);
     expect(state.pagos.map((p) => p.monto)).toEqual([1, 116]);
+  });
+
+  it("ofrece limpiar sólo cuando recupera pagos en la misma pestaña", () => {
+    const baseFiltros = { ...FILTROS_LIBRO_PAGOS_INICIALES, vista: "realizados" as const };
+    state.filtros = { ...baseFiltros, texto: "búsqueda sin coincidencias" };
+    const { rerender } = render(<MemoryRouter><TesoreriaPagos /></MemoryRouter>);
+    expect(screen.getByText("0 de 2 pagos del periodo")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
+    expect(state.actualizarFiltros).toHaveBeenLastCalledWith(baseFiltros);
+
+    state.filtros = { ...state.filtros, vista: "recibidos" };
+    rerender(<MemoryRouter><TesoreriaPagos /></MemoryRouter>);
+    expect(screen.getByText("No hay pagos registrados para este periodo y vista.")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Limpiar filtros" })).not.toBeInTheDocument();
   });
 
   it("distingue por referencia dos pagos a la misma contraparte", () => {
