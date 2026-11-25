@@ -25,7 +25,13 @@ import { bucketDeDias, BUCKET_LABELS, BUCKET_TONE, type CubetaAging } from "./ag
 import { ToneBadge } from "@/components/shared/ToneBadge";
 
 import { todayLocalISO } from "@/lib/date/today";
-import { AgingActionBar, AgingKpiRow } from "./AgingDrillDownDialog.parts";
+import { AgingKpiRow } from "./AgingDrillDownDialog.parts";
+import { AgingActionBar } from "@/components/shared/AgingActionBar";
+import { CUBETAS_AGING } from "@/lib/aging/buckets";
+
+const opciones = [{ value: "todas" as const, label: "Todas" },
+  ...CUBETAS_AGING.map((value) => ({ value, label: value === "mas_90" ? ">90 d" : BUCKET_LABELS[value] })),
+];
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { clasificarAFecha } from "@/lib/aging/reportScope";
 
@@ -136,6 +142,7 @@ function AgingDrillDownBody({ proveedor, open, onOpenChange, cubetaInicial = "to
 
           {proveedor && (
             <AgingActionBar
+              options={opciones}
               cubeta={cubeta}
               onChange={setCubeta}
               onExport={handleExport}

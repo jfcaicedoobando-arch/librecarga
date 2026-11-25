@@ -15,10 +15,32 @@ import { parseTarifasInformativas } from "@/features/cotizacion/services";
 import { useTiposContenedor } from "@/features/catalogos/hooks";
 import { resolveTipoContenedorNombre } from "@/lib/domain/tipoContenedor";
 import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
+import { defineColumns } from "@/components/shared/DataTable";
+import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
+import { MobileRowDetails } from "@/components/shared/dataTable/MobileRowDetails";
+import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 
 import { notifyError } from "@/lib/ui/appFeedback";
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { DetailTableHead } from "@/components/shared/DetailTable";
+
+interface TarifaRow {
+  id: string;
+  modo: string;
+  equipo: string;
+  ruta: string;
+  unidad: string;
+  precio: string;
+  notas: string;
+}
+
+const columns = defineColumns<TarifaRow>([
+  { accessorKey: "modo", header: "Modo", enableSorting: false },
+  { accessorKey: "equipo", header: "Modalidad/Equipo", enableSorting: false },
+  { accessorKey: "ruta", header: "Ruta", enableSorting: false },
+  { accessorKey: "unidad", header: "Unidad", enableSorting: false },
+  { accessorKey: "precio", header: "Precio", enableSorting: false, meta: { align: "right", className: "tabular-nums" } },
+  { accessorKey: "notas", header: "Notas", enableSorting: false, meta: { className: "text-muted-foreground" } },
+]);
+
 interface Props {
   cotizacion: CotizacionRow;
 }
@@ -44,6 +66,17 @@ export default function CotizacionInformativaDetalle({ cotizacion }: Props) {
   const volver = useVolver("/cotizaciones");
   const tarifas = parseTarifasInformativas(cotizacion.tarifas_informativas);
   const { data: tiposContenedor = [] } = useTiposContenedor();
+  const filas = tarifas.map((t): TarifaRow => ({
+    id: t.id,
+    modo: t.modo,
+    equipo: t.modalidad_equipo || resolveTipoContenedorNombre(t.tipo_contenedor, tiposContenedor),
+    ruta: t.modo === "Terrestre" && t.modalidad_equipo === "Porta Contenedor" && t.punto_intermedio
+      ? `${t.origen} → ${t.punto_intermedio} → ${t.destino}`
+      : `${t.origen} → ${t.destino}`,
+    unidad: t.unidad_medida,
+    precio: formatCurrency(t.precio, t.moneda),
+    notas: t.notas || "—",
+  }));
   const [generando, setGenerando] = useState(false);
   const descargaEnCurso = useRef(false);
 
@@ -100,36 +133,26 @@ export default function CotizacionInformativaDetalle({ cotizacion }: Props) {
 
       <Card>
         <CardHeader><CardTitle>Tarifas ({tarifas.length})</CardTitle></CardHeader>
-        <CardContent className="overflow-x-auto p-0">
-          <Table className="w-full text-body">
-            <TableHeader className="bg-muted/50">
-              <TableRow className="text-left">
-                <DetailTableHead>Modo</DetailTableHead>
-                <DetailTableHead>Modalidad/Equipo</DetailTableHead>
-                <DetailTableHead>Ruta</DetailTableHead>
-                <DetailTableHead>Unidad</DetailTableHead>
-                <DetailTableHead className="text-right">Precio</DetailTableHead>
-                <DetailTableHead>Notas</DetailTableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tarifas.map((t, i) => {
-                const ruta = t.modo === "Terrestre" && t.modalidad_equipo === "Porta Contenedor" && t.punto_intermedio
-                  ? `${t.origen} → ${t.punto_intermedio} → ${t.destino}`
-                  : `${t.origen} → ${t.destino}`;
-                return (
-                  <TableRow key={t.id} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                    <TableCell>{t.modo}</TableCell>
-                    <TableCell>{t.modalidad_equipo || resolveTipoContenedorNombre(t.tipo_contenedor, tiposContenedor)}</TableCell>
-                    <TableCell>{ruta}</TableCell>
-                    <TableCell>{t.unidad_medida}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatCurrency(t.precio, t.moneda)}</TableCell>
-                    <TableCell className="text-muted-foreground">{t.notas || "—"}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+        <CardContent className="p-0">
+          <ResponsiveDataTable
+            columns={columns}
+            data={filas}
+            density={TABLE_DENSITY.embebida}
+            rowKey={(fila) => fila.id}
+            emptyMessage="Sin tarifas"
+            mobileCard={(fila) => (
+              <>
+                <span className="font-medium">{fila.ruta}</span>
+                <MobileRowDetails fields={[
+                  { label: "Modo", value: fila.modo },
+                  { label: "Modalidad/Equipo", value: fila.equipo },
+                  { label: "Unidad", value: fila.unidad },
+                  { label: "Precio", value: fila.precio },
+                  { label: "Notas", value: fila.notas },
+                ]} />
+              </>
+            )}
+          />
         </CardContent>
       </Card>
 

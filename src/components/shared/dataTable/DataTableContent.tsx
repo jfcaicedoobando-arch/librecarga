@@ -7,10 +7,12 @@ import { DataTableBody } from "@/components/shared/dataTable/DataTableBody";
 import { useHorizontalScrollEdges } from "@/components/shared/dataTable/useHorizontalScrollEdges";
 import { HorizontalScrollFades } from "@/components/shared/dataTable/HorizontalScrollFades";
 import type { TableDensity } from "@/components/shared/dataTable/types";
+import { cn } from "@/lib/utils";
 
 interface DataTableContentProps<T extends object> {
   table: TanstackTable<T>;
   tableClassName: string;
+  scrollClassName?: string;
   striped: boolean;
   bordered: boolean;
   hoverable: boolean;
@@ -36,7 +38,7 @@ interface DataTableContentProps<T extends object> {
 
 export function DataTableContent<T extends object>(props: DataTableContentProps<T>) {
   const {
-    table, tableClassName, striped, bordered, hoverable, stickyHeader,
+    table, tableClassName, striped, bordered, hoverable, stickyHeader, scrollClassName,
     density, isLoading, skeletonRows, emptyMessage, emptyHint, emptyIcon,
     emptyState, rowClassName, onRowClick, onRowMouseEnter, getRowHref,
     getRowAriaLabel, selectionMode, renderedFooter, showFooter,
@@ -64,12 +66,12 @@ export function DataTableContent<T extends object>(props: DataTableContentProps<
         <div
           ref={scrollRef}
           data-testid="datatable-scroll"
-          role={overflowing ? "region" : undefined}
-          aria-label={overflowing ? "Tabla con desplazamiento horizontal" : undefined}
-          tabIndex={overflowing ? 0 : undefined}
+          role={overflowing || scrollClassName ? "region" : undefined}
+          aria-label={overflowing ? "Tabla con desplazamiento horizontal" : scrollClassName ? "Tabla con desplazamiento" : undefined}
+          tabIndex={overflowing || scrollClassName ? 0 : undefined}
           /* E-3 (auditoría visual 2026-08-24): colchón derecho para que la última
              columna (p. ej. ESTADO) no quede a ras del borde bajo el degradado. */
-          className="relative w-full overflow-x-auto rounded-md pr-2 [scrollbar-width:thin] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+          className={cn("relative w-full overflow-x-auto rounded-md pr-2 [scrollbar-width:thin] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset", scrollClassName)}
         >
 
         <Table className={tableClassName} wrapperClassName="overflow-visible">

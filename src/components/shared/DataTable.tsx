@@ -8,11 +8,9 @@ import { useTableInstance } from "@/components/shared/dataTable/useTableInstance
 import type { DataTablePagination, TableDensity, SortDir } from "@/components/shared/dataTable/types";
 
 // API pública estable (componente + helpers) — allowlisted en eslint react-refresh override.
-export type {    SortDir } from "@/components/shared/dataTable/types";
+export type { SortDir } from "@/components/shared/dataTable/types";
 export { defineColumns } from "@/components/shared/dataTable/defineColumns";
 export type { ColumnDef } from "@/components/shared/dataTable/tanstackTypes";
-
-
 interface DataTableProps<T extends object> {
   /** API única: `ColumnDef<T, unknown>[]` de TanStack. Construir con
    *  `defineColumns<T>([...])` para autocompletado del `meta` extendido. */
@@ -57,6 +55,8 @@ interface DataTableProps<T extends object> {
    *  (obliga a respetar los anchos de columna declarados). Pásalo como `""`
    *  o `"w-full table-fixed"` cuando no quieras scroll horizontal forzado. */
   tableClassName?: string;
+  /** Estilos del contenedor con scroll, por ejemplo un máximo de altura. */
+  scrollClassName?: string;
   /** Ancla el encabezado al top del contenedor de scroll (útil en tablas largas). */
   stickyHeader?: boolean;
   /** Notifica si las columnas exceden realmente el ancho visible. */
@@ -103,11 +103,9 @@ function DataTableInner<T extends object>(rawProps: DataTableProps<T>) {
     footer, pagination, className, columnVisibility, onColumnVisibilityChange,
     rowSelection, onRowSelectionChange, enableRowSelection,
     isLoading, isError, emptyMessage, skeletonRows, sortMode, density,
-    striped, hoverable, bordered, tableClassName, stickyHeader,
+    striped, hoverable, bordered, tableClassName, stickyHeader, scrollClassName,
     onHorizontalOverflowChange,
   } = mergeDataTableProps(rawProps);
-
-
 
   // v13.490.0 — Modo selección: si hay filas marcadas, el clic en la fila
   // alterna la selección en lugar de navegar al detalle (evita perder el
@@ -146,6 +144,7 @@ function DataTableInner<T extends object>(rawProps: DataTableProps<T>) {
         <DataTableContent
           table={table}
           tableClassName={tableClassName}
+          scrollClassName={scrollClassName}
           striped={striped}
           bordered={bordered}
           hoverable={hoverable}

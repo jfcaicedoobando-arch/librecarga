@@ -24,11 +24,16 @@ import { dialogSize } from "@/components/shared/utils/dialogTokens";
 import { useCobranza } from "@/features/facturacion/hooks/useCobranza";
 import type { FacturaCobranza } from "@/features/facturacion/services/cobranza";
 import type { CxcAgingRow } from "@/features/cxc/services/cxcAging";
-import { bucketDeDias, CUBETA_LABELS, type CubetaAging } from "@/lib/aging/buckets";
+import { bucketDeDias, CUBETA_LABELS, CUBETAS_AGING, type CubetaAging } from "@/lib/aging/buckets";
 import { formatDate } from "@/lib/formatters";
 import { todayLocalISO } from "@/lib/date/today";
 import { downloadCsvWithFeedback } from "@/lib/ui/notifyCsvExport";
-import { CxcAgingActionBar, CxcAgingKpiRow } from "./CxcAgingDrillDownDialog.parts";
+import { CxcAgingKpiRow } from "./CxcAgingDrillDownDialog.parts";
+import { AgingActionBar } from "@/components/shared/AgingActionBar";
+
+const opciones = [{ value: "todas" as const, label: "Todas" },
+  ...CUBETAS_AGING.map((value) => ({ value, label: CUBETA_LABELS[value] })),
+];
 import { CxcAgingDrillDownMobileCard } from "./CxcAgingDrillDownMobileCard";
 import { clasificarAFecha } from "@/lib/aging/reportScope";
 import { buildCxcAgingDrillDownColumns } from "./cxcAgingDrillDownColumns";
@@ -115,7 +120,8 @@ function CxcAgingDrillDownBody({
             </>
           )}
 
-          <CxcAgingActionBar
+          <AgingActionBar
+            options={opciones}
             cubeta={cubeta}
             onChange={setCubeta}
             onExport={exportar}
