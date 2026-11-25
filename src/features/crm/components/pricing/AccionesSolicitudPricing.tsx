@@ -63,7 +63,7 @@ export function AccionesSolicitudPricing({ solicitud: s, puedeCancelar, puedeRes
         <Badge variant="outline">{ETIQUETA_ESTADO_PRICING[s.estado] ?? s.estado}</Badge>
         <RelojPricing enviadaAt={s.enviada_at} venceAt={s.vence_at} respondidaAt={s.respondida_at}
           cancelada={s.estado === "cancelada" || s.estado === "sin_opcion"} pausada={s.estado === "info_requerida"} />
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex min-w-0 flex-wrap gap-2">
           {puedeCopiar && (
             <Button variant="outline" size="sm" disabled={copiar.isPending}
               onClick={() => copiar.mutate({ datos: datosCopiaSolicitud(s), enviar: true })}>Copiar y enviar</Button>
