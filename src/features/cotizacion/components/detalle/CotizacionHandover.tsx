@@ -2,7 +2,7 @@ import { useHandoverProveedores } from "@/features/cotizacion/hooks/useHandoverP
 import { useCotizacionHandover } from "@/features/cotizacion/hooks/useCotizacionHandover";
 import { ArrowRightLeft } from "lucide-react";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { CoordinadorSelect } from "@/components/shared/CoordinadorSelect";
+import { CoordinadorSelect } from "@/features/operaciones";
 import { puedeAsignarCoordinador } from "@/lib/access/coordinadorAsignacion";
 import { reasignarCoordinadorHandover } from "@/features/operaciones/services";
 import { SectionHeading } from "@/components/shared/SectionHeading";

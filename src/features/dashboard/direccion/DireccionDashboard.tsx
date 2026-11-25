@@ -15,7 +15,7 @@ import { TotalesPeriodoCard } from "@/features/dashboard/direccion/components/To
 import { RentabilidadSection } from "@/features/dashboard/direccion/components/RentabilidadSection";
 import { CarteraSection } from "@/features/dashboard/direccion/components/CarteraSection";
 import { PulsoSection } from "@/features/dashboard/direccion/components/PulsoSection";
-import { TipoCambioFallbackBanner } from "@/components/shared/TipoCambioFallbackBanner";
+import { TipoCambioFallbackBanner } from "@/features/catalogos";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { useDocumentTitle } from "@/hooks/shared";
 

@@ -1,7 +1,7 @@
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { CoordinadorSelect } from "@/components/shared/CoordinadorSelect";
+import { CoordinadorSelect } from "@/features/operaciones";
 import { puedeAsignarCoordinador } from "@/lib/access/coordinadorAsignacion";
 import { useClienteCoordinador } from "@/features/cliente/hooks/useClienteCoordinador";
 

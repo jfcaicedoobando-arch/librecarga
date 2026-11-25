@@ -13,8 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
-import { useAdminNavieras } from "@/features/catalogos/hooks";
-import type { Naviera } from "@/features/catalogos/services";
+import { useAdminNavieras } from "../hooks/useNavieras";
+import type { Naviera } from "../services/catalogosTypes";
 
 interface Props {
   open: boolean;

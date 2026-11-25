@@ -10,7 +10,7 @@ vi.mock("@/features/cotizacion/hooks/useCotizacionHandover", () => ({ useCotizac
 vi.mock("@/features/catalogos/hooks", () => ({ useTiposContenedor: () => ({ data: [] }) }));
 vi.mock("@/features/cotizacion/hooks/useHandoverProveedores", () => ({ useHandoverProveedores: () => mocks.proveedores }));
 vi.mock("@/lib/contexts/AuthContext", () => ({ useAuth: () => ({ effectiveRole: "vendedor" }) }));
-vi.mock("@/components/shared/CoordinadorSelect", () => ({ CoordinadorSelect: () => null }));
+vi.mock("@/features/operaciones", () => ({ CoordinadorSelect: () => null }));
 import { CotizacionHandover } from "../CotizacionHandover";
 const cotizacion = {
   id: "c1", cliente_nombre: "Cliente QA", modo: "Marítimo", incoterm: "FOB",

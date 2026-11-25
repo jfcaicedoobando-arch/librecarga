@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Hint } from "@/components/shared/Hint";
 
-import type { GlobalSearchResult } from "@/hooks/shared";
+import type { GlobalSearchResult } from "@/types/search";
 import { ICONO_FILA, typeIcons, typeLabels } from "./globalSearchMeta";
 import { resaltarCoincidencias } from "./globalSearchResaltado";
 

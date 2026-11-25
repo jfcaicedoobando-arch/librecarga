@@ -13,10 +13,10 @@ import { resolve } from "node:path";
 const LIMITE_LINEAS = 200;
 
 const ARCHIVOS = [
-  "src/components/shared/GlobalSearch.tsx",
-  "src/components/shared/GlobalSearch.partes.tsx",
-  "src/components/shared/globalSearchMeta.ts",
-  "src/components/shared/globalSearchResaltado.ts",
+  "src/features/search/components/GlobalSearch.tsx",
+  "src/features/search/components/GlobalSearch.partes.tsx",
+  "src/features/search/components/globalSearchMeta.ts",
+  "src/features/search/components/globalSearchResaltado.ts",
 ] as const;
 
 function leer(rel: string): string {
@@ -35,7 +35,7 @@ describe("GlobalSearch · candados de arquitectura", () => {
   }
 
   it("GlobalSearch.partes.tsx sólo exporta componentes (Fast Refresh)", () => {
-    const src = leer("src/components/shared/GlobalSearch.partes.tsx");
+    const src = leer("src/features/search/components/GlobalSearch.partes.tsx");
     const exportsNoComponente = [...src.matchAll(/^export\s+(?:const|let|var)\s+(\w+)/gm)]
       .map((m) => m[1])
       // Un componente válido empieza con mayúscula; constantes como ICONO_FILA
@@ -45,7 +45,7 @@ describe("GlobalSearch · candados de arquitectura", () => {
   });
 
   it("las constantes compartidas viven en globalSearchMeta.ts", () => {
-    const meta = leer("src/components/shared/globalSearchMeta.ts");
+    const meta = leer("src/features/search/components/globalSearchMeta.ts");
     for (const nombre of ["ICONO_FILA", "typeIcons", "typeLabels"]) {
       expect(meta).toContain(`export const ${nombre}`);
     }

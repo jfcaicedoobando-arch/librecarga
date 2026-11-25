@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  CLIENTE_PRINCIPAL_ID,
-  fetchContactosClienteConEmail,
-  fetchHistorialEnviosCotizacion,
-} from "@/features/cotizacion/services/envios";
+import { CLIENTE_PRINCIPAL_ID } from "@/lib/domain/contactoClienteEmail";
+import { fetchContactosClienteConEmail } from "@/services/emails/contactosCliente";
+import { fetchHistorialEnviosCotizacion } from "@/features/cotizacion/services/envios";
 import { fetchContactosClienteEnvio } from "@/features/facturacion/services/contactosClienteEnvio";
 
 type Row = Record<string, unknown>;

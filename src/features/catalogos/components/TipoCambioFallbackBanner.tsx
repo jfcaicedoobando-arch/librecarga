@@ -6,7 +6,7 @@
  */
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info } from "lucide-react";
-import { useExchangeRates } from "@/features/catalogos/hooks";
+import { useExchangeRates } from "../hooks";
 import { formatTipoCambio } from "@/lib/formatters";
 
 export function TipoCambioFallbackBanner() {

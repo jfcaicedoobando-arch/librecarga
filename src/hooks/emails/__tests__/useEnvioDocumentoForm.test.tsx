@@ -6,11 +6,8 @@ const mocks = vi.hoisted(() => ({
   fetchContactos: vi.fn(),
 }));
 
-vi.mock("@/features/cotizacion/services/envios", () => ({
+vi.mock("@/services/emails/contactosCliente", () => ({
   fetchContactosClienteConEmail: (id: string) => mocks.fetchContactos(id),
-  esContactoPrioridadCliente: (c: { tipo?: string }) =>
-    c?.tipo === "principal" || c?.tipo === "facturacion",
-  CLIENTE_PRINCIPAL_ID: "__cliente_principal__",
 }));
 
 vi.mock("@/lib/contexts/AuthContext", () => ({

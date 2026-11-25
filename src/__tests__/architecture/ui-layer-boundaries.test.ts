@@ -4,18 +4,6 @@ import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { relPath, walk } from "../../../scripts/lib/walk";
 
-// Una entrada por dependencia existente. Quitar la entrada cuando se migre.
-const SHARED_FEATURE_EXCEPTIONS = [
-  "src/components/shared/CartaGarantiaBadge.tsx -> @/features/costeo/types",
-  "src/components/shared/CartaGarantiaBadge.tsx -> @/features/costeo/types/navieraCondicion",
-  "src/components/shared/CoordinadorSelect.tsx -> @/features/operaciones/services",
-  "src/components/shared/GlobalSearch.tsx -> @/features/search/domain/paginas",
-  "src/components/shared/NavieraFormDialog.tsx -> @/features/catalogos/hooks",
-  "src/components/shared/NavieraFormDialog.tsx -> @/features/catalogos/services",
-  "src/components/shared/TipoCambioFallbackBanner.tsx -> @/features/catalogos/hooks",
-  "src/components/shared/emails/DestinatariosPicker.tsx -> @/features/cotizacion/services/envios",
-];
-
 function getModuleSpecifier(node: ts.Node): ts.Node | undefined {
   if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return node.moduleSpecifier;
   if (ts.isExternalModuleReference(node)) return node.expression;
@@ -58,7 +46,7 @@ describe("dependencias de la UI compartida", () => {
     expect(importsInto("src/components/ui", "src/components/shared")).toEqual([]);
   });
 
-  it("shared sólo conserva las dependencias de negocio registradas", () => {
-    expect(importsInto("src/components/shared", "src/features")).toEqual([...SHARED_FEATURE_EXCEPTIONS].sort());
+  it("shared no depende de módulos de negocio", () => {
+    expect(importsInto("src/components/shared", "src/features")).toEqual([]);
   });
 });

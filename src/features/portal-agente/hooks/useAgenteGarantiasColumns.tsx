@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import { sortByString, sortByNumber } from "@/components/shared/dataTable/sortingFns";
-import { CartaGarantiaBadge } from "@/components/shared/CartaGarantiaBadge";
+import { CartaGarantiaBadge } from "@/features/costeo";
 import { COL_W } from "@/components/shared/dataTable/columnWidths";
 import { Settings2 } from "lucide-react";
 import type { FilaNaviera } from "@/features/costeo/types/filaNaviera";

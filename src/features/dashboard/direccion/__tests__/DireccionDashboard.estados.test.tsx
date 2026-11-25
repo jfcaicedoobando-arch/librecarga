@@ -12,7 +12,7 @@ vi.mock("@/features/dashboard/direccion/hooks/useDireccionKpis", () => ({ useDir
 vi.mock("@/features/dashboard/direccion/hooks/useDireccionTotales", () => ({
   useDireccionTotales: mockTotales,
 }));
-vi.mock("@/components/shared/TipoCambioFallbackBanner", () => ({
+vi.mock("@/features/catalogos", () => ({
   TipoCambioFallbackBanner: () => null,
 }));
 

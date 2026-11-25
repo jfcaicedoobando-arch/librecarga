@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { CoordinadorSelect } from "@/components/shared/CoordinadorSelect";
+import { CoordinadorSelect } from "../CoordinadorSelect";
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: () => ({

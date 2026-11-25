@@ -7,9 +7,9 @@
  */
 import { Badge } from "@/components/ui/badge";
 import { ShieldCheck, ShieldAlert, ShieldX, ShieldQuestion } from "lucide-react";
-import { calcularEstadoCartaGarantia } from "@/features/costeo/types/navieraCondicion";
 import { formatFechaDia } from "@/lib/formatters/dates";
-import type { TopTarifaRow } from "@/features/costeo/types";
+import { calcularEstadoCartaGarantia } from "../types/navieraCondicion";
+import type { TopTarifaRow } from "../types";
 
 interface PropsTarifa {
   tarifa: TopTarifaRow;

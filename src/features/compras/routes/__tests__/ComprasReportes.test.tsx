@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({ controller: vi.fn() }));
 vi.mock("@/features/compras/hooks/useComprasReportesController", () => ({
   useComprasReportesController: mocks.controller,
 }));
-vi.mock("@/components/shared/TipoCambioFallbackBanner", () => ({ TipoCambioFallbackBanner: () => null }));
+vi.mock("@/features/catalogos", () => ({ TipoCambioFallbackBanner: () => null }));
 vi.mock("../_sections/TopProveedoresCard", () => ({
   TopProveedoresCard: () => <p>Resumen de proveedores</p>,
 }));

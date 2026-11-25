@@ -7,7 +7,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Command, CommandInput, CommandList } from "@/components/ui/command";
 import { GlobalSearchGrupo } from "../GlobalSearch.partes";
-import type { GlobalSearchResult } from "@/hooks/shared";
+import type { GlobalSearchResult } from "@/types/search";
 
 const items: GlobalSearchResult[] = [
   { id: "1", type: "embarque", label: "EXP-001", sublabel: "BL-111", url: "/embarques/1" },

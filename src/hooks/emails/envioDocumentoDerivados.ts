@@ -2,8 +2,7 @@
  * Helpers puros de derivación para `useEnvioDocumentoForm`.
  * Extraídos para mantener el hook por debajo de 200 líneas (Power of 10).
  */
-import { EMAIL_RE } from "@/hooks/emails/envioDocumentoInit";
-import type { ContactoClienteEmail } from "@/features/cotizacion/services/envios";
+import { EMAIL_RE, type ContactoClienteEmail } from "@/lib/domain/contactoClienteEmail";
 
 export interface DestinatarioEnvio {
   email: string;

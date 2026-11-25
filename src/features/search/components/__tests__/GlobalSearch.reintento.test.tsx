@@ -9,8 +9,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: mocks.rpc } 
 vi.mock("@/lib/observability/logger", () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
-vi.mock("@/hooks/shared", async () => ({
-  useGlobalSearch: (await import("@/features/search/hooks/useGlobalSearch")).useGlobalSearch,
+vi.mock("@/hooks/shared/useRecentPages", () => ({
   useRecentPages: () => ({ recents: [] }),
 }));
 vi.mock("@/lib/contexts/AuthContext", () => ({ useAuth: () => ({ effectiveRole: "admin" }) }));

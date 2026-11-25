@@ -293,9 +293,9 @@ Todos los controles comparten tokens de `field.tokens.ts`:
 
 - `components/ui` mantiene tokens y primitivas, incluidos `Hint` y los tamaños de diálogo.
 - `components/shared` reúne patrones de presentación cuando dos módulos comparten el mismo comportamiento.
-  Cada módulo controla consultas, permisos, validación, montos y transiciones. La prueba
-  `src/__tests__/architecture/ui-layer-boundaries.test.ts` registra por archivo e importación las
-  dependencias de negocio existentes. Retira cada entrada al migrarla.
+  Cada módulo controla consultas, permisos, validación, montos y transiciones, y expone los componentes
+  de negocio que otros módulos necesitan. La prueba `src/__tests__/architecture/ui-layer-boundaries.test.ts`
+  exige cero importaciones directas de `ui` a `shared` y de `shared` a `features`.
 - `components/layout/portal` comparte el menú de usuario y las migas. Cada portal decide sus rutas y accesos.
   El portal cliente alterna panel y barra de filtros a **640 px**. Aplica cambios inmediatamente y
   «Listo» cierra el panel. En el ERP «Aplicar» confirma el borrador. Cerrar descarta sus cambios.

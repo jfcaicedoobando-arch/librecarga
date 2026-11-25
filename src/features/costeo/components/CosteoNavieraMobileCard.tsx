@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { CartaGarantiaBadge } from "@/components/shared/CartaGarantiaBadge";
+import { CartaGarantiaBadge } from "./CartaGarantiaBadge";
 import { Settings2 } from "lucide-react";
 import type { FilaNaviera } from "@/features/costeo/types/filaNaviera";
 
