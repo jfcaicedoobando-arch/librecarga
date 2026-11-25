@@ -2,8 +2,8 @@
  * Toolbar de filtro para la lista de conceptos_costo pendientes en
  * `VincularEmbarqueSection`. Puro presentacional.
  */
-import { Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { X } from "lucide-react";
+import SearchInput from "@/components/shared/SearchInput";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -22,16 +22,14 @@ export function VincularFiltroToolbar({
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            value={filtro}
-            onChange={(e) => onFiltro(e.target.value)}
-            placeholder="Filtrar por concepto, expediente o monto…"
-            className="pl-8 h-8 text-body"
-            aria-label="Filtrar conceptos por texto"
-          />
-        </div>
+        <SearchInput
+          value={filtro}
+          onChange={onFiltro}
+          placeholder="Filtrar por concepto, expediente o monto…"
+          className="min-w-[200px] flex-1"
+          inputClassName="text-body md:h-8"
+          aria-label="Filtrar conceptos por texto"
+        />
         <Button
           type="button"
           variant={soloMarcados ? "default" : "outline"}

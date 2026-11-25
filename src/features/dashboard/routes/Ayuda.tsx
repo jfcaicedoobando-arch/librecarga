@@ -1,9 +1,9 @@
 import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
-import { Search, HelpCircle, BookOpen } from "lucide-react";
+import { HelpCircle, BookOpen } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
@@ -65,17 +65,13 @@ export default function Ayuda() {
 
       <Card>
         <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              ref={inputRef}
-              aria-label="Buscar término, pregunta o concepto"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar término, pregunta o concepto…"
-              className="pl-10"
-            />
-          </div>
+          <SearchInput
+            ref={inputRef}
+            aria-label="Buscar término, pregunta o concepto"
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar término, pregunta o concepto…"
+          />
         </CardContent>
       </Card>
       <p aria-live="polite" aria-atomic="true" className="sr-only">

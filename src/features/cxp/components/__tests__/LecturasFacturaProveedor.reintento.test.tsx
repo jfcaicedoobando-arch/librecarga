@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConceptosFacturaSection } from "../ConceptosFacturaSection";
 import { VincularEmbarqueSection } from "../VincularEmbarqueSection";
+import { VincularFiltroToolbar } from "../VincularFiltroToolbar";
 import { AnticiposAplicadosSection } from "@/features/anticipos-proveedor/components/AnticiposAplicadosSection";
 import { calcularTopeVinculacion } from "@/features/cxp/utils/topeVinculacion";
 
@@ -53,6 +54,22 @@ describe("Lecturas de una factura de proveedor", () => {
     rerender(<VincularEmbarqueSection {...props} />);
     expect(costos).toHaveBeenLastCalledWith("p-1", "org-1");
     expect(screen.getByText(/no tiene costos pre-cargados/)).toBeInTheDocument();
+  });
+
+  it("filtra conceptos sin cambiar la selección de marcados", () => {
+    const onFiltro = vi.fn();
+    const onSoloMarcados = vi.fn();
+    render(<VincularFiltroToolbar filtro="flete" onFiltro={onFiltro}
+      soloMarcados onSoloMarcados={onSoloMarcados} visibles={1} total={2} />);
+
+    const busqueda = screen.getByRole("searchbox", { name: "Filtrar conceptos por texto" });
+    fireEvent.change(busqueda, { target: { value: "maniobra" } });
+    expect(onFiltro).toHaveBeenCalledExactlyOnceWith("maniobra");
+    expect(onSoloMarcados).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar" }));
+    expect(onFiltro).toHaveBeenLastCalledWith("");
+    expect(onSoloMarcados).toHaveBeenCalledExactlyOnceWith(false);
   });
 
   it("conserva la sección de anticipos y recupera su subtotal en la moneda aplicada", () => {

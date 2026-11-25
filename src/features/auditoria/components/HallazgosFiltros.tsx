@@ -4,9 +4,8 @@
  * - Mobile (<md): search visible + botón "Filtros (N)" abre Sheet.
  */
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import { MobileFiltersSheet } from "@/components/shared/MobileFiltersSheet";
 import type { ReglaAuditoria, SeveridadAuditoria } from "@/features/auditoria/types";
 import type { FiltroRevision, FiltroResponsable } from "@/features/auditoria/hooks";
@@ -66,16 +65,14 @@ export function HallazgosFiltros({ filtros: props, conteo }: Props) {
   }, [props.filtroRegla, props.filtroSev, props.filtroCliente, props.filtroRevision, props.defaultRevision, props.filtroResponsable, props.etaDesde, props.etaHasta]);
 
   const SearchField = (
-    <div className="relative flex-1 min-w-0 md:min-w-[200px] md:max-w-[280px]">
-      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-      <Input
-        aria-label="Buscar expediente"
-        placeholder="Buscar expediente…"
-        value={props.search}
-        onChange={(e) => props.setSearch(e.target.value)}
-        className="pl-8 h-8 text-body-sm"
-      />
-    </div>
+    <SearchInput
+      aria-label="Buscar expediente"
+      placeholder="Buscar expediente…"
+      value={props.search}
+      onChange={props.setSearch}
+      className="min-w-0 flex-1 md:min-w-[200px] md:max-w-[280px]"
+      inputClassName="text-body-sm md:h-8"
+    />
   );
 
   return (

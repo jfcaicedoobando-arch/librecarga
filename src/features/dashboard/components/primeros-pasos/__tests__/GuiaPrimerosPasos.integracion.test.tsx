@@ -352,7 +352,7 @@ describe("Guía contextual conectada a permisos reales", () => {
     expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/login");
     expect(screen.queryByRole("button", { name: "Preparar una cotización" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/ayuda");
-    fireEvent.change(screen.getByRole("textbox", { name: "Buscar término, pregunta o concepto" }), { target: { value: "sin coincidencia ficticia" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar término, pregunta o concepto" }), { target: { value: "sin coincidencia ficticia" } });
     expect(screen.getByText(/No hay preguntas que coincidan/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ver guía de primeros pasos" })).toBeInTheDocument();
   });
@@ -477,7 +477,7 @@ describe("Interacción de la guía en Inicio", () => {
 
 it("Ayuda enseña las coincidencias del glosario en el vacío de preguntas y permite limpiar", () => {
   render(<Vista ayuda />);
-  const búsqueda = screen.getByRole("textbox", { name: "Buscar término, pregunta o concepto" });
+  const búsqueda = screen.getByRole("searchbox", { name: "Buscar término, pregunta o concepto" });
   fireEvent.change(búsqueda, { target: { value: "Less than Container Load" } });
   expect(screen.getByRole("tab", { name: "Glosario (1)" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Ver coincidencias en Glosario" }));

@@ -9,7 +9,7 @@ import { useMemo, useState } from "react";
 import { FileSpreadsheet, FileText, LayoutList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
@@ -83,10 +83,10 @@ export default function ReportesCartera() {
           </div>
           <div className="min-w-[220px] flex-1 space-y-1">
             <Label htmlFor="cartera-buscar">Cliente, proveedor, folio o expediente</Label>
-            <Input
+            <SearchInput
               id="cartera-buscar"
               value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
+              onChange={setBusqueda}
               placeholder="Buscar…"
               aria-describedby={busquedaActiva ? "cartera-alcance-busqueda" : undefined}
             />

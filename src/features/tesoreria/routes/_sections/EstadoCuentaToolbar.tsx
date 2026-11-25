@@ -2,8 +2,7 @@
  * Barra de controles del estado de cuenta bancario (v13.450.0):
  * cuenta, periodo con atajos, búsqueda y tipo de movimiento.
  */
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
@@ -92,16 +91,12 @@ export function EstadoCuentaToolbar({
 
         <div className="min-w-[200px] flex-1">
           <p className="text-body-sm text-muted-foreground mb-1">Buscar</p>
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden />
-            <Input
-              className="pl-8"
-              value={texto}
-              onChange={(e) => onTextoChange(e.target.value)}
-              placeholder="Concepto o referencia"
-              aria-label="Buscar por concepto o referencia"
-            />
-          </div>
+          <SearchInput
+            value={texto}
+            onChange={onTextoChange}
+            placeholder="Concepto o referencia"
+            aria-label="Buscar por concepto o referencia"
+          />
         </div>
 
         <div className="min-w-[150px]">

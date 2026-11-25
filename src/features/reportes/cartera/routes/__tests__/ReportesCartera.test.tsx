@@ -62,7 +62,9 @@ describe("Cartera — exportaciones completas y estados", () => {
 
   it("pasa el filtro a ambas descargas cuando el reporte está resuelto", async () => {
     montar();
-    fireEvent.change(screen.getByRole("textbox", { name: "Cliente, proveedor, folio o expediente" }), { target: { value: "FP-000007" } });
+    const busqueda = screen.getByRole("searchbox", { name: "Cliente, proveedor, folio o expediente" });
+    fireEvent.change(busqueda, { target: { value: "FP-000007" } });
+    expect(busqueda).toHaveAccessibleDescription("Saldos de coincidencias. PDF y CSV usan esta misma búsqueda.");
     fireEvent.click(screen.getByRole("button", { name: "Exportar CSV" }));
     expect(mocks.csv).toHaveBeenCalledWith("2026-09-30", [vacio, bloque], dataScope, "FP-000007");
     fireEvent.click(screen.getByRole("button", { name: "Exportar PDF" }));

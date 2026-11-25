@@ -93,7 +93,7 @@ describe("N03/N04 · estado de cuenta sin cuentas", () => {
     });
     render(<MemoryRouter initialEntries={["/tesoreria/estado-cuenta?cuenta=c1"]}><TesoreriaEstadoCuenta /></MemoryRouter>);
     const consulta = mock.estado.mock.lastCall;
-    fireEvent.change(screen.getByRole("textbox", { name: "Buscar por concepto o referencia" }), { target: { value: "sin coincidencias" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar por concepto o referencia" }), { target: { value: "sin coincidencias" } });
     expect(screen.getByText("Ningún movimiento coincide con los filtros.")).toBeInTheDocument();
     expect(screen.queryByText("No hay movimientos en el periodo seleccionado.")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Limpiar búsqueda y tipo" }));
