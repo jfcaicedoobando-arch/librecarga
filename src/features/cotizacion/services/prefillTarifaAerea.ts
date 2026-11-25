@@ -4,6 +4,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import type { BanderasAereas } from "@/features/cotizacion/domain/banderasAereas";
 import { pesoSolicitudAKg } from "@/features/cotizacion/domain/mapeoSolicitudCotizacion";
 import { fechaVigenciaCarga, tarifaCubreCarga } from "@/lib/date/fechaVigenciaCarga";
+import { tipoAvionCotizacion } from "@/features/costeo/domain/tipoAvionTarifa";
 
 export interface PrefillTarifaAerea {
   tarifaId: string; moneda: "USD" | "MXN" | null; origen: string; destino: string;
@@ -25,7 +26,7 @@ function modoDeTarifa(modo: string | null | undefined): PrefillTarifaAerea["modo
 
 type RutaTarifa = Pick<Tables<"costeo_tarifas">,
   "aeropuerto_origen" | "aeropuerto_destino" | "origen_ciudad" | "origen_cp" |
-  "destino_ciudad" | "destino_cp" | "tipo_unidad">;
+  "destino_ciudad" | "destino_cp" | "tipo_unidad" | "notas">;
 type RutaSolicitud = Pick<Tables<"crm_solicitudes_pricing">,
   "pol" | "pod" | "tipo_unidad" | "paradas" | "baterias_litio" | "known_shipper" | "tipo_aeronave">;
 
@@ -39,7 +40,7 @@ function datosPorModo(modo: PrefillTarifaAerea["modo"], tarifa: RutaTarifa, soli
       banderasAereas: {
         baterias_litio: solicitud.baterias_litio,
         known_shipper: solicitud.known_shipper,
-        tipo_aeronave: solicitud.tipo_aeronave,
+        tipo_aeronave: tipoAvionCotizacion(tarifa.notas, solicitud.tipo_aeronave),
       },
     };
   }
@@ -54,7 +55,7 @@ function datosPorModo(modo: PrefillTarifaAerea["modo"], tarifa: RutaTarifa, soli
 
 export async function fetchPrefillTarifaAerea(organizationId: string, tarifaId: string, solicitudId: string): Promise<PrefillTarifaAerea> {
   const [t, s] = await Promise.all([
-    supabase.from("costeo_tarifas").select("id, modo, moneda, aeropuerto_origen, aeropuerto_destino, origen_ciudad, origen_cp, destino_ciudad, destino_cp, tipo_unidad, vigente_desde, vigente_hasta, estado, estado_aprobacion")
+    supabase.from("costeo_tarifas").select("id, modo, moneda, aeropuerto_origen, aeropuerto_destino, origen_ciudad, origen_cp, destino_ciudad, destino_cp, tipo_unidad, notas, vigente_desde, vigente_hasta, estado, estado_aprobacion")
       .eq("organization_id", organizationId).eq("id", tarifaId).maybeSingle(),
     supabase.from("crm_solicitudes_pricing").select("id, servicio, pol, pod, peso, unidad_medida, volumen_cbm, commodity, baterias_litio, known_shipper, tipo_aeronave, tipo_unidad, paradas, fecha_tentativa_carga")
       .eq("organization_id", organizationId).eq("id", solicitudId).is("deleted_at", null).maybeSingle(),

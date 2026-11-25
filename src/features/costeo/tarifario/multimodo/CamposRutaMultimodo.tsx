@@ -20,6 +20,20 @@ export function CamposRutaMultimodo({ f, set }: Props) {
           <Input id="mm-aerolinea" value={f.aerolinea} onChange={(e) => set({ aerolinea: e.target.value })} /></div>
       ) : null}
       {aereo ? (
+        <div><Label htmlFor="mm-aeronave">Tipo de avión</Label>
+          <Select value={f.tipo_aeronave ?? "sin_especificar"} onValueChange={(v) => {
+            if (v === "PAX" || v === "CAO") set({ tipo_aeronave: v });
+            else set({ tipo_aeronave: null });
+          }}>
+            <SelectTrigger id="mm-aeronave"><SelectValue placeholder="Selecciona" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sin_especificar">Sin especificar</SelectItem>
+              <SelectItem value="PAX">PAX — avión de pasajeros</SelectItem>
+              <SelectItem value="CAO">CAO — sólo carguero</SelectItem>
+            </SelectContent>
+          </Select></div>
+      ) : null}
+      {aereo ? (
         <div><Label htmlFor="mm-escalas">Escalas (vacío = vuelo directo)</Label>
           <Input id="mm-escalas" value={f.escalas ?? ""} placeholder="Ej. LAX o LAX, ANC"
             onChange={(e) => set({ escalas: e.target.value.toUpperCase() })} /></div>
