@@ -6,6 +6,8 @@ DECLARE
   v_table regclass := to_regclass('public.crm_pricing_opciones_versiones');
 BEGIN
   FOR v_expected IN SELECT * FROM (VALUES
+    ('public._crm_pricing_hay_tarifa_vigente(uuid)', false, true, true),
+    ('public.crm_enviar_solicitud_pricing(uuid)', true, true, true),
     ('public._crm_pricing_validar_msds()', false, true, true),
     ('public._crm_pricing_version_guard()', false, false, false),
     ('public._crm_pricing_perdida_guard()', false, false, false),

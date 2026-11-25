@@ -2,8 +2,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { auditarReplayMirror, huellaDefinicion, indexarMigraciones, leerBaseline,
+import { auditarIndiceReplayMirror, auditarReplayMirror, huellaDefinicion, indexarMigraciones, leerBaseline,
   type EntradaBaseline } from "../../../scripts/lib/replayMirror";
+import { aplicarReplayMirrorAuditoria } from "../../../scripts/lib/replayMirrorAuditoria";
 import { extraerFunciones } from "../../../scripts/lib/replayMirrorFunctions";
 import { normalizeSql } from "../../../scripts/lib/replayMirrorSql";
 
@@ -146,36 +147,36 @@ describe("ARQ04: excepciones exactas y cerradas", () => {
 describe("ARQ04: baseline real del repositorio", () => {
   const root = path.resolve(import.meta.dirname, "../../..");
   const baseline = leerBaseline(JSON.parse(fs.readFileSync(path.join(root, "scripts/audit-replay-mirror-baseline.json"), "utf8")));
-  const mirrorFiles = [...new Set(baseline.map((e) => e.espejo))];
-  const mirrors = new Map(mirrorFiles.map((file) => [file, fs.readFileSync(path.join(root, file), "utf8")]));
+  const mirrorFile = "supabase/schema/auditoria/auditoria_embarques_org.sql";
+  const mirrors = new Map([[mirrorFile, fs.readFileSync(path.join(root, mirrorFile), "utf8")]]);
   const migrations = new Map(fs.readdirSync(path.join(root, "supabase/migrations")).filter((file) => file.endsWith(".sql"))
     .map((file) => [file, fs.readFileSync(path.join(root, "supabase/migrations", file), "utf8")]));
+  const patch = "20260829195613_5ad1e7e9-aa72-45b6-853d-d501eaa097d3.sql";
+  const signature = "_audit_embarques_agregar(jsonb,jsonb)";
 
-  it("fija las migraciones realmente vigentes y ambas huellas", () => {
-    const result = auditarReplayMirror(mirrors, migrations, baseline);
+  it("alinea ambas funciones de Auditoría con el replay efectivo sin excepciones", () => {
+    const index = aplicarReplayMirrorAuditoria(indexarMigraciones(migrations), migrations);
+    const result = auditarIndiceReplayMirror(mirrors, index, baseline);
     expect(result.violaciones).toEqual([]);
-    expect(result.tolerados).toBe(baseline.length);
+    expect(result.verificados).toBe(4);
+    expect(result.tolerados).toBe(0);
+    expect(index.get(signature)?.migracion).toBe(patch);
+    expect(index.get(signature)?.definicion.cuerpo).toContain("contenedores_totales_descuadrados");
+
+    const altered = mirrors.get(mirrorFile)!.replaceAll("contenedores_totales_descuadrados", "conteo_alterado");
+    expect(auditarIndiceReplayMirror(new Map([[mirrorFile, altered]]), index, []).violaciones).toHaveLength(2);
   });
 
-  it.each(baseline)("rechaza mutaciones de ambos lados de $firma", (exception) => {
-    // Mutation is in memory only: no migration, mirror or DB is ever modified.
-    const marker = exception.funcion === "auditoria_embarques_org"
-      ? "v_fecha_corte_facturacion constant date := DATE '2026-04-01'"
-      : "'total_hallazgos', COUNT(*)";
-    const mutate = (sql: string) => {
-      expect(sql).toContain(marker);
-      return sql.replace(marker, exception.funcion === "auditoria_embarques_org"
-        ? "v_fecha_corte_facturacion constant date := DATE '2026-05-01'"
-        : "'total_hallazgos', COUNT(h)");
-    };
-    const changedMirror = new Map(mirrors);
-    changedMirror.set(exception.espejo, mutate(mirrors.get(exception.espejo)!));
-    expect(auditarReplayMirror(changedMirror, migrations, baseline).violaciones)
-      .toContain(`${exception.espejo}::${exception.firma}: excepción modificada (huella del espejo); requiere revisión, no ampliar baseline`);
-    const changedMigration = new Map(migrations);
-    changedMigration.set(exception.migracion_vigente, mutate(migrations.get(exception.migracion_vigente)!));
-    expect(auditarReplayMirror(mirrors, changedMigration, baseline).violaciones)
-      .toContain(`${exception.espejo}::${exception.firma}: excepción modificada (huella de la migración); requiere revisión, no ampliar baseline`);
+  it("rechaza una alteración de la fuente o de la preimagen de M-10", () => {
+    const index = indexarMigraciones(migrations);
+    const altered = new Map(migrations).set(patch, migrations.get(patch)! + "\n-- altered");
+    expect(() => aplicarReplayMirrorAuditoria(index, altered)).toThrow(/migración histórica/);
+    const previous = index.get(signature)!;
+    const changed = new Map(index).set(signature, {
+      ...previous,
+      definicion: { ...previous.definicion, cuerpo: previous.definicion.cuerpo.replace("COUNT(*)", "COUNT(h)") },
+    });
+    expect(() => aplicarReplayMirrorAuditoria(changed, migrations)).toThrow(/preimagen/);
   });
 
   it("retira las dos falsas divergencias de formato sin exceptuarlas otra vez", () => {

@@ -192,6 +192,7 @@ INSERT INTO _ci_service_role_only (fn) VALUES
    ('public._crm_pricing_destinatarios_modo(uuid, text)'),
    ('public.crm_pricing_avisos_sla()'),
    -- 0110: la validación MSDS sólo se invoca internamente.
+   ('public._crm_pricing_hay_tarifa_vigente(uuid)'),
    ('public._crm_pricing_validar_msds()'),
    -- Replay Drizzle: helpers de trigger; nunca son RPCs del cliente.
    ('public._costeo_tarifa_solicitud_guard()'),

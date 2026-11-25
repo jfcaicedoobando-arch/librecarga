@@ -112,7 +112,9 @@ AS $agg$
       'cxp_vencida',                   COUNT(*) FILTER (WHERE h->>'regla' = 'cxp_vencida'),
       'contenedor_datos_incompletos',  COUNT(*) FILTER (WHERE h->>'regla' = 'contenedor_datos_incompletos'),
       'contenedor_fechas_incompletas', COUNT(*) FILTER (WHERE h->>'regla' = 'contenedor_fechas_incompletas'),
-      'tipo_cambio_faltante',          COUNT(*) FILTER (WHERE h->>'regla' = 'tipo_cambio_faltante')
+      'tipo_cambio_faltante',          COUNT(*) FILTER (WHERE h->>'regla' = 'tipo_cambio_faltante'),
+      'venta_total_descuadrado',       COUNT(*) FILTER (WHERE h->>'regla' = 'venta_total_descuadrado'),
+      'contenedores_totales_descuadrados', COUNT(*) FILTER (WHERE h->>'regla' = 'contenedores_totales_descuadrados')
     ),
     'umbrales', p_umbrales,
     'hallazgos', COALESCE(jsonb_agg(h ORDER BY
@@ -121,8 +123,7 @@ AS $agg$
     ), '[]'::jsonb)
   )
   FROM jsonb_array_elements(COALESCE(p_hallazgos, '[]'::jsonb)) AS t(h);
-$agg$
- name:_audit_embarques_agregar schema:public;
+$agg$;
 
 -- === Overload 2/2 ===
 CREATE OR REPLACE FUNCTION public.auditoria_embarques_org(p_organization_id uuid)
@@ -145,9 +146,7 @@ BEGIN
   IF p_organization_id IS NULL THEN
     RAISE EXCEPTION 'p_organization_id es obligatorio';
   END IF;
-
   PERFORM public._assert_internal_reader(p_organization_id);
-
   SELECT u.margen_min_pct, u.dias_prof_venc, u.dias_huerfano,
          u.dias_borrador_abandonado, u.dias_cxc_vencida,
          u.dias_cxp_captura, u.dias_cxp_vencida
@@ -155,8 +154,6 @@ BEGIN
          v_dias_borrador_abandonado, v_dias_cxc_vencida,
          v_dias_cxp_captura, v_dias_cxp_vencida
     FROM public._audit_embarques_umbrales(p_organization_id) u;
-
-
   WITH
   emb AS (
     SELECT id, expediente, cliente_nombre, modo, estado, etd, eta,
@@ -164,7 +161,7 @@ BEGIN
            tipo_cambio_usd, tipo_cambio_eur, fecha_creacion
     FROM embarques
     WHERE estado <> 'Cancelado'
-      AND deleted_at IS NULL  -- AUD-2: excluir soft-deleted
+      AND deleted_at IS NULL
       AND organization_id = p_organization_id
   ),
   docs_existentes AS (
@@ -174,7 +171,6 @@ BEGIN
     WHERE embarque_id IN (SELECT id FROM emb) AND deleted_at IS NULL
     GROUP BY embarque_id, nombre
   ),
-  -- AUD-2: usar la matriz canónica en vez de una copia hardcodeada.
   exigidos AS (
     SELECT e.id AS embarque_id, e.expediente, e.cliente_nombre, e.modo, e.estado, e.eta,
            d.doc_nombre
@@ -197,7 +193,6 @@ BEGIN
     WHERE COALESCE(de.satisfecho, false) = false
     GROUP BY x.embarque_id, x.expediente, x.cliente_nombre, x.modo, x.estado, x.eta
   ),
-  -- AUD-2: sólo docs Pendiente que realmente aplican al modo/estado actual.
   hall_docs_pendientes AS (
     SELECT jsonb_build_object(
       'embarque_id', e.id, 'expediente', e.expediente,
@@ -247,7 +242,58 @@ BEGIN
       AND (e.etd IS NULL OR e.etd >= v_fecha_corte_facturacion)
     GROUP BY e.id, e.expediente, e.cliente_nombre, e.modo, e.estado, e.eta
   ),
-  -- AUD-2: detectar embarques con conceptos en moneda extranjera sin TC.
+  -- M-10 (auditoría v14): total de la línea que no cuadra con cantidad x precio.
+  -- Detecta ediciones manuales del total sin recalcular (o al revés).
+  ventas_descuadradas AS (
+    SELECT e.id AS embarque_id, e.expediente, e.cliente_nombre, e.modo, e.estado, e.eta,
+           COUNT(*) AS n_lineas,
+           SUM(ABS(cv.total - ROUND(cv.cantidad * cv.precio_unitario, 2))) AS dif_total,
+           MAX(cv.moneda::text) AS moneda
+    FROM emb e
+    JOIN conceptos_venta cv ON cv.embarque_id = e.id AND cv.deleted_at IS NULL
+    WHERE ABS(cv.total - ROUND(cv.cantidad * cv.precio_unitario, 2)) > 0.02
+    GROUP BY e.id, e.expediente, e.cliente_nombre, e.modo, e.estado, e.eta
+  ),
+  hall_venta_descuadrada AS (
+    SELECT jsonb_build_object(
+      'embarque_id', vd.embarque_id, 'expediente', vd.expediente,
+      'cliente_nombre', vd.cliente_nombre, 'modo', vd.modo::text, 'estado', vd.estado::text, 'eta', vd.eta,
+      'regla', 'venta_total_descuadrado', 'severidad', 'alto',
+      'detalle', vd.n_lineas || ' concepto(s) de venta con total distinto a cantidad x precio (diferencia '
+        || to_char(vd.dif_total,'FM999,999,990.00') || ' ' || COALESCE(vd.moneda,'MXN') || ')',
+      'documentos_faltantes', '[]'::jsonb
+    ) AS h
+    FROM ventas_descuadradas vd
+  ),
+  contenedores_descuadrados AS (
+    SELECT e.id AS embarque_id, e.expediente, e.cliente_nombre, e.modo, e.estado, e.eta,
+           COUNT(ec.id) AS n_cont,
+           ABS(COALESCE(e.peso_kg, 0) - COALESCE(SUM(ec.peso_kg), 0)) AS dif_peso,
+           ABS(COALESCE(e.piezas, 0) - COALESCE(SUM(ec.piezas), 0)) AS dif_piezas
+    FROM embarques e
+    JOIN embarque_contenedores ec ON ec.embarque_id = e.id AND ec.deleted_at IS NULL
+    WHERE e.organization_id = p_organization_id
+      AND e.deleted_at IS NULL
+      AND e.estado <> 'Cancelado'
+    GROUP BY e.id, e.expediente, e.cliente_nombre, e.modo, e.estado, e.eta, e.peso_kg, e.piezas
+    HAVING (COALESCE(e.peso_kg, 0) > 0 AND COALESCE(SUM(ec.peso_kg), 0) > 0
+            AND ABS(COALESCE(e.peso_kg, 0) - SUM(ec.peso_kg)) > GREATEST(1, COALESCE(e.peso_kg, 0) * 0.01))
+        OR (COALESCE(e.piezas, 0) > 0 AND COALESCE(SUM(ec.piezas), 0) > 0
+            AND COALESCE(e.piezas, 0) <> SUM(ec.piezas))
+  ),
+  hall_contenedores_descuadrados AS (
+    SELECT jsonb_build_object(
+      'embarque_id', cd.embarque_id, 'expediente', cd.expediente,
+      'cliente_nombre', cd.cliente_nombre, 'modo', cd.modo::text,
+      'estado', cd.estado::text, 'eta', cd.eta,
+      'regla', 'contenedores_totales_descuadrados', 'severidad', 'medio',
+      'detalle', 'Los totales del embarque no cuadran con la suma de sus ' || cd.n_cont
+        || ' contenedor(es): diferencia de ' || to_char(cd.dif_peso, 'FM999,999,990.00')
+        || ' kg y ' || cd.dif_piezas || ' pieza(s)',
+      'documentos_faltantes', '[]'::jsonb
+    ) AS h
+    FROM contenedores_descuadrados cd
+  ),
   emb_sin_tc AS (
     SELECT e.id AS embarque_id, e.expediente, e.cliente_nombre, e.modo, e.estado, e.eta,
            bool_or(cv.moneda::text = 'USD') AS tiene_usd_venta,
@@ -255,10 +301,7 @@ BEGIN
     FROM emb e
     JOIN conceptos_venta cv ON cv.embarque_id = e.id AND cv.deleted_at IS NULL
     WHERE cv.moneda::text IN ('USD','EUR')
-      AND (
-        (cv.moneda::text = 'USD' AND COALESCE(NULLIF(e.tipo_cambio_usd,0),0) = 0)
-        OR (cv.moneda::text = 'EUR' AND COALESCE(NULLIF(e.tipo_cambio_eur,0),0) = 0)
-      )
+      AND public.a_mxn(cv.total, cv.moneda::text, e.tipo_cambio_usd, e.tipo_cambio_eur) IS NULL
     GROUP BY e.id, e.expediente, e.cliente_nombre, e.modo, e.estado, e.eta
   ),
   emb_sin_tc_costo AS (
@@ -268,10 +311,7 @@ BEGIN
     FROM emb e
     JOIN conceptos_costo cc ON cc.embarque_id = e.id AND cc.deleted_at IS NULL
     WHERE cc.moneda::text IN ('USD','EUR')
-      AND (
-        (cc.moneda::text = 'USD' AND COALESCE(NULLIF(e.tipo_cambio_usd,0),0) = 0)
-        OR (cc.moneda::text = 'EUR' AND COALESCE(NULLIF(e.tipo_cambio_eur,0),0) = 0)
-      )
+      AND public.a_mxn(cc.monto, cc.moneda::text, e.tipo_cambio_usd, e.tipo_cambio_eur) IS NULL
     GROUP BY e.id, e.expediente, e.cliente_nombre, e.modo, e.estado, e.eta
   ),
   emb_falta_tc AS (
@@ -301,39 +341,28 @@ BEGIN
     ) AS h
     FROM emb_falta_tc f
   ),
-  -- AUD-2: la conversión sólo se hace si hay TC; sin TC, no suma (no inventamos tasa).
+  -- M-8 (auditoría v14): la conversión usa la función canónica public.a_mxn
+  -- (misma convención MXN por 1 USD / 1 EUR que el resto del sistema). Sin TC
+  -- devuelve NULL: la línea no suma y `tc_incompleto` silencia las alertas de
+  -- margen (nunca se inventa paridad 1:1).
   ventas_mxn AS (
     SELECT cv.embarque_id,
-           SUM(cv.total * CASE
-             WHEN cv.moneda::text = 'USD' THEN NULLIF(e.tipo_cambio_usd,0)
-             WHEN cv.moneda::text = 'EUR' THEN NULLIF(e.tipo_cambio_eur,0)
-             ELSE 1
-           END) AS total_mxn,
+           SUM(public.a_mxn(cv.total, cv.moneda::text, e.tipo_cambio_usd, e.tipo_cambio_eur)) AS total_mxn,
            COUNT(*) AS n,
-           bool_or(
-             (cv.moneda::text = 'USD' AND COALESCE(NULLIF(e.tipo_cambio_usd,0),0) = 0)
-             OR (cv.moneda::text = 'EUR' AND COALESCE(NULLIF(e.tipo_cambio_eur,0),0) = 0)
-           ) AS tc_incompleto
+           bool_or(public.a_mxn(cv.total, cv.moneda::text, e.tipo_cambio_usd, e.tipo_cambio_eur) IS NULL) AS tc_incompleto
     FROM conceptos_venta cv
     JOIN emb e ON e.id = cv.embarque_id
-    WHERE cv.deleted_at IS NULL  -- AUD-3: excluir conceptos soft-deleted (aliniea con Tab P&L)
+    WHERE cv.deleted_at IS NULL
     GROUP BY cv.embarque_id
   ),
   costos_mxn AS (
     SELECT cc.embarque_id,
-           SUM(cc.monto * CASE
-             WHEN cc.moneda::text = 'USD' THEN NULLIF(e.tipo_cambio_usd,0)
-             WHEN cc.moneda::text = 'EUR' THEN NULLIF(e.tipo_cambio_eur,0)
-             ELSE 1
-           END) AS total_mxn,
+           SUM(public.a_mxn(cc.monto, cc.moneda::text, e.tipo_cambio_usd, e.tipo_cambio_eur)) AS total_mxn,
            COUNT(*) AS n,
-           bool_or(
-             (cc.moneda::text = 'USD' AND COALESCE(NULLIF(e.tipo_cambio_usd,0),0) = 0)
-             OR (cc.moneda::text = 'EUR' AND COALESCE(NULLIF(e.tipo_cambio_eur,0),0) = 0)
-           ) AS tc_incompleto
+           bool_or(public.a_mxn(cc.monto, cc.moneda::text, e.tipo_cambio_usd, e.tipo_cambio_eur) IS NULL) AS tc_incompleto
     FROM conceptos_costo cc
     JOIN emb e ON e.id = cc.embarque_id
-    WHERE cc.deleted_at IS NULL  -- AUD-3: excluir conceptos soft-deleted (aliniea con Tab P&L)
+    WHERE cc.deleted_at IS NULL
     GROUP BY cc.embarque_id
   ),
   margenes AS (
@@ -364,7 +393,7 @@ BEGIN
     ) AS h
     FROM margenes m
     WHERE m.utilidad_mxn < 0
-      AND NOT m.tc_incompleto  -- AUD-2: no alertar margen sin TC completo
+      AND NOT m.tc_incompleto
   ),
   hall_margen_bajo AS (
     SELECT jsonb_build_object(
@@ -693,6 +722,8 @@ BEGIN
     UNION ALL SELECT h FROM hall_contenedor_datos
     UNION ALL SELECT h FROM hall_contenedor_fechas
     UNION ALL SELECT h FROM hall_tipo_cambio_faltante
+    UNION ALL SELECT h FROM hall_venta_descuadrada
+    UNION ALL SELECT h FROM hall_contenedores_descuadrados
   )
   SELECT public._audit_embarques_agregar(
     (SELECT COALESCE(jsonb_agg(h), '[]'::jsonb) FROM todos),
@@ -707,8 +738,7 @@ BEGIN
     )
   )
   INTO v_result;
-
   RETURN v_result;
 END;
 $function$
- name:auditoria_embarques_org schema:public;
+;

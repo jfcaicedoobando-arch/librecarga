@@ -9,7 +9,7 @@
  * replay, permisos o invariantes en una BD efímera. Sólo modela declaraciones
  * CREATE OR REPLACE FUNCTION public.<nombre sin comillas>: CREATE simple,
  * nombres entrecomillados y ALTER/DROP requieren replay real. El único SQL
- * dinámico modelado se limita a los parches revisados de Drizzle0035,
+ * dinámico modelado se limita al parche de Auditoría M-10 y a los de Drizzle0035,
  * Drizzle0094 y Drizzle0108. Drizzle0092 ajusta el modo de seguridad de un espejo. Las
  * fuentes, preimágenes y ocurrencias se comprueban y se conserva el replay real.
  * Uso: bun run audit:replay-mirror.
@@ -18,6 +18,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { auditarIndiceReplayMirror, indexarMigraciones, leerBaseline } from "./lib/replayMirror";
 
+import { aplicarReplayMirrorAuditoria } from "./lib/replayMirrorAuditoria";
 import { aplicarDrizzle0035 } from "./lib/replayMirrorDrizzle0035";
 import { aplicarReplayMirrorAuthority } from "./lib/replayMirrorAuthority";
 import { aplicarReplayMirrorPricingFase5 } from "./lib/replayMirrorPricingFase5";
@@ -49,7 +50,8 @@ try {
   }).filter(([file]) => !EXENTOS.has(file) && !DIRS_EXENTOS.some((dir) => file.startsWith(dir))));
   const isolated = readIsolatedDrizzleReplay(ROOT);
   const journal = JSON.parse(fs.readFileSync(path.join(ROOT, "drizzle/migrations/meta/_journal.json"), "utf8")).entries;
-  const index = aplicarDrizzle0035(indexarMigraciones(migraciones), isolated, journal);
+  const historico = aplicarReplayMirrorAuditoria(indexarMigraciones(migraciones), migraciones);
+  const index = aplicarDrizzle0035(historico, isolated, journal);
   // Las definiciones forward nuevas se aplican después del historial de Supabase.
   const forward = new Map([...isolated].filter(([file]) => Number(file.slice(0, 4)) >= 50));
   for (const [signature, definition] of indexarMigraciones(forward)) index.set(signature, definition);
@@ -61,7 +63,7 @@ try {
     console.error("Revisa el replay efectivo; alinea el espejo o crea una migración NUEVA. Nunca edites migraciones aplicadas ni amplíes el baseline para conseguir verde.");
     process.exitCode = 1;
   } else {
-    console.log(`⚠️  ${result.tolerados} divergencias preexistentes con huella exacta (deuda R4BD-01/R4BD-03).`);
+    if (result.tolerados) console.log(`⚠️  ${result.tolerados} divergencias preexistentes con huella exacta.`);
     console.log(`✅ audit:replay-mirror — ${result.verificados} firmas espejo == migración vigente en ${espejos.size} archivos canónicos.`);
   }
 } catch (error) {
