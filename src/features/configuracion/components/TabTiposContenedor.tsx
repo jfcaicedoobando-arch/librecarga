@@ -1,5 +1,3 @@
-import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
-import { CatalogQueryError } from "@/components/shared/CatalogQueryError";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,10 +6,9 @@ import { Button } from "@/components/ui/button";
 import { SwitchVisibilidadOrg } from "./SwitchVisibilidadOrg";
 import { Plus, Trash2 } from "lucide-react";
 import { useAllTiposContenedor, useAdminTiposContenedor } from "@/features/catalogos/hooks";
-import SearchInput from "@/components/shared/SearchInput";
+import { CatalogListPanel } from "./CatalogListPanel";
 import { normalizarBusqueda } from "@/lib/text/normalizarBusqueda";
-import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
-import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
+import { defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import DoubleConfirmDeleteDialog from "@/components/shared/DoubleConfirmDeleteDialog";
 import { usePermissions } from "@/hooks/shared";
 import { useAuth } from "@/lib/contexts/AuthContext";
@@ -23,7 +20,8 @@ type TipoContenedor = { id: string; code: string; name: string; activo: boolean;
 const visibleOrg = (t: TipoContenedor) => t.activoOrg ?? t.activo;
 
 export default function TabTiposContenedor() {
-  const { data: tipos = [], isLoading, isError, error, refetch, isFetching } = useAllTiposContenedor();
+  const query = useAllTiposContenedor();
+  const { data: tipos = [] } = query;
   const { agregarTipo, toggleActivo, eliminarTipo } = useAdminTiposContenedor();
   const { isSuperAdmin } = usePermissions();
   const puedeCrear = puedeDarAltaCatalogo(useAuth().effectiveRole);
@@ -96,30 +94,15 @@ export default function TabTiposContenedor() {
         </div>
         )}
 
-        <SearchInput value={busqueda} onChange={setBusqueda} placeholder="Buscar por código o nombre…" />
-
-        <div className="max-h-[calc(100vh-20rem)] min-h-[320px] overflow-auto rounded-md border">
-          <DataTable
-            columns={columns}
-            data={filtrados}
-            isLoading={isLoading}
-            isError={isError}
-            errorState={<CatalogQueryError error={error} onRetry={() => void refetch()} retrying={isFetching} />}
-            emptyMessage="No se encontraron tipos de contenedor"
-            emptyState={tipos.length > 0 && termino ? (
-              <EmptyStateInline message="Sin coincidencias" action={{ label: "Limpiar búsqueda", onClick: () => setBusqueda("") }} />
-            ) : undefined}
-            rowKey={(t) => t.id}
-            rowClassName={(t) => !visibleOrg(t) ? "opacity-50" : ""}
-            density={TABLE_DENSITY.embebida}
-          />
-        </div>
-        {!isLoading && !isError && (
-          <div className="text-xs text-muted-foreground">
-            {termino && <p role="status">{filtrados.length} de {tipos.length} tipos de contenedor coinciden con la búsqueda.</p>}
-            <p>Catálogo completo · {tipos.length} tipos de contenedor en total · {tipos.filter(visibleOrg).length} visibles en mi empresa</p>
-          </div>
-        )}
+        <CatalogListPanel
+          nombrePlural="tipos de contenedor"
+          columns={columns}
+          items={tipos}
+          filtered={filtrados}
+          isVisible={visibleOrg}
+          query={query}
+          search={{ value: busqueda, onChange: setBusqueda, placeholder: "Buscar por código o nombre…", active: !!termino }}
+        />
       </CardContent>
       <DoubleConfirmDeleteDialog
         open={!!tipoAEliminar}

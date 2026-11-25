@@ -1,5 +1,3 @@
-import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
-import { CatalogQueryError } from "@/components/shared/CatalogQueryError";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,10 +6,9 @@ import { Button } from "@/components/ui/button";
 import { SwitchVisibilidadOrg } from "./SwitchVisibilidadOrg";
 import { Plus, Trash2 } from "lucide-react";
 import { useAllPuertos, useAdminPuertos } from "@/features/catalogos/hooks";
-import SearchInput from "@/components/shared/SearchInput";
+import { CatalogListPanel } from "./CatalogListPanel";
 import { normalizarBusqueda } from "@/lib/text/normalizarBusqueda";
-import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
-import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
+import { defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import DoubleConfirmDeleteDialog from "@/components/shared/DoubleConfirmDeleteDialog";
 import { usePermissions } from "@/hooks/shared";
 import { useAuth } from "@/lib/contexts/AuthContext";
@@ -23,7 +20,8 @@ type Puerto = { id: string; code: string; name: string; country: string; activo:
 const visibleOrg = (p: Puerto) => p.activoOrg ?? p.activo;
 
 export default function TabPuertos() {
-  const { data: puertos = [], isLoading: puertosLoading, isError, error, refetch, isFetching } = useAllPuertos();
+  const query = useAllPuertos();
+  const { data: puertos = [] } = query;
   const { agregarPuerto, toggleActivo, eliminarPuerto } = useAdminPuertos();
   const { isSuperAdmin } = usePermissions();
   const puedeCrear = puedeDarAltaCatalogo(useAuth().effectiveRole);
@@ -103,30 +101,15 @@ export default function TabPuertos() {
         </div>
         )}
 
-        <SearchInput value={puertoBusqueda} onChange={setPuertoBusqueda} placeholder="Buscar por código, nombre o país…" />
-
-        <div className="max-h-[calc(100vh-20rem)] min-h-[320px] overflow-auto rounded-md border">
-          <DataTable
-            columns={columns}
-            data={puertosFiltrados}
-            isLoading={puertosLoading}
-            isError={isError}
-            errorState={<CatalogQueryError error={error} onRetry={() => void refetch()} retrying={isFetching} />}
-            emptyMessage="No se encontraron puertos"
-            emptyState={puertos.length > 0 && termino ? (
-              <EmptyStateInline message="Sin coincidencias" action={{ label: "Limpiar búsqueda", onClick: () => setPuertoBusqueda("") }} />
-            ) : undefined}
-            rowKey={(p) => p.id}
-            rowClassName={(p) => !visibleOrg(p) ? "opacity-50" : ""}
-            density={TABLE_DENSITY.embebida}
-          />
-        </div>
-        {!puertosLoading && !isError && (
-          <div className="text-xs text-muted-foreground">
-            {termino && <p role="status">{puertosFiltrados.length} de {puertos.length} puertos coinciden con la búsqueda.</p>}
-            <p>Catálogo completo · {puertos.length} puertos en total · {puertos.filter(visibleOrg).length} visibles en mi empresa</p>
-          </div>
-        )}
+        <CatalogListPanel
+          nombrePlural="puertos"
+          columns={columns}
+          items={puertos}
+          filtered={puertosFiltrados}
+          isVisible={visibleOrg}
+          query={query}
+          search={{ value: puertoBusqueda, onChange: setPuertoBusqueda, placeholder: "Buscar por código, nombre o país…", active: !!termino }}
+        />
       </CardContent>
       <DoubleConfirmDeleteDialog
         open={!!puertoAEliminar}

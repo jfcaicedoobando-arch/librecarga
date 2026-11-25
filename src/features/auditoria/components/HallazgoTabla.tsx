@@ -1,51 +1,18 @@
 import { ExternalLink, ShieldCheck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { HallazgoSeveridadBadge } from "./HallazgoSeveridadBadge";
 import { Button } from "@/components/ui/button";
 import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
-import type { HallazgoAuditoria, ReglaAuditoria, SeveridadAuditoria } from "@/features/auditoria/types";
-import { cn } from "@/lib/utils";
+import type { HallazgoAuditoria } from "@/features/auditoria/types";
 import { HallazgoDetalleCell } from "./HallazgoDetalleCell";
 import { COL_W } from "@/components/shared/dataTable/columnWidths";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { Hint } from "@/components/shared/Hint";
-
-const reglaToTab: Record<ReglaAuditoria, string> = {
-  docs_faltantes: "documentos",
-  docs_pendientes_avanzado: "documentos",
-  fechas: "tracking",
-  ventas_sin_facturar: "facturacion",
-  margen_negativo: "financiero",
-  margen_bajo: "financiero",
-  venta_sin_costo: "financiero",
-  costo_sin_venta: "financiero",
-  costos_repetidos: "financiero",
-  proforma_vencida: "facturacion",
-  proforma_borrador_abandonada: "facturacion",
-  proforma_inconsistente: "facturacion",
-  embarque_huerfano: "tracking",
-  factura_sin_timbrar: "facturacion",
-  rep_pendiente: "facturacion",
-  factura_cancelada_sin_sustitucion: "facturacion",
-  cxc_vencida: "facturacion",
-  cxp_por_capturar_estancada: "facturacion",
-  cxp_vencida: "facturacion",
-  contenedor_datos_incompletos: "resumen",
-  contenedor_fechas_incompletas: "resumen",
-  tipo_cambio_faltante: "financiero",
-  venta_total_descuadrado: "financiero",
-  contenedores_totales_descuadrados: "resumen",
-};
+import { reglaToTab } from "./hallazgosTablaConfig";
 
 interface Props {
   hallazgos: HallazgoAuditoria[];
 }
-
-const severidadConfig: Record<SeveridadAuditoria, { label: string; className: string }> = {
-  critico: { label: "Crítico", className: "bg-destructive/15 text-destructive border-destructive/30" },
-  alto: { label: "Alto", className: "bg-warning/10 text-warning border-warning/30" },
-  medio: { label: "Medio", className: "bg-primary/15 text-primary border-primary/30" },
-};
 
 function formatEta(eta: string | null): string {
   if (!eta) return "—";
@@ -56,11 +23,7 @@ function formatEta(eta: string | null): string {
 export function HallazgoTabla({ hallazgos }: Props) {
   const cols: ColumnDef<HallazgoAuditoria, unknown>[] = defineColumns<HallazgoAuditoria>([
     { id: "sev", header: "Severidad", meta: { width: COL_W.fecha },
-      cell: ({ row }) => (
-        <Badge variant="outline" className={cn("text-label", severidadConfig[row.original.severidad].className)}>
-          {severidadConfig[row.original.severidad].label}
-        </Badge>
-      ) },
+      cell: ({ row }) => <HallazgoSeveridadBadge severidad={row.original.severidad} /> },
     { id: "exp", header: "Expediente", meta: { width: COL_W.monto, className: "font-medium tabular-nums" }, cell: ({ row }) => row.original.expediente },
     { id: "cliente", header: "Cliente", meta: { className: "truncate max-w-[200px]" },
       cell: ({ row }) => (

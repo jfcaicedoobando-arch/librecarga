@@ -3,17 +3,15 @@
  */
 import { CheckCircle2, ExternalLink } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import { HallazgoSeveridadBadge } from "./HallazgoSeveridadBadge";
 import { Hint } from "@/components/shared/Hint";
 import { Button } from "@/components/ui/button";
 import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
-import { cn } from "@/lib/utils";
 import { revisionKey } from "@/features/auditoria/hooks";
 import type { AuditoriaRevision, HallazgoAuditoria } from "@/features/auditoria/types";
 import {
   reglaLabel,
   reglaToTab,
-  severidadConfig,
 } from "./hallazgosTablaConfig";
 import { ExplicarHallazgoButton } from "./ExplicarHallazgoButton";
 import { HallazgoDetalleCell } from "./HallazgoDetalleCell";
@@ -54,10 +52,7 @@ export function HallazgosTabla(props: Props) {
   const cols: ColumnDef<HallazgoAuditoria, unknown>[] = defineColumns<HallazgoAuditoria>([
     buildSelectColumn({ revisiones, selectedIds, selectablesEnPagina, onToggleSelected, onToggleAllVisible }),
     { id: "sev", header: "Severidad", meta: { width: COL_W.fecha },
-      cell: ({ row }) => {
-        const sev = severidadConfig[row.original.severidad];
-        return <Badge variant="outline" className={cn("text-label", sev.className)}>{sev.label}</Badge>;
-      } },
+      cell: ({ row }) => <HallazgoSeveridadBadge severidad={row.original.severidad} /> },
     { id: "exp", header: "Expediente", meta: { width: COL_W.monto, className: "font-medium tabular-nums text-body-sm" },
       cell: ({ row }) => {
         const h = row.original;

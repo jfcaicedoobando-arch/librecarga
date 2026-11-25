@@ -4,6 +4,7 @@
  * monedas distintas ni se etiqueta el total como MXN — se muestran subtotales
  * separados por moneda (p. ej. "$1,000.00 MXN · $500.00 USD").
  */
+import { Card, CardContent } from "@/components/ui/card";
 import { copiaOportunidadesVisibles } from "@/features/crm/routes/oportunidadesContadorCopy";
 import { TrendingUp, Target, Scale } from "lucide-react";
 import { formatCurrency, porcentajeEntero } from "@/lib/formatters";
@@ -37,21 +38,23 @@ export default function PipelineResumen({ oportunidades, etapas }: Props) {
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-border bg-card px-3 py-2">
-      {items.map(({ icon: Icon, label, valor }) => (
-        <div key={label} className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <div className="text-label uppercase text-muted-foreground">{label}</div>
-            <div className="text-body font-semibold tabular-nums">{valor}</div>
+    <Card>
+      <CardContent density="tight" className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2">
+        {items.map(({ icon: Icon, label, valor }) => (
+          <div key={label} className="flex items-center gap-2">
+            <Icon className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <div className="text-label uppercase text-muted-foreground">{label}</div>
+              <div className="text-body font-semibold tabular-nums">{valor}</div>
+            </div>
           </div>
+        ))}
+        <div className="ml-auto text-body-sm text-muted-foreground">
+          <p>{copiaOportunidadesVisibles(t.cantidad)}</p>
+          <p>{pluralizar(estados.abiertas, "abierta")} · {pluralizar(estados.ganadas, "ganada")} · {pluralizar(estados.perdidas, "perdida")}{estados.sinEtapa > 0 ? ` · ${estados.sinEtapa} sin etapa` : ""}</p>
+          {cumplimiento != null ? <p>{cumplimiento}% de la meta capturada</p> : null}
         </div>
-      ))}
-      <div className="ml-auto text-body-sm text-muted-foreground">
-        <p>{copiaOportunidadesVisibles(t.cantidad)}</p>
-        <p>{pluralizar(estados.abiertas, "abierta")} · {pluralizar(estados.ganadas, "ganada")} · {pluralizar(estados.perdidas, "perdida")}{estados.sinEtapa > 0 ? ` · ${estados.sinEtapa} sin etapa` : ""}</p>
-        {cumplimiento != null ? <p>{cumplimiento}% de la meta capturada</p> : null}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
