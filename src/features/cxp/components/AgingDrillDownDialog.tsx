@@ -1,9 +1,6 @@
 /**
  * Diálogo drill-down de aging: al abrir una fila de proveedor en /compras/aging
  * muestra sus facturas con saldo abierto, con badge de cubeta y exporta a CSV.
- *
- * v13.303.95 · Rediseño al design language del detalle CxP:
- * chip-folio inline, filtro de cubetas como chips en action bar y export en overflow.
  */
 import { useMemo, useState } from "react";
 import { FileText, X, AlertTriangle } from "lucide-react";
