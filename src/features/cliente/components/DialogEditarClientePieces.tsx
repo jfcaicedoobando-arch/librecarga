@@ -4,7 +4,7 @@ import type { TipoCliente } from "@/features/cliente/utils/tipoCliente";
  * reutilizable. Extraído para mantener el componente ≤200 líneas.
  */
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/shared/FormField";
 
 export interface ClienteData {
   nombre: string;
@@ -43,12 +43,9 @@ interface TextFieldProps {
 export function TextField({ label, field, form, setForm, full, required }: TextFieldProps) {
   const inputId = `editar-cliente-${field}`;
   return (
-    <div className={full ? "md:col-span-2" : undefined}>
-      <Label htmlFor={inputId}>
-        {label}{required && <span className="text-destructive ml-0.5">*</span>}
-      </Label>
+    <FormField label={label} htmlFor={inputId} required={required} span={full ? 2 : 1}>
       <Input
-        id={inputId}
+        aria-required={required || undefined}
         value={form[field]}
         onChange={(e) =>
           setForm((p) => ({
@@ -56,8 +53,7 @@ export function TextField({ label, field, form, setForm, full, required }: TextF
             [field]: field === "nombre" ? e.target.value.toLocaleUpperCase("es-MX") : e.target.value,
           }))
         }
-        className="mt-1"
       />
-    </div>
+    </FormField>
   );
 }

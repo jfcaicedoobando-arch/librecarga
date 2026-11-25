@@ -1,4 +1,4 @@
-import { memo, useId, useMemo, useState } from "react";
+import { memo, useId, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { User, ChevronRight, Users } from "lucide-react";
@@ -20,6 +20,7 @@ export const OperadorCard = memo(function OperadorCard({ operador }: { operador:
   );
 
   const [estadoAbierto, setEstadoAbierto] = useState<EstadoUiKey | null>(null);
+  const disparador = useRef<HTMLButtonElement>(null);
 
   // clientesDesglose ya viene ordenado por cantidad desc desde useOperacionesData
   const [mostrarClientes, setMostrarClientes] = useState(false);
@@ -60,7 +61,10 @@ export const OperadorCard = memo(function OperadorCard({ operador }: { operador:
                 type="button"
                 variant="ghost"
                 disabled={!interactive}
-                onClick={() => interactive && setEstadoAbierto(estado)}
+                onClick={(event) => {
+                  disparador.current = event.currentTarget;
+                  setEstadoAbierto(estado);
+                }}
                 className={`flex h-auto w-full flex-col items-stretch justify-start whitespace-normal text-left font-normal space-y-0.5 rounded-md px-1.5 py-1 -mx-1.5 transition-colors ${
                   interactive
                     ? "hover:bg-muted/60 cursor-pointer"
@@ -126,6 +130,11 @@ export const OperadorCard = memo(function OperadorCard({ operador }: { operador:
         <EmbarquesEstadoDialog
           open={!!estadoAbierto}
           onOpenChange={(o) => !o && setEstadoAbierto(null)}
+          onCloseAutoFocus={(event) => {
+            if (!disparador.current?.isConnected) return;
+            event.preventDefault();
+            disparador.current.focus();
+          }}
           operador={operador.nombre}
           estado={estadoAbierto}
           bucket={operador.embarquesPorEstado[estadoAbierto]}

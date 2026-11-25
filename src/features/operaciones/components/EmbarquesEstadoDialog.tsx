@@ -15,12 +15,13 @@ import { EmbarqueEstadoListItem } from "./embarquesEstadoDialog/EmbarqueEstadoLi
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCloseAutoFocus?: (event: Event) => void;
   operador: string;
   estado: EstadoUiKey;
   bucket: EmbarquesPorEstadoBucket | undefined;
 }
 
-export function EmbarquesEstadoDialog({ open, onOpenChange, operador, estado, bucket }: Props) {
+export function EmbarquesEstadoDialog({ open, onOpenChange, onCloseAutoFocus, operador, estado, bucket }: Props) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const buscador = useRef<HTMLInputElement>(null);
@@ -66,6 +67,7 @@ export function EmbarquesEstadoDialog({ open, onOpenChange, operador, estado, bu
     <FormDialogShell
       open={open}
       onOpenChange={onOpenChange}
+      onCloseAutoFocus={onCloseAutoFocus}
       icon={Icon}
       title={
         <span className="flex items-center gap-2">

@@ -4,7 +4,7 @@
  */
 import SearchInput from "@/components/shared/SearchInput";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/shared/FormField";
 import {
   Select,
   SelectContent,
@@ -48,17 +48,14 @@ export function DiagnosticoFilters({
 }: Props) {
   return (
     <div className="grid grid-cols-1 gap-3 rounded-md border bg-card p-4 md:grid-cols-6">
-      <div className="md:col-span-2">
-        <Label htmlFor="diag-search">Buscar en mensaje</Label>
+      <FormField label="Buscar en mensaje" htmlFor="diag-search" span={2}>
         <SearchInput
-          id="diag-search"
           value={search}
           onChange={onSearchChange}
           placeholder="texto contenido en msg…"
         />
-      </div>
-      <div>
-        <Label>Nivel</Label>
+      </FormField>
+      <FormField label="Nivel" htmlFor="diag-level">
         <Select value={level} onValueChange={(v) => onLevelChange(v as AppLogLevel | "todos")}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -68,9 +65,8 @@ export function DiagnosticoFilters({
             <SelectItem value="error">Error</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-      <div>
-        <Label>Función</Label>
+      </FormField>
+      <FormField label="Función" htmlFor="diag-function">
         <Select value={fn} onValueChange={onFnChange}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -80,23 +76,21 @@ export function DiagnosticoFilters({
             ))}
           </SelectContent>
         </Select>
-      </div>
-      <div>
-        <Label htmlFor="diag-from">{RANGO_DESDE_LABEL}</Label>
+      </FormField>
+      <FormField label={RANGO_DESDE_LABEL} htmlFor="diag-from">
         <DatePickerMx
           value={from ?? ""}
           onChange={(v) => onFromChange(v || null)}
           className="w-full"
         />
-      </div>
-      <div>
-        <Label htmlFor="diag-to">{RANGO_HASTA_LABEL}</Label>
+      </FormField>
+      <FormField label={RANGO_HASTA_LABEL} htmlFor="diag-to">
         <DatePickerMx
           value={to ?? ""}
           onChange={(v) => onToChange(v || null)}
           className="w-full"
         />
-      </div>
+      </FormField>
       <div className="md:col-span-6 flex justify-end">
         <Button variant="ghost" size="sm" onClick={onReset}>
           <RotateCcw className="h-3.5 w-3.5 mr-1" /> Limpiar filtros

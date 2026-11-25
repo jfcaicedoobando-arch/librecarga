@@ -52,7 +52,7 @@ export function VisualFixture() {
     </SidebarInset>
     <FormDialogShell open={open} onOpenChange={setOpen} icon={ClipboardList} title="Nueva cotización"
       description="Datos de la operación · Ningbo a Manzanillo" stepper={{ step: 1, totalSteps: 3, labels: ["Cliente", "Ruta", "Conceptos"] }}
-      autoFocusFirstField={false} footer={<><Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button><Button disabled>Continuar</Button></>}>
+      footer={<><Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button><Button disabled>Continuar</Button></>}>
       <div className="space-y-2"><Label htmlFor="qa-cliente">Cliente</Label><Input id="qa-cliente" readOnly value="Refacciones Industriales Regiomontanas" /></div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2"><Label htmlFor="qa-origen">Origen</Label><Input id="qa-origen" readOnly value="Ningbo, China" /></div>

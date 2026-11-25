@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useSearchParams } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import type { EmbarquesPorEstadoBucket, EstadoUiKey } from "@/features/operaciones/hooks";
 import { EmbarquesEstadoDialog } from "../EmbarquesEstadoDialog";
+import { OperadorCard } from "../OperadorCard";
 
 const operador = "operador@example.test";
 const bucket: EmbarquesPorEstadoBucket = {
@@ -37,6 +38,24 @@ function abrir(estado: EstadoUiKey) {
 }
 
 describe("EmbarquesEstadoDialog", () => {
+  it("devuelve el foco al botón de estado al cerrar con Escape", async () => {
+    render(<MemoryRouter><OperadorCard operador={{
+      nombre: operador, cargasActivas: 2, contenedores: 0, cargasEsteMes: 0,
+      profit: 0, demoras: 0, criticos: 0, enPuerto: 0, porArribar: 0,
+      clientes: [], clientesDesglose: [], cargasEnRiesgo: [],
+      historicoCreadosPorMes: [], historicoLlegadosPorMes: [],
+      desgloseEstados: { Confirmado: 2, "En Tránsito": 0, Llegada: 0, "En Proceso": 0, Cerrado: 0 },
+      embarquesPorEstado: { Confirmado: bucket },
+    }} /></MemoryRouter>);
+    const disparador = screen.getByRole("button", { name: "Ver 2 embarques en Confirmado" });
+    fireEvent.click(disparador);
+    const campo = screen.getByRole("searchbox", { name: "Buscar por expediente o cliente" });
+    expect(campo).toHaveFocus();
+    fireEvent.keyDown(campo, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(() => expect(disparador).toHaveFocus());
+  });
+
   it("Finalizado muestra EIR y Cerrado y conserva sólo el filtro de operador", () => {
     abrir("Cerrado");
     expect(screen.getByRole("dialog")).toHaveAccessibleName(/Finalizado/);

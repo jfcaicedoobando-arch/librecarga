@@ -1,16 +1,6 @@
 import DoubleConfirmDeleteDialog from "@/components/shared/DoubleConfirmDeleteDialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
 import type { UserRow } from "@/features/admin/services/usuario";
-import { dialogSize } from "@/components/shared/utils/dialogTokens";
 import { RoleChangeAlertDialog, type PendingRoleChange } from "./RoleChangeAlertDialog";
 
 interface Props {
@@ -61,35 +51,18 @@ export function UsuariosInternosDialogs({
         isPending={deletePending}
       />
 
-      <AlertDialog
+      <ConfirmActionDialog
         open={!!quitarTarget}
         onOpenChange={(open) => {
-          if (!open) onQuitarTargetChange(null);
+          if (!open && !quitarPending) onQuitarTargetChange(null);
         }}
-      >
-        <AlertDialogContent className={dialogSize.md}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Quitar de la organización</AlertDialogTitle>
-            <AlertDialogDescription>
-              {quitarTarget?.email} perderá el acceso a{" "}
-              {quitarTarget?.organizacion_nombre ?? "la organización"}, pero su cuenta y su
-              historial se conservan. Puedes volver a agregarlo después.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                onQuitar();
-              }}
-              disabled={quitarPending}
-            >
-              Quitar acceso
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        size="md"
+        title="Quitar de la organización"
+        description={`${quitarTarget?.email} perderá el acceso a ${quitarTarget?.organizacion_nombre ?? "la organización"}, pero su cuenta y su historial se conservan. Puedes volver a agregarlo después.`}
+        confirmLabel="Quitar acceso"
+        onConfirm={onQuitar}
+        isPending={quitarPending}
+      />
 
       <RoleChangeAlertDialog
         pendingRole={pendingRole}
