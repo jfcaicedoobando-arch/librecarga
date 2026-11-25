@@ -1,6 +1,7 @@
 /** Tarjeta «Costo cotizado vs real» por moneda (sólo lectura). */
 import { DataTable, defineColumns } from "@/components/shared/DataTable";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
+import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, formatPercent } from "@/lib/formatters/numbers";
@@ -61,21 +62,30 @@ export function TablaCostoReal({ resumen }: { resumen: ResumenCostoReal }) {
 export function CostoVsRealPricing({ solicitudId }: { solicitudId: string }) {
   const consulta = useCostoVsReal([solicitudId]);
   const resumen = consulta.data?.get(solicitudId);
-  if (consulta.isLoading || !resumen || resumen.estado === "sin_cotizacion") return null;
+  const visible = resumen && resumen.estado !== "sin_cotizacion" ? resumen : null;
+  if (!consulta.isError && !visible) return null;
   return (
     <section aria-label="Costo cotizado vs real">
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle as="h3">Costo cotizado vs real</CardTitle>
-            <Badge variant="outline">{ETIQUETA_ESTADO_COSTO[resumen.estado]}</Badge>
-            {resumen.cotizacionFolio && <span className="text-caption text-muted-foreground">
-              {[resumen.cotizacionFolio, resumen.expediente].filter(Boolean).join(" · ")}</span>}
+            {visible && <Badge variant="outline">{ETIQUETA_ESTADO_COSTO[visible.estado]}</Badge>}
+            {visible?.cotizacionFolio && <span className="text-caption text-muted-foreground">
+              {[visible.cotizacionFolio, visible.expediente].filter(Boolean).join(" · ")}</span>}
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
-          <TablaCostoReal resumen={resumen} />
-          <p className="text-caption text-muted-foreground">Real = facturas de proveedor vigentes del embarque, antes de IVA. Cada moneda se compara por separado.</p>
+          {consulta.isError && (
+            <ErrorStateInline message="No se pudo calcular la comparación de costos."
+              onRetry={() => void consulta.refetch()} retrying={consulta.isFetching} />
+          )}
+          {visible && (
+            <>
+              <TablaCostoReal resumen={visible} />
+              <p className="text-caption text-muted-foreground">Real = facturas de proveedor vigentes del embarque, antes de IVA. Cada moneda se compara por separado.</p>
+            </>
+          )}
         </CardContent>
       </Card>
     </section>

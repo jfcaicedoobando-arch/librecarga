@@ -1,8 +1,9 @@
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Ship } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { calcularDesgloseMoneda, parseConceptos } from "@/lib/domain/cotizacionDetalle";
 
 /** Fila mínima que la tarjeta necesita del listado de cotizaciones del portal. */
@@ -69,20 +70,13 @@ function LineaRespuesta({ fecha, label }: { fecha: string; label: string }) {
 
 /** Enlace al embarque cuando la cotización ya está en operación. */
 function EnlaceEmbarque({ embarqueId, expediente }: { embarqueId: string; expediente: string }) {
-  const navigate = useNavigate();
   return (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        navigate(`/portal/embarques/${embarqueId}`);
-      }}
-      className="mt-1 inline-flex items-center gap-1 text-body-sm font-medium text-success hover:underline"
-    >
-      <Ship className="h-3 w-3" />
-      En operación · {expediente}
-    </button>
+    <Button asChild variant="link" size="sm" className="mb-2 ml-4 px-0 text-success">
+      <Link to={`/portal/embarques/${embarqueId}`}>
+        <Ship className="h-3 w-3" aria-hidden />
+        En operación · {expediente}
+      </Link>
+    </Button>
   );
 }
 
@@ -100,7 +94,7 @@ export function PortalCotizacionCard({ cotizacion: c, tasaIva }: Props) {
       <Link
         to={`/portal/cotizaciones/${c.id}`}
         aria-label={`Ver cotización ${c.folio}`}
-        className="block focus:outline-hidden"
+        className="block rounded-md focus-visible:ring-2 focus-visible:ring-ring"
       >
         <CardContent className="flex items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -116,10 +110,6 @@ export function PortalCotizacionCard({ cotizacion: c, tasaIva }: Props) {
               {fechaRespuesta && fechaRespuestaLabel && (
                 <LineaRespuesta fecha={fechaRespuesta} label={fechaRespuestaLabel} />
               )}
-              {tieneEmbarque && expediente && c.embarque_id && (
-                <EnlaceEmbarque embarqueId={c.embarque_id} expediente={expediente} />
-              )}
-
             </div>
           </div>
           <p className="text-body font-bold tabular-nums shrink-0 text-right min-w-[110px]">
@@ -132,6 +122,9 @@ export function PortalCotizacionCard({ cotizacion: c, tasaIva }: Props) {
           </p>
         </CardContent>
       </Link>
+      {tieneEmbarque && expediente && c.embarque_id && (
+        <EnlaceEmbarque embarqueId={c.embarque_id} expediente={expediente} />
+      )}
     </Card>
   );
 }
