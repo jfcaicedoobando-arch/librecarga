@@ -18,8 +18,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { dialogSize } from "@/components/shared/utils/dialogTokens";
 import { defineColumns } from "@/components/shared/DataTable";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
-import { MoneyCell } from "@/components/shared/MoneyCell";
-import { Card, CardContent } from "@/components/ui/card";
 import { useFacturasCxP } from "@/features/cxp/hooks";
 import type { FacturaCxP } from "@/features/cxp/services";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -28,7 +26,7 @@ import { bucketDeDias, BUCKET_LABELS, BUCKET_TONE, type CubetaAging } from "./ag
 import { ToneBadge } from "@/components/shared/ToneBadge";
 
 import { todayLocalISO } from "@/lib/date/today";
-import { AgingKpiRow } from "./AgingDrillDownDialog.parts";
+import { AgingKpiRow, FacturaAgingCard } from "./AgingDrillDownDialog.parts";
 import { AgingActionBar } from "@/components/shared/AgingActionBar";
 import { CUBETAS_AGING } from "@/lib/aging/buckets";
 
@@ -44,27 +42,6 @@ interface Props {
   onOpenChange: (o: boolean) => void;
   cubetaInicial?: CubetaAging | "todas";
   fechaReferencia?: string;
-}
-
-function FacturaAgingCard({ factura }: { factura: FacturaCxP }) {
-  const bucket = bucketDeDias(factura.dias_vencido);
-
-  return (
-    <Card>
-      <CardContent className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="break-all font-mono text-body-sm">{factura.folio_proveedor}</p>
-          <ToneBadge tone={BUCKET_TONE[bucket]}>{BUCKET_LABELS[bucket]}</ToneBadge>
-        </div>
-        <dl className="grid grid-cols-2 gap-2 text-body-sm">
-          <div><dt>Emisión</dt><dd>{formatDate(factura.fecha_emision)}</dd></div>
-          <div><dt>Vencimiento</dt><dd>{factura.fecha_vencimiento ? formatDate(factura.fecha_vencimiento) : "—"}</dd></div>
-          <div><dt>Días</dt><dd>{factura.dias_vencido > 0 ? "+" : ""}{factura.dias_vencido}</dd></div>
-        </dl>
-        <MoneyCell label="Saldo" value={formatCurrency(factura.saldo, factura.moneda)} highlight />
-      </CardContent>
-    </Card>
-  );
 }
 
 function AgingDrillDownBody({ proveedor, open, onOpenChange, cubetaInicial = "todas", fechaReferencia = todayLocalISO() }: Props) {
