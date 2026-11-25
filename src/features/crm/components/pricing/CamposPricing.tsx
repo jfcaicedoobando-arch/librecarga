@@ -3,7 +3,7 @@
  * lista y Sí/No). Radix Select no admite valor vacío: usamos "sin" como nulo.
  */
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/shared/FormField";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const SIN = "sin";
@@ -14,11 +14,10 @@ export function CampoTexto({ id, label, value, onChange, disabled, type = "text"
   value: string | number | null | undefined; onChange: (v: string) => void; type?: "text" | "number" | "date"; required?: boolean;
 }) {
   return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id}>{label}{required ? " *" : ""}</Label>
-      <Input id={id} type={type} value={value ?? ""} disabled={disabled} maxLength={type === "text" ? 300 : undefined}
+    <FormField label={label} htmlFor={id} required={required}>
+      <Input aria-required={required || undefined} type={type} value={value ?? ""} disabled={disabled} maxLength={type === "text" ? 300 : undefined}
         onChange={(e) => onChange(e.target.value)} />
-    </div>
+    </FormField>
   );
 }
 
@@ -28,16 +27,15 @@ export function CampoLista({ id, label, value, onChange, opciones, disabled, req
 }) {
   const items = opciones.map((o) => (typeof o === "string" ? { value: o, label: o } : o));
   return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id}>{label}{required ? " *" : ""}</Label>
+    <FormField label={label} htmlFor={id} required={required}>
       <Select value={value ?? SIN} disabled={disabled} onValueChange={(v) => onChange(v === SIN ? null : v)}>
-        <SelectTrigger id={id}><SelectValue placeholder="Selecciona" /></SelectTrigger>
+        <SelectTrigger aria-label={label} aria-required={required || undefined}><SelectValue placeholder="Selecciona" /></SelectTrigger>
         <SelectContent>
           <SelectItem value={SIN}>—</SelectItem>
           {items.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
         </SelectContent>
       </Select>
-    </div>
+    </FormField>
   );
 }
 

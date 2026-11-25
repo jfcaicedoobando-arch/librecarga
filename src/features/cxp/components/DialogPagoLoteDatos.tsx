@@ -5,6 +5,7 @@
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/shared/MoneyInput";
 import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/shared/FormField";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
@@ -54,10 +55,9 @@ export function DialogPagoLoteDatos(p: Props) {
   return (
     <FormDialogSection flat title="Datos de la transferencia">
       <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 md:grid-cols-3">
-        <div className="space-y-1.5">
-          <Label>Fecha del pago</Label>
+        <FormField label="Fecha del pago" htmlFor="lote-fecha">
           <DatePickerMx value={p.fecha} onChange={(v) => p.onFecha(v ?? "")} className="w-full" />
-        </div>
+        </FormField>
         <div className="space-y-1.5">
           <Label htmlFor="lote-total">Importe total</Label>
           <MoneyInput
@@ -77,23 +77,20 @@ export function DialogPagoLoteDatos(p: Props) {
             </p>
           )}
         </div>
-        <div className="space-y-1.5">
-          <Label>Medio de pago</Label>
+        <FormField label="Medio de pago" htmlFor="lote-medio" hint="Catálogo interno">
           <Select value={p.metodo} onValueChange={p.onMetodo}>
-            <SelectTrigger aria-label="Medio de pago"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {metodosFor(p.proveedorOrigen).map((m) => (
                 <SelectItem key={m} value={m}>{m}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <p className="text-body-sm text-muted-foreground">Catálogo interno</p>
-        </div>
+        </FormField>
         {p.requiereCuenta ? (
-          <div className="space-y-1.5">
-            <Label>Cuenta bancaria</Label>
+          <FormField label="Cuenta bancaria" htmlFor="lote-cuenta" hint="Requerida">
             <Select value={p.cuentaId} onValueChange={p.onCuentaId}>
-              <SelectTrigger aria-label="Cuenta bancaria">
+              <SelectTrigger aria-required="true">
                 <SelectValue placeholder={`Cuentas en ${p.moneda}`} />
               </SelectTrigger>
               <SelectContent>
@@ -102,8 +99,7 @@ export function DialogPagoLoteDatos(p: Props) {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-body-sm text-muted-foreground">Requerida</p>
-          </div>
+          </FormField>
         ) : (
           // MNY P1.2: en Efectivo no hay cuenta ni salida bancaria.
           <div className="space-y-1.5">
@@ -115,15 +111,13 @@ export function DialogPagoLoteDatos(p: Props) {
           </div>
         )}
 
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="lote-ref">Referencia bancaria</Label>
+        <FormField label="Referencia bancaria" htmlFor="lote-ref" className="sm:col-span-2">
           <Input
-            id="lote-ref"
             value={p.referencia}
             placeholder={referenciaHint(p.metodo)}
             onChange={(e) => p.onReferencia(e.target.value)}
           />
-        </div>
+        </FormField>
       </div>
     </FormDialogSection>
   );

@@ -4,6 +4,7 @@
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/shared/MoneyInput";
 import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/shared/FormField";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
@@ -61,12 +62,9 @@ export function DialogCobroLoteDatos(p: Props) {
         </Alert>
       )}
       <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 md:grid-cols-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="cobro-lote-fecha">Fecha del cobro</Label>
-          <DatePickerMx id="cobro-lote-fecha" aria-describedby="cobro-lote-fecha-ayuda"
-            value={p.fecha} onChange={(v) => p.onFecha(v ?? "")} className="w-full" />
-          <p id="cobro-lote-fecha-ayuda" className="text-body-sm text-muted-foreground">Formato DD/MM/AAAA.</p>
-        </div>
+        <FormField label="Fecha del cobro" htmlFor="cobro-lote-fecha" hint="Formato DD/MM/AAAA.">
+          <DatePickerMx value={p.fecha} onChange={(v) => p.onFecha(v ?? "")} className="w-full" />
+        </FormField>
         <div className="space-y-1.5">
           <Label htmlFor="cobro-lote-total">Importe recibido</Label>
           <MoneyInput
@@ -82,22 +80,19 @@ export function DialogCobroLoteDatos(p: Props) {
             {hintTc}
           </p>
         </div>
-        <div className="space-y-1.5">
-          <Label>Forma de pago</Label>
+        <FormField label="Forma de pago" htmlFor="cobro-lote-forma" hint="Catálogo SAT">
           <Select value={p.formaPago} onValueChange={p.onFormaPago}>
-            <SelectTrigger aria-label="Forma de pago"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {FORMAS_COBRO_SAT.map((f) => (
                 <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <p className="text-body-sm text-muted-foreground">Catálogo SAT</p>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Cuenta bancaria</Label>
+        </FormField>
+        <FormField label="Cuenta bancaria" htmlFor="cobro-lote-cuenta" hint="Opcional">
           <Select value={p.cuentaId} onValueChange={p.onCuentaId}>
-            <SelectTrigger aria-label="Cuenta bancaria">
+            <SelectTrigger>
               <SelectValue placeholder={`Cuentas en ${p.moneda}`} />
             </SelectTrigger>
             <SelectContent>
@@ -106,17 +101,14 @@ export function DialogCobroLoteDatos(p: Props) {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-body-sm text-muted-foreground">Opcional</p>
-        </div>
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="cobro-lote-ref">Referencia bancaria</Label>
+        </FormField>
+        <FormField label="Referencia bancaria" htmlFor="cobro-lote-ref" className="sm:col-span-2">
           <Input
-            id="cobro-lote-ref"
             value={p.referencia}
             placeholder="Número de operación del depósito"
             onChange={(e) => p.onReferencia(e.target.value)}
           />
-        </div>
+        </FormField>
       </div>
     </FormDialogSection>
   );

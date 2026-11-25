@@ -14,9 +14,17 @@ describe("Etiquetas de captura financiera", () => {
       cuentaId="" onCuentaId={vi.fn()} cuentasMoneda={[]} referencia="" onReferencia={vi.fn()} />);
     const fecha = screen.getByRole("textbox", { name: "Fecha del cobro" });
     expect(fecha).toHaveAccessibleDescription("Formato DD/MM/AAAA.");
+    expect(screen.getByLabelText("Forma de pago")).toHaveAccessibleDescription("Catálogo SAT");
+    expect(screen.getByLabelText("Cuenta bancaria")).toHaveAccessibleDescription("Opcional");
     fireEvent.change(fecha, { target: { value: "04/11/2026" } });
     fireEvent.blur(fecha);
     expect(onFecha).toHaveBeenCalledWith("2026-11-04");
+    fireEvent.change(fecha, { target: { value: "31/02/2026" } });
+    fireEvent.blur(fecha);
+    const ids = fecha.getAttribute("aria-describedby")?.split(" ");
+    expect(ids).toHaveLength(2);
+    expect(document.querySelectorAll("#cobro-lote-fecha-error")).toHaveLength(1);
+    expect(fecha).toHaveAccessibleDescription(/fecha inválida.*formato dd\/mm\/aaaa/i);
   });
 
   it("distingue los controles de cada renglón de la nota de crédito", () => {
