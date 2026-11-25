@@ -107,6 +107,7 @@ export const HISTORY = [
   { file: '0111_pricing_fase6_recotizar_costo_real.sql', sha256: '646fc37d2b6428798cbeb98a2d70cfd3ce74f13918ca56717c0e24aa0eec9fe2', eligibleName: '20261123201600_replay_pricing_fase6_recotizar_costo_real.sql' },
   { file: '0112_pricing_recotizar_vigencia_columnas.sql', sha256: '8c2f7367c80ae13a0747c173c0005de23b890cc3305d072445615f1fc9b3095b', eligibleName: '20261123201700_replay_pricing_recotizar_vigencia_columnas.sql' },
   { file: '0113_pricing_motivo_perdida.sql', sha256: 'c0a04ba208d3e81a57df6bda6f4d10a4f56ebedc9126f30176949fb006bff261', eligibleName: '20261123201800_replay_pricing_motivo_perdida.sql' },
+  { file: '0114_recargos_local_internacional.sql', sha256: '607db7123b62df949c0162ede35608a688ae0525b2d9fba1c37bb81b7397e850', eligibleName: '20261124200000_replay_recargos_local_internacional.sql' },
 ];
 const ARCHIVED_METADATA = [
   [`${ARCHIVE}/meta/0022_snapshot.json`, '002a1cff39197fe3431f23193a4229e1c845cbcd0ab5eaa074efded812b0081d'],

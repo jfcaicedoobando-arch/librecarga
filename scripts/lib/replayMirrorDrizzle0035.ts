@@ -139,6 +139,7 @@ const REVIEWED_FORWARD_FIXES: ReadonlyArray<readonly [string, string]> = [
   ["0111_pricing_fase6_recotizar_costo_real.sql", "646fc37d2b6428798cbeb98a2d70cfd3ce74f13918ca56717c0e24aa0eec9fe2"],
   ["0112_pricing_recotizar_vigencia_columnas.sql", "8c2f7367c80ae13a0747c173c0005de23b890cc3305d072445615f1fc9b3095b"],
   ["0113_pricing_motivo_perdida.sql", "c0a04ba208d3e81a57df6bda6f4d10a4f56ebedc9126f30176949fb006bff261"],
+  ["0114_recargos_local_internacional.sql", "607db7123b62df949c0162ede35608a688ae0525b2d9fba1c37bb81b7397e850"],
 ];
 
 function verificarOrdenJournal(sources: ReadonlyMap<string, string>, journal: JournalEntry[]): void {
