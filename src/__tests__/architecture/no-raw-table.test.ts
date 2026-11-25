@@ -122,7 +122,6 @@ const ALLOWLIST: readonly string[] = [
   "src/features/embarques/components/OrigenCostosSection.tsx",
   "src/features/embarques/components/costos/GrupoCostosProveedor.tsx",
   "src/features/facturacion/components/CobroLoteRenglon.tsx",
-  "src/features/facturacion/components/NotasCreditoRecientes.tsx",
   "src/features/facturacion/estadoCuenta/components/EstadoCuentaRowExpanded.tsx",
   "src/features/marketing/routes/GuiaPuertosMexicoArticle.tsx",
   "src/features/proformas/components/portal/PortalProformaResumen.tsx",

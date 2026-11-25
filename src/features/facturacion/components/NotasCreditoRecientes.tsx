@@ -4,41 +4,64 @@
  * moneda y enlace a la factura asociada.
  */
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
 import { ChevronDown, ChevronUp, Receipt } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Hint } from "@/components/shared/Hint";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { formatCurrency, formatDate, toTitleCase } from "@/lib/formatters";
+import { formatCurrency, toTitleCase } from "@/lib/formatters";
 import { useNotasCreditoRecientes, type EstadoNotaCredito } from "@/features/facturacion/hooks";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { DetailTableHead } from "@/components/shared/DetailTable";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { NotaCreditoConFactura } from "@/features/facturacion/services/notasCredito";
+import { NotasCreditoRecientesListado } from "./NotasCreditoRecientesListado";
 import { NotasCreditoZipButton } from "./NotasCreditoZipButton";
 import { ESTADOS_NC_CON_CFDI } from "./notasCreditoZip.constants";
-const ESTADO_COLOR: Record<EstadoNotaCredito, string> = {
-  Borrador: "bg-muted text-muted-foreground",
-  Aprobada: "bg-warning/10 text-warning border-warning/20",
-  Timbrada: "bg-info/10 text-info border-info/20",
-  Aplicada: "bg-success/10 text-success border-success/20",
-  Cancelada: "bg-destructive/10 text-destructive border-destructive/20",
-};
-
 const LIMITE_NOTAS_RECIENTES = 200;
 const ESTADOS: Array<EstadoNotaCredito | "todos"> = ["todos", "Borrador", "Aprobada", "Timbrada", "Aplicada", "Cancelada"];
+
+function NotasCreditoRecientesDescargas({ notas, seleccion, onChange }: {
+  notas: readonly NotaCreditoConFactura[];
+  seleccion: ReadonlySet<string>;
+  onChange: (seleccion: Set<string>) => void;
+}) {
+  const descargables = notas.filter((nota) => ESTADOS_NC_CON_CFDI.has(nota.estado));
+  const seleccionadas = descargables.filter((nota) => seleccion.has(nota.id));
+  const haySeleccion = seleccion.size > 0;
+
+  return (
+    <>
+      {descargables.length > 0 && (
+        <label className="inline-flex min-h-11 items-center gap-2 text-body-sm">
+          <Checkbox
+            checked={seleccionadas.length === descargables.length || (seleccionadas.length > 0 && "indeterminate")}
+            onCheckedChange={(checked) => onChange(checked ? new Set(descargables.map((nota) => nota.id)) : new Set())}
+          />
+          Seleccionar todas las descargables
+        </label>
+      )}
+      <NotasCreditoZipButton
+        alcance={haySeleccion ? "seleccionadas" : "filtradas"}
+        notas={haySeleccion ? seleccionadas : descargables}
+      />
+    </>
+  );
+}
+
 export function NotasCreditoRecientes() {
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [estado, setEstado] = useState<EstadoNotaCredito | "todos">("todos");
   const [cliente, setCliente] = useState<string>("todos");
   const [sel, setSel] = useState<Set<string>>(new Set());
-  const toggle = (id: string) => setSel((prev) => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s; });
+  const toggle = (id: string) => setSel((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
 
   const { data = [], isLoading, isError, isFetching, refetch } = useNotasCreditoRecientes({
     estado, limit: LIMITE_NOTAS_RECIENTES,
@@ -115,10 +138,7 @@ export function NotasCreditoRecientes() {
               </Select>
               <div className="flex-1" />
               {sel.size > 0 && <Button variant="ghost" size="sm" className="h-8" onClick={() => setSel(new Set())}>Limpiar selección</Button>}
-              {!isError && <NotasCreditoZipButton
-                alcance={sel.size > 0 ? "seleccionadas" : "filtradas"}
-                notas={sel.size > 0 ? filtradas.filter((n) => sel.has(n.id)) : filtradas}
-              />}
+              {!isError && <NotasCreditoRecientesDescargas notas={filtradas} seleccion={sel} onChange={setSel} />}
             </div>
 
             {isError ? (
@@ -133,63 +153,7 @@ export function NotasCreditoRecientes() {
             ) : filtradas.length === 0 ? (
               <EmptyStateInline icon={Receipt} message="No hay notas de crédito que coincidan." className="py-4" />
             ) : (
-              <div className="overflow-x-auto">
-                <Table className="w-full text-body">
-                  <TableHeader className="text-body-sm text-muted-foreground border-y bg-muted/20">
-                    <TableRow>
-                      <DetailTableHead className="w-8"><span className="sr-only">Seleccionar</span></DetailTableHead>
-                      <DetailTableHead>Folio</DetailTableHead>
-                      <DetailTableHead>Factura</DetailTableHead>
-                      <DetailTableHead>Cliente</DetailTableHead>
-                      <DetailTableHead>Fecha</DetailTableHead>
-                      <DetailTableHead>Motivo</DetailTableHead>
-                      <DetailTableHead>Estado</DetailTableHead>
-                      <DetailTableHead className="text-right">Monto</DetailTableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtradas.map((n) => (
-                      <TableRow
-                        key={n.id}
-                        role="link"
-                        tabIndex={0}
-                        aria-label={`Ver factura ${n.factura_numero}`}
-                        onClick={() => navigate(`/facturacion/${n.factura_id}`)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            navigate(`/facturacion/${n.factura_id}`);
-                          }
-                        }}
-                        className="border-b last:border-0 hover:bg-muted/30 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/60"
-                      >
-                        <TableCell onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-                          {ESTADOS_NC_CON_CFDI.has(n.estado) && (
-                            <Checkbox aria-label={`Seleccionar ${n.folio}`} checked={sel.has(n.id)} onCheckedChange={() => toggle(n.id)} />
-                          )}
-                        </TableCell>
-                        <TableCell className="font-mono text-body-sm whitespace-nowrap">{n.folio}</TableCell>
-                        <TableCell className="whitespace-nowrap font-mono text-body-sm">
-                          {n.factura_numero}
-                        </TableCell>
-                        <Hint label={toTitleCase(n.cliente_nombre)}>
-                          <TableCell className="max-w-[200px] truncate">
-                            {toTitleCase(n.cliente_nombre)}
-                          </TableCell>
-                        </Hint>
-                        <TableCell className="text-body-sm whitespace-nowrap">{formatDate(n.fecha_emision)}</TableCell>
-                        <TableCell className="text-body-sm">{n.motivo}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={ESTADO_COLOR[n.estado]}>{n.estado}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums whitespace-nowrap">
-                          {formatCurrency(Number(n.monto), n.moneda)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <NotasCreditoRecientesListado notas={filtradas} seleccion={sel} onToggle={toggle} />
             )}
           </div>
         )}

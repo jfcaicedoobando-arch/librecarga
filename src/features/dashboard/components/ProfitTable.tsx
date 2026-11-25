@@ -2,21 +2,89 @@ import { memo, useMemo } from "react";
 import { TrendingUp } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MargenBadge } from "@/components/shared/MargenBadge";
 import { Hint } from "@/components/shared/Hint";
 import { UMBRAL_MARGEN_COTIZACION } from "@/lib/ui/margen";
-import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
+import { defineColumns, type ColumnDef, type SortDir } from "@/components/shared/DataTable";
+import { MoneyCell } from "@/components/shared/MoneyCell";
+import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { sortByNumber } from "@/components/shared/dataTable/sortingFns";
+import { useTableInstance, type ControlledSort } from "@/components/shared/dataTable/useTableInstance";
 import { formatCurrency, toTitleCase, formatTipoCambio} from "@/lib/formatters";
 import type { EmbarqueConProfit } from "@/features/dashboard/hooks";
 import { usePermissions } from "@/hooks/shared/usePermissions";
+import { useIsMobile } from "@/hooks/shared/useIsMobile";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { proyectarFilasUtilidadVisible } from "@/features/dashboard/domain/proyeccionVisible";
 
 interface Props {
   embarques: EmbarqueConProfit[];
   isLoading: boolean;
+}
+
+const IMPORTE_MOVIL = "overflow-visible text-clip whitespace-normal break-words";
+const ORDENES_MOVIL = [
+  { key: null, dir: "asc", label: "Orden predeterminado" },
+  { key: "profit", dir: "desc", label: "Mayor utilidad" },
+  { key: "profit", dir: "asc", label: "Menor utilidad" },
+  { key: "margen", dir: "desc", label: "Mayor margen" },
+  { key: "margen", dir: "asc", label: "Menor margen" },
+] as const;
+
+function claveOrden(key: string | null, dir: SortDir) {
+  return key ? `${key}:${dir}` : "predeterminado";
+}
+
+function OrdenUtilidadMovil({ sort, onSortChange }: {
+  sort: ControlledSort;
+  onSortChange: (key: string | null, dir: SortDir) => void;
+}) {
+  return (
+    <div className="mb-3">
+      <Select value={claveOrden(sort.key, sort.dir)} onValueChange={(value) => {
+        const orden = ORDENES_MOVIL.find(({ key, dir }) => claveOrden(key, dir) === value);
+        if (orden) onSortChange(orden.key, orden.dir);
+      }}>
+        <SelectTrigger className="w-full" aria-label="Ordenar arribos"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {ORDENES_MOVIL.map(({ key, dir, label }) => (
+            <SelectItem key={label} value={claveOrden(key, dir)}>{label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function ProfitMobileCard({ e, verCostos }: { e: EmbarqueConProfit; verCostos: boolean }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 wrap-anywhere">
+          <p className="font-medium">{e.expediente}</p>
+          <p className="text-body-sm text-muted-foreground">{toTitleCase(e.cliente_nombre)}</p>
+        </div>
+        {verCostos && (
+          <div>
+            <p className="text-overline font-medium">Margen</p>
+            <MargenBadge pct={e.margenMXN} umbrales={UMBRAL_MARGEN_COTIZACION} className="text-label" />
+          </div>
+        )}
+      </div>
+      <div className={verCostos ? "grid grid-cols-2 gap-2" : undefined}>
+        <MoneyCell label="Venta MXN" value={formatCurrency(e.ventaMXN, "MXN")} valueClassName={IMPORTE_MOVIL} />
+        {verCostos && (
+          <>
+            <MoneyCell label="Costo MXN" value={formatCurrency(e.costoMXN, "MXN")} valueClassName={IMPORTE_MOVIL} />
+            <MoneyCell label="Utilidad MXN" value={formatCurrency(e.profitMXN, "MXN")} highlight
+              className="col-span-2" valueClassName={`${IMPORTE_MOVIL} ${e.profitMXN >= 0 ? "text-success" : "text-destructive"}`} />
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function MoneyWithBreakdown({ e, value }: { e: EmbarqueConProfit; value: number }) {
@@ -78,11 +146,18 @@ function construirColumnas(verCostos: boolean): ColumnDef<EmbarqueConProfit, unk
 
 export const ProfitTable = memo(function ProfitTable({ embarques, isLoading }: Props) {
   const { canViewCosts } = usePermissions();
+  const movil = useIsMobile();
   const columns = useMemo(() => construirColumnas(canViewCosts), [canViewCosts]);
   // P2-B: misma política de presentación que el tablero y el P&L del embarque:
   // utilidad y margen visibles se derivan de venta/costo ya redondeados.
   const filas = useMemo(() => proyectarFilasUtilidadVisible(embarques), [embarques]);
-
+  // Una sola instancia ordena las filas para las tarjetas y los encabezados.
+  const table = useTableInstance({ data: filas, columns, sortMode: "client", enableSorting: canViewCosts });
+  const orden = canViewCosts ? table.state.sorting[0] : undefined;
+  const sort: ControlledSort = { key: orden?.id ?? null, dir: orden?.desc ? "desc" : "asc" };
+  const onSortChange = (key: string | null, dir: SortDir) => {
+    table.setSorting(key ? [{ id: key, desc: dir === "desc" }] : []);
+  };
 
   return (
     <Card>
@@ -93,14 +168,19 @@ export const ProfitTable = memo(function ProfitTable({ embarques, isLoading }: P
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {movil && canViewCosts && !isLoading && filas.length > 1 && <OrdenUtilidadMovil sort={sort} onSortChange={onSortChange} />}
         <div className="overflow-auto max-h-[320px]">
-          <DataTable
+          <ResponsiveDataTable
             columns={columns}
-            data={filas}
+            data={orden ? table.getRowModel().rows.map(({ original }) => original) : filas}
+            sortMode="server"
+            controlledSort={sort}
+            onSortChange={onSortChange}
             isLoading={isLoading}
             emptyMessage="Sin embarques con arribo este mes"
             getRowHref={(e) => `/embarques/${e.id}`}
             rowKey={(e) => e.id}
+            mobileCard={(e) => <ProfitMobileCard e={e} verCostos={canViewCosts} />}
             skeletonRows={4}
             density={TABLE_DENSITY.embebida}
           />

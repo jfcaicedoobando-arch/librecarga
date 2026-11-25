@@ -10,15 +10,17 @@ import { FileText } from "lucide-react";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentoSectionTitle } from "@/components/shared/documento/DocumentoSectionTitle";
+import { useIsMobile } from "@/hooks/shared/useIsMobile";
 import { formatCurrency } from "@/lib/formatters";
+import { cn } from "@/lib/utils";
 import { totalLinea } from "@/features/cxp/utils/cuadreConceptos";
 import {
   calcularResumenConceptos,
   totalLineaConImpuestos,
-  type LineaConceptoResumen,
 } from "@/features/cxp/utils/resumenConceptos";
 import { ConceptosTotalesResumen } from "@/features/cxp/components/ConceptosTotalesResumen";
 import { EditarConceptosButton } from "@/features/cxp/components/EditarConceptosButton";
+import { ConceptosFacturaCards } from "./ConceptosFacturaCards";
 
 import { useConceptosCfdiFactura, type ConceptoCfdiRow } from "@/features/cxp/hooks/useConceptosCfdiFactura";
 
@@ -112,7 +114,9 @@ function ConceptosTable({
   ieps?: number | null;
   total?: number | null;
 }) {
-  const lineas: LineaConceptoResumen[] = conceptos.map((c) => ({
+  const isMobile = useIsMobile();
+  const lineas = conceptos.map((c) => ({
+    ...c,
     monto: Number(c.monto) || 0,
     cantidad: Number(c.cantidad) || 1,
     iva: Number(c.iva) || 0,
@@ -124,11 +128,13 @@ function ConceptosTable({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-md border overflow-hidden">
-        <p className="text-body-sm text-muted-foreground px-3 py-2 bg-muted/20 border-b">
+      <div className={isMobile ? "space-y-3" : "rounded-md border overflow-hidden"}>
+        <p className={cn("text-body-sm text-muted-foreground", !isMobile && "px-3 py-2 bg-muted/20 border-b")}>
           El importe es unitario; el total de cada línea es importe × cantidad (sin IVA).
         </p>
-        <div className="max-h-72 overflow-y-auto overflow-x-auto">
+        {isMobile ? (
+          <ConceptosFacturaCards lineas={lineas} moneda={moneda} hayIeps={hayIeps} />
+        ) : <div className="max-h-72 overflow-y-auto overflow-x-auto">
           <Table className="w-full min-w-[640px] text-body-sm tabular-nums">
             <TableHeader className="bg-muted/50 text-muted-foreground uppercase tracking-wide text-label sticky top-0">
               <TableRow>
@@ -143,27 +149,27 @@ function ConceptosTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {conceptos.map((c, i) => (
-                <TableRow key={c.id} className="border-t odd:bg-background even:bg-muted/20 align-top">
+              {lineas.map((linea, i) => (
+                <TableRow key={linea.id} className="border-t odd:bg-background even:bg-muted/20 align-top">
                   <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                  <Hint label={c.descripcion}>
+                  <Hint label={linea.descripcion}>
                     <TableCell className="max-w-[360px]">
                       <span className="line-clamp-2">
-                      {c.descripcion || <span className="text-muted-foreground">(Sin descripción)</span>}
+                      {linea.descripcion || <span className="text-muted-foreground">(Sin descripción)</span>}
                       </span>
                     </TableCell>
                   </Hint>
-                  <TableCell className="text-right">{lineas[i].cantidad}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(lineas[i].monto, moneda)}</TableCell>
+                  <TableCell className="text-right">{linea.cantidad}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(linea.monto, moneda)}</TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(totalLinea(lineas[i]), moneda)}
+                    {formatCurrency(totalLinea(linea), moneda)}
                   </TableCell>
-                  <TableCell className="text-right">{formatCurrency(Number(c.iva) || 0, moneda)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(linea.iva, moneda)}</TableCell>
                   {hayIeps && (
-                    <TableCell className="text-right">{formatCurrency(Number(c.ieps) || 0, moneda)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(linea.ieps, moneda)}</TableCell>
                   )}
                   <TableCell className="text-right font-semibold">
-                    {formatCurrency(totalLineaConImpuestos(lineas[i]), moneda)}
+                    {formatCurrency(totalLineaConImpuestos(linea), moneda)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -178,7 +184,7 @@ function ConceptosTable({
               </TableRow>
             </TableFooter>
           </Table>
-        </div>
+        </div>}
       </div>
 
       <ConceptosTotalesResumen resumen={resumen} moneda={moneda} />

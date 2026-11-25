@@ -7,7 +7,9 @@ import { Building2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
-import { DataTable, defineColumns } from "@/components/shared/DataTable";
+import { defineColumns } from "@/components/shared/DataTable";
+import { MobileRowDetails } from "@/components/shared/dataTable/MobileRowDetails";
+import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { useDebounce } from "@/hooks/shared";
 import { OBJETOS_PAGE_SIZE, type Pagina } from "@/features/crm/services/objetosCrm";
@@ -79,6 +81,7 @@ export function ListaObjetosCrm<T extends { id: string }>({ placeholder, rutaBas
     id: c.titulo, header: c.titulo, enableSorting: false,
     cell: ({ row }) => c.celda(row.original),
   })));
+  const [identidad, ...detalles] = cols;
 
   return (
     <div className="space-y-3">
@@ -96,9 +99,15 @@ export function ListaObjetosCrm<T extends { id: string }>({ placeholder, rutaBas
       {filtrado && total > 0 && <Button type="button" size="sm" variant="ghost" onClick={limpiar}>Limpiar filtros</Button>}
       </div>
       <div className="rounded-md border">
-        <DataTable columns={tableColumns} data={q.data?.filas ?? []} rowKey={(f) => f.id}
+        <ResponsiveDataTable columns={tableColumns} data={q.data?.filas ?? []} rowKey={(f) => f.id}
           getRowHref={(f) => `${rutaBase}/${f.id}${contexto}`} isLoading={q.isLoading} isError={q.isError}
           onRetry={() => void q.refetch()} density={TABLE_DENSITY.listado} sortMode="server"
+          mobileCard={(f) => (
+            <>
+              <div className="wrap-anywhere">{identidad?.celda(f)}</div>
+              <MobileRowDetails fields={detalles.map(({ titulo, celda }) => ({ label: titulo, value: celda(f) }))} />
+            </>
+          )}
           emptyState={<DirectorioCrmVacio filtrado={filtrado} empresa={conPuntaje} limpiar={limpiar} nuevaEmpresa={onNuevaEmpresa} />}
           pagination={{ page: pagina, totalPages: paginas,
             onPageChange: (value) => void setFiltros({ pagina: value }), pageSize: OBJETOS_PAGE_SIZE, total }} />
