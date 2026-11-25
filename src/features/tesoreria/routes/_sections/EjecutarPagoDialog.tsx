@@ -40,6 +40,7 @@ interface Props {
   form: FormPago;
   setField: <K extends keyof FormPago>(key: K, value: FormPago[K]) => void;
   onEjecutar: () => void;
+  isDirty?: boolean;
   isPending: boolean;
 }
 
@@ -91,7 +92,7 @@ function CampoCuenta({ cuentas, consulta, moneda, value, onChange }: {
 }
 
 export function EjecutarPagoDialog({
-  facturaPago, onClose, cuentasCompatibles, consultaCuentas, form, setField, onEjecutar, isPending,
+  facturaPago, onClose, cuentasCompatibles, consultaCuentas, form, setField, onEjecutar, isDirty, isPending,
 }: Props) {
   const efectivo = esPagoEfectivo(form.metodoPago);
   const hoy = todayLocalISO();
@@ -119,6 +120,8 @@ export function EjecutarPagoDialog({
       }
       formId={FORM_ID}
       onSubmit={handleSubmit}
+      isDirty={isDirty}
+      busy={isPending}
       bodyClassName="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:space-y-0"
       footer={
         <FormDialogFooter

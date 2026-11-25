@@ -31,6 +31,8 @@ export function CotizacionesPageActions({
   onNueva,
 }: CotizacionesPageActionsProps) {
   const motivoExportar = actualizandoResultados ? "Actualizando los resultados de los filtros." : totalFiltrado === 0 ? SIN_EXPORTAR : "";
+  const exportacionBloqueada = Boolean(motivoExportar) || exportando;
+  const etiquetaExportar = exportando ? "Exportando…" : "Exportar CSV";
   return (
     <>
       <Button variant="outline" asChild className="hidden md:inline-flex">
@@ -42,14 +44,14 @@ export function CotizacionesPageActions({
         <Button
           variant="outline"
           onClick={onExportar}
-          disabled={Boolean(motivoExportar) || exportando}
+          disabled={exportacionBloqueada}
           // Un botón deshabilitado no dispara el tooltip de Radix (no recibe
           // eventos de puntero): dejamos la causa como descripción accesible
           // (sin `title` nativo, prohibido por la auditoría de arquitectura).
           aria-describedby={motivoExportar ? "exportar-csv-motivo" : undefined}
-          className="hidden sm:inline-flex"
+          className="hidden md:inline-flex"
         >
-          <Download className="h-4 w-4 mr-2" /> {exportando ? "Exportando…" : "Exportar CSV"}
+          <Download className="h-4 w-4 mr-2" /> {etiquetaExportar}
         </Button>
       </Hint>
       {motivoExportar && (
@@ -61,12 +63,10 @@ export function CotizacionesPageActions({
       {/* v13.223.0 · Capa 3 Tranche A · 3.2: acciones secundarias primero,
           primary (`Nueva cotización`) pegado al borde derecho (Fitts's law). */}
       {canEdit && (
-        <Button
-          variant="outline"
-          onClick={() => (window.location.href = "/cotizaciones/nueva/tarifario")}
-          className="hidden sm:inline-flex"
-        >
-          <Plus className="h-4 w-4 mr-2" /> Nuevo tarifario
+        <Button variant="outline" asChild className="hidden md:inline-flex">
+          <Link to="/cotizaciones/nueva/tarifario">
+            <Plus className="h-4 w-4 mr-2" /> Nuevo tarifario
+          </Link>
         </Button>
       )}
       {canEdit && (
@@ -76,7 +76,7 @@ export function CotizacionesPageActions({
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" className="sm:hidden" aria-label="Más acciones">
+          <Button variant="outline" size="icon" className="md:hidden" aria-label="Más acciones">
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -86,10 +86,20 @@ export function CotizacionesPageActions({
               <Sparkles className="mr-2 h-4 w-4" /> Plantillas
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onExportar} disabled={Boolean(motivoExportar) || exportando}>
-            <Download className="mr-2 h-4 w-4" /> Exportar CSV
+          <DropdownMenuItem
+            onSelect={onExportar}
+            disabled={exportacionBloqueada}
+            aria-describedby={motivoExportar ? "exportar-csv-motivo" : undefined}
+          >
+            <Download className="mr-2 h-4 w-4" /> {etiquetaExportar}
           </DropdownMenuItem>
-
+          {canEdit && (
+            <DropdownMenuItem asChild>
+              <Link to="/cotizaciones/nueva/tarifario">
+                <Plus className="mr-2 h-4 w-4" /> Nuevo tarifario
+              </Link>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </>

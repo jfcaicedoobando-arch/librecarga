@@ -40,11 +40,15 @@ export default function TesoreriaPagosProgramados() {
   const [form, setForm] = useState<FormPago>({
     cuentaBancariaId: "", fecha: todayLocalISO(), monto: 0, metodoPago: "Transferencia", referencia: "",
   });
+  const [formInicial, setFormInicial] = useState<FormPago | null>(null);
+  const isDirty = formInicial !== null && (Object.keys(formInicial) as (keyof FormPago)[])
+    .some((campo) => form[campo] !== formInicial[campo]);
 
   const consultaCuentas = useCuentasBancarias();
   const cuentas = consultaCuentas.data;
   const ejecutarPago = useEjecutarPagoProgramado();
   const requestIdRef = useRef<string | null>(null);
+  const envioEnCursoRef = useRef(false);
 
   const cuentasCompatibles = useMemo(
     () => (cuentas ?? []).filter((c) => c.moneda === facturaPago?.moneda),
@@ -56,35 +60,46 @@ export default function TesoreriaPagosProgramados() {
     // Ola 1 · idempotencia: una llave por apertura del diálogo. Si el usuario
     // da doble clic (o la red reintenta), la RPC devuelve el pago original.
     requestIdRef.current = crypto.randomUUID();
-    setForm({
+    const datosIniciales: FormPago = {
       cuentaBancariaId: "",
       fecha: todayLocalISO(),
       monto: f.saldo,
       metodoPago: "Transferencia",
       referencia: "",
       tipoCambio: f.moneda === "MXN" ? null : f.tipo_cambio_usd ?? null,
-    });
+    };
+    setFormInicial(datosIniciales);
+    setForm(datosIniciales);
   };
 
   const setField = <K extends keyof FormPago>(key: K, value: FormPago[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleEjecutar = async () => {
-    if (!facturaPago || Object.keys(erroresPagoProgramado(form, facturaPago)).length > 0) return;
-    await ejecutarPago.mutateAsync({
-      facturaId: facturaPago.id,
-      cuentaBancariaId: esPagoEfectivo(form.metodoPago) ? null : form.cuentaBancariaId,
-      tipoCambio: form.tipoCambio,
-      fecha: form.fecha,
-      monto: form.monto,
-      metodoPago: form.metodoPago,
-      referencia: form.referencia,
-      requestId: requestIdRef.current ?? undefined,
-      moneda: facturaPago.moneda,
-      proveedorNombre: facturaPago.proveedor_nombre,
-    });
-    requestIdRef.current = null;
-    setFacturaPago(null);
+  const handleEjecutar = () => {
+    if (envioEnCursoRef.current || !facturaPago || Object.keys(erroresPagoProgramado(form, facturaPago)).length > 0) return;
+
+    envioEnCursoRef.current = true;
+    ejecutarPago.mutate(
+      {
+        facturaId: facturaPago.id,
+        cuentaBancariaId: esPagoEfectivo(form.metodoPago) ? null : form.cuentaBancariaId,
+        tipoCambio: form.tipoCambio,
+        fecha: form.fecha,
+        monto: form.monto,
+        metodoPago: form.metodoPago,
+        referencia: form.referencia,
+        requestId: requestIdRef.current ?? undefined,
+        moneda: facturaPago.moneda,
+        proveedorNombre: facturaPago.proveedor_nombre,
+      },
+      {
+        onSuccess: () => {
+          requestIdRef.current = null;
+          setFacturaPago(null);
+        },
+        onSettled: () => { envioEnCursoRef.current = false; },
+      },
+    );
   };
 
   const programables = useMemo(() => filtrarProgramables(data as FacturaProgramableRow[], filtro), [data, filtro]);
@@ -161,12 +176,13 @@ export default function TesoreriaPagosProgramados() {
 
       <EjecutarPagoDialog
         facturaPago={facturaPago}
-        onClose={() => setFacturaPago(null)}
+        onClose={() => { if (!envioEnCursoRef.current) setFacturaPago(null); }}
         cuentasCompatibles={cuentasCompatibles}
         consultaCuentas={consultaCuentas}
         form={form}
         setField={setField}
         onEjecutar={handleEjecutar}
+        isDirty={isDirty}
         isPending={ejecutarPago.isPending}
       />
     </PageContainer>
