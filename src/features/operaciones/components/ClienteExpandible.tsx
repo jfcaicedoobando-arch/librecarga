@@ -1,5 +1,6 @@
 import { memo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Hint } from "@/components/shared/Hint";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
@@ -15,8 +16,8 @@ export const ClienteExpandible = memo(function ClienteExpandible({ cliente }: { 
   return (
     <li>
       <Collapsible open={open} onOpenChange={setOpen}>
-        <CollapsibleTrigger className="w-full group">
-          <div className="flex items-center justify-between text-label gap-2 py-1 px-1 rounded hover:bg-muted/60 transition-colors">
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="min-h-11 w-full justify-between gap-2 px-1 text-label md:h-7 md:min-h-0">
             <span className="flex items-center gap-1 min-w-0 text-foreground">
               <ChevronRight
                 className={`h-3 w-3 text-muted-foreground shrink-0 transition-transform duration-200 ${
@@ -31,7 +32,7 @@ export const ClienteExpandible = memo(function ClienteExpandible({ cliente }: { 
             >
               {cliente.cantidad}
             </Badge>
-          </div>
+          </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
           <div className="ml-5 mt-1 mb-1.5 pl-2 border-l border-border space-y-1">

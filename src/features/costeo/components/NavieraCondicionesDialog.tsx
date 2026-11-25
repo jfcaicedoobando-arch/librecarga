@@ -5,7 +5,8 @@
 import { useOrganization } from "@/lib/contexts/OrganizationContext";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileSignature } from "lucide-react";
+import { FileSignature, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { NavieraCondicionForm } from "@/features/costeo/components/NavieraCondicionForm";
 import { DemorasTarifaEditor } from "@/features/costeo/components/DemorasTarifaEditor";
 import type { FilaNaviera } from "@/features/costeo/types/filaNaviera";
@@ -47,15 +48,19 @@ export function NavieraCondicionesDialog({
             <TabsTrigger
               value="demoras"
               disabled={!seleccion.condicion}
-              title={
-                !seleccion.condicion
-                  ? "Primero guarda las condiciones generales para habilitar el tabulador"
-                  : undefined
-              }
+              aria-describedby={seleccion.condicion ? undefined : "requisito-tabulador-demoras"}
             >
               Tabulador de demoras
             </TabsTrigger>
           </TabsList>
+          {!seleccion.condicion && (
+            <Alert variant="info" role="note" className="mt-3">
+              <Info className="h-4 w-4" aria-hidden />
+              <AlertDescription id="requisito-tabulador-demoras">
+                Guarda las condiciones generales para habilitar el tabulador de demoras.
+              </AlertDescription>
+            </Alert>
+          )}
           <TabsContent value="condiciones" forceMount className="pt-4 data-[state=inactive]:hidden">
             <NavieraCondicionForm
               navieraId={seleccion.naviera_id}
@@ -65,13 +70,7 @@ export function NavieraCondicionesDialog({
             />
           </TabsContent>
           <TabsContent value="demoras" forceMount className="pt-4 data-[state=inactive]:hidden">
-            {seleccion.condicion ? (
-              <DemorasTarifaEditor navieraCondicionId={seleccion.condicion.id} />
-            ) : (
-              <p className="text-body text-muted-foreground">
-                Primero guarda las condiciones generales para habilitar el tabulador.
-              </p>
-            )}
+            {seleccion.condicion && <DemorasTarifaEditor navieraCondicionId={seleccion.condicion.id} />}
           </TabsContent>
         </Tabs>
       )}

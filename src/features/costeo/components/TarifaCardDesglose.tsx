@@ -7,7 +7,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { useRecargosDeTarifa } from "@/features/costeo/hooks/useRecargosDeTarifa";
-import { usdTarifa } from "@/features/costeo/utils/tarifaFormatters";
+import { formatCurrency } from "@/lib/formatters";
 
 export function TarifaCardDesglose({ tarifaId }: { tarifaId: string }) {
   const [abierto, setAbierto] = useState(false);
@@ -39,7 +39,7 @@ export function TarifaCardDesglose({ tarifaId }: { tarifaId: string }) {
           {recargos.map((r) => (
             <div key={r.id} className="flex items-baseline justify-between gap-2 pl-2">
               <span className="text-muted-foreground truncate">{r.concepto} ({r.lado})</span>
-              <span className="tabular-nums whitespace-nowrap">{usdTarifa(Number(r.monto))}</span>
+              <span className="tabular-nums whitespace-nowrap">{formatCurrency(Number(r.monto), r.moneda)}</span>
             </div>
           ))}
         </div>

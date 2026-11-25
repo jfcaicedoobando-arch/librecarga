@@ -12,7 +12,7 @@ export function EstadoSelect({
 }: { value: string; onChange: (v: string) => void }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-full md:w-[160px]"><SelectValue placeholder="Estado" /></SelectTrigger>
+      <SelectTrigger aria-label="Estado de la cotización" className="w-full md:w-[160px]"><SelectValue placeholder="Estado" /></SelectTrigger>
       <SelectContent>
         <SelectItem value="todos">Todos los estados</SelectItem>
         {ESTADOS_COTIZACION.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
@@ -26,7 +26,7 @@ export function ClienteSelect({
 }: { value: string; onChange: (v: string) => void; clientes: Cliente[] }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-full md:w-[200px]"><SelectValue placeholder="Cliente" /></SelectTrigger>
+      <SelectTrigger aria-label="Cliente de la cotización" className="w-full md:w-[200px]"><SelectValue placeholder="Cliente" /></SelectTrigger>
       <SelectContent>
         <SelectItem value="todos">Todos los clientes</SelectItem>
         {clientes.map((cli) => (

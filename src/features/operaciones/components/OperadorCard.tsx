@@ -108,13 +108,13 @@ export const OperadorCard = memo(function OperadorCard({ operador }: { operador:
           <EmptyStateInline icon={Users} message="Sin clientes activos" className="py-2" />
         ) : (
           <>
-            <ul id={clientesId} className="space-y-0.5 max-h-56 overflow-y-auto">
+            <ul id={clientesId} className="space-y-0.5 md:max-h-56 md:overflow-y-auto">
               {clientesVisibles.map((c) => (
                 <ClienteExpandible key={c.nombre} cliente={c} />
               ))}
             </ul>
             {clientesRestantes > 0 && (
-              <Button type="button" variant="ghost" size="sm" className="mt-1.5"
+              <Button type="button" variant="ghost" size="sm" className="mt-1.5 min-h-11 md:min-h-0"
                 aria-expanded={mostrarClientes} aria-controls={clientesId}
                 onClick={() => setMostrarClientes((valor) => !valor)}>
                 {mostrarClientes

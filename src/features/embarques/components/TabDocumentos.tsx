@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +47,7 @@ export function TabDocumentos({
   const [replacement, setReplacement] = useState<{ documento: DocumentoEmbarqueRow; archivo: File } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const { focus, registerRef, clearFocus } = useFocusSection(true);
+  const tituloDocumentos = useRef<HTMLHeadingElement>(null);
   const filtrarFaltantes = focus === "faltantes";
 
   const documentosVisibles = useMemo(() => {
@@ -76,13 +77,16 @@ export function TabDocumentos({
       <Card ref={registerRef("faltantes")} data-focus="faltantes">
         <CardHeader className="flex flex-col items-start gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <CardTitle>Documentos del embarque</CardTitle>
+            <CardTitle ref={tituloDocumentos} tabIndex={-1}>Documentos del embarque</CardTitle>
             {filtrarFaltantes && (
               <>
                 <Badge variant="outline" className="max-w-full whitespace-normal border-primary text-primary">
                   Filtrando: documentos faltantes
                 </Badge>
-                <Button size="sm" variant="ghost" className="h-7 px-2 text-body-sm" onClick={clearFocus} aria-label="Limpiar filtro de documentos faltantes">
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-body-sm" onClick={() => {
+                  clearFocus();
+                  tituloDocumentos.current?.focus();
+                }} aria-label="Limpiar filtro de documentos faltantes">
                   <X className="mr-1 h-3 w-3" /> Limpiar
                 </Button>
               </>

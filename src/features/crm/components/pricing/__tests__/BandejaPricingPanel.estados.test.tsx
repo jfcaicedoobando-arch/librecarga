@@ -44,6 +44,16 @@ describe("Bandeja de pricing", () => {
     expect(screen.getByLabelText("Consulta actual")).toHaveTextContent("estado=todos&p=1&id=qa-solicitud");
   });
 
+  it("cierra el detalle y devuelve el foco a la fila", () => {
+    leerDetalle.mockReturnValue({ data: solicitud });
+    render(renderizar("/costeo/tarifas?tab=bandeja&estado=todos&id=qa-solicitud"));
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar detalle" }));
+    expect(screen.getByRole("button", { name: /PRI-QA/ })).toHaveFocus();
+    expect(screen.getByLabelText("Consulta actual")).toHaveTextContent("estado=todos");
+    expect(screen.getByLabelText("Consulta actual")).not.toHaveTextContent("id=");
+    expect(screen.queryByRole("region", { name: "Detalle de la solicitud" })).not.toBeInTheDocument();
+  });
+
   it("distingue un fallo recuperable, una solicitud ausente y la respuesta cargada", () => {
     leerDetalle.mockReturnValue({ isError: true, refetch: reintentar });
     const vista = render(renderizar("/costeo/tarifas?tab=bandeja&id=qa-solicitud"));

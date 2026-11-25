@@ -7,6 +7,7 @@ import { ChevronDown, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/shared/FormField";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
@@ -103,10 +104,9 @@ export function NuevoContactoDialog({ open, onOpenChange }: Props) {
       }
     >
       <FormDialogSection>
-        <div className="space-y-1.5">
-          <Label htmlFor="obj-nombre">Nombre *</Label>
-          <Input id="obj-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={200} />
-        </div>
+        <FormField label="Nombre" htmlFor="obj-nombre" required>
+          <Input id="obj-nombre" required value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={200} />
+        </FormField>
         <OportunidadEmpresaField empresa={empresa} onChange={setEmpresa} disabled={crear.isPending} />
         <div className="space-y-1.5">
           <Label htmlFor="obj-email">Correo</Label>

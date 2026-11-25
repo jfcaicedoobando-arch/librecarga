@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { NotaCreditoImporte } from "@/components/shared/NotaCreditoImporte";
-import { NotaCreditoFila } from "../NotaCreditoFila";
+import { ImporteNotaProveedor } from "../notaCreditoPresentacion";
 import type { NotaCreditoProveedor } from "@/features/cxp/types";
 
 vi.mock("../NcSatBadge", () => ({ NcSatBadge: () => null }));
@@ -36,10 +36,7 @@ describe("58: importe y equivalente explican el saldo multimoneda", () => {
       moneda: "MXN", tipo_cambio: 20, motivo: "Descuento", estado: "Aplicada",
       proveedor_facturas: { moneda: "USD", tipo_cambio_usd: 20 },
     } as NotaCreditoProveedor;
-    render(<table><tbody><NotaCreditoFila nota={nota} facturaId="f1" canEdit={false}
-      pendingAprobar={false} pendingAplicar={false} pendingCancelar={false}
-      onAbrirArchivo={vi.fn()} onAprobar={vi.fn()} onAplicar={vi.fn()} onCancelar={vi.fn()}
-    /></tbody></table>);
+    render(<ImporteNotaProveedor nota={nota} />);
     expect(screen.getByText(/Aplicado:.*USD.*100.00/)).toBeInTheDocument();
     expect(screen.getByText(/TC NC: 20/)).toBeInTheDocument();
   });

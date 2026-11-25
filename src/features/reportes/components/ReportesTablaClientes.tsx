@@ -1,6 +1,9 @@
 import { VACIO_RENTABILIDAD } from "@/types/rentabilidad";
 import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { formatCurrency, toTitleCase } from "@/lib/formatters";
@@ -31,7 +34,12 @@ interface Props {
 
 const margenBadge = (m: number, venta = 0) => <MargenBadge pct={m} venta={venta} />;
 
-const SORT_KEYS: SortField[] = ["venta_usd", "costo_usd", "profit_usd", "margen"];
+const SORT_LABELS: Record<SortField, string> = {
+  venta_usd: "Venta equivalente (USD)",
+  costo_usd: "Costo equivalente (USD)",
+  profit_usd: "Utilidad equivalente (USD)",
+  margen: "Margen",
+};
 
 export default function ReportesTablaClientes({ data, isLoading, sortField, sortDir, onSort }: Props) {
   const navigate = useNavigate();
@@ -40,16 +48,28 @@ export default function ReportesTablaClientes({ data, isLoading, sortField, sort
     { id: "cliente", header: "Cliente", meta: { className: "font-medium max-w-[200px] truncate" },
       cell: ({ row }) => <Hint label={toTitleCase(row.original.cliente_nombre)}><span>{toTitleCase(row.original.cliente_nombre)}</span></Hint> },
     { id: "embarques", header: "Embarques", meta: { align: "center" }, cell: ({ row }) => row.original.total_embarques },
-    { id: "venta_usd", header: "Venta equivalente (USD)", enableSorting: true, meta: { align: "right", className: "tabular-nums" }, cell: ({ row }) => formatCurrency(row.original.venta_usd, "USD") },
-    { id: "costo_usd", header: "Costo equivalente (USD)", enableSorting: true, meta: { align: "right", className: "tabular-nums" }, cell: ({ row }) => formatCurrency(row.original.costo_usd, "USD") },
-    { id: "profit_usd", header: "Utilidad equivalente (USD)", enableSorting: true, meta: { align: "right", className: "tabular-nums font-semibold" }, cell: ({ row }) => formatCurrency(row.original.profit_usd, "USD") },
-    { id: "margen", header: "Margen", enableSorting: true, meta: { align: "center" }, cell: ({ row }) => margenBadge(row.original.margen, row.original.venta_usd) },
+    { id: "venta_usd", header: SORT_LABELS.venta_usd, accessorFn: (cliente) => cliente.venta_usd, enableSorting: true, meta: { align: "right", className: "tabular-nums" }, cell: ({ row }) => formatCurrency(row.original.venta_usd, "USD") },
+    { id: "costo_usd", header: SORT_LABELS.costo_usd, accessorFn: (cliente) => cliente.costo_usd, enableSorting: true, meta: { align: "right", className: "tabular-nums" }, cell: ({ row }) => formatCurrency(row.original.costo_usd, "USD") },
+    { id: "profit_usd", header: SORT_LABELS.profit_usd, accessorFn: (cliente) => cliente.profit_usd, enableSorting: true, meta: { align: "right", className: "tabular-nums font-semibold" }, cell: ({ row }) => formatCurrency(row.original.profit_usd, "USD") },
+    { id: "margen", header: SORT_LABELS.margen, accessorFn: (cliente) => cliente.margen, enableSorting: true, meta: { align: "center" }, cell: ({ row }) => margenBadge(row.original.margen, row.original.venta_usd) },
   ]);
 
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle>Desglose por cliente</CardTitle>
+        <div className="flex items-center gap-2 md:hidden">
+          <Select value={sortField} onValueChange={(key: SortField) => onSort(key)}>
+            <SelectTrigger className="w-full" aria-label="Ordenar clientes por"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(SORT_LABELS).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button size="icon" variant="outline" className="shrink-0" onClick={() => onSort(sortField)}
+            aria-label={sortDir === "asc" ? "Orden ascendente. Cambiar a descendente" : "Orden descendente. Cambiar a ascendente"}>
+            {sortDir === "asc" ? <ArrowUp aria-hidden /> : <ArrowDown aria-hidden />}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <div className="max-h-[400px] overflow-auto">
@@ -62,7 +82,8 @@ export default function ReportesTablaClientes({ data, isLoading, sortField, sort
             sortMode="server"
             controlledSort={{ key: sortField, dir: sortDir }}
             onSortChange={(key) => {
-              if (key && SORT_KEYS.includes(key as SortField)) onSort(key as SortField);
+              if (key === null) onSort(sortField);
+              else if (Object.hasOwn(SORT_LABELS, key)) onSort(key as SortField);
             }}
             emptyMessage={VACIO_RENTABILIDAD}
             density={TABLE_DENSITY.embebida}

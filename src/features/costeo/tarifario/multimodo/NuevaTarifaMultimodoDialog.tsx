@@ -88,7 +88,7 @@ export function NuevaTarifaMultimodoDialog({ open, onOpenChange, inicial, onSave
   const porKg = usaTramos(f);
   return (
     <FormDialogShell open={open} onOpenChange={onOpenChange} icon={Plane} size="lg"
-      title="Nueva tarifa aérea o terrestre" description="El precio y los recargos se capturan en la misma moneda (USD o MXN)."
+      title="Nueva tarifa aérea o terrestre" description="Elige la moneda de la tarifa base. Los recargos locales se capturan en MXN y los internacionales en USD."
       isDirty={f !== base || recargos.length > 0} busy={m.isPending} formId="tarifa-multimodo"
       onSubmit={(e) => { e.preventDefault(); if (faltan.length === 0) m.mutate(); }}
       footer={<>

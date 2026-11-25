@@ -13,6 +13,7 @@ import { CotizacionClienteMobileCard } from "@/features/cliente/components/Cotiz
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 
 interface Props {
+  clienteId: string;
   canEdit: boolean;
   embarquesCliente: EmbarqueCliente[];
   loadingEmbarques: boolean;
@@ -28,6 +29,7 @@ interface Props {
 
 /** Pestañas tabulares (embarques y cotizaciones) del detalle de cliente. */
 export function ClienteDetalleTablasTabs({
+  clienteId,
   canEdit,
   embarquesCliente,
   loadingEmbarques,
@@ -81,7 +83,7 @@ export function ClienteDetalleTablasTabs({
           actions={
             canEdit ? (
               <Button variant="outline" size="sm" asChild>
-                <Link to="/cotizaciones/nueva">
+                <Link to={"/cotizaciones/nueva?" + new URLSearchParams({ cliente: clienteId })}>
                   <Plus className="h-4 w-4 mr-1" /> Nueva cotización
                 </Link>
               </Button>

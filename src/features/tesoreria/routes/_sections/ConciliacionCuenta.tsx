@@ -24,6 +24,8 @@ import { useImportarEstadoCuenta } from "@/features/tesoreria/hooks/useImportarE
 import { usePayloadRequestId, scopeDePayload } from "@/lib/idempotency";
 import { ImportacionRevisionDialog } from "@/features/tesoreria/components/ImportacionRevisionDialog";
 import { useCuentaConciliacion } from "@/features/tesoreria/hooks/useCuentaConciliacion";
+import { useIsMobile } from "@/hooks/shared/useIsMobile";
+import { ConciliacionMovimientosMobile } from "./ConciliacionMovimientosMobile";
 
 const ESTADOS_MOVIMIENTO = ["Pendiente", "Conciliado", "Ignorado", "todos"] as const;
 
@@ -31,6 +33,7 @@ export function ConciliacionCuenta({ cuentaId: cuentaSolicitada, cambiarCuenta }
   cuentaId: string;
   cambiarCuenta: (id: string) => void;
 }) {
+  const mobile = useIsMobile();
   const consultaCuentas = useCuentasBancarias();
   const { cuenta, movimientoSeleccionado, panelKey, seleccionarMovimiento, cerrarMovimiento, refPago, setRefPago } =
     useCuentaConciliacion(consultaCuentas, cuentaSolicitada);
@@ -139,11 +142,14 @@ export function ConciliacionCuenta({ cuentaId: cuentaSolicitada, cambiarCuenta }
           retrying={resumen.isFetching}
           onRetry={() => void resumen.refetch()}
         />
-        <div className="grid lg:grid-cols-3 gap-4">
+        {mobile ? (
+          <ConciliacionMovimientosMobile columns={columns} movimientos={movs} isLoading={isLoading}
+            isError={movsError} onRetry={() => void refetchMovs()} seleccionado={movimientoSeleccionado}
+            onSeleccionar={seleccionarMovimiento} onCerrar={cerrarMovimiento} onVerPago={setRefPago}
+            moneda={moneda} alias={alias} />
+        ) : <div className="grid lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 space-y-1">
-            <div className="text-body-sm text-muted-foreground px-1 flex justify-between">
-              <span>{movs.length} movimientos · {alias}</span>
-            </div>
+            <p className="px-1 text-body-sm text-muted-foreground">{movs.length} movimientos · {alias}</p>
             <VirtualDataTable
               columns={columns}
               data={movs}
@@ -165,7 +171,7 @@ export function ConciliacionCuenta({ cuentaId: cuentaSolicitada, cambiarCuenta }
               moneda={moneda}
             />
           </div>
-        </div>
+        </div>}
         </>
       )}
 

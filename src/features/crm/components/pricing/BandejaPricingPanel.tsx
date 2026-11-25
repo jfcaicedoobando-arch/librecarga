@@ -6,6 +6,7 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/PageHeader";
 import PaginationControls from "@/components/shared/PaginationControls";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
@@ -38,7 +39,7 @@ const MENSAJES_VACIOS: Record<string, string> = {
   todos: "Aún no hay solicitudes de Pricing.",
 };
 
-function DetalleDeSolicitud({ id }: { id: string }) {
+function DetalleDeSolicitud({ id, onClose }: { id: string; onClose: () => void }) {
   const detalle = useSolicitudPricing(id);
   const titulo = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -47,9 +48,12 @@ function DetalleDeSolicitud({ id }: { id: string }) {
 
   return (
     <section id="detalle-solicitud-pricing" aria-labelledby="titulo-solicitud-pricing" className="space-y-3">
-      <h2 ref={titulo} id="titulo-solicitud-pricing" tabIndex={-1} className="text-subsection">
-        Detalle de la solicitud
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 ref={titulo} id="titulo-solicitud-pricing" tabIndex={-1} className="text-subsection">
+          Detalle de la solicitud
+        </h2>
+        <Button size="sm" variant="outline" onClick={onClose}>Cerrar detalle</Button>
+      </div>
       {detalle.isLoading ? (
         <div role="status"><EmptyStateInline loading message="Cargando el detalle de la solicitud…" /></div>
       ) : detalle.isError ? (
@@ -135,6 +139,8 @@ function ResultadosBandeja({ consulta, id, total, paginas, pagina, corrigiendoPa
 
 export function BandejaPricingPanel() {
   const [params, setParams] = useSearchParams();
+  const resultados = useRef<HTMLElement>(null);
+  const tituloResultados = useRef<HTMLHeadingElement>(null);
   const { effectiveRole } = useAuth();
   const estado = params.get("estado") ?? "abiertas";
   const modoPropio = useModoPropioPricing();
@@ -173,11 +179,20 @@ export function BandejaPricingPanel() {
         <SelectTrigger className="w-48" aria-label="Estado de la solicitud"><SelectValue /></SelectTrigger>
         <SelectContent>{ESTADOS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}</SelectContent>
       </Select>
-      {id && <DetalleDeSolicitud id={id} />}
-      <ResultadosBandeja consulta={consulta} id={id} total={total} paginas={paginas} pagina={paginaDisponible}
-        estado={estado} onVerTodas={() => cambiar("estado", "todos")}
-        corrigiendoPagina={pagina !== paginaDisponible} onDetalle={(solicitudId) => cambiar("id", solicitudId)}
-        onPagina={(p) => cambiar("p", String(p))} />
+      {id && <DetalleDeSolicitud id={id} onClose={() => {
+        const fila = resultados.current?.querySelector<HTMLButtonElement>('button[aria-controls="detalle-solicitud-pricing"]');
+        (fila ?? tituloResultados.current)?.focus();
+        cambiar("id", null);
+      }} />}
+      <section ref={resultados} aria-labelledby="resultados-bandeja-pricing">
+        <h2 ref={tituloResultados} id="resultados-bandeja-pricing" className="sr-only focus:not-sr-only" tabIndex={-1}>
+          Solicitudes de Pricing
+        </h2>
+        <ResultadosBandeja consulta={consulta} id={id} total={total} paginas={paginas} pagina={paginaDisponible}
+          estado={estado} onVerTodas={() => cambiar("estado", "todos")}
+          corrigiendoPagina={pagina !== paginaDisponible} onDetalle={(solicitudId) => cambiar("id", solicitudId)}
+          onPagina={(p) => cambiar("p", String(p))} />
+      </section>
     </>
   );
 }

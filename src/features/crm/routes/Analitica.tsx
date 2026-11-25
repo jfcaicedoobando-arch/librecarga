@@ -21,10 +21,60 @@ import { BarChart3, ThumbsDown } from "lucide-react";
 import CrmEmbudoChart from "@/features/crm/components/analitica/CrmEmbudoChart";
 import CrmForecastMensualChart from "@/features/crm/components/analitica/CrmForecastMensualChart";
 
-
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { DetailTableHead } from "@/components/shared/DetailTable";
+import { defineColumns } from "@/components/shared/DataTable";
+import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
+import { MobileRowDetails } from "@/components/shared/dataTable/MobileRowDetails";
+import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
+import { ListSkeleton } from "@/components/shared/states/ListSkeleton";
+import type { ForecastBucket } from "@/features/crm/domain/forecast";
 import { CeldaMontoAnalitica } from "@/features/crm/routes/CeldaMontoAnalitica";
+
+const METRICAS_PRONOSTICO = [
+  { key: "pipeline", label: "Oportunidades abiertas" },
+  { key: "ponderado", label: "Valor ponderado" },
+  { key: "ganado", label: "Ganado" },
+] as const;
+
+function TablaPronostico({ filas, cargando, encabezado }: { filas: ForecastBucket[]; cargando: boolean; encabezado: string }) {
+  const columns = defineColumns<ForecastBucket>([
+    { id: "label", header: encabezado, cell: ({ row }) => row.original.label },
+    { id: "moneda", header: "Moneda", cell: ({ row }) => row.original.moneda },
+    ...METRICAS_PRONOSTICO.map(({ key, label }) => ({
+      id: key, header: label, meta: { align: "right" as const },
+      cell: ({ row }: { row: { original: ForecastBucket } }) =>
+        <CeldaMontoAnalitica monto={row.original[key]} moneda={row.original.moneda} />,
+    })),
+    { id: "count", header: "Oportunidades", meta: { align: "right" }, cell: ({ row }) => row.original.count },
+  ]);
+  return (
+    <ResponsiveDataTable columns={columns} data={filas} isLoading={cargando}
+      rowKey={(fila) => fila.key} density={TABLE_DENSITY.embebida}
+      emptyState={<EmptyStateInline icon={BarChart3} message="Sin datos" density="compact" />}
+      mobileCard={(fila) => (
+        <>
+          <p className="flex flex-wrap justify-between gap-2 font-medium">
+            <span className="break-words">{fila.label}</span><span>{fila.moneda}</span>
+          </p>
+          <MobileRowDetails fields={[
+            ...METRICAS_PRONOSTICO.map(({ key, label }) => ({
+              label, value: <CeldaMontoAnalitica monto={fila[key]} moneda={fila.moneda} />,
+            })),
+            { label: "Oportunidades", value: fila.count },
+          ]} />
+        </>
+      )}
+    />
+  );
+}
+
+type FilaConversion = NonNullable<ReturnType<typeof useReportesCRM>["data"]>["porFuente"][number];
+const columnasConversion = defineColumns<FilaConversion>([
+  { id: "fuente", header: "Origen", cell: ({ row }) => row.original.fuente },
+  { id: "total", header: "Total", meta: { align: "right" }, cell: ({ row }) => row.original.total },
+  { id: "conv", header: "Conv.", meta: { align: "right" }, cell: ({ row }) => row.original.convertidos },
+  { id: "tasa", header: "Tasa", meta: { align: "right" }, cell: ({ row }) => formatPercent(row.original.tasa) },
+]);
+
 function ForecastPanel() {
   const { data, isLoading, isError, refetch } = useForecast();
   const totales = data?.totalesPorMoneda ?? [];
@@ -60,52 +110,13 @@ function ForecastPanel() {
           <CardHeader className="pb-2"><CardTitle>Por mes</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <CrmForecastMensualChart porMes={porMes} isLoading={isLoading} />
-            <div className="overflow-x-auto">
-
-            <Table className="w-full text-body">
-              <TableHeader><TableRow className="text-body-sm text-muted-foreground border-b">
-                <DetailTableHead>Mes estimado</DetailTableHead><DetailTableHead>Moneda</DetailTableHead><DetailTableHead className="text-right">Oportunidades abiertas</DetailTableHead><DetailTableHead className="text-right">Valor ponderado</DetailTableHead><DetailTableHead className="text-right">Ganado</DetailTableHead><DetailTableHead className="text-right">Oportunidades</DetailTableHead>
-              </TableRow></TableHeader>
-              <TableBody>
-                {porMes.map((b) => (
-                  <TableRow key={b.key} className="border-b">
-                    <TableCell>{b.label}</TableCell>
-                    <TableCell>{b.moneda}</TableCell>
-                    <TableCell className="text-right tabular-nums whitespace-nowrap"><CeldaMontoAnalitica monto={b.pipeline} moneda={b.moneda} /></TableCell>
-                    <TableCell className="text-right tabular-nums whitespace-nowrap"><CeldaMontoAnalitica monto={b.ponderado} moneda={b.moneda} /></TableCell>
-                    <TableCell className="text-right tabular-nums whitespace-nowrap"><CeldaMontoAnalitica monto={b.ganado} moneda={b.moneda} /></TableCell>
-                    <TableCell className="text-right">{b.count}</TableCell>
-                  </TableRow>
-                ))}
-                {porMes.length === 0 && <TableRow><TableCell colSpan={6}><EmptyStateInline icon={BarChart3} message="Sin datos" density="compact" /></TableCell></TableRow>}
-              </TableBody>
-            </Table>
-            </div>
+            <TablaPronostico filas={porMes} cargando={isLoading} encabezado="Mes estimado" />
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle>Por vendedor</CardTitle></CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-            <Table className="w-full text-body">
-              <TableHeader><TableRow className="text-body-sm text-muted-foreground border-b">
-                <DetailTableHead>Vendedor</DetailTableHead><DetailTableHead>Moneda</DetailTableHead><DetailTableHead className="text-right">Oportunidades abiertas</DetailTableHead><DetailTableHead className="text-right">Valor ponderado</DetailTableHead><DetailTableHead className="text-right">Ganado</DetailTableHead><DetailTableHead className="text-right">Oportunidades</DetailTableHead>
-              </TableRow></TableHeader>
-              <TableBody>
-                {porVendedor.map((b) => (
-                  <TableRow key={b.key} className="border-b">
-                    <TableCell>{b.label}</TableCell>
-                    <TableCell>{b.moneda}</TableCell>
-                    <TableCell className="text-right tabular-nums whitespace-nowrap"><CeldaMontoAnalitica monto={b.pipeline} moneda={b.moneda} /></TableCell>
-                    <TableCell className="text-right tabular-nums whitespace-nowrap"><CeldaMontoAnalitica monto={b.ponderado} moneda={b.moneda} /></TableCell>
-                    <TableCell className="text-right tabular-nums whitespace-nowrap"><CeldaMontoAnalitica monto={b.ganado} moneda={b.moneda} /></TableCell>
-                    <TableCell className="text-right">{b.count}</TableCell>
-                  </TableRow>
-                ))}
-                {porVendedor.length === 0 && <TableRow><TableCell colSpan={6}><EmptyStateInline icon={BarChart3} message="Sin datos" density="compact" /></TableCell></TableRow>}
-              </TableBody>
-            </Table>
-            </div>
+            <TablaPronostico filas={porVendedor} cargando={isLoading} encabezado="Vendedor" />
           </CardContent>
         </Card>
       </div>
@@ -129,24 +140,20 @@ function EmbudoYPerdidas() {
       <Card>
         <CardHeader className="pb-2"><CardTitle>Conversión por origen</CardTitle></CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-          <Table className="w-full text-body">
-            <TableHeader><TableRow className="text-body-sm text-muted-foreground border-b">
-              <DetailTableHead>Origen</DetailTableHead><DetailTableHead className="text-right">Total</DetailTableHead><DetailTableHead className="text-right">Conv.</DetailTableHead><DetailTableHead className="text-right">Tasa</DetailTableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {r.porFuente.map((f) => (
-                <TableRow key={f.fuente} className="border-b">
-                  <TableCell>{f.fuente}</TableCell>
-                  <TableCell className="text-right tabular-nums">{f.total}</TableCell>
-                  <TableCell className="text-right tabular-nums">{f.convertidos}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatPercent(f.tasa)}</TableCell>
-                </TableRow>
-              ))}
-              {r.porFuente.length === 0 && <TableRow><TableCell colSpan={4}><EmptyStateInline icon={BarChart3} message="Sin datos" density="compact" /></TableCell></TableRow>}
-            </TableBody>
-          </Table>
-          </div>
+          <ResponsiveDataTable columns={columnasConversion} data={r.porFuente} isLoading={isLoading}
+            rowKey={(fila) => fila.fuente} density={TABLE_DENSITY.embebida}
+            emptyState={<EmptyStateInline icon={BarChart3} message="Sin datos" density="compact" />}
+            mobileCard={(fila) => (
+              <>
+                <p className="break-words font-medium">{fila.fuente}</p>
+                <MobileRowDetails fields={[
+                  { label: "Total", value: fila.total },
+                  { label: "Convertidos", value: fila.convertidos },
+                  { label: "Tasa", value: formatPercent(fila.tasa) },
+                ]} />
+              </>
+            )}
+          />
         </CardContent>
       </Card>
       <Card>
@@ -157,7 +164,8 @@ function EmbudoYPerdidas() {
               <span>{m.motivo}</span><span className="font-semibold tabular-nums">{m.cantidad}</span>
             </div>
           ))}
-          {r.motivosPerdida.length === 0 && <EmptyStateInline icon={ThumbsDown} message="Sin oportunidades perdidas" />}
+          {isLoading && <ListSkeleton rows={3} />}
+          {!isLoading && r.motivosPerdida.length === 0 && <EmptyStateInline icon={ThumbsDown} message="Sin oportunidades perdidas" />}
         </CardContent>
       </Card>
     </div>

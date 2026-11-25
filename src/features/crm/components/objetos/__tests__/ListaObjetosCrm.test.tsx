@@ -40,7 +40,7 @@ describe("ListaObjetosCrm · tabla canónica", () => {
     expect(screen.getByLabelText("Ruta actual")).toHaveTextContent("/crm/contactos/ana");
     fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
     expect(query).toHaveBeenLastCalledWith("contacto", "", 1, "todas", "todos");
-    fireEvent.change(screen.getByRole("textbox", { name: "Buscar contacto" }), { target: { value: "Ana" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar contacto" }), { target: { value: "Ana" } });
     expect(query).toHaveBeenLastCalledWith("contacto", "Ana", 0, "todas", "todos");
     expect(screen.queryByRole("button", { name: "Nombre" })).not.toBeInTheDocument();
   });
@@ -60,9 +60,10 @@ describe("ListaObjetosCrm · tabla canónica", () => {
   it("distingue la búsqueda sin coincidencias y permite limpiar los filtros", () => {
     query.mockReturnValue({ isLoading: false, isError: false, data: { filas: [], total: 0 } });
     show();
-    fireEvent.change(screen.getByRole("textbox", { name: "Buscar contacto" }), { target: { value: "Sin coincidencia" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar contacto" }), { target: { value: "Sin coincidencia" } });
     expect(screen.getByText("Sin coincidencias con estos filtros")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
+    expect(screen.getByRole("searchbox", { name: "Buscar contacto" })).toHaveFocus();
     expect(query).toHaveBeenLastCalledWith("contacto", "", 0, "todas", "todos");
     expect(screen.getByText("Aún no hay contactos registrados")).toBeVisible();
   });

@@ -1,23 +1,51 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-const mock = vi.hoisted(() => ({ cuentas: vi.fn(), permisos: vi.fn(), estado: vi.fn() }));
+import { TooltipProvider } from "@/components/ui/tooltip";
+const mock = vi.hoisted(() => ({ cuentas: vi.fn(), permisos: vi.fn(), estado: vi.fn(), mobile: vi.fn(() => false), pago: vi.fn() }));
+vi.mock("@/hooks/shared/useIsMobile", () => ({ useIsMobile: mock.mobile }));
 vi.mock("@/features/tesoreria/hooks", () => ({ useCuentasBancarias: mock.cuentas }));
 vi.mock("@/hooks/shared/usePermissions", () => ({ usePermissions: mock.permisos }));
 vi.mock("@/features/tesoreria/hooks/useEstadoCuenta", () => ({
   useEstadoCuenta: mock.estado,
 }));
-vi.mock("@/features/tesoreria/components/DetallePagoSheet", () => ({ DetallePagoSheet: () => null }));
+vi.mock("@/features/tesoreria/components/DetallePagoSheet", () => ({ DetallePagoSheet: mock.pago }));
 import TesoreriaEstadoCuenta from "../TesoreriaEstadoCuenta";
 
 describe("N03/N04 · estado de cuenta sin cuentas", () => {
   beforeEach(() => {
+    mock.mobile.mockReturnValue(false);
+    mock.pago.mockReset().mockReturnValue(null);
     document.title = "Iniciar sesión · Libre Carga";
     mock.permisos.mockReturnValue({ canAdminCuentasBancarias: false });
     mock.estado.mockReturnValue({ data: undefined, isLoading: false, isError: false });
     mock.cuentas.mockReturnValue({ data: [], isLoading: false, isError: false, refetch: vi.fn() });
   });
   const abrir = () => render(<MemoryRouter><TesoreriaEstadoCuenta /></MemoryRouter>);
+  it("presenta el saldo corrido y abre el pago vinculado en móvil", () => {
+    mock.mobile.mockReturnValue(true);
+    mock.cuentas.mockReturnValue({ data: [{ id: "c1", alias: "BBVA MXN", banco: "BBVA", moneda: "MXN" }] });
+    mock.estado.mockReturnValue({ data: {
+      cuenta_id: "c1", alias: "BBVA MXN", banco: "BBVA", moneda: "MXN",
+      desde: "2026-11-01", hasta: "2026-11-30", cobertura_historica: "completa",
+      saldo_inicial: 40, saldo_final: 140, total_entradas: 100, total_salidas: 0,
+      movimientos_previos_corte: 0, movimientos: [{
+        id: "m1", fecha: "2026-11-04", concepto: "Cobro de flete", referencia: "Ref 1",
+        cargo: 0, abono: 100, saldo_corrido: 140, estado_conciliacion: "Conciliado", pago_factura_id: "p1",
+      }],
+    } });
+    render(<MemoryRouter initialEntries={["/tesoreria/estado-cuenta?cuenta=c1"]}>
+      <TooltipProvider><TesoreriaEstadoCuenta /></TooltipProvider>
+    </MemoryRouter>);
+    const fila = screen.getByText("Cobro de flete").closest("li");
+    expect(fila).not.toBeNull();
+    const tarjeta = within(fila!);
+    expect(tarjeta.getByText("Saldo")).toBeVisible();
+    expect(tarjeta.getByText(/MXN.*140\.00/)).toBeVisible();
+    fireEvent.click(tarjeta.getByRole("button", { name: "Ver pago" }));
+    expect(mock.pago.mock.lastCall?.[0]).toMatchObject({ ref_pago: { tipo: "cobro", id: "p1" } });
+  });
+
   it("explica la configuración faltante al contador, sin abrir un selector vacío", () => {
     abrir();
     expect(screen.getByText(/No hay cuentas bancarias activas/i)).toBeInTheDocument();

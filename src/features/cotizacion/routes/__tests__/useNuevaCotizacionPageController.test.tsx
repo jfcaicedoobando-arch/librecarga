@@ -288,6 +288,27 @@ describe("useNuevaCotizacionPageController — guard Pricing", () => {
 });
 
 
+describe("cliente desde su ficha", () => {
+  it("precarga el cliente disponible en la organización activa", () => {
+    render("?cliente=cli-1");
+    expect(wizardState.form.setValue).toHaveBeenCalledWith("clienteId", "cli-1",
+      { shouldDirty: true, shouldValidate: true });
+  });
+
+  it.each(["?cliente=otra-organizacion", "?cliente=cli-1&plantilla=tpl"])(
+    "conserva el contexto existente en %s", (query) => {
+      render(query);
+      expect(wizardState.form.setValue).not.toHaveBeenCalled();
+    },
+  );
+
+  it("respeta la decisión de conservar un borrador", () => {
+    draftRestore.permitePrefillProspecto = false;
+    render("?cliente=cli-1");
+    expect(wizardState.form.setValue).not.toHaveBeenCalled();
+  });
+});
+
 describe("cliente especial después del prefill Pricing", () => {
   it.each(["inactivo", "cargando", "error", "captura-conservada"] as const)(
     "no fija el cliente mientras Pricing está %s", (estado) => {

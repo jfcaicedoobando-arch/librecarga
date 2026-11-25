@@ -1,15 +1,17 @@
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { ArrowDownCircle, FileMinus2 } from "lucide-react";
 import type { FacturaEstadoCuenta } from "../services/estadoCuenta";
+import { MobileRowDetails } from "@/components/shared/dataTable/MobileRowDetails";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { DetailTableHead } from "@/components/shared/DetailTable";
 interface Props {
   factura: FacturaEstadoCuenta;
+  mobile?: boolean;
 }
 
-export function EstadoCuentaRowExpanded({ factura }: Props) {
+export function EstadoCuentaRowExpanded({ factura, mobile = false }: Props) {
   const { pagos, notas_credito, moneda } = factura;
 
   if (pagos.length === 0 && notas_credito.length === 0) {
@@ -28,7 +30,18 @@ export function EstadoCuentaRowExpanded({ factura }: Props) {
             <ArrowDownCircle className="h-3.5 w-3.5 text-success" />
             Pagos aplicados ({pagos.length})
           </div>
-          <div className="rounded border bg-background overflow-hidden">
+          {mobile ? <ul className="space-y-2">
+            {pagos.map((p) => (
+              <li key={p.id} className="rounded border bg-background p-2">
+                <MobileRowDetails fields={[
+                  { label: "Fecha", value: formatDate(p.fecha_pago) },
+                  { label: "Forma de pago", value: p.forma_pago ?? "—" },
+                  { label: "Referencia", value: p.referencia ?? "—" },
+                  { label: "Monto aplicado", value: formatCurrency(p.monto_aplicado, moneda) },
+                ]} />
+              </li>
+            ))}
+          </ul> : <div className="rounded border bg-background overflow-x-auto">
             <Table className="w-full text-body">
               <TableHeader className="bg-muted/50 text-body-sm">
                 <TableRow>
@@ -51,7 +64,7 @@ export function EstadoCuentaRowExpanded({ factura }: Props) {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </div>}
         </div>
       )}
 
@@ -61,7 +74,17 @@ export function EstadoCuentaRowExpanded({ factura }: Props) {
             <FileMinus2 className="h-3.5 w-3.5 text-info" />
             Notas de crédito aplicadas ({notas_credito.length})
           </div>
-          <div className="rounded border bg-background overflow-hidden">
+          {mobile ? <ul className="space-y-2">
+            {notas_credito.map((n) => (
+              <li key={n.id} className="rounded border bg-background p-2">
+                <MobileRowDetails fields={[
+                  { label: "Fecha", value: formatDate(n.fecha_emision) },
+                  { label: "Folio", value: n.folio ?? "—" },
+                  { label: "Monto", value: formatCurrency(n.monto, moneda) },
+                ]} />
+              </li>
+            ))}
+          </ul> : <div className="rounded border bg-background overflow-x-auto">
             <Table className="w-full text-body">
               <TableHeader className="bg-muted/50 text-body-sm">
                 <TableRow>
@@ -82,7 +105,7 @@ export function EstadoCuentaRowExpanded({ factura }: Props) {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </div>}
         </div>
       )}
     </div>

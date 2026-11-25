@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const src = readFileSync(
-  resolve(__dirname, "../NotaCreditoFila.tsx"),
+  resolve(__dirname, "../notaCreditoPresentacion.tsx"),
   "utf8",
 );
 

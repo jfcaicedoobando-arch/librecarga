@@ -2,16 +2,19 @@
  * Catálogos globales vistos por una empresa: aquí sólo se prende/apaga la
  * visibilidad para la organización activa (alta/edición/baja son de plataforma).
  */
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollableTabsList } from "@/components/shared/ScrollableTabsList";
 import { Anchor, Ship, Package } from "lucide-react";
 import TabPuertos from "./TabPuertos";
 import TabNavieras from "./TabNavieras";
 import TabTiposContenedor from "./TabTiposContenedor";
 
 export default function TabCatalogos() {
+  const [tab, setTab] = useState("puertos");
   return (
-    <Tabs defaultValue="puertos" className="space-y-4">
-      <TabsList>
+    <Tabs value={tab} onValueChange={setTab} className="min-w-0 space-y-4">
+      <ScrollableTabsList activeValue={tab} aria-label="Catálogos">
         <TabsTrigger value="puertos" className="gap-1.5">
           <Anchor className="h-3.5 w-3.5" /> Puertos
         </TabsTrigger>
@@ -21,7 +24,7 @@ export default function TabCatalogos() {
         <TabsTrigger value="contenedores" className="gap-1.5">
           <Package className="h-3.5 w-3.5" /> Tipos de Contenedor
         </TabsTrigger>
-      </TabsList>
+      </ScrollableTabsList>
       <TabsContent value="puertos"><TabPuertos /></TabsContent>
       <TabsContent value="navieras"><TabNavieras /></TabsContent>
       <TabsContent value="contenedores"><TabTiposContenedor /></TabsContent>

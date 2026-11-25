@@ -13,15 +13,13 @@ import {
 } from "@/features/cxp/hooks/useNotasCreditoProveedor";
 import { DialogNotaCreditoProveedor } from "./DialogNotaCreditoProveedor";
 import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
-import { NotaCreditoFila } from "./NotaCreditoFila";
+import { TablaNotasCreditoProveedor } from "./notaCreditoPresentacion";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { getFacturaSignedUrl } from "@/services/storage/facturas";
 import { notifyError } from "@/lib/ui/appFeedback";
 import type { MonedaNotaCreditoProveedor as Moneda } from "@/features/cxp/types";
 
-import { Table, TableBody, TableHeader, TableRow } from "@/components/ui/table";
-import { DetailTableHead } from "@/components/shared/DetailTable";
 interface Props {
   facturaId: string;
   monedaFactura: Moneda;
@@ -48,6 +46,13 @@ export function NotasCreditoSection({ facturaId, monedaFactura, saldoFactura, ca
   const cancelar = useCancelarNotaCredito(facturaId);
   const [openNueva, setOpenNueva] = useState(false);
   const [ncACancelar, setNcACancelar] = useState<{ id: string; folio: string } | null>(null);
+
+  const acciones = {
+    facturaId, canEdit, onAbrirArchivo: openStoredFile, onCancelar: setNcACancelar,
+    pendingAprobar: aprobar.isPending, pendingAplicar: aplicar.isPending, pendingCancelar: cancelar.isPending,
+    onAprobar: (id: string) => aprobar.mutate(id),
+    onAplicar: (id: string) => aplicar.mutate(id),
+  };
 
   return (
     <div className="border rounded-md">
@@ -79,40 +84,7 @@ export function NotasCreditoSection({ facturaId, monedaFactura, saldoFactura, ca
       ) : notas.length === 0 ? (
         <EmptyStateInline icon={FileMinus2} message="Sin notas de crédito registradas." />
       ) : (
-        <div className="overflow-x-auto">
-          <Table className="w-full text-body">
-            <TableHeader className="bg-muted/20 text-label uppercase tracking-wider text-muted-foreground">
-              <TableRow>
-                <DetailTableHead>Folio</DetailTableHead>
-                <DetailTableHead>Fecha</DetailTableHead>
-                <DetailTableHead>Motivo</DetailTableHead>
-                <DetailTableHead className="text-right">Monto</DetailTableHead>
-                <DetailTableHead className="text-center">Estado</DetailTableHead>
-                <DetailTableHead className="text-center">SAT</DetailTableHead>
-                <DetailTableHead className="text-center">XML</DetailTableHead>
-                <DetailTableHead className="text-center">PDF</DetailTableHead>
-                <DetailTableHead className="w-28" />
-              </TableRow>
-            </TableHeader>
-            <TableBody className="divide-y divide-border">
-              {notas.map((n) => (
-                <NotaCreditoFila
-                  key={n.id}
-                  nota={n}
-                  facturaId={facturaId}
-                  canEdit={canEdit}
-                  pendingAprobar={aprobar.isPending}
-                  pendingAplicar={aplicar.isPending}
-                  pendingCancelar={cancelar.isPending}
-                  onAbrirArchivo={openStoredFile}
-                  onAprobar={(id) => aprobar.mutate(id)}
-                  onAplicar={(id) => aplicar.mutate(id)}
-                  onCancelar={setNcACancelar}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <TablaNotasCreditoProveedor notas={notas} acciones={acciones} />
       )}
 
       <DialogNotaCreditoProveedor

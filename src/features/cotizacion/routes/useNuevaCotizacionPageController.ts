@@ -30,7 +30,7 @@ import {
 import { usePrefillProspectoOportunidad } from "@/features/cotizacion/hooks/wizard/usePrefillProspectoOportunidad";
 import { usePrefillContextoPricing } from "@/features/cotizacion/hooks/wizard/usePrefillContextoPricing";
 import { useDraftRestore } from "./useDraftRestore";
-import { usePrefillClienteTarifa } from "@/features/cotizacion/hooks/wizard/usePrefillClienteTarifa";
+import { permitePrecargarClienteDeFicha, usePrefillClienteTarifa } from "@/features/cotizacion/hooks/wizard/usePrefillClienteTarifa";
 import { usePrefillTarifaAerea } from "@/features/cotizacion/hooks/wizard/usePrefillTarifaAerea";
 
 function permitePrefill(id: string | null, permitePrefillProspecto: boolean, cotizacionId: string | null) {
@@ -119,7 +119,12 @@ export function useNuevaCotizacionPageController() {
   const prefillTarifa = usePrefillTarifaAerea(w.form, organizationId, tarifaAerea, searchParams.get("solicitud"),
     Boolean(tarifaAerea) && !w.cotizacionId && !restaurando && !pendienteBorrador);
   // Clientes especiales: el tarifario manda el cliente junto con la tarifa nueva.
-  usePrefillClienteTarifa(w.form, searchParams.get("cliente"), prefillPricing.estado === "aplicado");
+  const clientePrefill = searchParams.get("cliente");
+  const clienteDisponible = permitePrecargarClienteDeFicha({
+    params: searchParams, clientes, organizationId, error: catalogoClientes.isError,
+    habilitado: permitePrefill(clientePrefill, permitePrefillProspecto, w.cotizacionId),
+  });
+  usePrefillClienteTarifa(w.form, clientePrefill, prefillPricing.estado === "aplicado" || clienteDisponible);
 
   // B-003 (v13.320.32) — Autoguardado persiste `cotizacionId` en el draft para
   // que recargar el wizard NO duplique la cotización. Sólo se apaga en modo

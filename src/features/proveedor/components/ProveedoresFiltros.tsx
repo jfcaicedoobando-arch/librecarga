@@ -37,7 +37,7 @@ export function ProveedoresFiltros(props: Props) {
   const selectsContent = (
     <>
       <Select value={origen} onValueChange={(v) => onOrigenChange(v as OrigenFiltro)}>
-        <SelectTrigger className="h-9 w-full md:w-[160px]"><SelectValue /></SelectTrigger>
+        <SelectTrigger aria-label="Origen del proveedor" className="h-9 w-full md:w-[160px]"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="todos">Origen: todos</SelectItem>
           <SelectItem value="Nacional">Nacional</SelectItem>
@@ -46,7 +46,7 @@ export function ProveedoresFiltros(props: Props) {
       </Select>
 
       <Select value={tipoFiltro} onValueChange={(v) => onTipoChange(v as TipoFiltro)}>
-        <SelectTrigger className="h-9 w-full md:w-[200px]"><SelectValue /></SelectTrigger>
+        <SelectTrigger aria-label="Tipo de proveedor" className="h-9 w-full md:w-[200px]"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="todos">Tipo: todos</SelectItem>
           {TIPOS_PROVEEDOR.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}

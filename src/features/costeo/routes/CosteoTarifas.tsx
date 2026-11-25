@@ -6,7 +6,8 @@
  */
 import { useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollableTabsList } from "@/components/shared/ScrollableTabsList";
 import { Plus, Plane, Upload } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query";
@@ -60,17 +61,17 @@ export default function CosteoTarifas() {
 
   return (
     <PageContainer className="short:space-y-3">
-      <Tabs value={tab} onValueChange={cambiarTab}>
-        <TabsList>
+      <Tabs value={tab} onValueChange={cambiarTab} className="min-w-0">
+        <ScrollableTabsList activeValue={tab} aria-label="Tarifas de costeo">
           <TabsTrigger value="tarifas">Tarifas</TabsTrigger>
           <TabsTrigger value="bandeja">Bandeja de pricing</TabsTrigger>
           <TabsTrigger value="costo-real">Cotizado vs real</TabsTrigger>
-        </TabsList>
+        </ScrollableTabsList>
         <TabsContent value="tarifas">
           <div className="space-y-4 pt-4">
             <PageHeader
               title="Tarifas de costeo"
-              description="Respuestas de pricing: tarifas por agente, naviera, ruta y contenedor. Moneda base: USD."
+              description="Consulta tarifas marítimas, aéreas y terrestres por agente y ruta."
               actions={
                 <>
                 <Button variant="outline" onClick={() => setImportarMm(true)}>
