@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { esDiaInhabilMx } from "@/lib/date/festivosMx";
 import { pickerIconClass } from "@/components/ui/picker-mx-shell";
 import { dateToIso, isoToDate, isoToDisplay } from "./date-picker-mx-helpers";
-import { Hint } from "@/components/shared/Hint";
+import { Hint } from "@/components/ui/hint";
 
 interface Props {
   value: string;

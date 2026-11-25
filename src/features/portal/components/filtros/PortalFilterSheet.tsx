@@ -2,7 +2,7 @@
  * Shell reutilizable para los filtros mobile del portal / listados.
  *
  * Encapsula el patrón repetido: `<Input search>` + botón `Filtros` con badge de
- * conteo activo + `<Sheet>` lateral con header/body/footer y acciones Limpiar/Aplicar.
+ * conteo activo + `<Sheet>` lateral con header/body/footer y acciones Limpiar/Listo.
  * Los campos concretos van como `children`.
  *
  * DRY Lote 8b — reemplaza el markup duplicado en:

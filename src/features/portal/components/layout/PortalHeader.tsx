@@ -2,7 +2,8 @@ import { Link } from "react-router";
 import { BrandLockup } from "@/components/layout/BrandLockup";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { PORTAL_NAV_ITEMS, isPortalNavItemActive } from "./portalNav";
-import { PortalUserMenu } from "./PortalUserMenu";
+import { PortalUserMenu } from "@/components/layout/portal/PortalUserMenu";
+import { ROUTES } from "@/constants/routes";
 import { PortalNotificationsBell } from "./PortalNotificationsBell";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 
@@ -77,6 +78,7 @@ export function PortalHeader({
             clienteName={clienteName}
             email={email}
             onSignOut={onSignOut}
+            perfilRoute={ROUTES.PORTAL_PERFIL}
           />
         </div>
       </div>

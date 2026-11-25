@@ -1,7 +1,7 @@
 import { useId } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Hint } from "@/components/shared/Hint";
+import { Hint } from "@/components/ui/hint";
 import { isoToDisplay } from "./date-picker-mx-helpers";
 import { useDatePickerMxValor } from "./date-picker-mx-valor";
 

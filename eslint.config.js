@@ -128,7 +128,6 @@ const CROSS_FEATURE_ALLOWLIST = [
   "src/features/embarques/components/stepDatosRuta/StepDatosRutaMaritimo.tsx",
   "src/features/embarques/hooks/useHidratacionEditarEmbarque.ts",
   "src/features/embarques/services/submitProformaDialog.ts",
-  "src/features/portal-agente/components/AgenteLayout.tsx",
   "src/features/portal-agente/components/AgenteTarifaForm.tsx",
   "src/features/portal-agente/routes/AgenteGarantias.tsx",
   "src/features/portal/components/EmbarqueCard.tsx",
