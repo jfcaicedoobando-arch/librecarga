@@ -9,6 +9,9 @@ interface SearchInputProps {
   id?: string;
   value: string;
   onChange: (value: string) => void;
+  autoFocus?: boolean;
+  disabled?: boolean;
+  "aria-invalid"?: boolean;
   placeholder?: string;
   className?: string;
   /** Clases extra para el `<input>` (ancho, alto compacto en toolbars densas). */
@@ -29,6 +32,9 @@ export default function SearchInput({
   id,
   value,
   onChange,
+  autoFocus,
+  disabled,
+  "aria-invalid": ariaInvalid,
   placeholder = "Buscar…",
   className,
   inputClassName,
@@ -53,6 +59,9 @@ export default function SearchInput({
         ref={ref}
         id={id}
         type="search"
+        autoFocus={autoFocus}
+        disabled={disabled}
+        aria-invalid={ariaInvalid}
         placeholder={placeholder}
         aria-label={ariaLabel ?? (id ? undefined : placeholder)}
         aria-describedby={ariaDescribedBy}

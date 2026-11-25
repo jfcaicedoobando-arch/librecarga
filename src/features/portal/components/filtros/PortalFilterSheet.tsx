@@ -11,10 +11,10 @@
  *   - PortalCotizacionesMobileFilters
  */
 import { useState, type ReactNode } from "react";
-import { Filter, X, Search } from "lucide-react";
+import { Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import { mobileFilterSheet } from "@/components/shared/utils/dialogTokens";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetFooter,
@@ -43,16 +43,13 @@ export function PortalFilterSheet({
 
   return (
     <div className="flex gap-2 sm:hidden">
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          aria-label={searchPlaceholder}
-          placeholder={searchPlaceholder}
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+      <SearchInput
+        aria-label={searchPlaceholder}
+        placeholder={searchPlaceholder}
+        value={search}
+        onChange={onSearchChange}
+        className="flex-1"
+      />
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <Button variant="outline" className="shrink-0 gap-2">

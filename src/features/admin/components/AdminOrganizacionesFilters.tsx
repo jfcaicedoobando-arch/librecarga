@@ -1,5 +1,4 @@
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import SearchInput from "@/components/shared/SearchInput";
 import {
   Select,
   SelectContent,
@@ -29,16 +28,13 @@ export function AdminOrganizacionesFilters({
 }: Props) {
   return (
     <div className="flex flex-col sm:flex-row gap-2">
-      <div className="relative flex-1 min-w-[200px]">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Buscar por nombre o RFC…"
-          className="pl-8"
-          aria-label="Buscar organizaciones"
-        />
-      </div>
+      <SearchInput
+        value={search}
+        onChange={onSearchChange}
+        placeholder="Buscar por nombre o RFC…"
+        aria-label="Buscar organizaciones"
+        className="flex-1 min-w-[200px]"
+      />
       <Select value={planFilter} onValueChange={onPlanChange}>
         <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filtrar por plan">
           <SelectValue placeholder="Plan" />

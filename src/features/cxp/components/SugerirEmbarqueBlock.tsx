@@ -9,9 +9,10 @@
  * la creación del concepto se hace en `useNuevaFacturaProveedorForm` en el submit.
  */
 import { useState } from "react";
-import { Loader2, Search, Sparkles, Check } from "lucide-react";
+import { Loader2, Sparkles, Check } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/hooks/shared";
@@ -110,16 +111,13 @@ export function SugerirEmbarqueBlock({
         Liga la factura a un embarque y crearemos el costo directo del embarque automáticamente.
       </p>
 
-      <div className="relative">
-        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={term}
-          onChange={(e) => setTerm(e.target.value)}
-          placeholder="Buscar por expediente, BL o cliente…"
-          className="pl-8 h-9"
-          aria-label="Buscar embarque por expediente, BL o cliente"
-        />
-      </div>
+      <SearchInput
+        value={term}
+        onChange={setTerm}
+        placeholder="Buscar por expediente, BL o cliente…"
+        aria-label="Buscar embarque por expediente, BL o cliente"
+        inputClassName="md:h-9"
+      />
 
       {loading && (
         <div className="flex items-center gap-2 text-body-sm text-muted-foreground">

@@ -1,4 +1,4 @@
-import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import {
   Select,
   SelectContent,
@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import {
   ASSIGNABLE_ROLE_GROUPS,
   ROLE_LABELS,
@@ -49,16 +49,13 @@ export function UsuariosToolbar({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative flex-1 sm:max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            aria-label="Buscar por correo"
-            placeholder="Buscar por correo…"
-            value={busqueda}
-            onChange={(e) => onBusquedaChange(e.target.value)}
-            className="pl-8"
-          />
-        </div>
+        <SearchInput
+          aria-label="Buscar por correo"
+          placeholder="Buscar por correo…"
+          value={busqueda}
+          onChange={onBusquedaChange}
+          className="flex-1 sm:max-w-sm"
+        />
         <Select value={filtroRol} onValueChange={onFiltroRolChange}>
           <SelectTrigger className="sm:w-[220px]" aria-label="Filtrar por rol">
             <SelectValue placeholder="Filtrar por rol" />

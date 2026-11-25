@@ -2,8 +2,8 @@
  * Buscador con debounce de leads/oportunidades existentes.
  */
 import { useState, useMemo } from "react";
-import { Search, Building2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Building2, Search } from "lucide-react";
+import SearchInput from "@/components/shared/SearchInput";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/hooks/shared";
@@ -23,17 +23,13 @@ export function BuscadorProspectos({ onSelect }: Props) {
 
   return (
     <div className="space-y-2">
-      <div className="relative">
-        <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={term}
-          onChange={(e) => setTerm(e.target.value)}
-          placeholder="Buscar por empresa, contacto, email…"
-          className="pl-8"
-          autoFocus
-          aria-label="Buscar prospecto por empresa, contacto o email"
-        />
-      </div>
+      <SearchInput
+        value={term}
+        onChange={setTerm}
+        placeholder="Buscar por empresa, contacto, email…"
+        autoFocus
+        aria-label="Buscar prospecto por empresa, contacto o email"
+      />
       {isError ? (
         <ErrorStateInline
           message="No se pudo buscar prospectos."

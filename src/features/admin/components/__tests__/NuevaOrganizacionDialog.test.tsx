@@ -34,7 +34,7 @@ it("mantiene el diálogo abierto y anuncia el alta mientras se crea la organizac
 it("explica el límite del selector y busca entre todos los candidatos", () => {
   render(<NuevaOrganizacionDialog {...props} isPending={false} />);
   expect(screen.getByRole("status")).toHaveTextContent("Mostrando 50 de 75 candidatos");
-  fireEvent.change(screen.getByRole("textbox", { name: "Buscar usuario" }), { target: { value: "usuario65" } });
+  fireEvent.change(screen.getByRole("searchbox", { name: "Buscar usuario" }), { target: { value: "usuario65" } });
   expect(screen.queryByText(/Mostrando 50 de/)).not.toBeInTheDocument();
   fireEvent.keyDown(screen.getByRole("combobox", { name: /Administrador inicial/ }), { key: "ArrowDown" });
   expect(screen.getByRole("option", { name: "usuario65@example.invalid" })).toBeVisible();

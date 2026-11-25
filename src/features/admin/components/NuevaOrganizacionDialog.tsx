@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
@@ -80,9 +81,9 @@ export function NuevaOrganizacionDialog({
         <div className="space-y-1.5">
           <Label htmlFor="nueva-org-owner">Administrador inicial *</Label>
           <FormField label="Buscar usuario" className="space-y-1.5">
-            <Input
+            <SearchInput
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={setQuery}
               placeholder="Buscar por correo…"
               disabled={selectorBloqueado}
             />

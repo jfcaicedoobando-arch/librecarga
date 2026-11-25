@@ -43,11 +43,11 @@ export function PortalProximosArribosCard({ items }: Props) {
             <Calendar className="h-4 w-4 text-accent" />
             Próximos Arribos
           </CardTitle>
-          <Link to={ROUTES.PORTAL_EMBARQUES}>
-            <Button variant="ghost" size="sm" className="text-body-sm h-7">
+          <Button asChild variant="ghost" size="sm" className="text-body-sm h-7">
+            <Link to={ROUTES.PORTAL_EMBARQUES}>
               Ver todos <ArrowRight className="h-3 w-3 ml-1" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
