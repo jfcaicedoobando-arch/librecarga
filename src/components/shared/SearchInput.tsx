@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 
 interface SearchInputProps {
   ref?: Ref<HTMLInputElement>;
+  /** ID del control para enlazarlo con una etiqueta visible. */
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -12,6 +14,7 @@ interface SearchInputProps {
   /** Clases extra para el `<input>` (ancho, alto compacto en toolbars densas). */
   inputClassName?: string;
   "aria-label"?: string;
+  "aria-describedby"?: string;
 }
 
 /**
@@ -23,12 +26,14 @@ interface SearchInputProps {
  */
 export default function SearchInput({
   ref,
+  id,
   value,
   onChange,
   placeholder = "Buscar…",
   className,
   inputClassName,
   "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
 }: SearchInputProps) {
   // v13.823.77 — el filtro se quedaba pegado cuando el input llegaba a vacío
   // por una vía que React no traduce a `onChange` (botón nativo de limpiar de
@@ -43,12 +48,14 @@ export default function SearchInput({
 
   return (
     <div className={cn("relative", className)}>
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         ref={ref}
+        id={id}
         type="search"
         placeholder={placeholder}
-        aria-label={ariaLabel ?? placeholder}
+        aria-label={ariaLabel ?? (id ? undefined : placeholder)}
+        aria-describedby={ariaDescribedBy}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onInput={(e) => sync(e.currentTarget.value)}

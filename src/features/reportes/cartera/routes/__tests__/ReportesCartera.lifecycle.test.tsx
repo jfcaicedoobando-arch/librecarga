@@ -101,8 +101,8 @@ describe("Cartera PDF route lifecycle", () => {
     const view = render(<ReportesCartera />);
     await begin();
     if (change === "filter") {
-      fireEvent.change(screen.getByRole("textbox", { name: "Cliente, proveedor, folio o expediente" }), { target: { value: "other" } });
-      fireEvent.change(screen.getByRole("textbox", { name: "Cliente, proveedor, folio o expediente" }), { target: { value: "" } });
+      fireEvent.change(screen.getByRole("searchbox", { name: "Cliente, proveedor, folio o expediente" }), { target: { value: "other" } });
+      fireEvent.change(screen.getByRole("searchbox", { name: "Cliente, proveedor, folio o expediente" }), { target: { value: "" } });
     } else {
       if (change === "organization") mocks.aging.mockReturnValue({ ...original, dataScope: scope("org-b") });
       if (change === "day") mocks.day = "2026-10-14";
@@ -127,7 +127,7 @@ describe("Cartera PDF route lifecycle", () => {
     mocks.pdf.mockReturnValueOnce({ toBlob: () => old.promise }).mockReturnValueOnce({ toBlob: () => current.promise });
     render(<ReportesCartera />);
     await begin();
-    fireEvent.change(screen.getByRole("textbox", { name: "Cliente, proveedor, folio o expediente" }), { target: { value: "F-1" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Cliente, proveedor, folio o expediente" }), { target: { value: "F-1" } });
     await begin(2);
     await act(async () => { if (outcome === "resolve") old.resolve(new Blob(["old"])); else old.reject(new Error("old renderer failed")); await old.promise.catch(() => undefined); });
     expect(screen.getByRole("button", { name: "Generando…" })).toBeDisabled();

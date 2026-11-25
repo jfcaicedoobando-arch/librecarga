@@ -59,12 +59,18 @@ describe("Etiquetas de campos compartidos de Pricing", () => {
     expect(await screen.findByRole("option", { name: "Tipo legacy" })).toHaveAttribute("aria-selected", "true");
     expect(form.setValue).not.toHaveBeenCalled();
   });
-  it("el filtro identifica el tipo de contenedor y no inventa un Incoterm de tarifa", () => {
+  it("el filtro identifica el contenedor y permite limpiar solo la búsqueda", () => {
+    const onBusquedaChange = vi.fn();
+    const onClearAll = vi.fn();
     render(<CosteoTarifasFiltros estado="todas" onEstadoChange={vi.fn()} aprobacion="todas" onAprobacionChange={vi.fn()}
-      agenteId="todos" onAgenteChange={vi.fn()} tipoId="todos" onTipoChange={vi.fn()} busqueda="" onBusquedaChange={vi.fn()}
-      agentes={[]} tipos={[]} counts={{ pendientes: 0, programadas: 0 }} onClearAll={vi.fn()} hasActiveFilters={false}
+      agenteId="todos" onAgenteChange={vi.fn()} tipoId="todos" onTipoChange={vi.fn()} busqueda="Veracruz" onBusquedaChange={onBusquedaChange}
+      agentes={[]} tipos={[]} counts={{ pendientes: 0, programadas: 0 }} onClearAll={onClearAll} hasActiveFilters
       total={0} viewMode="tabla" onViewModeChange={vi.fn()} />);
     expect(screen.getByRole("combobox", { name: "Filtrar por tipo de contenedor" })).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: /incoterm/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "Buscar tarifas por puerto, ruta, agente o naviera" })).toHaveValue("Veracruz");
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar búsqueda" }));
+    expect(onBusquedaChange).toHaveBeenCalledExactlyOnceWith("");
+    expect(onClearAll).not.toHaveBeenCalled();
   });
 });

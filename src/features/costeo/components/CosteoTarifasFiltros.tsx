@@ -2,12 +2,12 @@
  * Barra de filtros de la matriz de tarifas marítimas.
  * v13.135.52: sin Card wrapper, búsqueda prominente, selects sm.
  */
-import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { LayoutList, Rows3, Search, X } from "lucide-react";
+import { LayoutList, Rows3, X } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { EstadoFiltro, AprobacionFiltro } from "../routes/CosteoTarifas.helpers";
 import type { ViewMode } from "../routes/useCosteoTarifasPageState";
@@ -45,25 +45,26 @@ export function CosteoTarifasFiltros({
 }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-2 border-y py-3 short:py-2">
-      <div className="relative flex-1 min-w-[260px] max-w-md">
-        <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <Input
+      <div className="relative w-full md:min-w-[260px] md:max-w-md md:flex-1">
+        <SearchInput
           id="filtro-buscar"
           value={busqueda}
-          onChange={(e) => onBusquedaChange(e.target.value)}
+          onChange={onBusquedaChange}
           placeholder="Buscar ruta, agente o naviera"
-          className="pl-9 pr-8 h-9"
+          inputClassName="pr-11 md:h-9"
           aria-label="Buscar tarifas por puerto, ruta, agente o naviera"
         />
         {busqueda && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             type="button"
             onClick={() => onBusquedaChange("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground md:h-9 md:w-9"
             aria-label="Limpiar búsqueda"
           >
-            <X className="size-4" />
-          </button>
+            <X className="size-4" aria-hidden />
+          </Button>
         )}
       </div>
 
