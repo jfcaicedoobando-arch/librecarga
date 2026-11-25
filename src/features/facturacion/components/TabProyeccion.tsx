@@ -1,12 +1,12 @@
-import { ChevronLeft, ChevronRight, Download, Calendar, Info, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, ChevronRight, Download, Calendar, Info } from "lucide-react";
+import { ActiveFilterChips } from "@/components/shared/ActiveFilterChips";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
-import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
+import { FilteredListEmptyState } from "@/components/empty/FilteredListEmptyState";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { toTitleCase } from "@/lib/formatters";
 import { useTabProyeccionController } from "@/features/facturacion/hooks";
@@ -23,11 +23,16 @@ export function TabProyeccion() {
   const consultando = c.isLoading || c.isFetching;
   const disponible = !consultando && !c.error;
   const filtrosActivos = [
-    { valor: c.filtroCliente, nombre: "Cliente", quitar: () => c.setFiltroCliente("todos") },
-    { valor: c.filtroOperador, nombre: "Operador", quitar: () => c.setFiltroOperador("todos") },
-    { valor: c.filtroEstado, nombre: "Estado", quitar: () => c.setFiltroEstado("todos") },
-  ].filter(({ valor }) => valor !== "todos");
+    { key: "cliente", value: c.filtroCliente, label: "Cliente", onRemove: () => c.setFiltroCliente("todos") },
+    { key: "operador", value: c.filtroOperador, label: "Operador", onRemove: () => c.setFiltroOperador("todos") },
+    { key: "estado", value: c.filtroEstado, label: "Estado", onRemove: () => c.setFiltroEstado("todos") },
+  ].filter(({ value }) => value !== "todos");
   const filtrado = filtrosActivos.length > 0;
+
+  const limpiarYEnfocar = () => {
+    c.limpiarFiltros();
+    requestAnimationFrame(() => document.getElementById("cierre-filtro-cliente")?.focus());
+  };
 
   return (
     <div className="space-y-4">
@@ -110,7 +115,7 @@ export function TabProyeccion() {
       <Card>
         <CardContent className="p-4 flex flex-wrap gap-3">
           <Select value={c.filtroCliente} onValueChange={c.setFiltroCliente}>
-            <SelectTrigger className="w-[220px]" aria-label="Filtrar por cliente">
+            <SelectTrigger id="cierre-filtro-cliente" className="w-[220px]" aria-label="Filtrar por cliente">
               <SelectValue placeholder="Cliente" />
             </SelectTrigger>
             <SelectContent>
@@ -147,29 +152,23 @@ export function TabProyeccion() {
         </CardContent>
       </Card>
 
-      {filtrado && (
-        <div className="flex flex-wrap items-center gap-2">
-          {filtrosActivos.map(({ valor, nombre, quitar }) => (
-            <Badge key={nombre} variant="secondary" className="gap-1">
-              {nombre}: {valor}
-              <Button type="button" variant="ghost" size="icon" className="size-7"
-                aria-label={`Quitar filtro de ${nombre.toLowerCase()}`} onClick={quitar}>
-                <X className="size-3" aria-hidden />
-              </Button>
-            </Badge>
-          ))}
-          <Button type="button" variant="ghost" size="sm" onClick={c.limpiarFiltros}>Limpiar filtros</Button>
-        </div>
-      )}
+      <ActiveFilterChips
+        chips={filtrosActivos}
+        searchId="cierre-filtro-cliente"
+        onClearAll={c.limpiarFiltros}
+      />
 
       {/* Tabla de detalle */}
       {!c.error && <Card>
         <CardContent className="p-0">
           {!consultando && c.grupos.length === 0 ? (
-            <EmptyStateInline
+            <FilteredListEmptyState
               icon={Calendar}
               message={`Sin embarques con ETA en ${c.mesActual.label}`}
-              hint="Selecciona otro mes o ajusta los filtros."
+              hint="Selecciona otro mes para consultar sus embarques."
+              filtered={filtrado && c.kpisGlobales.totalExpedientes > 0}
+              filteredHint="Limpia los filtros para ver los embarques disponibles en este mes."
+              onClearFilters={limpiarYEnfocar}
             />
           ) : (
             <ResponsiveDataTable

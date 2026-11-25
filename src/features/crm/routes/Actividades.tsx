@@ -104,7 +104,7 @@ export default function Actividades() {
     if (vencidasOnly) limpiarFiltro();
   };
   return (
-    <PageContainer width="wide">
+    <PageContainer width="wide" id="crm-actividades">
       <PageHeader
         title="Actividades"
         description="Registro de llamadas, reuniones y tareas de seguimiento CRM"

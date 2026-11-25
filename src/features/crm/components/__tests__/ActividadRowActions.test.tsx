@@ -1,15 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { CrmActividadRow } from "@/features/crm/services/actividades";
 import ActividadRowActions from "../ActividadRowActions";
 
 const mocks = vi.hoisted(() => ({ completar: vi.fn(), posponer: vi.fn(), pending: false }));
 vi.mock("@/features/crm/hooks", () => ({
+  useActualizarActividadNotas: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useCompletarActividad: () => ({ mutateAsync: mocks.completar, isPending: mocks.pending }),
   usePosponerActividad: () => ({ mutateAsync: mocks.posponer, isPending: false }),
-}));
-vi.mock("@/features/crm/components/actividades/ActividadNotasSheet", () => ({
-  default: ({ open }: { open: boolean }) => open ? <div role="dialog">Notas de actividad</div> : null,
 }));
 
 const actividad: CrmActividadRow = {
@@ -59,7 +57,11 @@ describe("ActividadRowActions — menú compacto", () => {
     expect(screen.queryByRole("menuitem", { name: "Marcar como completada" })).not.toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: "Posponer" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("menuitem", { name: "Notas / resultado" }));
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    const notas = screen.getByRole("dialog", { name: "Notas de actividad" });
+    expect(notas).toBeInTheDocument();
+    fireEvent.keyDown(notas, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Acciones de actividad" })).toHaveFocus());
     expect(mocks.completar).not.toHaveBeenCalled();
   });
 
