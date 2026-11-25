@@ -12,6 +12,14 @@ const tarifaDbSchema = z.array(z.object({
   id: z.string(),
   flete_base: z.number(),
   moneda: z.string(),
+  modo: z.string().optional(),
+  unidad_flete: z.string().nullish(),
+  aeropuerto_origen: z.string().nullish(),
+  aeropuerto_destino: z.string().nullish(),
+  origen_ciudad: z.string().nullish(),
+  destino_ciudad: z.string().nullish(),
+  origen_cp: z.string().nullish(),
+  destino_cp: z.string().nullish(),
   dias_libres_demoras: z.number().nullable(),
   vigente_desde: z.string().nullable(),
   vigente_hasta: z.string().nullable(),
@@ -27,6 +35,7 @@ export type TarifaTarifario = z.infer<typeof tarifaDbSchema>[number];
 
 const COLS = [
   "id, flete_base, moneda, dias_libres_demoras, vigente_desde, vigente_hasta, notas, solicitud_pricing_id",
+  "modo, unidad_flete, aeropuerto_origen, aeropuerto_destino, origen_ciudad, destino_ciudad, origen_cp, destino_cp",
   "agente:costeo_agentes(id, nombre), naviera:navieras(id, name), tipo:tipos_contenedor(code, name)",
   "ruta:costeo_rutas(id, origen:puertos!costeo_rutas_puerto_origen_id_fkey(name, country), destino:puertos!costeo_rutas_puerto_destino_id_fkey(name, country))",
 ].join(", ");

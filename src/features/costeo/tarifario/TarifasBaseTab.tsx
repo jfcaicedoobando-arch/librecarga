@@ -1,29 +1,26 @@
 /** Vista 1 del tarifario: Tarifas (Puertos base) con 20"/40" en una fila. */
 import { useMemo, useState } from "react";
-import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Mail, Plus, Upload } from "lucide-react";
 import { ImportarTarifasDialog } from "./ImportarTarifasDialog";
 import { ExtraerCorreoDialog } from "./ExtraerCorreoDialog";
-import { DescargarTarifarioButton } from "./DescargarTarifarioButton";
-import { Button } from "@/components/ui/button";
+import { TarifarioAcciones } from "./TarifarioAcciones";
+import { OrdenTarifarioMenu } from "./OrdenTarifarioMenu";
+import { OtrasTarifas, TarifaBaseCard } from "./TarifaBaseCard";
+import { importeTarifario, rutaTarifarioMultimodo } from "./presentacionTarifario";
+import { useOrdenTarifarioMovil } from "./useOrdenTarifarioMovil";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
-import { DataTable, defineColumns } from "@/components/shared/DataTable";
+import { defineColumns } from "@/components/shared/DataTable";
+import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
+import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { costeo } from "../queryKeys";
 import { TarifaForm } from "@/features/costeo/components/TarifaForm";
 import { exportToCsv } from "@/generators/exportCsv";
 import { ENCABEZADOS_TARIFARIO } from "./encabezadosTarifario";
-import { formatCurrency, formatNumber } from "@/lib/formatters/numbers";
 import { formatDate } from "@/lib/formatters/dates";
 import { hoyMx } from "@/lib/date/mx";
-import { agruparTarifas, FILTROS_VIGENCIA, listarTarifasTarifario, type FilaTarifario, type FiltroVigencia, type TarifaTarifario } from "./tarifarioService";
-
-function importe(t: TarifaTarifario | null) {
-  if (!t) return "—";
-  return /^[A-Z]{3}$/.test(t.moneda) ? formatCurrency(t.flete_base, t.moneda) : formatNumber(t.flete_base);
-}
+import { agruparTarifas, FILTROS_VIGENCIA, listarTarifasTarifario, type FilaTarifario, type FiltroVigencia } from "./tarifarioService";
 const fecha = (d: string | null) => (d ? formatDate(d) : "—");
 
 function aCsv(f: FilaTarifario) {
@@ -42,9 +39,9 @@ const columns = defineColumns<FilaTarifario>([
   { id: "tipo", header: "Tipo de carga", accessorFn: () => "FCL" },
   { accessorKey: "agente", header: "Agente" },
   { accessorKey: "naviera", header: "Naviera" },
-  { id: "t20", header: 'Tarifa 20"', accessorFn: (f) => importe(f.tarifa20) },
+  { id: "t20", header: 'Tarifa 20"', accessorFn: (f) => importeTarifario(f.tarifa20) },
   { id: "moneda20", header: 'Moneda 20"', accessorFn: (f) => f.tarifa20?.moneda ?? "—" },
-  { id: "t40", header: 'Tarifa 40"', accessorFn: (f) => importe(f.tarifa40) },
+  { id: "t40", header: 'Tarifa 40"', accessorFn: (f) => importeTarifario(f.tarifa40) },
   { id: "moneda40", header: 'Moneda 40"', accessorFn: (f) => f.tarifa40?.moneda ?? "—" },
   { id: "desde", header: "Inicio de la vigencia", accessorFn: (f) => fecha(f.base.vigente_desde) },
   { id: "hasta", header: "Término de la vigencia", accessorFn: (f) => fecha(f.base.vigente_hasta) },
@@ -52,14 +49,6 @@ const columns = defineColumns<FilaTarifario>([
   { id: "obs", header: "Observaciones", accessorFn: (f) => f.base.notas ?? "" },
   { id: "otros", header: "Otras tarifas", cell: ({ row }) => <OtrasTarifas fila={row.original} /> },
 ]);
-
-function OtrasTarifas({ fila }: { fila: FilaTarifario }) {
-  if (fila.otras.length === 0) return "—";
-  const label = `Otras tarifas en el catálogo: ${fila.otras.length}`;
-  if (!fila.base.ruta?.id) return label;
-  return <Link to={`/costeo/tarifas?ruta=${encodeURIComponent(fila.base.ruta.id)}`}
-    className="text-accent underline underline-offset-2">{label}</Link>;
-}
 
 export function TarifasBaseTab({ puedeEditar }: { puedeEditar: boolean }) {
   const [filtro, setFiltro] = useState<FiltroVigencia>("vigentes");
@@ -72,31 +61,33 @@ export function TarifasBaseTab({ puedeEditar }: { puedeEditar: boolean }) {
   const filas = useMemo(() => {
     const t = texto.trim().toLowerCase();
     const all = agruparTarifas(q.data ?? []);
-    return t ? all.filter((f) => [f.origen, f.destino, f.agente, f.naviera].join(" ").toLowerCase().includes(t)) : all;
+    return t ? all.filter((f) => [
+      f.origen, f.destino, f.agente, f.naviera, ...f.otras.flatMap(rutaTarifarioMultimodo),
+    ].join(" ").toLowerCase().includes(t)) : all;
   }, [q.data, texto]);
+  const { movil, tabla, data } = useOrdenTarifarioMovil(filas, columns);
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <Input aria-label="Buscar origen, destino, agente o naviera" className="max-w-xs" placeholder="Buscar origen, destino, agente o naviera" value={texto} onChange={(e) => setTexto(e.target.value)} />
+      <div className="flex flex-wrap items-start gap-2 md:gap-3">
+        <Input aria-label="Buscar origen, destino, agente o naviera" className="w-full md:max-w-xs" placeholder="Buscar origen, destino, agente o naviera" value={texto} onChange={(e) => setTexto(e.target.value)} />
         <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroVigencia)}>
-          <SelectTrigger className="w-auto gap-1.5" aria-label="Filtrar por vigencia">
-            <span className="text-body-sm text-muted-foreground">Vigencia:</span>
+          <SelectTrigger className="min-w-32 flex-1 gap-1.5 md:w-auto md:flex-none" aria-label="Filtrar por vigencia">
+            <span className="hidden text-body-sm text-muted-foreground md:inline">Vigencia:</span>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {FILTROS_VIGENCIA.map((f) => <SelectItem key={f.valor} value={f.valor}>{f.etiqueta}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="ml-auto flex flex-wrap items-start gap-2">
-          <DescargarTarifarioButton cargando={q.isFetching} error={q.isError} hayFilas={filas.length > 0}
-            onDownload={() => exportToCsv(`tarifario-${hoyMx()}.csv`, ENCABEZADOS_TARIFARIO, filas.map(aCsv))} />
-          {puedeEditar && <Button variant="outline" onClick={() => setExtraer(true)}><Mail className="mr-1 size-4" /> Extraer de correo</Button>}
-          {puedeEditar && <Button variant="outline" onClick={() => setImportar(true)}><Upload className="mr-1 size-4" /> Importar CSV/Excel</Button>}
-          {puedeEditar && <Button onClick={() => setNueva(true)}><Plus className="mr-1 size-4" /> Nueva tarifa</Button>}
-        </div>
+        <TarifarioAcciones puedeEditar={puedeEditar} movil={movil} ordenMovil={<OrdenTarifarioMenu tabla={tabla} />}
+          cargando={q.isFetching} error={q.isError}
+          hayFilas={filas.length > 0} onExtraer={() => setExtraer(true)}
+          onImportar={() => setImportar(true)} onNueva={() => setNueva(true)}
+          onDownload={() => exportToCsv(`tarifario-${hoyMx()}.csv`, ENCABEZADOS_TARIFARIO, filas.map(aCsv))} />
       </div>
-      <DataTable columns={columns} data={filas} rowKey={(f) => f.clave} isLoading={q.isLoading}
+      <ResponsiveDataTable columns={columns} data={data} rowKey={(f) => f.clave} isLoading={q.isLoading}
+        mobileCard={(fila) => <TarifaBaseCard fila={fila} />} density={TABLE_DENSITY.listado}
         isError={q.isError} onRetry={() => { void q.refetch(); }}
         emptyState={texto.trim() ? <EmptyStateInline message="Ninguna tarifa coincide con esta búsqueda."
           action={{ label: "Limpiar búsqueda", onClick: () => setTexto("") }} /> : undefined}

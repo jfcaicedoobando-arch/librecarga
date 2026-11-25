@@ -57,7 +57,7 @@ export const pickerIconClass = "h-4 w-4 shrink-0 opacity-70";
 
 /** Clases del botón/afordancia para limpiar el valor. */
 export const pickerClearClass =
-  "shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground";
+  "inline-flex size-11 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground md:size-auto md:p-0.5";
 
 /** Clases del icono (X) del botón de limpiar. */
 export const pickerClearIconClass = "h-3.5 w-3.5";

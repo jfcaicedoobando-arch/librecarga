@@ -9,6 +9,7 @@ import { KpiGridSkeleton } from "@/components/shared/skeletons";
 import { AsyncBoundary } from "@/components/shared/states/AsyncBoundary";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogFooterActions } from "@/components/shared/FormDialogFooter";
 import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { ConfirmDeleteAlert } from "@/features/costeo/components/ConfirmDeleteAlert";
 import { PageContainer } from "@/components/shared/PageContainer";
@@ -124,10 +125,10 @@ export default function TesoreriaCuentas() {
         isDirty={isDirty}
         busy={submitting}
         footer={
-          <>
-            <FormDialogCancelarBoton onCancelar={() => setOpen(false)} disabled={submitting} />
-            <Button onClick={submit} loading={submitting}>Guardar</Button>
-          </>
+          <FormDialogFooterActions
+            cancel={<FormDialogCancelarBoton onCancelar={() => setOpen(false)} disabled={submitting} />}
+            primary={<Button type="button" onClick={submit} loading={submitting}>Guardar</Button>}
+          />
         }
       >
         <NuevaCuentaFormFields form={form} setField={setField} monedaBloqueada={monedaBloqueada} />

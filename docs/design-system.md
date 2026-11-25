@@ -251,6 +251,8 @@ Dos presets de densidad, sin excepciones (`tableTokens.ts`):
 Todos los controles comparten tokens de `field.tokens.ts`:
 
 - Alto canónico `FIELD_HEIGHT_CLASS` = `h-11 md:h-10` (44 px táctil en móvil).
+- Opciones de desplegables y buscadores usan `TOUCH_OPTION_HEIGHT_CLASS` para
+  alcanzar 44 px en móvil y conservar su densidad en escritorio.
   **No** sobreescribir con `h-9`.
 - Superficie `FIELD_SURFACE_CLASS`: `border-input`, `rounded-md`, `bg-background`,
   `shadow-sm`.

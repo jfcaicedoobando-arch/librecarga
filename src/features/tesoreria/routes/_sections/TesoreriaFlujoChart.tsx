@@ -5,8 +5,7 @@
 import { lazy, Suspense } from "react";
 import { Link } from "react-router";
 import { ArrowRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { SectionHeading } from "@/components/shared/SectionHeading";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartSkeleton } from "@/components/shared/ChartSkeleton";
 import { ErrorStateInline } from "@/components/empty/ErrorStateInline";
 import { getErrorMessage } from "@/lib/errors";
@@ -21,10 +20,10 @@ export function TesoreriaFlujoChart() {
   const { data, isLoading, error, refetch } = useFlujoProyectado(90);
 
   return (
-    <Card>
-      <CardContent density="compact">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <SectionHeading as="h3">Flujo de caja proyectado</SectionHeading>
+    <Card className="min-w-0">
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle>Flujo de caja proyectado</CardTitle>
           <Link
             to={ROUTES.TESORERIA_FLUJO}
             className="inline-flex items-center gap-1 text-body-sm text-accent hover:underline"
@@ -32,6 +31,8 @@ export function TesoreriaFlujoChart() {
             Ver 90 días <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
+      </CardHeader>
+      <CardContent>
         {error ? (
           <ErrorStateInline message={getErrorMessage(error)} onRetry={() => refetch()} />
         ) : isLoading || !data ? (

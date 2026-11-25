@@ -114,7 +114,7 @@ export default function TabTipoCambioDof() {
           <div className="flex flex-wrap items-end gap-2 rounded-md border border-dashed p-3">
             <div className="space-y-1">
               <Label htmlFor="fecha-publicacion-dof">Fecha</Label>
-              <DatePickerMx id="fecha-publicacion-dof" aria-label="Fecha de publicación del tipo de cambio" className="w-40" value={fecha} onChange={setFecha} />
+              <DatePickerMx id="fecha-publicacion-dof" aria-label="Fecha de publicación del tipo de cambio" className="w-48 max-w-full md:w-40" value={fecha} onChange={setFecha} />
             </div>
             <FormField label="USD / MXN" className="space-y-1">
               <Input className="w-32" inputMode="decimal" placeholder="17.4312" value={usd} onChange={(e) => setUsd(e.target.value)} />

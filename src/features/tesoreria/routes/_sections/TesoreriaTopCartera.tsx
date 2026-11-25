@@ -4,8 +4,7 @@
  */
 import { Link } from "react-router";
 import { ArrowRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { SectionHeading } from "@/components/shared/SectionHeading";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { agingTextClass } from "@/features/tesoreria/domain/agingTone";
 import type { TopItem } from "@/features/tesoreria/domain/resumen.types";
@@ -41,15 +40,17 @@ export function TesoreriaTopCartera({
   const montoClass = tono === "cobrar" ? "text-destructive" : "text-warning";
   return (
     <Card className="flex flex-col">
-      <CardContent density="compact" className="flex flex-1 flex-col">
-        <SectionHeading as="h3" className="mb-3">{titulo}</SectionHeading>
+      <CardHeader>
+        <CardTitle>{titulo}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col">
         {items.length === 0 ? (
           <EmptyStateInline density="compact" icon={Wallet} message={vacio} />
         ) : (
           <div className="space-y-3">
             <p className="text-body-sm text-muted-foreground">Hasta 5 por moneda, ordenados por saldo. No se comparan importes entre divisas.</p>
             {monedas.map((moneda) => <section key={moneda} aria-label={`Top 5 ${moneda}`}>
-            <h4 className="mb-1 font-medium text-body-sm">{moneda}</h4>
+            <h3 className="mb-1 font-medium text-body-sm">{moneda}</h3>
             <ul className="space-y-1.5 text-body">
             {items.filter((item) => item.moneda === moneda).map((d) => (
               <li

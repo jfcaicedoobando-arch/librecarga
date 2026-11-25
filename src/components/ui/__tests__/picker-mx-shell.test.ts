@@ -111,7 +111,8 @@ describe("constantes de estilo y textos de picker-mx-shell", () => {
     expect(pickerErrorClass).toBe("text-body-sm text-destructive");
     expect(pickerRootClass).toBe("flex w-full min-w-0 flex-col gap-1");
     expect(pickerIconClass).toBe("h-4 w-4 shrink-0 opacity-70");
-    expect(pickerClearClass).toMatch(/rounded p-0.5/);
+    expect(pickerClearClass).toMatch(/\bsize-11\b/);
+    expect(pickerClearClass).toMatch(/md:size-auto md:p-0.5/);
     expect(pickerClearIconClass).toBe("h-3.5 w-3.5");
   });
 });

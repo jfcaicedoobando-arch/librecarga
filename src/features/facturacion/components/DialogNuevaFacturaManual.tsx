@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormDialogFooterActions } from "@/components/shared/FormDialogFooter";
 import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
 import { CreditoExcesoConfirmDialog } from "./CreditoExcesoConfirmDialog";
@@ -87,14 +88,20 @@ export function DialogNuevaFacturaManual({ open, onOpenChange }: Props) {
   };
 
   const footer = (
-    <div className="flex w-full flex-wrap items-center gap-2">
-      {!puedeTimbrar && <FaltantesHint items={faltantesTimbrar} className="mr-auto" />}
-      <div className="ml-auto flex flex-wrap items-center gap-2">
-        <FormDialogCancelarBoton onCancelar={() => handleOpenChange(false)} disabled={isPending} />
-        <Button variant="secondary" onClick={() => handleSubmit(false)} disabled={!puedeGuardar || isPending}>Guardar borrador</Button>
-        <Button onClick={() => handleSubmit(true)} disabled={!puedeTimbrar || isPending}>{isPending ? "Procesando…" : "Crear y timbrar"}</Button>
-      </div>
-    </div>
+    <FormDialogFooterActions
+      help={!puedeTimbrar && faltantesTimbrar.length > 0 && <FaltantesHint items={faltantesTimbrar} />}
+      cancel={<FormDialogCancelarBoton onCancelar={() => handleOpenChange(false)} disabled={isPending} />}
+      secondary={
+        <Button type="button" variant="secondary" onClick={() => handleSubmit(false)} disabled={!puedeGuardar || isPending}>
+          Guardar borrador
+        </Button>
+      }
+      primary={
+        <Button type="button" onClick={() => handleSubmit(true)} disabled={!puedeTimbrar || isPending}>
+          {isPending ? "Procesando…" : "Crear y timbrar"}
+        </Button>
+      }
+    />
   );
 
   return (

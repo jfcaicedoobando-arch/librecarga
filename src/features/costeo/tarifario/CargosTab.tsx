@@ -1,12 +1,15 @@
 /** Vistas 2 y 3 del tarifario: cargos FOB de agentes / cargos locales por naviera. */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDownUp, Pencil, Plus, Trash2 } from "lucide-react";
 import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
 import { costeo } from "../queryKeys";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ConfirmActionDialog } from "@/components/shared/dialogs/ConfirmActionDialog";
-import { DataTable, defineColumns } from "@/components/shared/DataTable";
+import { defineColumns } from "@/components/shared/DataTable";
+import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
+import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { exportToCsv } from "@/generators/exportCsv";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { useTasaIVA } from "@/features/catalogos/hooks/useTasaIVA";
@@ -14,8 +17,38 @@ import { montoConIva } from "./ivaCargo";
 import { archivarCargo, listarCargos, type CargoTarifario, type TipoCargo } from "./cargosService";
 import { CargoFormDialog } from "./CargoFormDialog";
 import { DescargarTarifarioButton } from "./DescargarTarifarioButton";
+import { OrdenTarifarioMenu } from "./OrdenTarifarioMenu";
+import { useOrdenTarifarioMovil } from "./useOrdenTarifarioMovil";
 
 interface Props { tipo: TipoCargo; orgId: string | null; puedeEditar: boolean }
+
+function CargoTarifarioCard({ cargo, entidad, tasaIva, acciones }: {
+  cargo: CargoTarifario; entidad: string; tasaIva: number; acciones?: ReactNode;
+}) {
+  return (
+    <article className="space-y-2">
+      <p className="text-body font-semibold break-words">{cargo.concepto}</p>
+      <p className="text-body-sm text-muted-foreground break-words">{entidad}: {cargo.entidad?.nombre ?? "—"}</p>
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-body-sm">
+        <div>
+          <dt className="text-label text-muted-foreground">Monto</dt>
+          <dd className="break-words tabular-nums">{formatCurrency(cargo.monto, cargo.moneda)}</dd>
+        </div>
+        <div>
+          <dt className="text-label text-muted-foreground">Monto con IVA</dt>
+          <dd className="break-words tabular-nums">
+            {cargo.aplica_iva ? formatCurrency(montoConIva(cargo.monto, true, tasaIva), cargo.moneda) : "No aplica"}
+          </dd>
+        </div>
+        <div className="col-span-2">
+          <dt className="text-label text-muted-foreground">Unidad</dt>
+          <dd className="break-words">{cargo.unidad ?? "—"}</dd>
+        </div>
+      </dl>
+      {acciones && <div className="flex justify-end gap-2">{acciones}</div>}
+    </article>
+  );
+}
 
 export function CargosTab({ tipo, orgId, puedeEditar }: Props) {
   const q = useQuery({ queryKey: costeo.tarifario.cargos(tipo), queryFn: () => listarCargos(tipo) });
@@ -45,6 +78,13 @@ export function CargosTab({ tipo, orgId, puedeEditar }: Props) {
     }
   };
 
+  const acciones = (cargo: CargoTarifario) => (
+    <>
+      <Button size="icon" variant="ghost" aria-label="Editar" onClick={() => setEditando(cargo)}><Pencil className="size-4" /></Button>
+      <Button size="icon" variant="ghost" aria-label="Retirar" onClick={() => setCargoARetirar(cargo)}><Trash2 className="size-4" /></Button>
+    </>
+  );
+
   const columns = defineColumns<CargoTarifario>([
     { id: "entidad", header: etiqueta, accessorFn: (c) => c.entidad?.nombre ?? "—" },
     { accessorKey: "concepto", header: "Concepto" },
@@ -53,20 +93,28 @@ export function CargosTab({ tipo, orgId, puedeEditar }: Props) {
       ? formatCurrency(montoConIva(row.original.monto, true, tasaIva), row.original.moneda) : "No aplica" },
     { accessorKey: "moneda", header: "Moneda" },
     { id: "unidad", header: "Unidad", accessorFn: (c) => c.unidad ?? "—" },
-    ...(puedeEditar ? [{ id: "acciones", header: "Acciones", cell: ({ row }: { row: { original: CargoTarifario } }) => <>
-      <Button size="icon" variant="ghost" aria-label="Editar" onClick={() => setEditando(row.original)}><Pencil className="size-4" /></Button>
-      <Button size="icon" variant="ghost" aria-label="Retirar" onClick={() => setCargoARetirar(row.original)}><Trash2 className="size-4" /></Button>
-    </> }] : []),
+    ...(puedeEditar ? [{ id: "acciones", header: "Acciones", cell: ({ row }: { row: { original: CargoTarifario } }) => acciones(row.original) }] : []),
   ]);
+  const { movil, tabla, data } = useOrdenTarifarioMovil(filas, columns);
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-start justify-end gap-2">
+        {movil && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" type="button" aria-label="Ordenar cargos"><ArrowDownUp aria-hidden /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end"><OrdenTarifarioMenu tabla={tabla} /></DropdownMenuContent>
+          </DropdownMenu>
+        )}
         <DescargarTarifarioButton cargando={q.isFetching} error={q.isError} hayFilas={filas.length > 0}
           onDownload={descargar} />
         {puedeEditar && orgId && <Button onClick={() => setEditando("nuevo")}><Plus className="mr-1 size-4" /> Nuevo cargo</Button>}
       </div>
-      <DataTable columns={columns} data={filas} rowKey={(c) => c.id} isLoading={q.isLoading}
+      <ResponsiveDataTable columns={columns} data={data} rowKey={(c) => c.id} isLoading={q.isLoading}
+        mobileCard={(cargo) => <CargoTarifarioCard cargo={cargo} entidad={etiqueta} tasaIva={tasaIva} acciones={puedeEditar ? acciones(cargo) : undefined} />}
+        density={TABLE_DENSITY.listado}
         isError={q.isError} onRetry={() => { void q.refetch(); }} emptyMessage="Sin cargos capturados." />
       {puedeEditar && cargoARetirar && (
         <ConfirmActionDialog
