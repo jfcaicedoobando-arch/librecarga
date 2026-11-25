@@ -37,7 +37,7 @@ it("ofrece plantilla sin tarifas y conserva el diálogo durante una importación
   mock.crear.mockReturnValueOnce(new Promise<void>((resolve) => { finalizar = resolve; }));
   const archivo = new File(["Origen,Destino"], "tarifas.csv", { type: "text/csv" });
   Object.defineProperty(archivo, "arrayBuffer", { value: async () => new ArrayBuffer(0) });
-  fireEvent.change(screen.getByLabelText("Archivo de tarifas"), { target: { files: [archivo] } });
+  fireEvent.change(screen.getByLabelText("Archivo CSV o Excel"), { target: { files: [archivo] } });
   fireEvent.click(await screen.findByRole("button", { name: /Importar 1 tarifa/ }));
   await waitFor(() => expect(mock.crear).toHaveBeenCalledTimes(1));
   expect(screen.getByRole("status")).toHaveTextContent("Procesadas 0 de 1 tarifas.");

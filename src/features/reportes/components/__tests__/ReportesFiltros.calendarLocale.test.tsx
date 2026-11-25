@@ -15,9 +15,9 @@ describe("Rentabilidad · calendario real en español", () => {
     if (vista === "móvil") {
       fireEvent.click(screen.getByRole("button", { name: /Filtros de fecha y modo/ }));
       fireEvent.click(within(screen.getByRole("dialog", { name: "Filtros de reporte" }))
-        .getByRole("button", { name: "13 oct 2026" }));
+        .getByRole("button", { name: "Abrir calendario de inicio" }));
     } else {
-      fireEvent.click(screen.getByRole("button", { name: "13 oct 2026" }));
+      fireEvent.click(screen.getByRole("button", { name: "Abrir calendario de inicio" }));
     }
     expect(await screen.findByRole("navigation", { name: "Barra de navegación" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Ir al mes siguiente" }));
@@ -33,7 +33,6 @@ describe("Rentabilidad · calendario real en español", () => {
     if (vista === "móvil") {
       expect(onApplyFilters).not.toHaveBeenCalled();
       expect(onFechaDesdeChange).not.toHaveBeenCalled();
-      fireEvent.keyDown(document, { key: "Escape" });
       fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
       expect(onApplyFilters).toHaveBeenCalledExactlyOnceWith({
         fechaDesde: new Date(2026, 9, 14), fechaHasta: new Date(2026, 9, 31), modo: "all",

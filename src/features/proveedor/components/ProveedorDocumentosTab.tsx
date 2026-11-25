@@ -113,23 +113,19 @@ export function ProveedorDocumentosTab({
             </Button>
           )}
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          <DataTable
-            columns={cols}
-            data={documentos}
-            rowKey={(d) => d.id}
-            density={TABLE_DENSITY.embebida}
-            emptyState={
-              <div className="p-6">
-                <EmptyState
-                  icon={FolderOpen}
-                  title="Sin documentos en el expediente"
-                  description="Sube la constancia de situación fiscal, la opinión de cumplimiento y el comprobante de datos bancarios para dejar el expediente completo."
-                />
-              </div>
-            }
-          />
-        </CardContent>
+        {documentos.length === 0 ? (
+          <CardContent>
+            <EmptyState
+              icon={FolderOpen}
+              title="Sin documentos en el expediente"
+              description="Sube la constancia de situación fiscal, la opinión de cumplimiento y el comprobante de datos bancarios para dejar el expediente completo."
+            />
+          </CardContent>
+        ) : (
+          <CardContent className="p-0 overflow-x-auto">
+            <DataTable columns={cols} data={documentos} rowKey={(d) => d.id} density={TABLE_DENSITY.embebida} />
+          </CardContent>
+        )}
       </Card>
 
       {canEdit && (

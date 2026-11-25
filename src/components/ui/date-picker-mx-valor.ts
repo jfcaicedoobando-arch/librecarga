@@ -16,6 +16,7 @@ interface Params {
   max?: string;
   disabled?: boolean;
   readOnly?: boolean;
+  allowClear?: boolean;
 }
 
 function isoInRange(iso: string, min?: string, max?: string): boolean {
@@ -25,7 +26,7 @@ function isoInRange(iso: string, min?: string, max?: string): boolean {
 }
 
 export function useDatePickerMxValor({
-  value, onChange, min, max, disabled, readOnly,
+  value, onChange, min, max, disabled, readOnly, allowClear = true,
 }: Params) {
   const [text, setText] = useState<string>(() => isoToDisplay(value));
   const [invalid, setInvalid] = useState(false);
@@ -45,19 +46,20 @@ export function useDatePickerMxValor({
       // B-038 (v13.320.48): si el ISO cae fuera de rango, purgar el valor
       // controlado del padre para que RHF/Zod detecten fecha vacía en lugar de
       // arrastrar la ISO stale (que pasaba validación silenciosamente).
-      if (value) onChange("");
+      if (value && allowClear) onChange("");
       return false;
     }
     setInvalid(false);
     if (iso !== value) onChange(iso);
     return true;
-  }, [min, max, onChange, value]);
+  }, [allowClear, min, max, onChange, value]);
 
   const commit = useCallback((raw: string) => {
     const trimmed = raw.trim();
     if (!trimmed) {
       setInvalid(false);
-      if (value) onChange("");
+      if (!allowClear) setText(isoToDisplay(value));
+      else if (value) onChange("");
       return;
     }
     const strict = parseDisplay(trimmed);
@@ -70,8 +72,8 @@ export function useDatePickerMxValor({
     }
     setInvalid(true);
     // B-038: texto no parseable — purgar valor previo para no dejar ISO stale.
-    if (value) onChange("");
-  }, [emitIfValid, onChange, value]);
+    if (value && allowClear) onChange("");
+  }, [allowClear, emitIfValid, onChange, value]);
 
   const colocarCaret = (pos: number) => {
     requestAnimationFrame(() => {
@@ -96,7 +98,7 @@ export function useDatePickerMxValor({
     if (masked.length === 10) {
       const iso = parseDisplay(masked);
       if (iso) emitIfValid(iso);
-    } else if (masked.length === 0 && value) {
+    } else if (masked.length === 0 && value && allowClear) {
       onChange("");
     }
   };
@@ -115,11 +117,12 @@ export function useDatePickerMxValor({
       return;
     }
     setInvalid(true);
-    if (value) onChange("");
+    if (value && allowClear) onChange("");
   };
 
 
   const limpiar = () => {
+    if (!allowClear) return;
     setText("");
     setInvalid(false);
     onChange("");

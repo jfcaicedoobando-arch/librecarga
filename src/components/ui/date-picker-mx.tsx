@@ -28,6 +28,8 @@ interface DatePickerMxProps {
   calendarLabel?: string;
   disabled?: boolean;
   readOnly?: boolean;
+  /** Mantiene la última fecha válida cuando el control representa un rango obligatorio. */
+  allowClear?: boolean;
   min?: string;
   max?: string;
   /** Límites del calendario cuando el formulario valida por separado las fechas tecleadas. */
@@ -59,7 +61,7 @@ interface DatePickerMxProps {
  */
 export function DatePickerMx({
   value, onChange, placeholder = PLACEHOLDER_FECHA, className, title, calendarLabel,
-  disabled = false, readOnly = false, min, max, calendarMin, calendarMax, errorText, id, name,
+  disabled = false, readOnly = false, allowClear = true, min, max, calendarMin, calendarMax, errorText, id, name,
   autoFocus = false, avisarInhabil = false, "aria-label": ariaLabel, "aria-describedby": ariaDescribedBy,
   "aria-required": ariaRequired,
 }: DatePickerMxProps) {
@@ -70,7 +72,7 @@ export function DatePickerMx({
   const {
     text, invalid, open, setOpen, inputRef,
     commit, handleChange, handlePaste, clear, onPick, onCalendarClear,
-  } = useDatePickerMxValor({ value, onChange, min, max, disabled, readOnly });
+  } = useDatePickerMxValor({ value, onChange, min, max, disabled, readOnly, allowClear });
 
 
   const showError = invalid || !!errorText;
@@ -138,7 +140,7 @@ export function DatePickerMx({
           className="flex-1 min-w-0 bg-transparent text-body outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed"
         />
 
-        {text && !disabled && !readOnly && (
+        {text && allowClear && !disabled && !readOnly && (
           <button
             type="button"
             tabIndex={-1}

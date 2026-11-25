@@ -63,6 +63,7 @@ export default function TabCompras() {
           <FormField
             label="Monto máximo sin liga a embarque (MXN)"
             hint="Arriba de este monto se pide vincular la factura al embarque o a sus costos"
+            error={valido ? undefined : "Captura un monto mayor o igual a cero."}
           >
             <Input
               type="number"
@@ -74,10 +75,6 @@ export default function TabCompras() {
             />
           </FormField>
         </div>
-
-        {!valido && (
-          <p className="text-xs text-destructive">Captura un monto mayor o igual a cero.</p>
-        )}
 
         <div className="flex justify-end pt-2">
           <Button onClick={handleGuardar} disabled={updateConfig.isPending || !valido}>

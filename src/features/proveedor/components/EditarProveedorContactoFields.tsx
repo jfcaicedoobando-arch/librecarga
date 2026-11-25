@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Enums } from "@/types/db";
 import { MONEDAS_PROVEEDOR as MONEDAS } from "@/constants/proveedorConstants";
 import type { useEditarProveedorController } from "@/features/proveedor/hooks";
-import { FieldError } from "./EditarProveedorFieldError";
+import { FormField } from "@/components/shared/FormField";
 
 type Moneda = Enums<"moneda">;
 
@@ -23,8 +23,7 @@ export default function EditarProveedorContactoFields({ c }: Props) {
         <Label htmlFor="editar-proveedor-contacto">Contacto</Label>
         <Input id="editar-proveedor-contacto" value={c.form.contacto} onChange={(e) => c.setField("contacto", e.target.value)} />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="editar-proveedor-email">Email</Label>
+      <FormField label="Email" error={c.fieldErrorMessage("email") ?? undefined}>
         <Input
           id="editar-proveedor-email"
           type="email"
@@ -32,21 +31,19 @@ export default function EditarProveedorContactoFields({ c }: Props) {
           onChange={(e) => c.setField("email", e.target.value)}
           onBlur={() => c.markTouched("email")}
         />
-        <FieldError message={c.fieldErrorMessage("email")} />
-      </div>
+      </FormField>
       <div className="space-y-2">
         <Label htmlFor="editar-proveedor-telefono">Teléfono</Label>
         <Input id="editar-proveedor-telefono" value={c.form.telefono} onChange={(e) => c.setField("telefono", e.target.value)} />
       </div>
-      <div className="space-y-2">
-        <Label>Moneda Preferida</Label>
+      <FormField label="Moneda preferida">
         <Select value={c.form.moneda_preferida} onValueChange={(v) => c.setField("moneda_preferida", v as Moneda)}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             {MONEDAS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
           </SelectContent>
         </Select>
-      </div>
+      </FormField>
       {/* v13.315.8 (QW2) — días de crédito por defecto para facturas de este proveedor. */}
       <div className="space-y-2">
         <Label htmlFor="editar-proveedor-dias-credito">Días de crédito</Label>

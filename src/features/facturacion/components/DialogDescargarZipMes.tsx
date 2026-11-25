@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { FormField } from "@/components/shared/FormField";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { useOrgActiva } from "@/hooks/shared/useOrgActiva";
 import { descargarZipMensual } from "@/features/facturacion/services/descargarZipMensual";
@@ -20,6 +21,7 @@ import { reportCaughtError } from "@/lib/observability/reportCaughtError";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
 const NOMBRES_MES = [
@@ -46,7 +48,7 @@ function ultimosMeses(cantidad: number): OpcionMes[] {
   return opciones;
 }
 
-export function DialogDescargarZipMes({ open, onOpenChange }: Props) {
+export function DialogDescargarZipMes({ open, onOpenChange, onCloseAutoFocus }: Props) {
   const { organizationId } = useOrgActiva();
   const opciones = useMemo(() => ultimosMeses(13), []);
   const [mesSel, setMesSel] = useState<string>(opciones[1]?.value ?? opciones[0].value);
@@ -86,6 +88,7 @@ export function DialogDescargarZipMes({ open, onOpenChange }: Props) {
       open={open}
       onOpenChange={onOpenChange}
       busy={descargando}
+      onCloseAutoFocus={onCloseAutoFocus}
       icon={FileArchive}
       title="Descargar ZIP del mes (PAC)"
       description="FacturApi genera un paquete con el PDF y XML de todas las facturas, notas de crédito y REPs emitidos en el mes. Ideal para entregar al contador."
@@ -102,10 +105,10 @@ export function DialogDescargarZipMes({ open, onOpenChange }: Props) {
         </>
       }
     >
-      <div className="space-y-2">
-        <label className="text-body-sm font-medium text-muted-foreground">Mes a descargar</label>
+      <FormField label="Mes a descargar"
+        hint="Si el mes tiene muchos CFDI, el PAC puede tardar hasta un minuto en generar el paquete.">
         <Select value={mesSel} onValueChange={setMesSel} disabled={descargando}>
-          <SelectTrigger aria-label="Mes a descargar">
+          <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -114,11 +117,8 @@ export function DialogDescargarZipMes({ open, onOpenChange }: Props) {
             ))}
           </SelectContent>
         </Select>
-        <p className="text-caption text-muted-foreground">
-          Si el mes tiene muchos CFDI, el PAC puede tardar hasta un minuto en generar el paquete.
-        </p>
         {descargando && <p role="status" className="text-body-sm">Generando ZIP del mes seleccionado…</p>}
-      </div>
+      </FormField>
     </FormDialogShell>
   );
 }

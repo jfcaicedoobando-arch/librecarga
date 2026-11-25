@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronDown, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,13 +11,14 @@ export function FacturasExportMenu({ acciones, rangoInvertido }: {
   acciones: FacturasEmitidasProps["acciones"];
   rangoInvertido: boolean;
 }) {
+  const exportarRef = useRef<HTMLButtonElement>(null);
   const [zipMesOpen, setZipMesOpen] = useState(false);
   const filtradosDeshabilitados = rangoInvertido || acciones.exportacionDeshabilitada;
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="shrink-0 gap-2">
+          <Button ref={exportarRef} variant="outline" className="shrink-0 gap-2">
             <Download className="h-4 w-4" />
             <span>{acciones.exportando ? "Exportando…" : "Exportar"}</span>
             <ChevronDown className="h-4 w-4 opacity-60" />
@@ -35,7 +36,12 @@ export function FacturasExportMenu({ acciones, rangoInvertido }: {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <DialogDescargarZipMes open={zipMesOpen} onOpenChange={setZipMesOpen} />
+      <DialogDescargarZipMes open={zipMesOpen} onOpenChange={setZipMesOpen}
+        onCloseAutoFocus={(event) => {
+          if (!exportarRef.current) return;
+          event.preventDefault();
+          exportarRef.current.focus();
+        }} />
     </>
   );
 }

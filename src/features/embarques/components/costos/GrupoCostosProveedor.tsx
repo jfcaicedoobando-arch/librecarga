@@ -3,6 +3,7 @@
  * Muestra: concepto, monto cotizado, facturado, chip narrativo de ajuste,
  * factura(s) ligadas y estado de pago.
  */
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -72,10 +73,8 @@ export function GrupoCostosProveedor({
   }));
 
   return (
-    <div className="border rounded-md overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setAbierto(v => !v)}
+    <Collapsible open={abierto} onOpenChange={setAbierto} className="border rounded-md overflow-hidden">
+      <CollapsibleTrigger type="button"
         className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-muted/40 hover:bg-muted/60 text-left"
       >
         <div className="flex flex-wrap items-center gap-2 min-w-0">
@@ -96,7 +95,7 @@ export function GrupoCostosProveedor({
           conAjuste={conteos.conAjuste}
           sinFactura={conteos.sinFactura}
         />
-      </button>
+      </CollapsibleTrigger>
 
       {!vinculadoACatalogo && proveedorNombre !== "Sin proveedor" && (
         <GrupoCostosProveedorVinculo
@@ -107,8 +106,7 @@ export function GrupoCostosProveedor({
 
 
 
-      {abierto && (
-        <>
+      <CollapsibleContent>
         <GrupoCostosMobileRows
           filas={filasOrdenadas}
           showContenedorCol={showContenedorCol}
@@ -179,8 +177,7 @@ export function GrupoCostosProveedor({
             </TableBody>
           </Table>
         </div>
-        </>
-      )}
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

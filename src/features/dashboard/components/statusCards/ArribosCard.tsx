@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { KpiStrip } from "@/components/shared/KpiStrip";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -136,21 +137,21 @@ export function ArribosCard({ arribosEsteMes, isLoading, hideFinancials = false 
                 isLoading ? (
                   <KpiCard label="Utilidad MXN proyectada" value="" loading />
                 ) : (
-                  <InfoHint
-                    widthClass="w-[min(320px,calc(100vw-2rem))]"
-                    trigger={
-                      <div className="cursor-help">
-                        <KpiCard
-                          label="Utilidad MXN proyectada"
-                          value={formatCurrencyCompact(arribosEsteMes.profitMXN, "MXN")}
-                          valueTooltip={formatCurrency(arribosEsteMes.profitMXN, "MXN")}
-                          icon={TrendingUp}
-                          variant={profitPositivoFlag ? "success" : "destructive"}
-                        />
-                      </div>
-                    }
-                    content={<ProfitTooltipContent data={arribosEsteMes} />}
-                  />
+                  <div className="min-w-0 space-y-1">
+                    <KpiCard
+                      label="Utilidad MXN proyectada"
+                      value={formatCurrencyCompact(arribosEsteMes.profitMXN, "MXN")}
+                      valueTooltip={formatCurrency(arribosEsteMes.profitMXN, "MXN")}
+                      icon={TrendingUp}
+                      variant={profitPositivoFlag ? "success" : "destructive"}
+                    />
+                    <InfoHint
+                      widthClass="w-[min(320px,calc(100vw-2rem))]"
+                      popoverLabel="Desglose de utilidad proyectada"
+                      trigger={<Button type="button" variant="ghost" size="sm">Ver desglose</Button>}
+                      content={<ProfitTooltipContent data={arribosEsteMes} />}
+                    />
+                  </div>
                 )
               )}
             </KpiStrip>

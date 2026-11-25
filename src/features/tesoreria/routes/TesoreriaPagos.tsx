@@ -10,13 +10,14 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { useDocumentTitle } from "@/hooks/shared";
+import { FilteredListEmptyState } from "@/components/empty/FilteredListEmptyState";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { useCuentasBancarias } from "@/features/tesoreria/hooks";
 import { useLibroPagos } from "@/features/tesoreria/hooks/useLibroPagos";
 import { useFiltrosLibroPagosUrl } from "@/features/tesoreria/hooks/useFiltrosLibroPagosUrl";
 import {
-  VISTA_LABELS, etiquetaTipoPagoLibro, filtrarPagos, metodosDisponibles,
+  FILTROS_LIBRO_PAGOS_INICIALES, VISTA_LABELS, etiquetaTipoPagoLibro, filtrarPagos, metodosDisponibles,
   monedasDisponibles, totalesLibroPagos,
   type VistaLibroPagos,
 } from "@/features/tesoreria/domain/libroPagos";
@@ -47,6 +48,11 @@ export default function TesoreriaPagos() {
   const monedas = useMemo(() => monedasDisponibles(pagos), [pagos]);
   const metodos = useMemo(() => metodosDisponibles(pagos), [pagos]);
   const visibles = useMemo(() => filtrarPagos(pagos, filtros), [pagos, filtros]);
+  const filtrosBase = { ...FILTROS_LIBRO_PAGOS_INICIALES, vista: filtros.vista };
+  const hayFiltros = pagos.length > 0 && Object.keys(filtrosBase).some((key) => {
+    const campo = key as keyof typeof filtrosBase;
+    return filtros[campo] !== filtrosBase[campo];
+  });
   const totales = useMemo(() => totalesLibroPagos(visibles), [visibles]);
   const columns = useMemo(() => libroPagosColumns(), []);
   const cuentaActiva = cuentas.find((cuenta) => cuenta.id === filtros.cuentaId);
@@ -112,7 +118,9 @@ export default function TesoreriaPagos() {
           onRetry={() => void refetch()}
           onRowClick={(p) => setPagoAbierto(refPagoDeLibro(p))}
           getRowAriaLabel={(p) => `Ver detalle: ${etiquetaTipoPagoLibro(p)} · ${p.contraparte ?? "la contraparte"} · ${p.referencia || p.documento_folio || formatDate(p.fecha)}`}
-          emptyMessage="No hay pagos registrados con estos filtros."
+          emptyState={<FilteredListEmptyState filtered={hayFiltros}
+            message="No hay pagos registrados para este periodo y vista."
+            onClearFilters={() => actualizarFiltros(filtrosBase)} />}
           mobileCard={(p) => <LibroPagosMobileCard row={p} />}
         />
       </div>
