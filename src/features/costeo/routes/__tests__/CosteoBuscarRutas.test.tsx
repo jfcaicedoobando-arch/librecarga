@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { PuertoOption } from "@/features/catalogos";
 import type { RutaPuertos } from "@/features/costeo/utils/puertosDeRutas";
 import { createWrapper } from "@/test/utils/queryWrapper";
@@ -101,6 +101,9 @@ async function chooseRoute() {
   await choosePort("Puerto de destino", "Destino Beta, Prueba (XXBET)");
   fireEvent.click(screen.getByLabelText("Tipo contenedor"));
   fireEvent.click(within(await screen.findByRole("listbox")).getByText(TIPO.name));
+  await waitFor(() => expect(fixtures.top).toHaveBeenLastCalledWith(expect.objectContaining({
+    puertoOrigenId: A, puertoDestinoId: B, tipoContenedorId: TIPO.id,
+  })));
 }
 
 describe("CosteoBuscar — puertos de rutas registradas", () => {
@@ -166,7 +169,7 @@ describe("CosteoBuscar — puertos de rutas registradas", () => {
     await chooseRoute();
     fixtures.tarifas = [{ id: "tarifa-anterior" }];
     view.rerender(<CosteoBuscar />);
-    expect(screen.getByTestId("cached-rate")).toHaveTextContent("tarifa-anterior");
+    expect(await screen.findByTestId("cached-rate")).toHaveTextContent("tarifa-anterior");
     fixtures.rutas = fixtures.rutas.map((ruta) => ruta.puerto_origen_id === A && ruta.puerto_destino_id === B
       ? { ...ruta, activa: false } : ruta);
     view.rerender(<CosteoBuscar />);
@@ -183,7 +186,7 @@ describe("CosteoBuscar — puertos de rutas registradas", () => {
     await chooseRoute();
     fixtures.tarifas = [{ id: "tarifa-anterior" }];
     view.rerender(<CosteoBuscar />);
-    expect(screen.getByTestId("cached-rate")).toBeInTheDocument();
+    expect(await screen.findByTestId("cached-rate")).toBeInTheDocument();
     fixtures.rutas = [{ puerto_origen_id: C, puerto_destino_id: D, activa: true }];
     view.rerender(<CosteoBuscar />);
     expect(screen.getByLabelText("Puerto de origen")).toHaveTextContent("Buscar puerto de origen…");
