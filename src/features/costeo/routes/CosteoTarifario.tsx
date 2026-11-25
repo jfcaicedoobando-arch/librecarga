@@ -1,5 +1,6 @@
 /** Tarifario: tarifas vigentes, cargos FOB y cargos locales de revalidación. */
 import { PageHeader } from "@/components/shared/PageHeader";
+import { PageContainer } from "@/components/shared/PageContainer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useOrganization } from "@/lib/contexts/OrganizationContext";
@@ -13,7 +14,7 @@ export default function CosteoTarifario() {
   const puedeEditar = esRolPricing(effectiveRole);
 
   return (
-    <div className="space-y-4 p-4 md:p-6">
+    <PageContainer>
       <PageHeader title="Tarifario" description="Tarifas vigentes disponibles al instante para las solicitudes de pricing." />
       <Tabs defaultValue="tarifas">
         <TabsList variant="seccion" className="max-w-full">
@@ -27,6 +28,6 @@ export default function CosteoTarifario() {
         <TabsContent value="fob"><CargosTab tipo="fob" orgId={organizationId} puedeEditar={puedeEditar} /></TabsContent>
         <TabsContent value="locales"><CargosTab tipo="locales" orgId={organizationId} puedeEditar={puedeEditar} /></TabsContent>
       </Tabs>
-    </div>
+    </PageContainer>
   );
 }

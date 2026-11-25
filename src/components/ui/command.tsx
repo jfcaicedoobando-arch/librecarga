@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { dialogSize } from "@/components/shared/utils/dialogTokens";
-import { FIELD_HEIGHT_CLASS } from "@/components/ui/field.tokens";
+import { FIELD_HEIGHT_CLASS, TOUCH_OPTION_HEIGHT_CLASS } from "@/components/ui/field.tokens";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const Command = ({ ref, className, ...props }: React.ComponentPropsWithoutRef<typeof CommandPrimitive> & { ref?: React.Ref<React.ElementRef<typeof CommandPrimitive>> }) => (
@@ -103,6 +103,7 @@ const CommandItem = ({ ref, className, ...props }: React.ComponentPropsWithoutRe
       // izquierda. Nunca fondo sólido: el texto secundario (gris apagado) debe
       // seguir siendo legible encima.
       "group relative flex cursor-default select-none items-center gap-2 rounded-md px-2 py-1.5 text-body outline-hidden transition-colors",
+      TOUCH_OPTION_HEIGHT_CLASS,
       "before:absolute before:left-0 before:top-1 before:bottom-1 before:w-0.5 before:rounded-full before:bg-transparent before:transition-colors",
       "data-[selected=true]:bg-selection data-[selected=true]:text-selection-foreground data-[selected=true]:before:bg-accent",
       "data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50",

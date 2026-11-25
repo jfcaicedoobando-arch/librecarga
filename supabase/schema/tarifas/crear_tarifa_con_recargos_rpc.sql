@@ -61,16 +61,17 @@ BEGIN
   RETURNING * INTO v_row;
 
   INSERT INTO public.costeo_tarifa_recargos (
-    tarifa_id, organization_id, concepto, lado, monto, moneda, base, incluido_en_total, minimo, proveedor
+    tarifa_id, organization_id, concepto, lado, monto, moneda, base, incluido_en_total, minimo, proveedor, ambito, aplica_impuesto
   )
   SELECT
     v_row.id, v_row.organization_id, btrim(r->>'concepto'),
     COALESCE(NULLIF(r->>'lado', ''), 'origen'),
-    (r->>'monto')::numeric, v_moneda,
+    (r->>'monto')::numeric, (CASE WHEN r->>'ambito' = 'local' THEN 'MXN' WHEN r->>'ambito' = 'internacional' THEN 'USD' ELSE v_moneda END),
     CASE WHEN NULLIF(r->>'base', '') = 'por_embarque' THEN 'por_embarque' ELSE 'por_unidad' END,
     COALESCE((r->>'incluido_en_total')::boolean, true),
     NULLIF(NULLIF(r->>'minimo', '')::numeric, 0),
-    NULLIF(btrim(COALESCE(r->>'proveedor', '')), '')
+    NULLIF(btrim(COALESCE(r->>'proveedor', '')), ''),
+    (CASE WHEN (CASE WHEN r->>'ambito' = 'local' THEN 'MXN' WHEN r->>'ambito' = 'internacional' THEN 'USD' ELSE v_moneda END) = 'MXN' THEN 'local' ELSE 'internacional' END), COALESCE((r->>'aplica_impuesto')::boolean, false)
   FROM jsonb_array_elements(COALESCE(p_recargos, '[]'::jsonb)) AS r
   WHERE NULLIF(btrim(COALESCE(r->>'concepto', '')), '') IS NOT NULL
     AND COALESCE((r->>'monto')::numeric, 0) > 0;

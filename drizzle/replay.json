@@ -896,5 +896,13 @@
       "0113_pricing_motivo_perdida.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0114_recargos_local_internacional.sql",
+    "sha256": "607db7123b62df949c0162ede35608a688ae0525b2d9fba1c37bb81b7397e850",
+    "replays": [
+      "0114_recargos_local_internacional.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

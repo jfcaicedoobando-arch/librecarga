@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DialogNuevaFacturaManual } from "../DialogNuevaFacturaManual";
@@ -30,7 +30,13 @@ describe("Nueva factura manual: receptor y acciones visibles", () => {
   it("pide el cliente antes de evaluar compatibilidad y explica el bloqueo por total cero", () => {
     const client = new QueryClient();
     render(<QueryClientProvider client={client}><DialogNuevaFacturaManual open onOpenChange={vi.fn()} /></QueryClientProvider>);
-    expect(screen.getByRole("status")).toHaveTextContent("Falta: cliente");
+    const ayuda = screen.getByRole("status");
+    const acciones = screen.getByRole("group", { name: "Acciones del formulario" });
+    expect(ayuda).toHaveTextContent("Falta: cliente");
+    expect(acciones).not.toContainElement(ayuda);
+    expect(within(acciones).getAllByRole("button").map((boton) => boton.textContent)).toEqual([
+      "Cancelar", "Guardar borrador", "Crear y timbrar",
+    ]);
     expect(screen.getByRole("combobox", { name: "Uso CFDI" })).toHaveAttribute("aria-invalid", "false");
     expect(screen.queryByText(/no es compatible con el régimen fiscal/)).not.toBeInTheDocument();
 

@@ -1,0 +1,229 @@
+ALTER TABLE public.costeo_tarifa_recargos
+  ADD COLUMN IF NOT EXISTS ambito text NOT NULL DEFAULT 'internacional',
+  ADD COLUMN IF NOT EXISTS aplica_impuesto boolean NOT NULL DEFAULT false;
+UPDATE public.costeo_tarifa_recargos SET ambito = 'local' WHERE moneda = 'MXN' AND ambito <> 'local';
+ALTER TABLE public.costeo_tarifa_recargos
+  ADD CONSTRAINT costeo_tarifa_recargos_ambito_valido CHECK (ambito IN ('local','internacional')),
+  ADD CONSTRAINT costeo_tarifa_recargos_ambito_moneda CHECK ((ambito = 'local' AND moneda = 'MXN') OR (ambito = 'internacional' AND moneda = 'USD')) NOT VALID;
+COMMENT ON COLUMN public.costeo_tarifa_recargos.ambito IS 'local = MXN (+IVA opcional); internacional = USD (+VAT opcional).';
+COMMENT ON COLUMN public.costeo_tarifa_recargos.aplica_impuesto IS 'Local: lleva IVA; internacional: el proveedor agrega VAT (informativo).';
+CREATE OR REPLACE FUNCTION public.crear_tarifa_con_recargos_rpc(p_organization_id uuid, p_tarifa jsonb, p_recargos jsonb)
+ RETURNS costeo_tarifas
+ LANGUAGE plpgsql
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_row public.costeo_tarifas;
+  v_modo text := COALESCE(NULLIF(p_tarifa->>'modo', ''), 'Marítimo');
+  v_moneda text := upper(COALESCE(NULLIF(btrim(p_tarifa->>'moneda'), ''), 'USD'));
+  v_escalas text[];
+BEGIN
+  IF v_modo = 'Marítimo' THEN
+    v_moneda := 'USD';
+  ELSIF v_moneda NOT IN ('USD', 'MXN') THEN
+    RAISE EXCEPTION 'Moneda no soportada para tarifa %: %', v_modo, v_moneda USING ERRCODE = '22023';
+  END IF;
+
+  IF jsonb_typeof(p_tarifa->'escalas') = 'array' THEN
+    SELECT array_agg(upper(btrim(e)) ORDER BY o) INTO v_escalas
+    FROM jsonb_array_elements_text(p_tarifa->'escalas') WITH ORDINALITY AS x(e, o)
+    WHERE btrim(e) <> '';
+  END IF;
+
+  INSERT INTO public.costeo_tarifas (
+    organization_id, agente_id, naviera_id, ruta_id, tipo_contenedor_id,
+    flete_base, dias_libres_demoras, vigente_desde, vigente_hasta,
+    transit_time_dias, notas, moneda, estado,
+    solicitud_pricing_id, carta_garantia, unidad_flete,
+    modo, aeropuerto_origen, aeropuerto_destino, aerolinea,
+    origen_cp, destino_cp, origen_ciudad, destino_ciudad, submodalidad, tipo_unidad, minimo, escalas
+  ) VALUES (
+    p_organization_id,
+    NULLIF(p_tarifa->>'agente_id', '')::uuid,
+    NULLIF(p_tarifa->>'naviera_id', '')::uuid,
+    NULLIF(p_tarifa->>'ruta_id', '')::uuid,
+    NULLIF(p_tarifa->>'tipo_contenedor_id', '')::uuid,
+    NULLIF(p_tarifa->>'flete_base', '')::numeric,
+    COALESCE(NULLIF(p_tarifa->>'dias_libres_demoras', '')::integer, 0),
+    NULLIF(p_tarifa->>'vigente_desde', '')::date,
+    NULLIF(p_tarifa->>'vigente_hasta', '')::date,
+    NULLIF(p_tarifa->>'transit_time_dias', '')::integer,
+    NULLIF(p_tarifa->>'notas', ''),
+    v_moneda,
+    'vigente',
+    NULLIF(p_tarifa->>'solicitud_pricing_id', '')::uuid,
+    NULLIF(p_tarifa->>'carta_garantia', '')::boolean,
+    NULLIF(btrim(COALESCE(p_tarifa->>'unidad_flete', '')), ''),
+    v_modo,
+    NULLIF(upper(btrim(COALESCE(p_tarifa->>'aeropuerto_origen', ''))), ''),
+    NULLIF(upper(btrim(COALESCE(p_tarifa->>'aeropuerto_destino', ''))), ''),
+    NULLIF(btrim(COALESCE(p_tarifa->>'aerolinea', '')), ''),
+    NULLIF(btrim(COALESCE(p_tarifa->>'origen_cp', '')), ''),
+    NULLIF(btrim(COALESCE(p_tarifa->>'destino_cp', '')), ''),
+    NULLIF(btrim(COALESCE(p_tarifa->>'origen_ciudad', '')), ''),
+    NULLIF(btrim(COALESCE(p_tarifa->>'destino_ciudad', '')), ''),
+    NULLIF(p_tarifa->>'submodalidad', ''),
+    NULLIF(btrim(COALESCE(p_tarifa->>'tipo_unidad', '')), ''),
+    NULLIF(p_tarifa->>'minimo', '')::numeric,
+    v_escalas
+  )
+  RETURNING * INTO v_row;
+
+  INSERT INTO public.costeo_tarifa_recargos (
+    tarifa_id, organization_id, concepto, lado, monto, moneda, base, incluido_en_total, minimo, proveedor, ambito, aplica_impuesto
+  )
+  SELECT
+    v_row.id, v_row.organization_id, btrim(r->>'concepto'),
+    COALESCE(NULLIF(r->>'lado', ''), 'origen'),
+    (r->>'monto')::numeric, (CASE WHEN r->>'ambito' = 'local' THEN 'MXN' WHEN r->>'ambito' = 'internacional' THEN 'USD' ELSE v_moneda END),
+    CASE WHEN NULLIF(r->>'base', '') = 'por_embarque' THEN 'por_embarque' ELSE 'por_unidad' END,
+    COALESCE((r->>'incluido_en_total')::boolean, true),
+    NULLIF(NULLIF(r->>'minimo', '')::numeric, 0),
+    NULLIF(btrim(COALESCE(r->>'proveedor', '')), ''),
+    (CASE WHEN (CASE WHEN r->>'ambito' = 'local' THEN 'MXN' WHEN r->>'ambito' = 'internacional' THEN 'USD' ELSE v_moneda END) = 'MXN' THEN 'local' ELSE 'internacional' END), COALESCE((r->>'aplica_impuesto')::boolean, false)
+  FROM jsonb_array_elements(COALESCE(p_recargos, '[]'::jsonb)) AS r
+  WHERE NULLIF(btrim(COALESCE(r->>'concepto', '')), '') IS NOT NULL
+    AND COALESCE((r->>'monto')::numeric, 0) > 0;
+
+  INSERT INTO public.costeo_tarifa_tramos (tarifa_id, organization_id, desde_kg, precio)
+  SELECT v_row.id, v_row.organization_id, (t->>'desde_kg')::numeric, (t->>'precio')::numeric
+  FROM jsonb_array_elements(COALESCE(p_tarifa->'tramos', '[]'::jsonb)) AS t
+  WHERE NULLIF(t->>'desde_kg', '') IS NOT NULL AND NULLIF(t->>'precio', '') IS NOT NULL;
+
+  RETURN v_row;
+END;
+$function$;
+CREATE OR REPLACE FUNCTION public.actualizar_tarifa_con_recargos_rpc(p_id uuid, p_tarifa jsonb, p_recargos jsonb)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_org uuid;
+  v_es_agente_dueno boolean := false;
+  v_recargo jsonb;
+  v_id uuid;
+  v_ids uuid[] := ARRAY[]::uuid[];
+  v_concepto text;
+  v_lado text;
+  v_monto numeric;
+BEGIN
+  SELECT organization_id INTO v_org
+  FROM public.costeo_tarifas WHERE id = p_id
+  FOR UPDATE;
+  IF v_org IS NULL THEN
+    RAISE EXCEPTION 'LC_TARIFA_NO_ENCONTRADA';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.costeo_tarifas t
+    WHERE t.id = p_id
+      AND public.has_role(auth.uid(), 'agente_carga'::app_role)
+      AND t.agente_id = public.current_agente_id()
+      AND t.organization_id = public.current_agente_org()
+      AND t.estado_aprobacion = ANY (ARRAY['borrador'::text, 'rechazada'::text])
+  ) INTO v_es_agente_dueno;
+
+  IF auth.uid() IS NOT NULL
+     AND NOT public.is_org_member(v_org)
+     AND NOT v_es_agente_dueno THEN
+    RAISE EXCEPTION 'LC_ORG_AJENA';
+  END IF;
+
+  IF v_es_agente_dueno AND NOT public.is_org_member(v_org) THEN
+    p_tarifa := jsonb_set(
+      COALESCE(p_tarifa, '{}'::jsonb),
+      '{agente_id}',
+      to_jsonb(public.current_agente_id()::text)
+    );
+  END IF;
+
+  UPDATE public.costeo_tarifas SET
+    agente_id = CASE WHEN p_tarifa ? 'agente_id'
+      THEN NULLIF(p_tarifa->>'agente_id', '')::uuid ELSE agente_id END,
+    naviera_id = CASE WHEN p_tarifa ? 'naviera_id'
+      THEN NULLIF(p_tarifa->>'naviera_id', '')::uuid ELSE naviera_id END,
+    ruta_id = CASE WHEN p_tarifa ? 'ruta_id'
+      THEN NULLIF(p_tarifa->>'ruta_id', '')::uuid ELSE ruta_id END,
+    tipo_contenedor_id = CASE WHEN p_tarifa ? 'tipo_contenedor_id'
+      THEN NULLIF(p_tarifa->>'tipo_contenedor_id', '')::uuid ELSE tipo_contenedor_id END,
+    flete_base = CASE WHEN p_tarifa ? 'flete_base'
+      THEN NULLIF(p_tarifa->>'flete_base', '')::numeric ELSE flete_base END,
+    dias_libres_demoras = CASE WHEN p_tarifa ? 'dias_libres_demoras'
+      THEN NULLIF(p_tarifa->>'dias_libres_demoras', '')::integer ELSE dias_libres_demoras END,
+    vigente_desde = COALESCE(NULLIF(p_tarifa->>'vigente_desde', '')::date, vigente_desde),
+    vigente_hasta = COALESCE(NULLIF(p_tarifa->>'vigente_hasta', '')::date, vigente_hasta),
+    transit_time_dias = CASE WHEN p_tarifa ? 'transit_time_dias'
+      THEN NULLIF(p_tarifa->>'transit_time_dias', '')::integer ELSE transit_time_dias END,
+    notas = CASE WHEN p_tarifa ? 'notas'
+      THEN NULLIF(p_tarifa->>'notas', '') ELSE notas END,
+    moneda = 'USD',
+    updated_at = now()
+  WHERE id = p_id;
+
+  FOR v_recargo IN SELECT value FROM jsonb_array_elements(COALESCE(p_recargos, '[]'::jsonb))
+  LOOP
+    v_concepto := btrim(COALESCE(v_recargo->>'concepto', ''));
+    v_monto := COALESCE(NULLIF(v_recargo->>'monto', '')::numeric, 0);
+    IF v_concepto = '' OR v_monto <= 0 THEN CONTINUE; END IF;
+    v_lado := COALESCE(NULLIF(v_recargo->>'lado', ''), 'origen');
+    v_id := NULLIF(v_recargo->>'id', '')::uuid;
+
+    IF v_id IS NULL THEN
+      SELECT r.id INTO v_id
+      FROM public.costeo_tarifa_recargos r
+      WHERE r.tarifa_id = p_id AND r.organization_id = v_org
+        AND r.concepto = v_concepto AND r.lado = v_lado AND r.monto = v_monto
+        AND NOT (r.id = ANY(v_ids))
+      ORDER BY r.created_at, r.id
+      LIMIT 1;
+    END IF;
+
+    IF v_id IS NOT NULL THEN
+      IF v_id = ANY(v_ids) THEN RAISE EXCEPTION 'LC_RECARGO_DUPLICADO'; END IF;
+      UPDATE public.costeo_tarifa_recargos SET
+        concepto = v_concepto,
+        lado = v_lado,
+        monto = v_monto,
+        moneda = (CASE WHEN v_recargo->>'ambito' = 'local' THEN 'MXN' ELSE 'USD' END),
+        ambito = (CASE WHEN v_recargo->>'ambito' = 'local' THEN 'local' ELSE 'internacional' END),
+        aplica_impuesto = CASE WHEN v_recargo ? 'aplica_impuesto' THEN COALESCE((v_recargo->>'aplica_impuesto')::boolean, false) ELSE aplica_impuesto END,
+        base = CASE WHEN NOT (v_recargo ? 'base') THEN base
+          WHEN v_recargo->>'base' = 'por_embarque' THEN 'por_embarque' ELSE 'por_unidad' END,
+        incluido_en_total = COALESCE((v_recargo->>'incluido_en_total')::boolean, true),
+        minimo = CASE WHEN NOT (v_recargo ? 'minimo') THEN minimo
+          ELSE NULLIF(NULLIF(v_recargo->>'minimo', '')::numeric, 0) END,
+        proveedor = CASE WHEN NOT (v_recargo ? 'proveedor') THEN proveedor
+          ELSE NULLIF(btrim(COALESCE(v_recargo->>'proveedor', '')), '') END
+      WHERE id = v_id AND tarifa_id = p_id AND organization_id = v_org;
+      IF NOT FOUND THEN RAISE EXCEPTION 'LC_RECARGO_AJENO_O_INEXISTENTE'; END IF;
+    ELSE
+      INSERT INTO public.costeo_tarifa_recargos (
+        tarifa_id, organization_id, concepto, lado, monto, moneda, base, incluido_en_total, minimo, proveedor, ambito, aplica_impuesto
+      ) VALUES (
+        p_id, v_org, v_concepto, v_lado, v_monto, (CASE WHEN v_recargo->>'ambito' = 'local' THEN 'MXN' ELSE 'USD' END), CASE WHEN NULLIF(v_recargo->>'base', '') = 'por_embarque' THEN 'por_embarque' ELSE 'por_unidad' END,
+        COALESCE((v_recargo->>'incluido_en_total')::boolean, true),
+        NULLIF(NULLIF(v_recargo->>'minimo', '')::numeric, 0),
+        NULLIF(btrim(COALESCE(v_recargo->>'proveedor', '')), ''),
+        (CASE WHEN v_recargo->>'ambito' = 'local' THEN 'local' ELSE 'internacional' END), COALESCE((v_recargo->>'aplica_impuesto')::boolean, false)
+      ) RETURNING id INTO v_id;
+    END IF;
+    v_ids := array_append(v_ids, v_id);
+  END LOOP;
+
+  IF EXISTS (
+    SELECT 1 FROM public.costeo_tarifa_recargos r
+    JOIN public.cotizacion_costos cc ON cc.costeo_tarifa_recargo_id = r.id
+      AND cc.organization_id = v_org AND cc.deleted_at IS NULL
+    WHERE r.tarifa_id = p_id AND r.organization_id = v_org
+      AND NOT (r.id = ANY(v_ids))
+  ) THEN
+    RAISE EXCEPTION 'LC_RECARGO_COTIZADO_NO_ELIMINABLE';
+  END IF;
+
+  DELETE FROM public.costeo_tarifa_recargos
+  WHERE tarifa_id = p_id AND organization_id = v_org
+    AND NOT (id = ANY(v_ids));
+END;
+$function$;

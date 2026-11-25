@@ -3,7 +3,7 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { FIELD_HEIGHT_CLASS, FIELD_STATE_RADIX_CLASS, FIELD_SURFACE_CLASS } from "./field.tokens";
+import { FIELD_HEIGHT_CLASS, FIELD_STATE_RADIX_CLASS, FIELD_SURFACE_CLASS, TOUCH_OPTION_HEIGHT_CLASS } from "./field.tokens";
 
 const Select = SelectPrimitive.Root;
 
@@ -94,6 +94,7 @@ const SelectItem = ({ ref, className, children, ...props }: React.ComponentProps
     ref={ref}
     className={cn(
       "relative flex w-full cursor-default select-none items-center whitespace-normal break-words leading-snug rounded-sm py-1.5 pl-8 pr-2 text-body outline-hidden data-[disabled]:pointer-events-none data-[disabled]:opacity-50 focus:bg-accent focus:text-accent-foreground",
+      TOUCH_OPTION_HEIGHT_CLASS,
       className,
     )}
     {...props}

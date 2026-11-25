@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { KpiStrip } from "@/components/shared/KpiStrip";
 import { Progress } from "@/components/ui/progress";
@@ -8,7 +8,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarDays, TrendingUp, Ship, CheckCircle2 } from "lucide-react";
 import { formatCurrencyCompact, formatCurrency } from "@/lib/formatters";
-import { SectionHeading } from "@/components/shared/SectionHeading";
 import { useIsMobile } from "@/hooks/shared/useIsMobile";
 import { ProfitTooltipContent, CoberturaTooltipContent } from "./ArribosCardTooltips";
 
@@ -102,14 +101,14 @@ export function ArribosCard({ arribosEsteMes, isLoading, hideFinancials = false 
   const profitPositivoFlag = arribosEsteMes.profitMXN >= 0;
 
   return (
-    <div className="rounded-lg border bg-card">
-      <CardContent className="p-4">
+    <Card>
+      <CardContent density="compact">
         <div className="grid grid-cols-1 2xl:grid-cols-[auto_minmax(0,1fr)_auto] 2xl:items-center gap-4 min-w-0">
           <div className="flex items-center gap-2 shrink-0">
             <div className="p-2 rounded-lg bg-linear-to-br/srgb from-primary to-primary/80">
               <CalendarDays className="h-4 w-4 text-primary-foreground" />
             </div>
-            <SectionHeading as="h3" className="inline-flex">Arribos del mes según ETA</SectionHeading>
+            <CardTitle as="h3">Arribos del mes según ETA</CardTitle>
           </div>
 
           <div className="flex-1 min-w-0">
@@ -192,6 +191,6 @@ export function ArribosCard({ arribosEsteMes, isLoading, hideFinancials = false 
           </div>
         </div>
       </CardContent>
-    </div>
+    </Card>
   );
 }

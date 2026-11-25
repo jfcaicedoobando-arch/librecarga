@@ -14,6 +14,9 @@
 /** Alto canónico de un control: 44px en móvil (tap target) y 40px en ≥md. */
 export const FIELD_HEIGHT_CLASS = "h-11 md:h-10";
 
+/** Área táctil de una opción, con densidad natural en escritorio. */
+export const TOUCH_OPTION_HEIGHT_CLASS = "min-h-11 md:min-h-0";
+
 /** Superficie: borde, radio, fondo, padding y sombra. */
 export const FIELD_SURFACE_CLASS =
   "w-full rounded-md border border-input bg-background px-3 py-2 shadow-xs";

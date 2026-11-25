@@ -13,6 +13,36 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useFormDialogCerrar } from "@/components/shared/formDialogCloseContext";
+import { cn } from "@/lib/utils";
+
+interface ActionsProps {
+  cancel: ReactNode;
+  primary: ReactNode;
+  secondary?: ReactNode;
+  help?: ReactNode;
+}
+
+/** Agrupa los botones en el pie del modal y reserva un renglón para la ayuda. */
+export function FormDialogFooterActions({ cancel, primary, secondary, help }: ActionsProps) {
+  return (
+    <div className="grid w-full min-w-0 gap-2">
+      {help && <div className="min-w-0">{help}</div>}
+      <div
+        role="group"
+        aria-label="Acciones del formulario"
+        className={cn(
+          "grid min-w-0 grid-cols-2 gap-2 sm:flex sm:justify-end",
+          "max-sm:[&>button]:h-auto max-sm:[&>button]:min-h-11 max-sm:[&>button]:whitespace-normal max-sm:[&>button]:px-2",
+          Boolean(secondary) && "max-sm:[&>button:last-child]:col-span-2",
+        )}
+      >
+        {cancel}
+        {secondary}
+        {primary}
+      </div>
+    </div>
+  );
+}
 
 interface Props {
   /** id del `<form>` del cuerpo. Si se omite, se usa `onConfirm`. */

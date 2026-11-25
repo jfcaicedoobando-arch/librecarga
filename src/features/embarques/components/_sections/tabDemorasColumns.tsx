@@ -64,7 +64,7 @@ export function buildDemorasColumns(deps: DemorasColumnsDeps): ColumnDef<Editabl
           onChange={(v) => setDraft(row.original.id, { fecha_descarga: v || null })}
           aria-label={`Fecha de descarga, contenedor ${etiquetaContenedor(row.original)}`}
           calendarLabel={`Abrir calendario de descarga, contenedor ${etiquetaContenedor(row.original)}`}
-          className="h-8 w-[160px]"
+          className="w-48 md:h-8 md:w-40"
         />
       ) : formatDate(row.original.fecha_descarga ?? ""),
     },
@@ -77,7 +77,7 @@ export function buildDemorasColumns(deps: DemorasColumnsDeps): ColumnDef<Editabl
           onChange={(v) => setDraft(row.original.id, { fecha_devolucion: v || null })}
           aria-label={`Fecha de devolución, contenedor ${etiquetaContenedor(row.original)}`}
           calendarLabel={`Abrir calendario de devolución, contenedor ${etiquetaContenedor(row.original)}`}
-          className="h-8 w-[160px]"
+          className="w-48 md:h-8 md:w-40"
         />
       ) : formatDate(row.original.fecha_devolucion ?? ""),
     },

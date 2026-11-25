@@ -31,10 +31,10 @@ const ROLES_FINANCIEROS = new Set([
 export default function Dashboard() {
   const { effectiveRole } = useAuth();
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <PageContainer>
       <GuiaPrimerosPasos recordarApertura />
       {effectiveRole && ROLES_FINANCIEROS.has(effectiveRole) ? <FinanceDashboard /> : <OperationalDashboard />}
-    </div>
+    </PageContainer>
   );
 }
 
@@ -49,7 +49,7 @@ function OperationalDashboard() {
 
 
   return (
-    <PageContainer>
+    <div className="space-y-6 short:space-y-4">
       <Seo title="Inicio · Libre Carga" description="Resumen operativo y comercial de tus embarques." />
       <PageHeader
 
@@ -147,6 +147,6 @@ function OperationalDashboard() {
         />
       </CargaGuard>
       </CargaGuard>
-    </PageContainer>
+    </div>
   );
 }

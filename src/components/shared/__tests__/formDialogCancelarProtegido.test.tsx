@@ -15,6 +15,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Button } from "@/components/ui/button";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
+import { FormDialogFooterActions } from "@/components/shared/FormDialogFooter";
 
 const reset = vi.fn();
 const onOpenChange = vi.fn();
@@ -120,4 +121,34 @@ describe("FormDialogCancelarBoton fuera de un FormDialogShell", () => {
     fireEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
     expect(onCancelar).toHaveBeenCalledTimes(1);
   });
+});
+
+it("el pie adaptable con dos acciones conserva la guarda de Cancelar", () => {
+  const onClose = vi.fn();
+  const guardar = vi.fn();
+  render(
+    <FormDialogShell
+      open
+      onOpenChange={onClose}
+      icon={FileText}
+      title="Nueva cuenta bancaria"
+      isDirty
+      footer={
+        <FormDialogFooterActions
+          cancel={<FormDialogCancelarBoton onCancelar={() => onClose(false)} />}
+          primary={<Button type="button" onClick={guardar}>Guardar</Button>}
+        />
+      }
+    >
+      <p>cuerpo</p>
+    </FormDialogShell>,
+  );
+  const cancelar = screen.getByRole("button", { name: /^Cancelar$/ });
+  const acciones = screen.getByRole("group", { name: "Acciones del formulario" });
+  expect(acciones).toContainElement(cancelar);
+  expect(acciones).toContainElement(screen.getByRole("button", { name: /^Guardar$/ }));
+  fireEvent.click(cancelar);
+  expect(confirmacion()).toBeInTheDocument();
+  expect(onClose).not.toHaveBeenCalled();
+  expect(guardar).not.toHaveBeenCalled();
 });

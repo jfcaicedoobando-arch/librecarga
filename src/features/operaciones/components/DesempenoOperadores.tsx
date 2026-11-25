@@ -24,7 +24,7 @@ export function DesempenoOperadores({ operadores, isLoading }: Props) {
   if (isLoading) {
     return (
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
             Desempeño por Operador
@@ -41,7 +41,7 @@ export function DesempenoOperadores({ operadores, isLoading }: Props) {
   if (operadores.length === 0) {
     return (
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
             Desempeño por Operador
@@ -56,7 +56,7 @@ export function DesempenoOperadores({ operadores, isLoading }: Props) {
 
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-4 w-4 text-muted-foreground" />
           Desempeño por Operador

@@ -4,8 +4,7 @@
  */
 import { Table, TableBody, TableHeader, TableCell } from "@/components/ui/table";
 import { DetailTableHead, DetailTableRow } from "@/components/shared/DetailTable";
-import { Card, CardContent } from "@/components/ui/card";
-import { SectionHeading } from "@/components/shared/SectionHeading";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { cn } from "@/lib/utils";
 import { useHorizontalScrollEdges } from "@/components/shared/dataTable/useHorizontalScrollEdges";
@@ -22,11 +21,11 @@ export function TesoreriaFlujoMonedas({ flujo }: Props) {
   const renglones = renglonesFlujoMonedas(flujo);
 
   return (
-    <Card>
-      <CardContent density="compact">
-        <SectionHeading as="h3" className="mb-3">
-          Flujo esperado 30 días por moneda
-        </SectionHeading>
+    <Card className="min-w-0">
+      <CardHeader>
+        <CardTitle>Flujo esperado 30 días por moneda</CardTitle>
+      </CardHeader>
+      <CardContent>
         <div className="relative">
           <div ref={scrollRef} className="overflow-x-auto [scrollbar-width:thin]">
             <Table className="min-w-[480px]">

@@ -91,7 +91,9 @@ BEGIN
         concepto = v_concepto,
         lado = v_lado,
         monto = v_monto,
-        moneda = 'USD',
+        moneda = (CASE WHEN v_recargo->>'ambito' = 'local' THEN 'MXN' ELSE 'USD' END),
+        ambito = (CASE WHEN v_recargo->>'ambito' = 'local' THEN 'local' ELSE 'internacional' END),
+        aplica_impuesto = CASE WHEN v_recargo ? 'aplica_impuesto' THEN COALESCE((v_recargo->>'aplica_impuesto')::boolean, false) ELSE aplica_impuesto END,
         base = CASE WHEN NOT (v_recargo ? 'base') THEN base
           WHEN v_recargo->>'base' = 'por_embarque' THEN 'por_embarque' ELSE 'por_unidad' END,
         incluido_en_total = COALESCE((v_recargo->>'incluido_en_total')::boolean, true),
@@ -103,12 +105,13 @@ BEGIN
       IF NOT FOUND THEN RAISE EXCEPTION 'LC_RECARGO_AJENO_O_INEXISTENTE'; END IF;
     ELSE
       INSERT INTO public.costeo_tarifa_recargos (
-        tarifa_id, organization_id, concepto, lado, monto, moneda, base, incluido_en_total, minimo, proveedor
+        tarifa_id, organization_id, concepto, lado, monto, moneda, base, incluido_en_total, minimo, proveedor, ambito, aplica_impuesto
       ) VALUES (
-        p_id, v_org, v_concepto, v_lado, v_monto, 'USD', CASE WHEN NULLIF(v_recargo->>'base', '') = 'por_embarque' THEN 'por_embarque' ELSE 'por_unidad' END,
+        p_id, v_org, v_concepto, v_lado, v_monto, (CASE WHEN v_recargo->>'ambito' = 'local' THEN 'MXN' ELSE 'USD' END), CASE WHEN NULLIF(v_recargo->>'base', '') = 'por_embarque' THEN 'por_embarque' ELSE 'por_unidad' END,
         COALESCE((v_recargo->>'incluido_en_total')::boolean, true),
         NULLIF(NULLIF(v_recargo->>'minimo', '')::numeric, 0),
-        NULLIF(btrim(COALESCE(v_recargo->>'proveedor', '')), '')
+        NULLIF(btrim(COALESCE(v_recargo->>'proveedor', '')), ''),
+        (CASE WHEN v_recargo->>'ambito' = 'local' THEN 'local' ELSE 'internacional' END), COALESCE((v_recargo->>'aplica_impuesto')::boolean, false)
       ) RETURNING id INTO v_id;
     END IF;
     v_ids := array_append(v_ids, v_id);
