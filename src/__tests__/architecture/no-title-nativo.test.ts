@@ -3,7 +3,7 @@
  *
  * El `title` del navegador no es accesible: no existe en táctil, casi nunca se
  * muestra con foco de teclado y los lectores de pantalla lo duplican o lo
- * ignoran. La app usa la primitiva `Hint` (`src/components/shared/Hint.tsx`),
+ * ignoran. La app usa la primitiva `Hint` (`src/components/ui/hint.tsx`),
  * que muestra un Tooltip de Radix visible con hover y con foco, y deja el
  * nombre accesible en `aria-label`.
  *
@@ -59,7 +59,7 @@ describe("arquitectura · sin atributo title nativo", () => {
     expect(
       total,
       `Se detectaron ${total} atributos \`title\` nativos. Migra a ` +
-        `<Hint label="…"> (src/components/shared/Hint.tsx) y deja el nombre ` +
+        `<Hint label="…"> (src/components/ui/hint.tsx) y deja el nombre ` +
         `accesible en aria-label. Archivos: ${JSON.stringify(porArchivo, null, 2)}`,
     ).toBe(0);
   });

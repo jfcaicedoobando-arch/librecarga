@@ -4,7 +4,7 @@ import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { dialogSize } from "@/components/shared/utils/dialogTokens";
+import { dialogSize } from "@/components/ui/dialog.tokens";
 import { FIELD_HEIGHT_CLASS, TOUCH_OPTION_HEIGHT_CLASS } from "@/components/ui/field.tokens";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 

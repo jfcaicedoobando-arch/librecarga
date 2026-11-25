@@ -11,7 +11,7 @@ import {
 import { PATRON_PERIODO } from "./date-picker-mx-segmentos";
 import { manejarAtajosSegmento } from "./date-picker-mx-teclado";
 import { MonthPickerMxPanel } from "./month-picker-mx-panel";
-import { Hint } from "@/components/shared/Hint";
+import { Hint } from "@/components/ui/hint";
 import { useMonthPickerMxValor, ymADisplay } from "./month-picker-mx-valor";
 
 interface MonthPickerMxProps {

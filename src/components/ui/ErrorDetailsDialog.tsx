@@ -5,7 +5,7 @@ import { Copy, Check, X, FileJson } from "lucide-react";
 import { useErrorReport, useRecoverableErrorReport, closeErrorReport, openErrorReport } from "@/lib/diagnostics/errorDetailsStore";
 import { formatReportMarkdown, formatReportJson, type ErrorReport } from "@/lib/ui/errorReport";
 import { extractErrorDetails } from "@/lib/ui/errorDetailsExtract";
-import { dialogSize } from "@/components/shared/utils/dialogTokens";
+import { dialogSize } from "@/components/ui/dialog.tokens";
 import { cn } from "@/lib/utils";
 
 function ErrorDetailsContent({ report }: { report: ErrorReport }) {

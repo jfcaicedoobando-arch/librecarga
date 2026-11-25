@@ -16,7 +16,7 @@ Referencias de archivo:
 | Escala tipográfica, colores Tailwind, breakpoints | `tailwind.config.ts` |
 | Controles de formulario (alto, borde, foco) | `src/components/ui/field.tokens.ts` |
 | Densidad y hover de tablas | `src/components/shared/dataTable/tableTokens.ts` |
-| Tamaños de modal / sheets | `src/components/shared/utils/dialogTokens.ts` |
+| Tamaños de modal / sheets | `src/components/ui/dialog.tokens.ts` |
 | Colores para gráficas (recharts) | `src/lib/chartTokens.ts` |
 | Colores de PDF | `src/pdf/theme/tokens.ts` |
 
@@ -142,12 +142,12 @@ Reglas:
 - `width="wide"` (`max-w-[1720px]`) sólo para listados densos: Facturación,
   Cobranza, CxP.
 - **Regla O3.14**: todo listado `wide` (denso) declara su estrategia móvil.
-  El patrón por defecto es `ResponsiveDataTable` (`src/components/shared/dataTable/ResponsiveDataTable.tsx`): en `<sm` renderiza
-  tarjetas apiladas vía la prop `mobileCard(row)`; en `≥sm` delega en `DataTable`.
+  El patrón por defecto es `ResponsiveDataTable` (`src/components/shared/dataTable/ResponsiveDataTable.tsx`).
+  Hasta **767 px** renderiza tarjetas mediante `mobileCard(row)`. A partir de **768 px** delega en `DataTable`.
   Aplicado en los listados densos de Facturación (bandejas), CxP y Tesorería.
-  Excepción documentada: tablas que usan `VirtualDataTable` (listas muy largas,
-  ej. conciliación de Tesorería) posponen su vista de tarjetas — quedan pendientes
-  como deuda explícita, no como omisión silenciosa.
+  Las listas muy largas, como Conciliación de Tesorería, pueden usar `VirtualDataTable`.
+  Las tablas fiscales agrupadas, los estados de cuenta, P&L y las matrices editables
+  conservan sus agrupaciones, subtotales o controles. Comparten las piezas de `DetailTable` donde aplican.
 - `noSpacing` cuando la página maneja su propio ritmo vertical.
 - Breakpoint `short:` (`max-height: 800px`) para compactar en laptops de 720p;
   ya está aplicado en `PageContainer` y `PageHeader`.
@@ -284,10 +284,22 @@ Todos los controles comparten tokens de `field.tokens.ts`:
 - `FormDialogSection` da subtítulo + grid responsivo (1 col móvil / 2 col desktop);
   `flat` cuando el hijo maneja su propio layout; `cols={1}` para bloques angostos.
 - Nada de tarjetas con borde o fondos grises dentro del modal: las secciones son planas.
-- Tamaños (`dialogTokens.ts`): `sm` confirmaciones · `md` 1–pocos campos ·
+- Tamaños (`dialog.tokens.ts`): `sm` confirmaciones · `md` 1–pocos campos ·
   `lg` formularios cortos · `xl` medianos · `2xl` largos · `3xl` con tabla o
   preview · `4xl` wizards con tabla anidada. Contenido largo: `scrollableDialog`.
 - Sheets laterales: `mobileFilterSheet` (filtros móviles), `formSheet` (panel form).
+
+### Capas de UI y filtros
+
+- `components/ui` mantiene tokens y primitivas, incluidos `Hint` y los tamaños de diálogo.
+- `components/shared` reúne patrones de presentación cuando dos módulos comparten el mismo comportamiento.
+  Cada módulo controla consultas, permisos, validación, montos y transiciones. La prueba
+  `src/__tests__/architecture/ui-layer-boundaries.test.ts` registra por archivo e importación las
+  dependencias de negocio existentes. Retira cada entrada al migrarla.
+- `components/layout/portal` comparte el menú de usuario y las migas. Cada portal decide sus rutas y accesos.
+  El portal cliente alterna panel y barra de filtros a **640 px**. Aplica cambios inmediatamente y
+  «Listo» cierra el panel. En el ERP «Aplicar» confirma el borrador. Cerrar descarta sus cambios.
+- El sitio público reutiliza los tokens y controles que encajan en su layout. Los PDF usan los tokens de su renderizador.
 
 ---
 

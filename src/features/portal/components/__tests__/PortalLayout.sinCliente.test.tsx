@@ -36,7 +36,7 @@ vi.mock("@/features/portal/hooks/usePortalBreadcrumbs", () => ({
 // quedan fuera del alcance de esta prueba, que sólo cubre la rama de contenido.
 vi.mock("../layout/PortalHeader", () => ({ PortalHeader: () => null }));
 vi.mock("../layout/PortalBottomNav", () => ({ PortalBottomNav: () => null }));
-vi.mock("../layout/PortalBreadcrumbsBar", () => ({ PortalBreadcrumbsBar: () => null }));
+vi.mock("@/components/layout/portal/PortalBreadcrumbsBar", () => ({ PortalBreadcrumbsBar: () => null }));
 
 function renderLayout() {
   return render(

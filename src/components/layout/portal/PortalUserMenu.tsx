@@ -10,22 +10,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User as UserIcon } from "lucide-react";
 import { Link } from "react-router";
-import { ROUTES } from "@/constants/routes";
 
 interface Props {
   initials: string;
   clienteName?: string | null;
   email?: string | null;
   onSignOut: () => void;
-  /**
-   * VT-17: ruta del enlace "Mi perfil". Por defecto apunta al portal cliente
-   * (`ROUTES.PORTAL_PERFIL`); el portal agente pasa `ROUTES.AGENTE_PERFIL`.
-   * Extensión retro-compatible: los consumidores existentes no cambian.
-   */
-  perfilRoute?: string;
+  perfilRoute: string;
 }
 
-export function PortalUserMenu({ initials, clienteName, email, onSignOut, perfilRoute = ROUTES.PORTAL_PERFIL }: Props) {
+export function PortalUserMenu({ initials, clienteName, email, onSignOut, perfilRoute }: Props) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

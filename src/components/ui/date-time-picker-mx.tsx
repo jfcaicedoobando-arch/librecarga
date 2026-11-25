@@ -12,7 +12,7 @@ import {
   PICKER_AYUDA_TECLADO, PLACEHOLDER_FECHA_HORA, pickerAvisoClass, pickerClearClass,
   pickerClearIconClass, pickerErrorClass, pickerIconClass, pickerRootClass, pickerTriggerClass,
 } from "@/components/ui/picker-mx-shell";
-import { Hint } from "@/components/shared/Hint";
+import { Hint } from "@/components/ui/hint";
 import { dateToIso, isoToDate } from "./date-picker-mx-helpers";
 import { PATRON_FECHA_HORA } from "./date-picker-mx-segmentos";
 import { manejarAtajosSegmento } from "./date-picker-mx-teclado";

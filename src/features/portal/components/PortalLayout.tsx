@@ -6,7 +6,7 @@ import { usePortalClienteName, usePortalOrgName, usePortalClientUsers } from "@/
 import { PortalSinCliente } from "./PortalSinCliente";
 import { APP_VERSION } from "@/constants/appVersion";
 import { PortalHeader } from "./layout/PortalHeader";
-import { PortalBreadcrumbsBar } from "./layout/PortalBreadcrumbsBar";
+import { PortalBreadcrumbsBar } from "@/components/layout/portal/PortalBreadcrumbsBar";
 import { PortalBottomNav } from "./layout/PortalBottomNav";
 import { usePortalBreadcrumbs } from "@/features/portal/hooks/usePortalBreadcrumbs";
 import { getActiveSectionLabel } from "./layout/portalNav";

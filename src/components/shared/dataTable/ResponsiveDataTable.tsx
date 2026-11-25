@@ -29,7 +29,7 @@ import type {
  *
  * O3.14: props de sólo-desktop (`stickyHeader`, `columnVisibility`,
  * `rowSelection`, `initialSort`, `striped`, `hoverable`, `bordered`,
- * `tableClassName`) se pasan tal cual a `DataTable` en `≥sm` y se ignoran en
+ * `tableClassName`) se pasan tal cual a `DataTable` en `≥md` y se ignoran en
  * móvil (no aplican a una lista de tarjetas). `isError`/`onRetry` y `footer`
  * sí se replican en móvil para no perder el estado de error ni los totales.
  */
