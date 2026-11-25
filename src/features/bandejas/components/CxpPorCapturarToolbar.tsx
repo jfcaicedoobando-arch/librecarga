@@ -3,6 +3,7 @@
  * Buscador, chips de filtro, ordenamiento y contador.
  */
 import { ArrowDownAZ, ArrowUpZA, X } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import SearchInput from "@/components/shared/SearchInput";
 import { Button } from "@/components/ui/button";
 import { pluralizar } from "@/lib/format/pluralizar";
@@ -48,23 +49,17 @@ function ChipGroup<T extends string>({
   return (
     <div className="flex items-center gap-1.5">
       <span className="text-xs font-medium text-muted-foreground">{label}:</span>
-      <div className="flex flex-wrap gap-1">
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            onClick={() => onChange(o.value)}
-            className={
-              "px-2.5 py-1 text-xs rounded-full border transition-colors " +
-              (value === o.value
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-background hover:bg-muted border-input text-foreground/80")
-            }
-          >
-            {o.label}
-          </button>
+      <ToggleGroup type="single" value={value} aria-label={label} className="flex-wrap justify-start"
+        onValueChange={(next) => {
+          const option = options.find((item) => item.value === next);
+          if (option) onChange(option.value);
+        }}>
+        {options.map((option) => (
+          <ToggleGroupItem key={option.value} value={option.value} className="min-h-11 md:min-h-8">
+            {option.label}
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
     </div>
   );
 }

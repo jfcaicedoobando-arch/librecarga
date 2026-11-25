@@ -31,10 +31,8 @@ const mount = () => render(<MemoryRouter initialEntries={[initial]}><Nav /><Rout
 const open = () => fireEvent.click(screen.getByRole("button", { name: /Filtros de fecha y modo/ }));
 const chooseFuture = () => {
   const sheet = screen.getByRole("dialog", { name: "Filtros de reporte" });
-  fireEvent.click(within(sheet).getByRole("button", { name: "15 oct 2026" }));
+  fireEvent.click(within(sheet).getByRole("button", { name: "Abrir calendario de inicio" }));
   fireEvent.click(screen.getByRole("button", { name: "Elegir 10 noviembre" }));
-  // Escape closes only the calendar, then the sheet can be cancelled/applied.
-  fireEvent.keyDown(document, { key: "Escape" });
 };
 describe("136 draft filters and 137 navigation", () => {
   it.each(["Cerrar", "Escape"])("discards crossed dates via %s without changing applied filters or URL", (dismiss) => {
@@ -46,7 +44,7 @@ describe("136 draft filters and 137 navigation", () => {
     expect(screen.queryByRole("dialog", { name: "Filtros de reporte" })).not.toBeInTheDocument();
     expect(screen.getByTestId("applied")).toHaveTextContent("2026-10-15|2026-10-20|Terrestre");
     open();
-    expect(within(screen.getByRole("dialog", { name: "Filtros de reporte" })).getByRole("button", { name: "15 oct 2026" })).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog", { name: "Filtros de reporte" })).getByRole("textbox", { name: "Desde" })).toHaveValue("15/10/2026");
   });
   it("commits the adjusted date pair together only on Aplicar", () => {
     mount(); open(); chooseFuture();
@@ -57,9 +55,8 @@ describe("136 draft filters and 137 navigation", () => {
   it("discards the inverse crossing and keeps a previously applied selection on repeated reopening", () => {
     mount(); open();
     const sheet = screen.getByRole("dialog", { name: "Filtros de reporte" });
-    fireEvent.click(within(sheet).getByRole("button", { name: "20 oct 2026" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Abrir calendario de fin" }));
     fireEvent.click(screen.getByRole("button", { name: "Elegir 5 septiembre" }));
-    fireEvent.keyDown(document, { key: "Escape" });
     fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
     expect(screen.getByTestId("applied")).toHaveTextContent("2026-10-15|2026-10-20|Terrestre");
     open(); chooseFuture();

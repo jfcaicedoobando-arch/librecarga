@@ -92,6 +92,7 @@ export default function ProformasFiltros(props: Props) {
         {/* Mobile + tableta (<lg): search + Filtros (todos) — evita que los selects se aplasten en 768px */}
         <div className="flex gap-2 lg:hidden">
           <SearchInput
+            id="proformas-filtros-buscar"
             value={props.search}
             onChange={props.onSearchChange}
             placeholder="Buscar proformas…"

@@ -2,9 +2,7 @@
  * Chips de filtros activos para el listado de Proformas.
  * Mismo patrón que `EmbarquesFiltrosChips`.
  */
-import { X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { ActiveFilterChips } from "@/components/shared/ActiveFilterChips";
 import { formatDate } from "@/lib/formatters";
 import { LABEL_ESTADO_UNIFICADO, type EstadoUnificadoProforma } from "@/lib/domain/estadoUnificado";
 
@@ -77,37 +75,6 @@ export function ProformasFiltrosChips(props: ProformasFiltrosChipsProps) {
     });
   }
 
-  if (chips.length === 0) return null;
-
-  return (
-    <div className="flex items-center flex-wrap gap-2 pt-3 mt-3 border-t border-border">
-      <span className="text-body-sm font-medium text-muted-foreground">Activos:</span>
-      {chips.map((chip) => (
-        <Badge
-          key={chip.key}
-          variant="secondary"
-          className="gap-1 pr-1 pl-2 py-1 text-body-sm font-normal"
-        >
-          <span className="text-muted-foreground">{chip.label}:</span>
-          <span className="font-medium truncate max-w-[180px]">{chip.value}</span>
-          <button
-            type="button"
-            onClick={chip.onRemove}
-            aria-label={`Quitar filtro ${chip.label}`}
-            className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-sm hover:bg-background/60 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </Badge>
-      ))}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={props.onClearAll}
-        className="ml-auto h-7 px-2 text-body-sm text-muted-foreground hover:text-foreground"
-      >
-        Limpiar todo
-      </Button>
-    </div>
-  );
+  return <ActiveFilterChips chips={chips} onClearAll={props.onClearAll} searchId="proformas-filtros-buscar"
+    className="mt-3 border-t border-border pt-3" />;
 }

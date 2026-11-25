@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/formatters/numbers";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/shared/FormField";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PortSelect from "@/features/catalogos/components/PortSelect";
@@ -85,51 +86,43 @@ export function StepDatosRutaMaritimo({ errors, cotizacionAgenteId, cotizacionNa
 
   return (
     <>
-      <div className="space-y-2">
-        <Label>Puerto de origen *</Label>
-        <Controller name="puertoOrigen" render={({ field }) => (
+      <Controller name="puertoOrigen" render={({ field }) => (
+        <FormField label="Puerto de origen" required error={errors.puertoOrigen}>
           <PortSelect
             value={field.value}
             onValueChange={(v, id) => { field.onChange(v); seleccionarPuerto('puertoOrigenId', id); }}
             placeholder="Seleccionar puerto origen"
             className={cn(errors.puertoOrigen && 'border-destructive')}
-            aria-invalid={errors.puertoOrigen ? true : undefined}
           />
-        )} />
-        {errors.puertoOrigen && <p className={errClass}>{errors.puertoOrigen}</p>}
-      </div>
-      <div className="space-y-2">
-        <Label>Puerto de destino *</Label>
-        <Controller name="puertoDestino" render={({ field }) => (
+        </FormField>
+      )} />
+      <Controller name="puertoDestino" render={({ field }) => (
+        <FormField label="Puerto de destino" required error={errors.puertoDestino}>
           <PortSelect
             value={field.value}
             onValueChange={(v, id) => { field.onChange(v); seleccionarPuerto('puertoDestinoId', id); }}
             placeholder="Seleccionar puerto destino"
             className={cn(errors.puertoDestino && 'border-destructive')}
-            aria-invalid={errors.puertoDestino ? true : undefined}
           />
-        )} />
-        {errors.puertoDestino && <p className={errClass}>{errors.puertoDestino}</p>}
-      </div>
+        </FormField>
+      )} />
       <NavieraEmbarqueSelector cotizacionNavieraId={cotizacionNavieraId} />
       <AgenteEmbarqueSelector cotizacionAgenteId={cotizacionAgenteId} />
       <div className="space-y-2"><Label htmlFor="emb-bl-master"># BL Master</Label><Input id="emb-bl-master" placeholder="Número de BL" {...register('blMaster')} /></div>
       <div className="space-y-2"><Label htmlFor="emb-bl-house"># BL House</Label><Input id="emb-bl-house" {...register('blHouse')} /></div>
-      <div className="space-y-2">
-        <Label>Tipo de Servicio *</Label>
-        <Controller name="tipoServicio" render={({ field }) => (
+      <Controller name="tipoServicio" render={({ field }) => (
+        <FormField label="Tipo de servicio" required error={errors.tipoServicio}>
           <Select value={field.value} onValueChange={handleTipoServicioChange}>
             <SelectTrigger
-              aria-invalid={errors.tipoServicio ? true : undefined}
+              aria-required
               className={cn(errors.tipoServicio && 'border-destructive')}
             >
               <SelectValue placeholder="FCL / LCL" />
             </SelectTrigger>
             <SelectContent><SelectItem value="FCL">FCL</SelectItem><SelectItem value="LCL">LCL</SelectItem></SelectContent>
           </Select>
-        )} />
-        {errors.tipoServicio && <p className={errClass}>{errors.tipoServicio}</p>}
-      </div>
+        </FormField>
+      )} />
       <div className="space-y-2 md:col-span-2">
         <Label>Contenedores *</Label>
         {tipoServicio === 'LCL' ? (

@@ -96,7 +96,7 @@ export function CxpFiltros(props: CxpFiltrosProps) {
     <div className="space-y-0">
       <Sheet open={draft.open} onOpenChange={draft.onOpenChange}>
         <div className="flex gap-2 md:items-center md:flex-wrap">
-          <SearchInput value={props.search} onChange={props.onSearchChange}
+          <SearchInput id="cxp-filtros-buscar" value={props.search} onChange={props.onSearchChange}
             placeholder="Buscar folio o proveedor…" className="flex-1 min-w-0 md:min-w-[220px]" />
           <div className="hidden md:flex flex-col gap-0.5 shrink-0">
             <span className="px-1 text-overline text-muted-foreground short:sr-only">Origen</span>

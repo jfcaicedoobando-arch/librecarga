@@ -1,7 +1,10 @@
-import { useState, useCallback, useMemo } from "react";
-import { NavLink, Outlet } from "react-router";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { NavLink, Outlet, useLocation } from "react-router";
 import { Target, Activity, BarChart3, LayoutDashboard, Settings, Sun, ShieldCheck, Building2, UserRound, SlidersHorizontal, Gauge, Presentation, Handshake } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HorizontalScrollFades } from "@/components/shared/dataTable/HorizontalScrollFades";
+import { useHorizontalScrollEdges } from "@/components/shared/dataTable/useHorizontalScrollEdges";
+import { revelarElementoHorizontal } from "@/components/shared/utils/revelarElementoHorizontal";
 import { Badge } from "@/components/ui/badge";
 import { useActividadesVencidasCount } from "@/features/crm/hooks";
 import { useCrmHotkeys } from "@/features/crm/hooks";
@@ -24,6 +27,15 @@ const TABS = [
 ];
 
 export default function CrmLayout() {
+  const { pathname } = useLocation();
+  const { ref: navRef, ...scrollEdges } = useHorizontalScrollEdges<HTMLElement>();
+
+  useEffect(() => {
+    const nav = navRef.current;
+    const enlace = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (nav && enlace) revelarElementoHorizontal(nav, enlace);
+  }, [navRef, pathname]);
+
   const { data: vencidas = 0 } = useActividadesVencidasCount();
   const {
     canConfigurarCrm, canCrearLead, canCrearOportunidad, canCrearActividad,
@@ -60,8 +72,9 @@ export default function CrmLayout() {
             layout apila tabs y acciones en columnas <sm y las acciones quedan
             en su propia franja, sin overlap. */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-0 px-2 sm:px-6 sm:h-11">
-          <nav
-            className="flex items-center gap-1 overflow-x-auto snap-x flex-1 min-w-0 h-11 -mb-px [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          <div className="relative flex-1 min-w-0">
+          <nav ref={navRef}
+            className="flex items-center gap-1 overflow-x-auto h-11 -mb-px [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             aria-label="Secciones del CRM"
           >
             {TABS.map((t) => {
@@ -74,7 +87,7 @@ export default function CrmLayout() {
                   className={({ isActive }) =>
                     cn(
                       tabsUnderlineTriggerClass,
-                      "h-11 pb-0 gap-2 shrink-0 snap-start",
+                      "h-11 pb-0 gap-2 shrink-0",
                       isActive ? "text-foreground" : "text-muted-foreground",
                     )
                   }
@@ -90,6 +103,8 @@ export default function CrmLayout() {
               );
             })}
           </nav>
+          <HorizontalScrollFades {...scrollEdges} />
+          </div>
           <div className="flex items-center justify-end gap-2 shrink-0 py-1 sm:py-0 sm:pl-2 border-t sm:border-t-0 sm:border-l border-border/60">
             {puedeAlgunaAlta && <QuickAddMenu openTrigger={openTrigger} dialogTrigger={dialogTrigger} />}
             {/* Ola 6 (O6.3): el ícono de configuración sigue el mismo permiso

@@ -20,7 +20,7 @@ import { sync as globSync } from "fast-glob";
  * 907 ocurrencias al 2026-08-31 (el baseline previo, 900, mentía por abajo).
  */
 // v13.777.7 — baseline recontado tras la migración de estados vacíos/tipografía.
-const DEUDA_CONGELADA = 921;
+const DEUDA_CONGELADA = 909;
 const HOLGURA = 10;
 const MAX_PAR_LARGO = DEUDA_CONGELADA + HOLGURA;
 

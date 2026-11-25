@@ -5,6 +5,7 @@
  */
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { FacturapiAmbiente } from "@/features/configuracion/services/facturapiCredenciales";
@@ -48,21 +49,23 @@ export default function FacturapiCredencialesForm(props: Props) {
       </Alert>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Ambiente activo</Label>
-          <div className="flex items-center gap-3">
-            <span className={ambiente === "sandbox" ? "font-medium" : "text-muted-foreground"}>Sandbox</span>
-            <Switch
-              checked={ambiente === "live"}
-              onCheckedChange={(v) => setAmbiente(v ? "live" : "sandbox")}
-              aria-label="Cambiar ambiente"
-            />
-            <span className={ambiente === "live" ? "font-medium" : "text-muted-foreground"}>Producción</span>
-          </div>
-          <p className="text-label text-muted-foreground">
+        <fieldset className="space-y-2">
+          <legend id="facturapi-ambiente-avanzado" className="text-body font-medium">Ambiente activo</legend>
+          <RadioGroup value={ambiente} aria-labelledby="facturapi-ambiente-avanzado"
+            aria-describedby="facturapi-ambiente-ayuda" onValueChange={(value) => {
+              if (value === "live" || value === "sandbox") setAmbiente(value);
+            }}>
+            <Label htmlFor="facturapi-avanzado-sandbox" className="flex items-center gap-2 rounded border p-3">
+              <RadioGroupItem id="facturapi-avanzado-sandbox" value="sandbox" /> Sandbox (pruebas)
+            </Label>
+            <Label htmlFor="facturapi-avanzado-live" className="flex items-center gap-2 rounded border p-3">
+              <RadioGroupItem id="facturapi-avanzado-live" value="live" /> Producción
+            </Label>
+          </RadioGroup>
+          <p id="facturapi-ambiente-ayuda" className="text-label text-muted-foreground">
             Define qué API key usar al timbrar. Empieza siempre en Sandbox.
           </p>
-        </div>
+        </fieldset>
 
         <div className="space-y-2">
           <Label htmlFor="facturapi_org_id">Organization ID en FacturApi (opcional)</Label>

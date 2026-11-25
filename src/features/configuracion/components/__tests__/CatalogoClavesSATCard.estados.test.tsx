@@ -2,11 +2,26 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { CatalogoClavesSATCard } from "../CatalogoClavesSATCard";
 
-const mocks = vi.hoisted(() => ({ catalogo: vi.fn(), refetch: vi.fn() }));
+const mocks = vi.hoisted(() => ({ catalogo: vi.fn(), refetch: vi.fn(), mobile: vi.fn(() => false) }));
+vi.mock("@/hooks/shared/useIsMobile", () => ({ useIsMobile: mocks.mobile }));
 vi.mock("@/features/configuracion/hooks/useCatalogoClavesSATController", () => ({
   useCatalogoClavesSATController: mocks.catalogo,
 }));
 vi.mock("@/features/configuracion/hooks/useIvaFrontera", () => ({ useIvaFronteraHabilitada: () => false }));
+
+it("abre el alta móvil en un diálogo y conserva sus validaciones", () => {
+  mocks.mobile.mockReturnValue(true);
+  mocks.catalogo.mockReturnValue({ rows: [], addMut: {}, updateMut: {}, deleteMut: {} });
+  render(<CatalogoClavesSATCard />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Nuevo producto" }));
+  expect(screen.getByRole("dialog", { name: "Nuevo producto" })).toBeVisible();
+  expect(screen.getByRole("combobox", { name: /Unidad SAT/ })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Guardar producto" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Cancelar edición" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  mocks.mobile.mockReturnValue(false);
+});
 
 it("ofrece reintento cuando falla el catálogo y permite un alta tras una lectura exitosa vacía", () => {
   const base = { rows: [], addMut: {}, updateMut: {}, deleteMut: {}, refetch: mocks.refetch };

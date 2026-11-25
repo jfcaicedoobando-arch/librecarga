@@ -6,6 +6,7 @@
  *   - Restringir qué productos/servicios pueden capturarse en cotizaciones
  *     (modo estricto: sólo productos del catálogo).
  */
+import { useIsMobile } from "@/hooks/shared/useIsMobile";
 import { useMemo, useState } from "react";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import { useCatalogoClavesSATController } from "@/features/configuracion/hooks/useCatalogoClavesSATController";
@@ -40,19 +41,10 @@ function BusquedaProductos({ valor, onChange }: { valor: string; onChange: (v: s
   );
 }
 
-export function CatalogoClavesSATCard() {
-  const { rows, isLoading, isError, isFetching, refetch, addMut, updateMut, deleteMut } = useCatalogoClavesSATController();
+function useEdicionCatalogoSAT({ rows, addMut, updateMut, deleteMut }: ReturnType<typeof useCatalogoClavesSATController>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [showNew, setShowNew] = useState(false);
-  const [busqueda, setBusqueda] = useState("");
-  const filtro = busqueda.trim().toLocaleLowerCase("es-MX");
-  const filasVisibles = rows.filter((r) =>
-    r.id === editingId || `${r.patron} ${r.clave_sat}`.toLocaleLowerCase("es-MX").includes(filtro),
-  );
-  // UX-01: eliminar exige confirmación de doble paso.
-  const [rowAEliminar, setRowAEliminar] = useState<Row | null>(null);
-
   const busy = addMut.isPending || updateMut.isPending || deleteMut.isPending;
 
   const editando = editingId !== null || showNew;
@@ -76,9 +68,42 @@ export function CatalogoClavesSATCard() {
     addMut.mutate(draft, { onSuccess: () => { setShowNew(false); setDraft(EMPTY_DRAFT); } });
   };
 
+  const rowEditada = rows.find((row) => row.id === editingId);
+  const cancelarAlta = () => { setShowNew(false); setDraft(EMPTY_DRAFT); };
+  const cancelarEdicion = () => setEditingId(null);
+
   const handleUpdate = () => {
     updateMut.mutate({ id: editingId as string, d: draft }, { onSuccess: () => setEditingId(null) });
   };
+
+  return { editingId, draft, setDraft, showNew, busy, editando, startEdit, validDraft, rowEditada,
+    abrirAlta: () => { setShowNew(true); setDraft(EMPTY_DRAFT); },
+    cancelarAlta, cancelarEdicion, handleAdd, handleUpdate };
+}
+
+function EditorMovil({ edicion }: { edicion: ReturnType<typeof useEdicionCatalogoSAT> }) {
+  const { draft, setDraft, busy, validDraft, showNew, rowEditada, cancelarAlta, cancelarEdicion, handleAdd, handleUpdate } = edicion;
+  if (!showNew && !rowEditada) return null;
+  return <EditRow draft={draft} setDraft={setDraft} busy={busy} valid={validDraft}
+    dialogTitle={showNew ? "Nuevo producto" : "Editar producto"}
+    tipoIvaOriginal={rowEditada?.tipo_iva}
+    onCancel={showNew ? cancelarAlta : cancelarEdicion}
+    onSave={showNew ? handleAdd : handleUpdate} />;
+}
+
+export function CatalogoClavesSATCard() {
+  const isMobile = useIsMobile();
+  const consulta = useCatalogoClavesSATController();
+  const { rows, isLoading, isError, isFetching, refetch, deleteMut } = consulta;
+  const edicion = useEdicionCatalogoSAT(consulta);
+  const { editingId, draft, setDraft, showNew, busy, editando, startEdit, validDraft,
+    abrirAlta, cancelarAlta, cancelarEdicion, handleAdd, handleUpdate } = edicion;
+  const [rowAEliminar, setRowAEliminar] = useState<Row | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const filtro = busqueda.trim().toLocaleLowerCase("es-MX");
+  const filasVisibles = rows.filter((r) =>
+    r.id === editingId || `${r.patron} ${r.clave_sat}`.toLocaleLowerCase("es-MX").includes(filtro),
+  );
 
   return (
     <Card>
@@ -91,7 +116,7 @@ export function CatalogoClavesSATCard() {
             y al facturar se usa esta información automáticamente.
           </CardDescription>
         </div>
-        <Button size="sm" variant="outline" onClick={() => { setShowNew(true); setDraft(EMPTY_DRAFT); }} disabled={editando || busy || isLoading || isError}>
+        <Button size="sm" variant="outline" onClick={abrirAlta} disabled={editando || busy || isLoading || isError}>
           <Plus className="h-4 w-4 mr-1" /> Nuevo producto
         </Button>
       </CardHeader>
@@ -102,10 +127,10 @@ export function CatalogoClavesSATCard() {
           <BusquedaProductos valor={busqueda} onChange={setBusqueda} />
         )}
         <CatalogoClavesSATTabla estado={estadoTabla(isLoading, rows.length, filasVisibles.length, showNew)} ocultar={isError}>
-          {filasVisibles.map((r) => editingId === r.id ? (
+          {filasVisibles.map((r) => !isMobile && editingId === r.id ? (
             <EditRow key={r.id} draft={draft} setDraft={setDraft} busy={busy} valid={validDraft}
                      tipoIvaOriginal={r.tipo_iva}
-                     onCancel={() => setEditingId(null)}
+                     onCancel={cancelarEdicion}
                      onSave={handleUpdate} />
           ) : (
             <DetailTableRow key={r.id}>
@@ -124,13 +149,14 @@ export function CatalogoClavesSATCard() {
               </TableCell>
             </DetailTableRow>
           ))}
-          {showNew && (
+          {showNew && !isMobile && (
             <EditRow draft={draft} setDraft={setDraft} busy={busy} valid={validDraft}
-                     onCancel={() => { setShowNew(false); setDraft(EMPTY_DRAFT); }}
+                     onCancel={cancelarAlta}
                      onSave={handleAdd} />
           )}
         </CatalogoClavesSATTabla>
       </CardContent>
+      {isMobile && <EditorMovil edicion={edicion} />}
       <DoubleConfirmDeleteDialog
         open={!!rowAEliminar}
         onOpenChange={(open) => { if (!open) setRowAEliminar(null); }}

@@ -2,6 +2,8 @@
 import { useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/shared/FormField";
+import { Input } from "@/components/ui/input";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { useOrganization } from "@/lib/contexts/OrganizationContext";
 import { fetchPuertos, fetchNavieras, fetchTiposContenedor } from "@/features/catalogos/services";
@@ -100,8 +102,10 @@ export function ImportarTarifasDialog({ open, onOpenChange, onDone }: Props) {
           onClick={() => exportToCsv("plantilla-tarifas.csv", ENCABEZADOS_TARIFARIO, [])}>
           Descargar plantilla CSV
         </Button>
-        <input type="file" className="block" accept=".csv,.xlsx,.xls" aria-label="Archivo de tarifas" disabled={cargando}
-          onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} />
+        <FormField label="Archivo CSV o Excel">
+          <Input type="file" accept=".csv,.xlsx,.xls" disabled={cargando}
+            onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} />
+        </FormField>
         {cargando && !prep && <p>Leyendo archivo…</p>}
         {prep && <p>Listas para importar: <strong>{prep.tarifas.length}</strong> tarifa(s). Renglones con error: <strong>{prep.errores.length}</strong> (se omiten).</p>}
         {procesadas !== null && prep && <p role="status">Procesadas {procesadas} de {prep.tarifas.length} tarifas.</p>}
