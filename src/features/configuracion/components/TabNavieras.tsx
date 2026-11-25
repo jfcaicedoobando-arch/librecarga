@@ -1,5 +1,3 @@
-import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
-import { CatalogQueryError } from "@/components/shared/CatalogQueryError";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,13 +6,12 @@ import { Button } from "@/components/ui/button";
 import { SwitchVisibilidadOrg } from "./SwitchVisibilidadOrg";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useAllNavieras, useAdminNavieras } from "@/features/catalogos/hooks";
-import SearchInput from "@/components/shared/SearchInput";
+import { CatalogListPanel } from "./CatalogListPanel";
 import { normalizarBusqueda } from "@/lib/text/normalizarBusqueda";
-import { DataTable, defineColumns, type ColumnDef } from "@/components/shared/DataTable";
+import { defineColumns, type ColumnDef } from "@/components/shared/DataTable";
 import { NavieraFormDialog } from "@/components/shared/NavieraFormDialog";
 import DoubleConfirmDeleteDialog from "@/components/shared/DoubleConfirmDeleteDialog";
 import type { Naviera } from "@/features/catalogos/services";
-import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { usePermissions } from "@/hooks/shared";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { puedeDarAltaCatalogo } from "../domain/permisosCatalogo";
@@ -23,7 +20,8 @@ import { puedeDarAltaCatalogo } from "../domain/permisosCatalogo";
 const visibleOrg = (n: Naviera) => n.activoOrg ?? n.activo;
 
 export default function TabNavieras() {
-  const { data: navieras = [], isLoading, isError, error, refetch, isFetching } = useAllNavieras();
+  const query = useAllNavieras();
+  const { data: navieras = [] } = query;
   const { agregarNaviera, toggleActivo, eliminarNaviera } = useAdminNavieras();
   const { isSuperAdmin } = usePermissions();
   const puedeCrear = puedeDarAltaCatalogo(useAuth().effectiveRole);
@@ -112,30 +110,15 @@ export default function TabNavieras() {
         </div>
         )}
 
-        <SearchInput value={busqueda} onChange={setBusqueda} placeholder="Buscar por código o nombre…" />
-
-        <div className="max-h-[calc(100vh-20rem)] min-h-[320px] overflow-auto rounded-md border">
-          <DataTable
-            columns={columns}
-            data={filtradas}
-            isLoading={isLoading}
-            isError={isError}
-            errorState={<CatalogQueryError error={error} onRetry={() => void refetch()} retrying={isFetching} />}
-            emptyMessage="No se encontraron navieras"
-            emptyState={navieras.length > 0 && termino ? (
-              <EmptyStateInline message="Sin coincidencias" action={{ label: "Limpiar búsqueda", onClick: () => setBusqueda("") }} />
-            ) : undefined}
-            rowKey={(n) => n.id}
-            rowClassName={(n) => !visibleOrg(n) ? "opacity-50" : ""}
-            density={TABLE_DENSITY.embebida}
-          />
-        </div>
-        {!isLoading && !isError && (
-          <div className="text-xs text-muted-foreground">
-            {termino && <p role="status">{filtradas.length} de {navieras.length} navieras coinciden con la búsqueda.</p>}
-            <p>Catálogo completo · {navieras.length} navieras en total · {navieras.filter(visibleOrg).length} visibles en mi empresa</p>
-          </div>
-        )}
+        <CatalogListPanel
+          nombrePlural="navieras"
+          columns={columns}
+          items={navieras}
+          filtered={filtradas}
+          isVisible={visibleOrg}
+          query={query}
+          search={{ value: busqueda, onChange: setBusqueda, placeholder: "Buscar por código o nombre…", active: !!termino }}
+        />
       </CardContent>
       <NavieraFormDialog
         open={!!navieraEnEdicion}

@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { Pencil, Lock, Info } from "lucide-react";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HeredadoBadge } from "@/components/shared/HeredadoBadge";
 import { CartaGarantiaBadge } from "@/components/shared/CartaGarantiaBadge";
@@ -80,51 +81,53 @@ export default function TarifaResumenHeredado({ tarifa }: Props) {
   ].filter(r => r.mostrar);
 
   return (
-    <div className="rounded-md border bg-card p-3 space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-body font-medium">
-          <Lock className="h-4 w-4 text-muted-foreground" />
-          Detalles operativos heredados de la tarifa
+    <Card>
+      <CardContent density="tight" className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle as="h3" className="flex items-center gap-2 text-body font-medium">
+            <Lock className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+            Detalles operativos heredados de la tarifa
+          </CardTitle>
+          {canOverrideTarifaPricing ? (
+            <Button
+              type="button" size="sm" variant="ghost"
+              onClick={() => setEditMode(v => !v)}
+              className="text-body-sm"
+            >
+              <Pencil className="h-3.5 w-3.5 mr-1" />
+              {editMode ? "Bloquear" : "Editar manual"}
+            </Button>
+          ) : (
+            <span className="text-body-sm text-muted-foreground inline-flex items-center gap-1">
+              <Info className="h-3.5 w-3.5" /> Solo lectura
+            </span>
+          )}
         </div>
-        {canOverrideTarifaPricing ? (
-          <Button
-            type="button" size="sm" variant="ghost"
-            onClick={() => setEditMode(v => !v)}
-            className="text-body-sm"
-          >
-            <Pencil className="h-3.5 w-3.5 mr-1" />
-            {editMode ? "Bloquear" : "Editar manual"}
-          </Button>
-        ) : (
-          <span className="text-body-sm text-muted-foreground inline-flex items-center gap-1">
-            <Info className="h-3.5 w-3.5" /> Solo lectura
-          </span>
-        )}
-      </div>
 
-      {!editMode ? (
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-body">
-          {rows.map(r => (
-            <div key={r.label} className="flex items-center justify-between gap-2 min-w-0">
-              <dt className="text-muted-foreground shrink-0">{r.label}</dt>
-              <dd className="flex items-center gap-2 min-w-0">
-                {r.chip ?? <ValueOrPlaceholder value={r.value} />}
-                <HeredadoBadge tipoOrigen="tarifa" origen="vinculada" className="shrink-0" />
-              </dd>
-            </div>
-          ))}
-        </dl>
-      ) : (
-        <TarifaResumenHeredadoEditMode
-          form={form}
-          tipoEmbarque={tipoEmbarque}
-          transito={transito}
-          frecuencia={frecuencia}
-          diasLibres={diasLibres}
-          diasAlmacenaje={diasAlmacenaje}
-          override={override}
-        />
-      )}
-    </div>
+        {!editMode ? (
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-body">
+            {rows.map(r => (
+              <div key={r.label} className="flex items-center justify-between gap-2 min-w-0">
+                <dt className="text-muted-foreground shrink-0">{r.label}</dt>
+                <dd className="flex items-center gap-2 min-w-0">
+                  {r.chip ?? <ValueOrPlaceholder value={r.value} />}
+                  <HeredadoBadge tipoOrigen="tarifa" origen="vinculada" className="shrink-0" />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <TarifaResumenHeredadoEditMode
+            form={form}
+            tipoEmbarque={tipoEmbarque}
+            transito={transito}
+            frecuencia={frecuencia}
+            diasLibres={diasLibres}
+            diasAlmacenaje={diasAlmacenaje}
+            override={override}
+          />
+        )}
+      </CardContent>
+    </Card>
   );
 }
