@@ -52,6 +52,7 @@ interface Props {
   onSubmit?: (e: FormEvent<HTMLFormElement>) => void;
   /** Enfoca el primer campo útil al abrir (default: true si hay `formId`). */
   autoFocusFirstField?: boolean;
+  onCloseAutoFocus?: (event: Event) => void;
   /** Banda fija bajo el header, fuera del área scrolleable (KPIs, avisos). */
   stickyTop?: ReactNode;
   /** Banda fija sobre el footer, fuera del área scrolleable (semáforos). */
@@ -87,6 +88,7 @@ export function FormDialogShell({
   formId,
   onSubmit,
   autoFocusFirstField,
+  onCloseAutoFocus,
   stickyTop,
   stickyBottom,
   bodyClassName,
@@ -131,6 +133,7 @@ export function FormDialogShell({
           "max-h-[92vh] short:max-h-[calc(100dvh-1.5rem)] flex flex-col gap-0 p-0",
         )}
         aria-busy={busy}
+        onCloseAutoFocus={onCloseAutoFocus}
       >
 
         <FormDialogHeaderBlock
