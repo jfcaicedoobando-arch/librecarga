@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { notifyError } from "@/lib/ui/appFeedback";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,27 +18,32 @@ import {
   seguridadConfigSchema,
 } from "@/features/configuracion";
 
-/**
- * v13.56.1 — Inicialización movida a `useEffect` para evitar mutar estado
- * en el cuerpo del render (anti-patrón React que dispara re-renders extra).
- */
-// EC-20: Number("") === 0 y los min/max HTML no bloquean tecleo manual;
-// sin esta validación se persistían políticas absurdas (0 intentos = bloqueo
-// total, longitud de contraseña 0, etc.).
+function enteroEnRango(min: number, max: number) {
+  const error = `Escribe un número entero entre ${min} y ${max}.`;
+  return z.string().trim().min(1, "Escribe un valor.").transform(Number)
+    .pipe(z.number({ error }).int({ error }).min(min, { error }).max(max, { error }));
+}
+
 const seguridadPoliticasSchema = z.object({
-  longitudPassword: z.number().int().min(6).max(32),
-  expiracionSesion: z.number().int().min(1).max(720),
-  maxIntentos: z.number().int().min(3).max(20),
+  longitudPassword: enteroEnRango(6, 32),
+  expiracionSesion: enteroEnRango(1, 720),
+  maxIntentos: enteroEnRango(3, 20),
 });
+
+type BorradorPoliticas = z.input<typeof seguridadPoliticasSchema>;
+type CampoPolitica = keyof BorradorPoliticas;
 
 export default function TabSeguridadGlobal() {
   const { data, isSuccess, isError, isFetching, refetch } = useConfiguracionGlobal();
   const updateConfig = useUpdateConfiguracionGlobal();
 
   const [autoConfirmar, setAutoConfirmar] = useState(false);
-  const [longitudPassword, setLongitudPassword] = useState(8);
-  const [expiracionSesion, setExpiracionSesion] = useState(24);
-  const [maxIntentos, setMaxIntentos] = useState(5);
+  const [politicas, setPoliticas] = useState<BorradorPoliticas>({
+    longitudPassword: "8",
+    expiracionSesion: "24",
+    maxIntentos: "5",
+  });
+  const [errores, setErrores] = useState<Partial<Record<CampoPolitica, string[]>>>({});
   const [registroPublico, setRegistroPublico] = useState(false);
   const [emailSoporte, setEmailSoporte] = useState("");
   const [initialized, setInitialized] = useState(false);
@@ -49,9 +53,11 @@ export default function TabSeguridadGlobal() {
     const seg = parseConfigSafe(seguridadConfigSchema, filtrarConfigGlobalCategoria(data, "seguridad"));
     const plat = parseConfigSafe(plataformaConfigSchema, filtrarConfigGlobalCategoria(data, "plataforma"));
     setAutoConfirmar(seg.auto_confirmar_email);
-    setLongitudPassword(seg.longitud_minima_password);
-    setExpiracionSesion(seg.expiracion_sesion_horas);
-    setMaxIntentos(seg.max_intentos_login);
+    setPoliticas({
+      longitudPassword: String(seg.longitud_minima_password),
+      expiracionSesion: String(seg.expiracion_sesion_horas),
+      maxIntentos: String(seg.max_intentos_login),
+    });
     setRegistroPublico(seg.permitir_registro_publico);
     setEmailSoporte(plat.email_soporte);
     setInitialized(true);
@@ -61,22 +67,19 @@ export default function TabSeguridadGlobal() {
     message="Reintenta consultar las políticas antes de editarlas." onRetry={() => void refetch()} retrying={isFetching} />;
   if (!initialized) return <EmptyStateInline loading message="Cargando políticas de seguridad…" />;
 
+  const cambiarPolitica = (campo: CampoPolitica, valor: string) => {
+    setPoliticas((actuales) => ({ ...actuales, [campo]: valor }));
+    setErrores((actuales) => ({ ...actuales, [campo]: undefined }));
+  };
+
   const handleGuardar = () => {
     if (!isSuccess || isFetching || updateConfig.isPending) return;
-    const parsed = seguridadPoliticasSchema.safeParse({
-      longitudPassword: Number(longitudPassword),
-      expiracionSesion: Number(expiracionSesion),
-      maxIntentos: Number(maxIntentos),
-    });
+    const parsed = seguridadPoliticasSchema.safeParse(politicas);
     if (!parsed.success) {
-      notifyError(undefined, {
-        title: "Políticas de seguridad inválidas",
-        description:
-          "Revisa los valores: longitud de contraseña entre 6 y 32, expiración de sesión entre 1 y 720 horas e intentos de login entre 3 y 20.",
-        method: "FEATURES_ADMIN_COMPONENTS_TABSEGURIDADGLOBAL_SAVE",
-      });
+      setErrores(z.flattenError(parsed.error).fieldErrors);
       return;
     }
+    const { longitudPassword, expiracionSesion, maxIntentos } = parsed.data;
     updateConfig.mutate([
       { categoria: "seguridad", clave: "auto_confirmar_email", valor: autoConfirmar },
       { categoria: "seguridad", clave: "longitud_minima_password", valor: longitudPassword },
@@ -112,39 +115,42 @@ export default function TabSeguridadGlobal() {
           </div>
 
           <div className="p-3 rounded-lg border">
-            <FormField label="Longitud mínima de contraseña">
+            <FormField label="Longitud mínima de contraseña" required error={errores.longitudPassword?.[0]}>
               <Input
                 type="number"
                 min={6}
                 max={32}
-                value={longitudPassword}
-                onChange={(e) => setLongitudPassword(Number(e.target.value))}
+                required
+                value={politicas.longitudPassword}
+                onChange={(e) => cambiarPolitica("longitudPassword", e.target.value)}
                 className="w-24"
               />
             </FormField>
           </div>
 
           <div className="p-3 rounded-lg border">
-            <FormField label="Expiración de sesión (horas)">
+            <FormField label="Expiración de sesión (horas)" required error={errores.expiracionSesion?.[0]}>
               <Input
                 type="number"
                 min={1}
                 max={720}
-                value={expiracionSesion}
-                onChange={(e) => setExpiracionSesion(Number(e.target.value))}
+                required
+                value={politicas.expiracionSesion}
+                onChange={(e) => cambiarPolitica("expiracionSesion", e.target.value)}
                 className="w-24"
               />
             </FormField>
           </div>
 
           <div className="p-3 rounded-lg border">
-            <FormField label="Intentos máximos de login" hint="Antes de bloquear temporalmente la cuenta">
+            <FormField label="Intentos máximos de login" required hint="Antes de bloquear temporalmente la cuenta" error={errores.maxIntentos?.[0]}>
               <Input
                 type="number"
                 min={3}
                 max={20}
-                value={maxIntentos}
-                onChange={(e) => setMaxIntentos(Number(e.target.value))}
+                required
+                value={politicas.maxIntentos}
+                onChange={(e) => cambiarPolitica("maxIntentos", e.target.value)}
                 className="w-24"
               />
             </FormField>

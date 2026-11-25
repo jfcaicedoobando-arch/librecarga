@@ -6,6 +6,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/shared/FormField";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload } from "lucide-react";
 import { useRef } from "react";
@@ -16,6 +17,7 @@ import {
 } from "@/constants/proveedorConstants";
 import type { Enums } from "@/types/db";
 import type { useNuevoProveedorController } from "@/features/proveedor/hooks";
+import { errorSubtipoGasto } from "@/features/proveedor/hooks/useNuevoProveedorController.helpers";
 
 export type Controller = ReturnType<typeof useNuevoProveedorController>;
 
@@ -76,17 +78,16 @@ export function TipoLogisticoSelect({ c }: { c: Controller }) {
 
 export function SubtipoGastoSelect({ c }: { c: Controller }) {
   return (
-    <div className="space-y-2">
-      <Label>Subtipo de gasto *</Label>
+    <FormField label="Subtipo de gasto" htmlFor="nuevo-proveedor-subtipo" required error={errorSubtipoGasto(c.form)}>
       <Select value={c.form.subtipo_gasto ?? ""} onValueChange={c.handleSubtipoGastoChange}>
-        <SelectTrigger><SelectValue placeholder="Selecciona subtipo" /></SelectTrigger>
+        <SelectTrigger aria-required="true"><SelectValue placeholder="Selecciona subtipo" /></SelectTrigger>
         <SelectContent>
           {SUBTIPOS_GASTO_OPERATIVO.map((s) => (
             <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
           ))}
         </SelectContent>
       </Select>
-    </div>
+    </FormField>
   );
 }
 

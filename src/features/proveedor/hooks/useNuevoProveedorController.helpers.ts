@@ -40,6 +40,12 @@ function soloColumnas(form: Record<string, unknown>): Record<string, unknown> {
   return out;
 }
 
+export function errorSubtipoGasto(form: NuevoProveedorForm): string | undefined {
+  return form.categoria === "GastoOperativo" && !form.subtipo_gasto
+    ? "Selecciona el subtipo de gasto operativo."
+    : undefined;
+}
+
 /** Coherencia categoría ↔ tipo/subtipo, validada antes de tocar el servidor. */
 function validarCategoria(form: NuevoProveedorForm): PayloadInvalido | null {
   if (!form.categoria) {
@@ -48,10 +54,8 @@ function validarCategoria(form: NuevoProveedorForm): PayloadInvalido | null {
   if (form.categoria === "Logistico" && !form.tipo) {
     return { ok: false, motivo: "tipo", mensaje: "Selecciona el tipo de proveedor logístico (Naviera, Transportista, etc.)." };
   }
-  if (form.categoria === "GastoOperativo" && !form.subtipo_gasto) {
-    return { ok: false, motivo: "subtipo", mensaje: "Selecciona el subtipo de gasto operativo." };
-  }
-  return null;
+  const mensaje = errorSubtipoGasto(form);
+  return mensaje ? { ok: false, motivo: "subtipo", mensaje } : null;
 }
 
 export function hayDatosBancariosProveedor(form: NuevoProveedorForm): boolean {
@@ -111,6 +115,6 @@ export function faltantesPaso1Proveedor(
   // `proveedores_categoria_check` exige tipo IS NOT NULL en esa categoría.
   if (isLogistico && !form.tipo) items.push("tipo de proveedor logístico");
   if (isAgenteCarga && !form.pais) items.push("país");
-  if (form.categoria === "GastoOperativo" && !form.subtipo_gasto) items.push("subtipo de gasto");
+  if (errorSubtipoGasto(form)) items.push("subtipo de gasto");
   return items;
 }

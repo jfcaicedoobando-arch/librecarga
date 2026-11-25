@@ -14,6 +14,7 @@ import { Hint } from "@/components/shared/Hint";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { validarFormaMetodoPago } from "@/lib/financial/formaMetodoPago";
 import { RefreshCcw, Loader2 } from "lucide-react";
 import { FORMAS_PAGO_SAT, METODOS_PAGO_SAT } from "@/constants/catalogosSAT";
@@ -26,6 +27,7 @@ import {
 import type { Moneda } from "@/types/db";
 
 export type MonedaManual = Moneda;
+const MONEDAS: readonly MonedaManual[] = ["MXN", "USD", "EUR"];
 
 export interface DatosFiscalesValue {
   serie: string;
@@ -59,7 +61,6 @@ export function FacturaManualDatosFiscales({ value, onChange, diasReadonly, dias
     formaFijada && "factura-manual-forma-ayuda",
     errorFormaMetodo && "factura-manual-forma-error",
   ].filter(Boolean).join(" ") || undefined;
-  const monedas: MonedaManual[] = ["MXN", "USD", "EUR"];
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
       <div className="space-y-1.5">
@@ -78,28 +79,25 @@ export function FacturaManualDatosFiscales({ value, onChange, diasReadonly, dias
         )}
       </div>
       <div className="space-y-1.5">
-        <Label>Moneda</Label>
-        <div className="flex gap-1.5 flex-wrap">
-          {monedas.map((m) => {
-            const active = value.moneda === m;
-            return (
-              <button
-                key={m}
-                type="button"
-                onClick={() => onChange({ moneda: m })}
-                className={
-                  "h-11 md:h-10 px-3 rounded-md text-body-sm font-semibold border transition-colors " +
-                  (active
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-muted-foreground border-border hover:bg-muted")
-                }
-                aria-pressed={active}
-              >
-                {m}
-              </button>
-            );
-          })}
-        </div>
+        <Label id="factura-manual-moneda">Moneda</Label>
+        <ToggleGroup
+          type="single"
+          value={value.moneda}
+          aria-labelledby="factura-manual-moneda"
+          aria-required
+          orientation="horizontal"
+          className="flex w-fit flex-wrap"
+          onValueChange={(next) => {
+            const moneda = MONEDAS.find((opcion) => opcion === next);
+            if (moneda) onChange({ moneda });
+          }}
+        >
+          {MONEDAS.map((moneda) => (
+            <ToggleGroupItem key={moneda} value={moneda} className="h-11 md:h-10 text-body-sm">
+              {moneda}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
       </div>
 
       <UsoCfdiIngresoSelect receptor={receptor} value={value.usoCfdi} onChange={(usoCfdi) => onChange({ usoCfdi })} />

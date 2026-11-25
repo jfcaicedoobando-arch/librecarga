@@ -4,6 +4,7 @@
  */
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/shared/FormField";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   PAISES_PROVEEDOR as PAISES,
@@ -62,18 +63,18 @@ export default function EditarProveedorIdentidadFields({ c }: Props) {
       )}
 
       {c.isGasto && (
-        <div className="space-y-2">
-          <Label htmlFor="editar-proveedor-subtipo">Subtipo de gasto <span aria-hidden="true">*</span></Label>
+        <FormField label="Subtipo de gasto" htmlFor="editar-proveedor-subtipo" required error={c.fieldErrorMessage("subtipo_gasto") ?? undefined}>
           <Select value={c.form.subtipo_gasto ?? ""} onValueChange={c.handleSubtipoGastoChange}>
-            <SelectTrigger id="editar-proveedor-subtipo" aria-required="true"><SelectValue placeholder="Selecciona subtipo" /></SelectTrigger>
+            <SelectTrigger aria-required="true" onBlur={() => c.markTouched("subtipo_gasto")}>
+              <SelectValue placeholder="Selecciona subtipo" />
+            </SelectTrigger>
             <SelectContent>
               {SUBTIPOS_GASTO_OPERATIVO.map((s) => (
                 <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <FieldError message={c.fieldErrorMessage("subtipo_gasto")} />
-        </div>
+        </FormField>
       )}
 
       {c.isAgenteCarga && (
