@@ -1,7 +1,7 @@
 /**
  * Diálogo para crear/editar categoría presupuestal.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { notifySuccess } from "@/lib/ui/appFeedback";
 import { FolderTree } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormField } from "@/components/shared/FormField";
 import {
   useCrearCategoriaPresupuesto, useActualizarCategoriaPresupuesto,
 } from "@/features/presupuesto/hooks";
@@ -40,6 +41,7 @@ export function DialogCategoria({ open, onOpenChange, categoria }: Props) {
   const [orden, setOrden] = useState(50);
   const [activa, setActiva] = useState(true);
   const [tipoContable, setTipoContable] = useState<TipoContable>("Administracion");
+  const tipoContableAyudaId = useId();
 
   useEffect(() => {
     if (categoria) {
@@ -90,18 +92,17 @@ export function DialogCategoria({ open, onOpenChange, categoria }: Props) {
           <Label htmlFor="categoria-nombre">Nombre *</Label>
           <Input id="categoria-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Servicios profesionales" />
         </div>
-        <div>
-          <Label>Tipo contable *</Label>
+        <FormField label="Tipo contable" required className="space-y-0">
           <Select value={tipoContable} onValueChange={(v) => setTipoContable(v as TipoContable)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-required aria-describedby={tipoActual ? tipoContableAyudaId : undefined}><SelectValue /></SelectTrigger>
             <SelectContent>
               {TIPO_CONTABLE_OPCIONES.map((o) => (
                 <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {tipoActual && <p className="text-label text-muted-foreground mt-1">{tipoActual.descripcion}</p>}
-        </div>
+          {tipoActual && <p id={tipoContableAyudaId} className="text-label text-muted-foreground mt-1">{tipoActual.descripcion}</p>}
+        </FormField>
         <div>
           <Label htmlFor="categoria-orden">Orden</Label>
           <Input id="categoria-orden" type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} />

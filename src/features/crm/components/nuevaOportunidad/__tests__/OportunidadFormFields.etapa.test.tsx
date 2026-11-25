@@ -4,7 +4,7 @@
  * se pasa por la acción canónica del pipeline.
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import OportunidadFormFields from "@/features/crm/components/nuevaOportunidad/OportunidadFormFields";
 import { buildEmptyForNueva } from "@/features/crm/domain/oportunidadFormHelpers";
@@ -26,12 +26,13 @@ const ETAPAS_SOLO_TERMINALES = [ETAPAS[0], ETAPAS[2]];
 
 function renderCampos(form: OportunidadFormState, etapas = ETAPAS) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const set = vi.fn();
   render(
     <QueryClientProvider client={qc}>
     <OportunidadFormFields
       form={form}
       setForm={vi.fn()}
-      set={vi.fn()}
+      set={set}
       etapas={etapas}
       clientes={[]}
       isEdit={false}
@@ -40,7 +41,16 @@ function renderCampos(form: OportunidadFormState, etapas = ETAPAS) {
     />
     </QueryClientProvider>,
   );
+  return set;
 }
+
+it("identifica Notas por su etiqueta y conserva la edición del campo", () => {
+  const set = renderCampos({ ...buildEmptyForNueva(ETAPAS, null), notas: "Nota previa" });
+  const notas = screen.getByRole("textbox", { name: "Notas" });
+  expect(notas).toHaveValue("Nota previa");
+  fireEvent.change(notas, { target: { value: "Nota actualizada" } });
+  expect(set).toHaveBeenCalledWith("notas", "Nota actualizada");
+});
 
 describe("OportunidadFormFields · etapa", () => {
   it("al crear muestra la primera etapa abierta en sólo lectura", () => {

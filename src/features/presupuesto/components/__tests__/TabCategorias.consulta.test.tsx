@@ -13,6 +13,19 @@ vi.mock("@/features/presupuesto/services", () => ({ seedCategoriasDefault: seed 
 vi.mock("@/lib/contexts/OrganizationContext", () => ({ useOrganization: () => ({ organizationId: "org-qa" }) }));
 
 describe("configuración de categorías presupuestales", () => {
+  it("identifica el tipo contable obligatorio y anuncia la ayuda de la opción seleccionada", async () => {
+    useCategorias.mockReturnValue({ isSuccess: true, data: [] });
+    render(<TabCategorias />);
+    fireEvent.click(screen.getByRole("button", { name: "Nueva" }));
+
+    const tipo = screen.getByRole("combobox", { name: /Tipo contable/ });
+    expect(tipo).toHaveAttribute("aria-required", "true");
+    expect(tipo).toHaveAccessibleDescription(/Renta, nómina admin/);
+    fireEvent.keyDown(tipo, { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: "Gastos de venta" }));
+    expect(tipo).toHaveAccessibleDescription(/Comisiones de vendedor/);
+  });
+
   it("ofrece categorías por defecto sólo después de una respuesta vacía confirmada", () => {
     const refetch = vi.fn();
     const crear = { name: "Crear 6 categorías por defecto" };

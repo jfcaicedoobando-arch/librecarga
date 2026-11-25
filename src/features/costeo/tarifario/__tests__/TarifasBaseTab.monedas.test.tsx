@@ -85,7 +85,7 @@ describe("Moneda original del tarifario", () => {
     expect(ficha.getByText("EUR 700.00")).toBeVisible();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole("textbox", { name: /Buscar origen/ }), { target: { value: "sin coincidencia" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: /Buscar origen/ }), { target: { value: "sin coincidencia" } });
     expect(screen.getByText("Ninguna tarifa coincide con esta búsqueda.")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Limpiar búsqueda" }));
     expect(screen.getByRole("article")).toBeVisible();
@@ -107,7 +107,7 @@ describe("Moneda original del tarifario", () => {
     for (const texto of ["JFK", "MEX", "Guadalajara", "06000", "USD 500.00 / kg", "MXN 500.00 / viaje"]) {
       expect(ficha.getByText(texto)).toBeVisible();
     }
-    fireEvent.change(screen.getByRole("textbox", { name: /Buscar origen/ }), { target: { value: "jfk" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: /Buscar origen/ }), { target: { value: "jfk" } });
     expect(screen.getByRole("article")).toBeVisible();
   });
 

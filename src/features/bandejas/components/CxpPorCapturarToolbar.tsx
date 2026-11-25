@@ -2,8 +2,8 @@
  * Toolbar de la bandeja CxP — Por capturar.
  * Buscador, chips de filtro, ordenamiento y contador.
  */
-import { ArrowDownAZ, ArrowUpZA, Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { ArrowDownAZ, ArrowUpZA, X } from "lucide-react";
+import SearchInput from "@/components/shared/SearchInput";
 import { Button } from "@/components/ui/button";
 import { pluralizar } from "@/lib/format/pluralizar";
 import {
@@ -75,16 +75,13 @@ export function CxpPorCapturarToolbar({
   return (
     <div className="space-y-3 rounded-lg border bg-card px-4 py-3">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            aria-label="Buscar por expediente o cliente"
-            value={state.query}
-            onChange={(e) => set("query", e.target.value)}
-            placeholder="Buscar por expediente o cliente…"
-            className="pl-8 h-9"
-          />
-        </div>
+        <SearchInput
+          aria-label="Buscar por expediente o cliente"
+          value={state.query}
+          onChange={(query) => set("query", query)}
+          placeholder="Buscar por expediente o cliente…"
+          className="w-full md:w-auto md:flex-1 md:min-w-[220px]"
+        />
 
         <Select value={state.ordenarPor} onValueChange={(v) => set("ordenarPor", v as OrdenarPor)}>
           <SelectTrigger className="h-9 w-[180px]"><SelectValue /></SelectTrigger>

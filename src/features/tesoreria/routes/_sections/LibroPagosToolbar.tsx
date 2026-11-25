@@ -3,8 +3,8 @@
  * moneda, método de pago, conciliación, complemento y búsqueda.
  */
 import { useId } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { SlidersHorizontal } from "lucide-react";
+import SearchInput from "@/components/shared/SearchInput";
 import { Button } from "@/components/ui/button";
 import { badgeVariants } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -109,16 +109,12 @@ export function LibroPagosToolbar({
 
         <div className="col-span-2 md:col-span-5 md:row-start-1 md:col-start-8">
           <p className="text-body-sm text-muted-foreground mb-1">Buscar</p>
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden />
-            <Input
-              className="pl-8"
-              value={filtros.texto}
-              onChange={(e) => onFiltrosChange({ texto: e.target.value })}
-              placeholder="Cliente, proveedor, folio o referencia"
-              aria-label="Buscar pagos por contraparte, folio o referencia"
-            />
-          </div>
+          <SearchInput
+            value={filtros.texto}
+            onChange={(texto) => onFiltrosChange({ texto })}
+            placeholder="Cliente, proveedor, folio o referencia"
+            aria-label="Buscar pagos por contraparte, folio o referencia"
+          />
         </div>
       </CardContent>
     </Card>

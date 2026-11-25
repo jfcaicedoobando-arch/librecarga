@@ -2,9 +2,8 @@
  * Barra de trabajo del Buzón de facturas de proveedor.
  * v13.365.0 — Búsqueda, chips de filtro, orden y contador.
  */
-import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import {
   Select,
   SelectContent,
@@ -42,16 +41,13 @@ export function FacturasEntrantesToolbar({
 }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="relative w-full md:max-w-xs">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={q}
-          onChange={(e) => onQChange(e.target.value)}
-          placeholder="Proveedor, expediente, folio o archivo"
-          className="h-9 pl-8"
-          aria-label="Buscar documentos del buzón"
-        />
-      </div>
+      <SearchInput
+        value={q}
+        onChange={onQChange}
+        placeholder="Proveedor, expediente, folio o archivo"
+        className="w-full md:max-w-xs"
+        aria-label="Buscar documentos del buzón"
+      />
 
       <div className="flex flex-wrap items-center gap-1">
         {CHIPS_BUZON.map((opcion) => (
