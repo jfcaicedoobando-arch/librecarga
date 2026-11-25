@@ -42,7 +42,7 @@ export function TimelineEstadosCard({ conteoPorEstado, isLoading }: Props) {
                   <span className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground sm:h-11 sm:w-11">
                     <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" aria-hidden="true" />
                   </span>
-                  <span className="mt-1.5 sm:mt-2">
+                  <div className="mt-1.5 sm:mt-2">
                     {isLoading ? (
                       <Skeleton className="h-6 w-7 sm:h-7 sm:w-8" />
                     ) : (
@@ -50,7 +50,7 @@ export function TimelineEstadosCard({ conteoPorEstado, isLoading }: Props) {
                         {count}
                       </span>
                     )}
-                  </span>
+                  </div>
                   <span className="mt-0.5 px-0.5 text-center text-label font-medium leading-tight text-muted-foreground text-balance">
                     {estado}
                   </span>
