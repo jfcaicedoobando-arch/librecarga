@@ -5,12 +5,12 @@
  * Muestran badge "Cotización" cuando el valor coincide con el heredado y
  * permiten un override manual (con opción de restaurar).
  */
-import { useCallback, useMemo } from "react";
+import { useCallback, useId, useMemo, useRef } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { Undo2 } from "lucide-react";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/shared/FormField";
 import {
   Select,
   SelectContent,
@@ -26,16 +26,32 @@ import { useSyncNombreDesdeCatalogo } from "./agenteNavieraHeredados.helpers";
 
 const NONE = "__none__";
 
-const BadgeHerencia = ({ heredado }: { heredado: boolean }) =>
-  heredado ? (
-    <Badge variant="secondary" className="text-2xs font-normal">
-      Cotización
-    </Badge>
-  ) : null;
+function EstadoHerencia({ id, heredado, campo, onRestaurar }: {
+  id: string;
+  heredado: boolean;
+  campo: "agente" | "naviera";
+  onRestaurar?: () => void;
+}) {
+  if (heredado) return <Badge id={id} variant="secondary" className="text-2xs font-normal">Cotización</Badge>;
+  if (!onRestaurar) return null;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <p id={id} className="text-label text-muted-foreground">
+        Cambiaste {campo === "agente" ? "el agente heredado" : "la naviera heredada"} de la cotización.
+      </p>
+      <Button type="button" variant="ghost" size="sm" onClick={onRestaurar}>
+        <Undo2 className="h-3 w-3" /> Restaurar {campo}
+      </Button>
+    </div>
+  );
+}
 
 
 export function AgenteEmbarqueSelector({ cotizacionAgenteId }: { cotizacionAgenteId?: string | null }) {
   const { setValue, watch } = useFormContext<EmbarqueFormValues>();
+  const herenciaId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const { data: agentes = [] } = useCosteoAgentes();
   const currentId = watch("agenteId");
   const nombreGuardado = watch("agente");
@@ -60,29 +76,18 @@ export function AgenteEmbarqueSelector({ cotizacionAgenteId }: { cotizacionAgent
     [agentes, currentId, nombreGuardado],
   );
 
+  const restaurar = overriden && cotizacionAgenteId ? () => {
+    const original = agentes.find((a) => a.id === cotizacionAgenteId);
+    setValue("agenteId", cotizacionAgenteId, { shouldValidate: true, shouldDirty: true });
+    setValue("agente", original?.nombre ?? "", { shouldValidate: true, shouldDirty: true });
+    triggerRef.current?.focus();
+  } : undefined;
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <Label>Agente {heredado && <BadgeHerencia heredado />}</Label>
-        {overriden && cotizacionAgenteId ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-6 gap-1 px-2 text-body-sm"
-            onClick={() => {
-              const original = agentes.find((a) => a.id === cotizacionAgenteId);
-              setValue("agenteId", cotizacionAgenteId, { shouldValidate: true, shouldDirty: true });
-              setValue("agente", original?.nombre ?? "", { shouldValidate: true, shouldDirty: true });
-            }}
-          >
-            <Undo2 className="h-3 w-3" /> Restaurar
-          </Button>
-        ) : null}
-      </div>
-      <Controller
-        name="agenteId"
-        render={({ field }) => (
+    <Controller
+      name="agenteId"
+      render={({ field, fieldState }) => (
+        <FormField label="Agente" error={fieldState.error?.message}>
           <Select
             value={field.value ?? NONE}
             onValueChange={(v) => {
@@ -92,7 +97,7 @@ export function AgenteEmbarqueSelector({ cotizacionAgenteId }: { cotizacionAgent
               setValue("agente", nombre, { shouldValidate: true, shouldDirty: true });
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger ref={triggerRef} aria-describedby={cotizacionAgenteId ? herenciaId : undefined}>
               <SelectValue placeholder="Sin agente asignado" />
             </SelectTrigger>
             <SelectContent>
@@ -104,21 +109,19 @@ export function AgenteEmbarqueSelector({ cotizacionAgenteId }: { cotizacionAgent
               ))}
             </SelectContent>
           </Select>
-        )}
-      />
-      {overriden ? (
-        <p className="text-label text-muted-foreground">
-          Cambiaste el agente heredado de la cotización.
-        </p>
-      ) : null}
-    </div>
+          <EstadoHerencia id={herenciaId} heredado={heredado} campo="agente" onRestaurar={restaurar} />
+        </FormField>
+      )}
+    />
   );
 }
 
-type NavieraEmbarqueSelectorProps = { cotizacionNavieraId?: string | null; className?: string };
+type NavieraEmbarqueSelectorProps = { cotizacionNavieraId?: string | null; className?: string; error?: string };
 
-export function NavieraEmbarqueSelector({ cotizacionNavieraId, className }: NavieraEmbarqueSelectorProps) {
+export function NavieraEmbarqueSelector({ cotizacionNavieraId, className, error }: NavieraEmbarqueSelectorProps) {
   const { setValue, watch } = useFormContext<EmbarqueFormValues>();
+  const herenciaId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const { data: navieras = [] } = useNavieras();
   const currentId = watch("navieraId");
   const nombreGuardado = watch("naviera");
@@ -143,29 +146,19 @@ export function NavieraEmbarqueSelector({ cotizacionNavieraId, className }: Navi
     [navieras, currentId, nombreGuardado],
   );
 
+  const restaurar = overriden && cotizacionNavieraId ? () => {
+    const original = navieras.find((n) => n.id === cotizacionNavieraId);
+    setValue("navieraId", cotizacionNavieraId, { shouldValidate: true, shouldDirty: true });
+    setValue("naviera", original?.name ?? "", { shouldValidate: true, shouldDirty: true });
+    triggerRef.current?.focus();
+  } : undefined;
+
   return (
-    <div className={`space-y-2 ${className ?? ""}`}>
-      <div className="flex items-center justify-between gap-2">
-        <Label>Naviera * {heredado && <BadgeHerencia heredado />}</Label>
-        {overriden && cotizacionNavieraId ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-6 gap-1 px-2 text-body-sm"
-            onClick={() => {
-              const original = navieras.find((n) => n.id === cotizacionNavieraId);
-              setValue("navieraId", cotizacionNavieraId, { shouldValidate: true, shouldDirty: true });
-              setValue("naviera", original?.name ?? "", { shouldValidate: true, shouldDirty: true });
-            }}
-          >
-            <Undo2 className="h-3 w-3" /> Restaurar
-          </Button>
-        ) : null}
-      </div>
-      <Controller
-        name="navieraId"
-        render={({ field }) => (
+    <Controller
+      name="navieraId"
+      render={({ field, fieldState }) => (
+        <FormField label="Naviera" required className={className}
+          error={fieldState.error?.message ?? (nombreGuardado?.trim() ? undefined : error)}>
           <Select
             value={field.value ?? NONE}
             onValueChange={(v) => {
@@ -175,7 +168,7 @@ export function NavieraEmbarqueSelector({ cotizacionNavieraId, className }: Navi
               setValue("naviera", nombre, { shouldValidate: true, shouldDirty: true });
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger ref={triggerRef} aria-required aria-describedby={cotizacionNavieraId ? herenciaId : undefined}>
               <SelectValue placeholder="Seleccionar naviera" />
             </SelectTrigger>
             <SelectContent>
@@ -187,13 +180,9 @@ export function NavieraEmbarqueSelector({ cotizacionNavieraId, className }: Navi
               ))}
             </SelectContent>
           </Select>
-        )}
-      />
-      {overriden ? (
-        <p className="text-label text-muted-foreground">
-          Cambiaste la naviera heredada de la cotización.
-        </p>
-      ) : null}
-    </div>
+          <EstadoHerencia id={herenciaId} heredado={heredado} campo="naviera" onRestaurar={restaurar} />
+        </FormField>
+      )}
+    />
   );
 }

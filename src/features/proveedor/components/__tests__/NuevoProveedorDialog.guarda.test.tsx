@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import NuevoProveedorDialog from "../NuevoProveedorDialog";
+import { NuevoProveedorStep1 } from "../NuevoProveedorStep1";
+import { useNuevoProveedorController } from "../../hooks/useNuevoProveedorController";
 
 vi.mock("@/features/proveedor/hooks", async () => {
   const { useNuevoProveedorController } = await import("../../hooks/useNuevoProveedorController");
@@ -21,6 +23,35 @@ vi.mock("../../hooks/useNuevoProveedorController.csf", () => ({
 }));
 
 describe("Nuevo proveedor", () => {
+  it("asocia el subtipo y su error en el paso de identificación de gasto operativo", async () => {
+    const guardar = vi.fn();
+    const cerrar = vi.fn();
+    function Pantalla() {
+      const c = useNuevoProveedorController(guardar, cerrar);
+      return <>
+        <button type="button" onClick={() => {
+          c.handleCategoriaChange("GastoOperativo");
+          c.setField("subtipo_gasto", null);
+        }}>Cargar estado de prueba</button>
+        <NuevoProveedorStep1 c={c} />
+      </>;
+    }
+    render(<QueryClientProvider client={new QueryClient()}><Pantalla /></QueryClientProvider>);
+
+    expect(screen.queryByRole("combobox", { name: /Subtipo de gasto/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cargar estado de prueba" }));
+    const subtipo = screen.getByRole("combobox", { name: /Subtipo de gasto/i });
+    expect(subtipo).toHaveAttribute("aria-required", "true");
+    expect(subtipo).toHaveAttribute("aria-invalid", "true");
+    expect(subtipo).toHaveAccessibleDescription("Selecciona el subtipo de gasto operativo.");
+    fireEvent.keyDown(subtipo, { key: "Enter" });
+    fireEvent.click(await screen.findByRole("option", { name: "Renta" }));
+    expect(subtipo).toHaveTextContent("Renta");
+    expect(subtipo).not.toHaveAttribute("aria-invalid");
+    expect(subtipo).not.toHaveAccessibleDescription();
+    expect(guardar).not.toHaveBeenCalled();
+  });
+
   it("pide confirmar Cancelar si hay captura y la conserva al seguir capturando", async () => {
     const guardar = vi.fn();
     const queryClient = new QueryClient();

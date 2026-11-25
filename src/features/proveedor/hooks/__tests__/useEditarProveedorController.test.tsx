@@ -1,5 +1,6 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+import EditarProveedorIdentidadFields from "../../components/EditarProveedorIdentidadFields";
 import { useEditarProveedorController } from "../useEditarProveedorController";
 
 const mockProveedor: any = {
@@ -42,5 +43,28 @@ describe("useEditarProveedorController", () => {
       undefined,
       undefined,
     );
+  });
+
+  it("asocia el error al selector obligatorio de un proveedor histórico de gasto", async () => {
+    const proveedor = { ...mockProveedor, categoria: "GastoOperativo", subtipo_gasto: null };
+    const onSave = vi.fn();
+    const onClose = vi.fn();
+    function Formulario() {
+      const c = useEditarProveedorController(proveedor, true, onSave, onClose);
+      return <EditarProveedorIdentidadFields c={c} />;
+    }
+    render(<Formulario />);
+
+    const subtipo = screen.getByRole("combobox", { name: /Subtipo de gasto/i });
+    expect(subtipo).toHaveAttribute("aria-required", "true");
+    fireEvent.blur(subtipo);
+    expect(subtipo).toHaveAttribute("aria-invalid", "true");
+    expect(subtipo).toHaveAccessibleDescription("El subtipo de gasto es requerido");
+    fireEvent.keyDown(subtipo, { key: "Enter" });
+    fireEvent.click(await screen.findByRole("option", { name: "Renta" }));
+    expect(subtipo).toHaveTextContent("Renta");
+    expect(subtipo).not.toHaveAttribute("aria-invalid");
+    expect(subtipo).not.toHaveAccessibleDescription();
+    expect(onSave).not.toHaveBeenCalled();
   });
 });

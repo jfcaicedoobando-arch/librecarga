@@ -76,6 +76,27 @@ describe("PlantillaSelectorPaso1 (P2 cierre)", () => {
     await waitFor(() => expect(container.firstChild).toBeNull());
   });
 
+  it("limita el panel al espacio disponible y devuelve el foco al selector con Escape", async () => {
+    state.plantillas = [{
+      id: "p1", nombre: "Plantilla de ejemplo", descripcion: null, veces_usada: 0, visibilidad: "org",
+    }];
+    const form = makeForm();
+    render(<PlantillaSelectorPaso1 organizationId="org-1" form={form} />, { wrapper });
+
+    const trigger = await screen.findByRole("button", { name: "Elegir plantilla" });
+    fireEvent.click(trigger);
+    expect(screen.getByRole("dialog", { name: "Plantillas de cotización" })).toHaveClass(
+      "max-w-[calc(100vw-1rem)]", "max-h-[var(--radix-popover-content-available-height)]",
+    );
+    expect(screen.getByRole("listbox")).toHaveClass("min-h-0", "overflow-y-auto");
+    const buscar = screen.getByPlaceholderText("Buscar plantilla…");
+    await waitFor(() => expect(buscar).toHaveFocus());
+    fireEvent.keyDown(buscar, { key: "Escape" });
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(screen.queryByPlaceholderText("Buscar plantilla…")).not.toBeInTheDocument();
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
   it("aplica plantilla → form.reset + trigger + onApplied", async () => {
     state.plantillas = [
       {

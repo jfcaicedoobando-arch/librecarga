@@ -106,7 +106,7 @@ export function StepDatosRutaMaritimo({ errors, cotizacionAgenteId, cotizacionNa
           />
         </FormField>
       )} />
-      <NavieraEmbarqueSelector cotizacionNavieraId={cotizacionNavieraId} />
+      <NavieraEmbarqueSelector cotizacionNavieraId={cotizacionNavieraId} error={errors.naviera} />
       <AgenteEmbarqueSelector cotizacionAgenteId={cotizacionAgenteId} />
       <div className="space-y-2"><Label htmlFor="emb-bl-master"># BL Master</Label><Input id="emb-bl-master" placeholder="Número de BL" {...register('blMaster')} /></div>
       <div className="space-y-2"><Label htmlFor="emb-bl-house"># BL House</Label><Input id="emb-bl-house" {...register('blHouse')} /></div>

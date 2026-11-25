@@ -147,10 +147,11 @@ export function PlantillaSelectorPaso1({ organizationId, form, plantillaId, onAp
               <ChevronsUpDown className="h-3.5 w-3.5 ml-1 opacity-60" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-[360px] p-0">
-            <Command>
+          <PopoverContent align="end" collisionPadding={8} aria-label="Plantillas de cotización"
+            className="flex max-h-[var(--radix-popover-content-available-height)] w-[360px] max-w-[calc(100vw-1rem)] flex-col overflow-hidden p-0">
+            <Command className="min-h-0 flex-1">
               <CommandInput placeholder="Buscar plantilla…" />
-              <CommandList>
+              <CommandList className="min-h-0 flex-1 overflow-y-auto">
                 <CommandEmpty>Sin plantillas.</CommandEmpty>
                 <CommandGroup heading="Más usadas">
                   {plantillas.map((p) => (
