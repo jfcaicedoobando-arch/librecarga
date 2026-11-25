@@ -35,6 +35,18 @@ describe("isolated Drizzle history is not deployment-eligible", () => {
     expect(() => listIsolatedHistory(root)).toThrow(/Isolated history hash mismatch/);
   });
 
+  it("pins recovered history without replaying it or accepting copies in active migrations", () => {
+    const root = fixture();
+    const archive = "scripts/ci/drizzle-history/archive/2026-11-23/0105_pricing_complejidad_baja_tarifa_vigente.sql";
+    expect(listIsolatedHistory(root)).not.toContain(archive);
+    const misplaced = join(root, "drizzle/migrations/0115_archived.sql");
+    cpSync(join(root, archive), misplaced);
+    expect(() => listIsolatedHistory(root)).toThrow(/must not be deployment-eligible/);
+    rmSync(misplaced);
+    writeFileSync(join(root, archive), read(join(root, archive)) + "\n-- altered");
+    expect(() => listIsolatedHistory(root)).toThrow(/Isolated history hash mismatch/);
+  });
+
   it("verifies immutable order, archived collision provenance and the effective body", () => {
     const paths = listIsolatedHistory();
     expect(paths.map(path => path.split("/").at(-1))).toEqual([
@@ -117,6 +129,7 @@ describe("isolated Drizzle history is not deployment-eligible", () => {
       "0105_tarifa_aerea_escalas_reorden.sql",
       "0106_recargo_minimo_proveedor.sql",
       "0107_pricing_solicitud_terrestre.sql",
+      "0107_pricing_tarifa_vigente_acl.sql",
       "0108_pricing_fase5_operacion.sql",
       "0109_pricing_modos_tenant_scope.sql",
       "0110_pricing_msds_pdf_obligatoria.sql",

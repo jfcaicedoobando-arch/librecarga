@@ -64,6 +64,13 @@ BEGIN
   END IF;
 
 
+  IF (public._audit_embarques_agregar(
+    '[{"regla":"contenedores_totales_descuadrados","severidad":"medio"}]'::jsonb,
+    '{}'::jsonb
+  ) #>> '{por_regla,contenedores_totales_descuadrados}') IS DISTINCT FROM '1' THEN
+    RAISE EXCEPTION 'M-10 REGRESION: el conteo de contenedores no coincide con el hallazgo';
+  END IF;
+
   -- ── N-1 ────────────────────────────────────────────────────────────────
   d := pg_get_functiondef('public._crear_embarque_replicar_conceptos(uuid,uuid,uuid,uuid[],jsonb)'::regprocedure);
   IF position('GREATEST(COALESCE((v_venta->>''cantidad'')::numeric, 1), 1)' in d) > 0 THEN

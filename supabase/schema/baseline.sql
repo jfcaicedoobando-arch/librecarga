@@ -47396,8 +47396,8 @@ GRANT ALL ON FUNCTION public._crm_pricing_destinatarios_modo(p_org uuid, p_modo 
 REVOKE ALL ON FUNCTION public._crm_pricing_es_gerente_ops(p_org uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public._crm_pricing_es_gerente_ops(p_org uuid) TO authenticated;
 GRANT ALL ON FUNCTION public._crm_pricing_es_gerente_ops(p_org uuid) TO service_role;
-GRANT ALL ON FUNCTION public._crm_pricing_hay_tarifa_vigente(p_id uuid) TO authenticated;
-GRANT ALL ON FUNCTION public._crm_pricing_hay_tarifa_vigente(p_id uuid) TO service_role;
+REVOKE ALL ON FUNCTION public._crm_pricing_hay_tarifa_vigente(p_id uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public._crm_pricing_hay_tarifa_vigente(p_id uuid) TO service_role;
 GRANT ALL ON FUNCTION public._crm_pricing_horas(p_complejidad text) TO authenticated;
 GRANT ALL ON FUNCTION public._crm_pricing_horas(p_complejidad text) TO service_role;
 REVOKE ALL ON FUNCTION public._crm_pricing_horas_habiles_entre(p_desde timestamp with time zone, p_hasta timestamp with time zone) FROM PUBLIC;

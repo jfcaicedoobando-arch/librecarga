@@ -101,6 +101,34 @@ actualizar el mapping/manifiesto y regenerar la baseline en PostgreSQL 17.9
 aislado. Ejecutar los guards y RLS. No copiar/reaplicar una migración con backfill
 ni modificar los historiales remotos para hacer coincidir sus números.
 
+### Permisos y archivo del historial de noviembre
+
+El reconstruidor aislado ejecuta `corrections/0107_pricing_tarifa_vigente_acl.sql`
+después de la 0107. Reproduce el permiso observado en producción del auxiliar
+`_crm_pricing_hay_tarifa_vigente(uuid)`. PostgreSQL y `service_role` ejecutan
+el auxiliar. La API lo utiliza a través de `crm_enviar_solicitud_pricing`.
+El control de CI comprueba ambos contratos antes y después de los permisos
+generales del entorno de pruebas. La base de referencia declara el mismo límite.
+
+Las definiciones de Auditoría del espejo corresponden al estado de producción.
+El verificador representa el parche histórico M-10 de
+`20260829195613_5ad1e7e9-aa72-45b6-853d-d501eaa097d3.sql` para el agregador.
+Verifica la fuente y la definición anterior por huella. Una comprobación en
+PostgreSQL verifica que el agregador incluya el conteo de contenedores.
+
+Los SQL recuperados se guardan en
+`scripts/ci/drizzle-history/archive/2026-11-23`. El verificador exige sus
+huellas y rechaza copias en directorios de migraciones ejecutables.
+
+| ID en Lovable | Marca ms | Archivo histórico | Fuente exacta | SHA-256 |
+|---:|---:|---|---|---|
+| 108 | 1795472834800 | `0104_tarifa_aerea_escalas.sql` | Git `ddc9a2c` | `b4cc96958bfc3c374247d46a15bb0df8bb8fc97e08cae1dbd9ab47e30854589f` |
+| 110 | 1795474092757 | `0105_pricing_complejidad_baja_tarifa_vigente.sql` | Edición de Lovable `99d09bf7f8810237d95694b1b5657dbf54f50da2` | `5450e71c06e72e4e1551a6316dc718af2a88bf244a89778f1994ea1976907276` |
+
+Las migraciones vigentes 0105 y 0107 conservan respectivamente los efectos de
+escalas aéreas y complejidad baja. El registro del ID 23 se documenta en
+[Reconciliación de 0021–0023](./drizzle-0021-0023-replay-review.md).
+
 ## Cómo correr localmente
 
 ```bash

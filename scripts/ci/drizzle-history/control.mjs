@@ -109,6 +109,12 @@ export const HISTORY = [
   { file: '0113_pricing_motivo_perdida.sql', sha256: 'c0a04ba208d3e81a57df6bda6f4d10a4f56ebedc9126f30176949fb006bff261', eligibleName: '20261123201800_replay_pricing_motivo_perdida.sql' },
   { file: '0114_recargos_local_internacional.sql', sha256: '607db7123b62df949c0162ede35608a688ae0525b2d9fba1c37bb81b7397e850', eligibleName: '20261124200000_replay_recargos_local_internacional.sql' },
 ];
+const NONDEPLOYABLE_SQL = [
+  ['archive/2026-11-23/0104_tarifa_aerea_escalas.sql', 'b4cc96958bfc3c374247d46a15bb0df8bb8fc97e08cae1dbd9ab47e30854589f'],
+  ['archive/2026-11-23/0105_pricing_complejidad_baja_tarifa_vigente.sql', '5450e71c06e72e4e1551a6316dc718af2a88bf244a89778f1994ea1976907276'],
+  ['corrections/0107_pricing_tarifa_vigente_acl.sql', '649d85ce3a01aab000650f1a2712311c5ae5e210f41e37c5a6bea4575c2401fd'],
+];
+const PRICING_TARIFA_ACL = 'corrections/0107_pricing_tarifa_vigente_acl.sql';
 const ARCHIVED_METADATA = [
   [`${ARCHIVE}/meta/0022_snapshot.json`, '002a1cff39197fe3431f23193a4229e1c845cbcd0ab5eaa074efded812b0081d'],
   [`${ARCHIVE}/meta/_journal.json`, '10745ad2cc8bcbf4a6559dda414296966a372ca162fbd6e1ac3d6b382eb96288'],
@@ -123,6 +129,14 @@ function pinned(root, file, expected) {
 function rejectEligibleCopies(root) {
   const forbidden = new Set(HISTORY.map(item => item.sha256));
   forbidden.add(AUTHORITY_PREIMAGES_SHA256);
+  const archivedAndCorrections = new Set(NONDEPLOYABLE_SQL.map(([, expected]) => expected));
+  for (const expected of archivedAndCorrections) forbidden.add(expected);
+  const drizzleDir = path.join(root, 'drizzle/migrations');
+  for (const file of fs.readdirSync(drizzleDir).filter(file => file.endsWith('.sql'))) {
+    if (archivedAndCorrections.has(hash(fs.readFileSync(path.join(drizzleDir, file))))) {
+      throw new Error(`Test-only replay must not be deployment-eligible: ${file}`);
+    }
+  }
   const dir = path.join(root, 'supabase/migrations');
   for (const file of fs.readdirSync(dir).filter(file => file.endsWith('.sql'))) {
     if (forbidden.has(hash(fs.readFileSync(path.join(dir, file))))) {
@@ -155,7 +169,7 @@ export function readIsolatedDrizzleReplay(root = process.cwd()) {
   if (mapping.filter(entry => entry.scope === 'isolated-ci').length !== out.size) {
     throw new Error('Unreviewed isolated history mapping');
   }
-  for (const [file, expected] of ARCHIVED_METADATA) pinned(root, file, expected);
+  for (const [file, expected] of [...ARCHIVED_METADATA, ...NONDEPLOYABLE_SQL]) pinned(root, file, expected);
   return out;
 }
 
@@ -164,7 +178,9 @@ export function listIsolatedHistory(root = process.cwd()) {
   pinned(root, AUTHORITY_PREIMAGES, AUTHORITY_PREIMAGES_SHA256);
   return HISTORY.flatMap(({ file }) => file.startsWith('0092_')
     ? [`${DIR}/${AUTHORITY_PREIMAGES}`, `${DIR}/${file}`]
-    : [`${DIR}/${file}`]);
+    : file === '0107_pricing_solicitud_terrestre.sql'
+      ? [`${DIR}/${file}`, `${DIR}/${PRICING_TARIFA_ACL}`]
+      : [`${DIR}/${file}`]);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
