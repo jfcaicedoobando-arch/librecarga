@@ -7,6 +7,9 @@
  * - Filas colapsables con pagos y notas de crédito anidados.
  */
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/shared/useIsMobile";
+import { ListSkeleton } from "@/components/shared/states/ListSkeleton";
+import { EstadoCuentaMovimientosMobile } from "./EstadoCuentaMovimientosMobile";
 import { Table, TableBody, TableCell } from "@/components/ui/table";
 import { DetailTableRow } from "@/components/shared/DetailTable";
 import { Button } from "@/components/ui/button";
@@ -66,6 +69,7 @@ export function EstadoCuentaTable({
   restantes,
   onVerMas,
 }: Props) {
+  const mobile = useIsMobile();
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const toggle = (id: string) => {
     setExpandidas((prev) => {
@@ -94,6 +98,11 @@ export function EstadoCuentaTable({
 
       {isError && grupos.length === 0 ? null : vacio ? (
         <Vacio />
+      ) : mobile ? (
+        isLoading ? <div className="p-3"><ListSkeleton rows={3} /></div> : (
+          <EstadoCuentaMovimientosMobile grupos={grupos} expandidas={expandidas} onToggle={toggle}
+            facturaHref={facturaHref} sort={sort} onSort={onSort} />
+        )
       ) : (
         <div className="overflow-x-auto">
           <Table>

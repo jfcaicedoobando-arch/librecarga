@@ -23,6 +23,7 @@ function Ficha({ pestaña, ...props }: ComponentProps<typeof ClienteDetalleTabla
 
 function estado() {
   return {
+    clienteId: "cliente-qa",
     canEdit: false,
     embarquesCliente: [],
     loadingEmbarques: false,
@@ -40,6 +41,11 @@ function estado() {
 const error = new Error("Consulta fallida");
 
 describe("Relaciones en el detalle de clientes", () => {
+  it("envía el cliente de la ficha a la nueva cotización", () => {
+    render(<Ficha pestaña="cotizaciones" {...estado()} canEdit />);
+    expect(screen.getByRole("link", { name: "Nueva cotización" }))
+      .toHaveAttribute("href", "/cotizaciones/nueva?cliente=cliente-qa");
+  });
   it("distingue un fallo de embarques del vacío y sólo reintenta embarques", () => {
     const props = estado();
     const { rerender } = render(<Ficha pestaña="embarques" {...props} errorEmbarques={error} />);

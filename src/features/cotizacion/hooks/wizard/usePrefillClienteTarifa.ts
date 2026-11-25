@@ -1,6 +1,6 @@
 /**
- * "Cotizar y guardar tarifa": tras aplicar la tarifa, fija el cliente especial
- * elegido en el tarifario, sólo si la cotización aún no tiene destinatario.
+ * Precarga el cliente de una ficha o tarifa cuando el contexto está listo.
+ * Conserva cualquier destinatario que ya esté capturado.
  */
 import { useEffect, useRef } from "react";
 import type { UseFormReturn } from "react-hook-form";

@@ -123,6 +123,7 @@ export function ClienteDetalleTabs({
       </TabsContent>
 
       <ClienteDetalleTablasTabs
+        clienteId={cliente.id}
         canEdit={canEdit}
         embarquesCliente={embarquesCliente}
         loadingEmbarques={loadingEmbarques}

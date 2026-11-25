@@ -1,10 +1,10 @@
 /**
  * Lista paginada (servidor) con búsqueda para Empresas o Contactos del CRM.
  */
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useRef, type ReactNode } from "react";
 import { createSerializer, parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { Building2, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import SearchInput from "@/components/shared/SearchInput";
 import { Button } from "@/components/ui/button";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { defineColumns } from "@/components/shared/DataTable";
@@ -74,7 +74,11 @@ export function ListaObjetosCrm<T extends { id: string }>({ placeholder, rutaBas
   const total = q.data?.total ?? 0;
   const paginas = Math.max(1, Math.ceil(total / OBJETOS_PAGE_SIZE));
   const filtrado = Boolean(texto.trim()) || filtroEstado !== "todos" || letra !== "todas";
-  const limpiar = () => void setFiltros({ q: null, letra: null, pagina: null, estado: null });
+  const buscador = useRef<HTMLInputElement>(null);
+  const limpiar = () => {
+    void setFiltros({ q: null, letra: null, pagina: null, estado: null });
+    buscador.current?.focus();
+  };
   const contexto = serializarFiltros(conPuntaje ? { q: texto, pagina, letra, estado } : { q: texto, pagina });
 
   const tableColumns = defineColumns<T>(cols.map((c) => ({
@@ -86,14 +90,8 @@ export function ListaObjetosCrm<T extends { id: string }>({ placeholder, rutaBas
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-      <div className="relative w-full max-w-sm">
-        <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-        <Input
-          className="pl-8" placeholder={placeholder} value={texto}
-          onChange={(e) => { void setFiltros({ q: e.target.value, pagina: null }); }}
-          aria-label={placeholder}
-        />
-      </div>
+        <SearchInput ref={buscador} className="w-full max-w-sm" placeholder={placeholder} value={texto}
+          onChange={(value) => { void setFiltros({ q: value, pagina: null }); }} />
       {conPuntaje && <FiltroEstadoEmpresaSelect value={estado} onChange={(v) => { void setFiltros({ estado: v, pagina: null }); }} />}
       {conPuntaje && <FiltroLetraSelect value={letra} onChange={(v) => { void setFiltros({ letra: OBJETOS_FILTROS.letra.parse(v), pagina: null }); }} />}
       {filtrado && total > 0 && <Button type="button" size="sm" variant="ghost" onClick={limpiar}>Limpiar filtros</Button>}

@@ -5,7 +5,7 @@
  */
 import { UsoCfdiIngresoSelect } from "../UsoCfdiIngresoSelect";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/shared/FormField";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -25,15 +25,14 @@ function SelectSAT({
   label, value, onChange, options,
 }: { label: string; value: string; onChange: (v: string) => void; options: readonly Option[] }) {
   return (
-    <div>
-      <Label>{label}</Label>
+    <FormField label={label}>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger><SelectValue /></SelectTrigger>
         <SelectContent>
           {options.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
         </SelectContent>
       </Select>
-    </div>
+    </FormField>
   );
 }
 
@@ -62,28 +61,22 @@ export function DatosFiscalesForm(p: DatosFiscalesFormProps) {
         <UsoCfdiIngresoSelect value={p.usoCfdi} onChange={p.setUsoCfdi} receptor={p.receptor} />
         <SelectSAT label="Método de pago" value={p.metodoPago} onChange={p.setMetodoPago} options={METODOS_PAGO_SAT} />
         <SelectSAT label="Forma de pago" value={p.formaPago} onChange={p.setFormaPago} options={FORMAS_PAGO_SAT} />
-        <div>
-          <Label htmlFor="factura-dias-credito">Días de crédito</Label>
+        <FormField label="Días de crédito" htmlFor="factura-dias-credito"
+          hint={vencimiento ? "Vence el " + formatDate(vencimiento)
+            : "Vencimiento: se calcula al guardar la fecha de emisión"}>
           <Input
             id="factura-dias-credito"
             type="number" min={0} value={p.diasCredito}
             onChange={(e) => p.setDiasCredito(Number(e.target.value) || 0)}
           />
-          <p className="mt-1 text-body-sm text-muted-foreground">
-            {vencimiento
-              ? `Vence el ${formatDate(vencimiento)}`
-              : "Vencimiento: se calcula al guardar la fecha de emisión"}
-          </p>
-        </div>
+        </FormField>
         {p.mostrarTipoCambio && (
-          <div>
-            <Label htmlFor="factura-tipo-cambio">{etiquetaTcContraMxn(p.moneda)}</Label>
+          <FormField label={etiquetaTcContraMxn(p.moneda)} htmlFor="factura-tipo-cambio" hint={ayudaTcContraMxn(p.moneda) || undefined}>
             <Input
               id="factura-tipo-cambio"
               type="number" step="0.0001" min={0}
               value={p.tipoCambio ?? ""}
               placeholder={TC_PLACEHOLDER_MXN}
-              aria-label={etiquetaTcContraMxn(p.moneda)}
               onChange={(e) => {
                 const raw = e.target.value.trim();
                 if (raw === "") return p.setTipoCambio(null);
@@ -91,20 +84,16 @@ export function DatosFiscalesForm(p: DatosFiscalesFormProps) {
                 p.setTipoCambio(Number.isFinite(n) && n > 0 ? n : null);
               }}
             />
-            {ayudaTcContraMxn(p.moneda) && (
-              <p className="mt-1 text-body-sm text-muted-foreground">{ayudaTcContraMxn(p.moneda)}</p>
-            )}
-          </div>
+          </FormField>
         )}
       </div>
 
-      <div>
-        <Label>Notas</Label>
+      <FormField label="Notas">
         <Textarea
           value={p.notas} onChange={(e) => p.setNotas(e.target.value)} rows={2}
           placeholder="Notas internas para el CFDI (opcional)"
         />
-      </div>
+      </FormField>
     </>
   );
 }

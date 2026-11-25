@@ -1,3 +1,4 @@
+import { Label } from "@/components/ui/label";
 /**
  * Alta de Empresa del CRM: nombre con sugerencias de empresas existentes,
  * propiedades obligatorias (País, Fuente, Tipo de transporte, Volumen de
@@ -7,7 +8,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Building2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/shared/FormField";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
 import { FormDialogCancelarBoton } from "@/components/shared/FormDialogCancelarBoton";
 import { FormDialogSection } from "@/components/shared/FormDialogSection";
@@ -124,10 +125,9 @@ export function NuevaEmpresaDialog({ open, onOpenChange }: Props) {
       }
     >
       <FormDialogSection cols={1}>
-        <div className="space-y-1.5">
-          <Label htmlFor="obj-nombre">Nombre *</Label>
-          <Input id="obj-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={200} autoComplete="off" />
-        </div>
+        <FormField label="Nombre" htmlFor="obj-nombre" required>
+          <Input id="obj-nombre" required value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={200} autoComplete="off" />
+        </FormField>
         <EmpresasSimilares nombre={nombre} onElegir={cerrar} disabled={crear.isPending} />
       </FormDialogSection>
       <CamposEmpresa key={version} consulta={propiedades} obligatorias={obligatorias} adicionales={resto} renderCampo={campo} />

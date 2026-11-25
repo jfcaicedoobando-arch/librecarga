@@ -4,22 +4,13 @@
 import { Link } from "react-router";
 import { TableCell } from "@/components/ui/table";
 import { DetailTableRow } from "@/components/shared/DetailTable";
-import { Badge } from "@/components/ui/badge";
+import { EstadoCuentaEstatusBadge } from "./EstadoCuentaEstatusBadge";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import type { EstatusCobranza } from "../services/estadoCuenta";
 import type { FilaEstadoCuenta } from "../services/estadoCuentaAging";
 import { Hint } from "@/components/shared/Hint";
-
-const BADGE: Record<EstatusCobranza, "outline" | "warning" | "destructive" | "secondary"> = {
-  Vigente: "outline",
-  "Por vencer": "warning",
-  Vencida: "destructive",
-  Pagada: "secondary",
-  "Sin saldo": "secondary",
-};
 
 interface Props {
   fila: FilaEstadoCuenta;
@@ -90,7 +81,7 @@ export function EstadoCuentaFilaFactura({ fila, abierta, onToggle, facturaHref }
         {formatCurrency(fila.saldoAcumulado, fila.moneda)}
       </TableCell>
       <TableCell>
-        <Badge variant={BADGE[fila.estatus_cobranza]}>{fila.estatus_cobranza}</Badge>
+        <EstadoCuentaEstatusBadge estatus={fila.estatus_cobranza} />
       </TableCell>
     </DetailTableRow>
   );

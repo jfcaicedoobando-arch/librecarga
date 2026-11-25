@@ -17,7 +17,11 @@ import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
-import { DataTable } from "@/components/shared/DataTable";
+import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
+import { MoneyCell } from "@/components/shared/MoneyCell";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { formatCurrency, formatDate } from "@/lib/formatters";
+import { BotonVerPago } from "@/features/tesoreria/components/BotonVerPago";
 import { useCuentasBancarias } from "@/features/tesoreria/hooks";
 import { useEstadoCuenta } from "@/features/tesoreria/hooks/useEstadoCuenta";
 import {
@@ -154,11 +158,27 @@ function EstadoCuentaExtracto({ consulta, visibles, onAbrirPago, onLimpiarFiltro
           <EstadoCuentaResumen estado={estado} isLoading={false} />
           <div className="space-y-1">
             <EstadoCuentaMovimientosResumen estado={estado} visibles={visibles} moneda={moneda} />
-            <DataTable
+            <ResponsiveDataTable
               columns={columns}
               data={visibles}
               rowKey={(m) => m.id}
               density={TABLE_DENSITY.listado}
+              mobileCard={(movimiento) => (
+                <div className="space-y-2 min-w-0">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-label text-muted-foreground">{formatDate(movimiento.fecha)}</span>
+                    <StatusBadge domain="conciliacion" status={movimiento.estado_conciliacion} />
+                  </div>
+                  <p className="break-words font-medium">{movimiento.concepto ?? "—"}</p>
+                  {movimiento.referencia && <p className="break-words text-body-sm text-muted-foreground">Ref. {movimiento.referencia}</p>}
+                  <div className="grid grid-cols-2 gap-2">
+                    <MoneyCell label={movimiento.cargo > 0 ? "Salida" : "Entrada"}
+                      value={formatCurrency(movimiento.cargo || movimiento.abono, moneda)} />
+                    <MoneyCell label="Saldo" value={formatCurrency(movimiento.saldo_corrido, moneda)} highlight />
+                  </div>
+                  <BotonVerPago movimiento={movimiento} onVerPago={onAbrirPago} />
+                </div>
+              )}
               striped
               stickyHeader
               tableClassName="w-full"

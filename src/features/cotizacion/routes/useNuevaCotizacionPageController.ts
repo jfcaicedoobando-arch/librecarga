@@ -37,6 +37,18 @@ function permitePrefill(id: string | null, permitePrefillProspecto: boolean, cot
   return Boolean(id) && permitePrefillProspecto && !cotizacionId;
 }
 
+function permitePrecargarClienteDeFicha({ params, clientes, organizationId, error, habilitado }: {
+  params: URLSearchParams;
+  clientes: { id: string }[];
+  organizationId: string | null;
+  error: boolean;
+  habilitado: boolean;
+}) {
+  const clienteId = params.get("cliente");
+  const otroContexto = ["tarifa", "tarifaAerea", "oportunidad", "plantilla"].some((clave) => params.has(clave));
+  return Boolean(organizationId) && !error && habilitado && !otroContexto && clientes.some((cliente) => cliente.id === clienteId);
+}
+
 export function useNuevaCotizacionPageController() {
   useDocumentTitle("Nueva cotización");
   const navigate = useNavigate();
@@ -119,7 +131,12 @@ export function useNuevaCotizacionPageController() {
   const prefillTarifa = usePrefillTarifaAerea(w.form, organizationId, tarifaAerea, searchParams.get("solicitud"),
     Boolean(tarifaAerea) && !w.cotizacionId && !restaurando && !pendienteBorrador);
   // Clientes especiales: el tarifario manda el cliente junto con la tarifa nueva.
-  usePrefillClienteTarifa(w.form, searchParams.get("cliente"), prefillPricing.estado === "aplicado");
+  const clientePrefill = searchParams.get("cliente");
+  const clienteDisponible = permitePrecargarClienteDeFicha({
+    params: searchParams, clientes, organizationId, error: catalogoClientes.isError,
+    habilitado: permitePrefill(clientePrefill, permitePrefillProspecto, w.cotizacionId),
+  });
+  usePrefillClienteTarifa(w.form, clientePrefill, prefillPricing.estado === "aplicado" || clienteDisponible);
 
   // B-003 (v13.320.32) — Autoguardado persiste `cotizacionId` en el draft para
   // que recargar el wizard NO duplique la cotización. Sólo se apaga en modo

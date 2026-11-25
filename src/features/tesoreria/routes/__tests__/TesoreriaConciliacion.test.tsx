@@ -29,6 +29,9 @@ vi.mock("@tanstack/react-virtual", async (importOriginal) => {
   };
 });
 
+const { useMobile } = vi.hoisted(() => ({ useMobile: vi.fn(() => false) }));
+vi.mock("@/hooks/shared/useIsMobile", () => ({ useIsMobile: useMobile }));
+
 const mockUseCuentasBancarias = vi.fn();
 const mockUseConciliacionResumen = vi.fn();
 const mockUseMovimientos = vi.fn();
@@ -107,6 +110,7 @@ function seleccionarCuenta() {
 
 describe("TesoreriaConciliacion — VirtualDataTable (P3)", () => {
   beforeEach(() => {
+    useMobile.mockReturnValue(false);
     mockUseCuentasBancarias.mockReturnValue({ data: [cuenta] });
     mockUseMovimientos.mockReturnValue({ data: movimientos, isLoading: false });
     mockUseImportarMovimientos.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
@@ -118,6 +122,19 @@ describe("TesoreriaConciliacion — VirtualDataTable (P3)", () => {
       },
       isLoading: false,
     });
+  });
+
+  it("abre y cierra el detalle móvil y devuelve el foco al movimiento", async () => {
+    useMobile.mockReturnValue(true);
+    renderPage();
+    seleccionarCuenta();
+    const boton = screen.getAllByRole("button", { name: "Ver movimiento" })[0];
+    fireEvent.click(boton);
+    const panel = screen.getByRole("dialog", { name: "Detalle del movimiento" });
+    expect(within(panel).getByTestId("panel-conciliacion")).toHaveTextContent("m-1 MXN");
+    fireEvent.keyDown(panel, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Detalle del movimiento" })).not.toBeInTheDocument();
+    await waitFor(() => expect(boton).toHaveFocus());
   });
 
   it("sin cuenta seleccionada no monta la tabla virtualizada", () => {
