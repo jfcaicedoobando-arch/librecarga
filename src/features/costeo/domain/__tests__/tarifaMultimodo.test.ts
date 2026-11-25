@@ -9,6 +9,12 @@ const aereo: TarifaMultimodoForm = {
 };
 
 describe("tarifa aérea/terrestre", () => {
+  it.each(["PAX", "CAO"] as const)("guarda %s en las notas de la respuesta aérea", (tipo_aeronave) => {
+    expect(payloadTarifaMultimodo({ ...aereo, tipo_aeronave }).notas).toBe(`Tipo de avión: ${tipo_aeronave}`);
+  });
+  it("no traslada el tipo de avión a una tarifa terrestre", () => {
+    expect(payloadTarifaMultimodo({ ...aereo, modo: "Terrestre", tipo_aeronave: "CAO" })).not.toHaveProperty("notas");
+  });
   it("aéreo exige aeropuertos IATA distintos", () => {
     expect(faltantesTarifaMultimodo(aereo)).toEqual([]);
     expect(faltantesTarifaMultimodo({ ...aereo, destino: "PVG" })).toContain("Origen y destino distintos");

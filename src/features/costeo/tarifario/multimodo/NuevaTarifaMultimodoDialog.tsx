@@ -30,7 +30,7 @@ const VACIO: TarifaMultimodoForm = {
   vigente_desde: "", vigente_hasta: "", transit_time_dias: null, tramos: [],
 };
 const CAMPOS_REINICIADOS = [
-  "origen", "destino", "aerolinea", "submodalidad", "tipo_unidad", "escalas",
+  "origen", "destino", "aerolinea", "submodalidad", "tipo_unidad", "escalas", "tipo_aeronave",
   "flete_base", "minimo", "vigente_desde", "vigente_hasta", "transit_time_dias", "tramos",
 ] as const;
 
@@ -61,7 +61,10 @@ export function NuevaTarifaMultimodoDialog({ open, onOpenChange, inicial, onSave
   const qc = useQueryClient();
   const faltan = faltantesTarifaMultimodo(f);
   const m = useMutation({
-    mutationFn: () => crearTarifaMultimodo(organizationId!, f, recargos),
+    mutationFn: () => {
+      if (!organizationId) throw new Error("Selecciona una empresa antes de guardar.");
+      return crearTarifaMultimodo(organizationId, f, recargos);
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.costeo.tarifas.all });
       toast({ title: "Tarifa guardada" });
@@ -73,7 +76,7 @@ export function NuevaTarifaMultimodoDialog({ open, onOpenChange, inicial, onSave
   });
   const aplicarModo = (modo: TarifaMultimodoForm["modo"]) => {
     setRecargos([]);
-    setF({ ...base, agente_id: f.agente_id, moneda: f.moneda, modo });
+    setF({ ...base, agente_id: f.agente_id, moneda: f.moneda, modo, tipo_aeronave: null });
   };
   const cambiarModo = (modo: TarifaMultimodoForm["modo"]) => {
     if (recargos.length > 0 || CAMPOS_REINICIADOS.some((campo) => f[campo] !== base[campo])) {

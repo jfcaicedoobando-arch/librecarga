@@ -1,4 +1,5 @@
 import type { TramoPeso } from "./tarifaPorPeso";
+import { notasTipoAvion, type TipoAvion } from "./tipoAvionTarifa";
 
 export type ModoNoMaritimo = "Aéreo" | "Terrestre";
 export const SUBMODALIDADES_TERRESTRE = ["FTL", "LTL", "Arrastre"] as const;
@@ -17,6 +18,7 @@ export interface TarifaMultimodoForm {
   tramos: TramoPeso[];
   /** Aéreo: aeropuertos IATA de conexión separados por coma; vacío = directo. */
   escalas?: string;
+  tipo_aeronave?: TipoAvion | null;
   /** Cuando la tarifa responde una solicitud de Pricing. */
   solicitud_pricing_id?: string | null;
 }
@@ -75,7 +77,7 @@ export function payloadTarifaMultimodo(f: TarifaMultimodoForm): Record<string, u
   };
   if (f.modo === "Aéreo") {
     return { ...base, aeropuerto_origen: f.origen.toUpperCase(), aeropuerto_destino: f.destino.toUpperCase(),
-      aerolinea: f.aerolinea || null, unidad_flete: "kg",
+      aerolinea: f.aerolinea || null, unidad_flete: "kg", notas: notasTipoAvion(f.tipo_aeronave),
       escalas: escalasLista(f.escalas).length ? escalasLista(f.escalas) : null };
   }
   const o = lugar(f.origen); const d = lugar(f.destino);

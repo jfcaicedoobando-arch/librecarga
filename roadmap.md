@@ -1,4 +1,5 @@
 # Roadmap — Pricing por modo
+- [x] Mover «Tipo de avión» de la captura de solicitud a la nueva tarifa aérea; guardar en notas existentes y copiar a la cotización, preservando solicitudes históricas.
 - [x] Renombrar en el catálogo «Pick UP» (INL-PUP) y «Delivery» (INL-DLV) para que aparezcan con ese nombre en el selector de recargos; 1114 pruebas focalizadas y lint aprobados.
 - [x] Agregar cuatro conceptos de cargos agrupados origen/destino por Naviera/Agente al selector de recargos, sin desglose automático.
 - [x] Barrido de pantallas de vigencia: sugerencias por modo, apertura/respuestas y cambio de tarifa en cotización; 104 pruebas focalizadas y lint aprobados.
