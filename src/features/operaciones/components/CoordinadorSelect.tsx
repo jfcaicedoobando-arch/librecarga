@@ -1,9 +1,5 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useOrganization } from "@/lib/contexts/OrganizationContext";
-import { notifyError, notifySuccess } from "@/lib/ui/appFeedback";
-import { queryKeys } from "@/lib/query";
-import { fetchCoordinadores } from "../services/coordinador";
+import { useAsignacionCoordinador } from "../hooks/useAsignacionCoordinador";
 
 const SIN_ASIGNAR = "sin_asignar";
 
@@ -20,17 +16,7 @@ interface Props {
 
 /** Muestra el coordinador; si el rol puede, permite cambiarlo con un RPC validado en la base. */
 export function CoordinadorSelect({ value, label, editable, permitirVacio, soloCoordinadores, onGuardar, onGuardado }: Props) {
-  const { organizationId } = useOrganization();
-  const opciones = useQuery({
-    queryKey: queryKeys.cotizaciones.coordinadores(organizationId),
-    enabled: Boolean(organizationId),
-    queryFn: () => (organizationId ? fetchCoordinadores(organizationId) : Promise.resolve({ opciones: [], nombres: new Map<string, string>() })),
-  });
-  const mutation = useMutation({
-    mutationFn: onGuardar,
-    onSuccess: () => { notifySuccess(undefined, { title: "Coordinador actualizado" }); onGuardado(); },
-    onError: (error) => notifyError(undefined, { title: "No se pudo cambiar el coordinador", error }),
-  });
+  const { opciones, mutation } = useAsignacionCoordinador(onGuardar, onGuardado);
   const nombre = nombreDe(opciones.data, value);
   const opcionesVisibles = (opciones.data?.opciones ?? [])
     .filter((o) => !soloCoordinadores || o.role === "coordinador_logistico");
