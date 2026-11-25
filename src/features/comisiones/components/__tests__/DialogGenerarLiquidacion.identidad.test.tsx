@@ -22,8 +22,11 @@ describe("Generación de comisiones requiere identidad distinguible", () => {
     }]} />);
     fireEvent.keyDown(screen.getByRole("combobox"), { key: "Enter" });
     fireEvent.click(screen.getByRole("option", { name: "vendedora@example.test" }));
+    const periodo = screen.getByRole("textbox", { name: "Periodo" });
+    fireEvent.change(periodo, { target: { value: "01/2025" } });
+    fireEvent.blur(periodo);
     expect(screen.getByRole("button", { name: "Generar" })).toBeEnabled();
     fireEvent.click(screen.getByRole("button", { name: "Generar" }));
-    expect(generar).toHaveBeenCalledWith(expect.objectContaining({ vendedora_id: "v1", organization_id: "org-prueba" }), expect.anything());
+    expect(generar).toHaveBeenCalledWith({ vendedora_id: "v1", periodo: "2025-01", organization_id: "org-prueba" }, expect.anything());
   });
 });

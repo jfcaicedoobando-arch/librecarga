@@ -7,6 +7,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { MonthPickerMx } from "@/components/ui/month-picker-mx";
 import { FormDialogShell } from "@/components/shared/FormDialogShell";
+import { FormField } from "@/components/shared/FormField";
 import { useOrganization } from "@/lib/contexts/OrganizationContext";
 import { useGenerarLiquidacion } from "@/features/comisiones/hooks";
 import { ymMx } from "@/lib/date/mx";
@@ -67,10 +68,9 @@ export function DialogGenerarLiquidacion({
             Hay vendedoras sin una identidad distinguible. Completa su nombre o consulta el directorio antes de generar una liquidación.
           </AlertDescription></Alert>
         )}
-        <div className="space-y-1">
-          <Label>Periodo</Label>
+        <FormField label="Periodo" className="space-y-1">
           <MonthPickerMx value={periodo} onChange={setPeriodo} />
-        </div>
+        </FormField>
       </div>
     </FormDialogShell>
   );

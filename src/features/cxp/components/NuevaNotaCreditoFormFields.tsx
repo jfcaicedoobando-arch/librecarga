@@ -1,4 +1,5 @@
 import { BaseNcProveedorFields } from "./BaseNcProveedorFields";
+import { FormField } from "@/components/shared/FormField";
 import { Input } from "@/components/ui/input";
 import { DatePickerMx } from "@/components/ui/date-picker-mx";
 import { Label } from "@/components/ui/label";
@@ -122,10 +123,9 @@ export function NuevaNotaCreditoFormFields({ origen, datos, divisa }: Props) {
               value={monto} onChange={(e) => onMontoChange(e.target.value)} placeholder="0.00"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label>Moneda de la NC *</Label>
+          <FormField label="Moneda de la NC" required className="space-y-1.5">
             <Select value={moneda} onValueChange={(v) => onMonedaChange(v as MonedaNC)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-required><SelectValue /></SelectTrigger>
               <SelectContent>
                 {MONEDAS.map((m) => (
                   <SelectItem key={m} value={m}>
@@ -134,7 +134,7 @@ export function NuevaNotaCreditoFormFields({ origen, datos, divisa }: Props) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </FormField>
         </div>
         <BaseNcProveedorFields subtotal={subtotal} monto={monto} onChange={onSubtotalChange} />
         {(moneda !== "MXN" || monedaFactura !== "MXN") && (
@@ -150,15 +150,14 @@ export function NuevaNotaCreditoFormFields({ origen, datos, divisa }: Props) {
             </p>
           </div>
         )}
-        <div className="space-y-1.5 mt-3">
-          <Label>Motivo *</Label>
+        <FormField label="Motivo" required className="space-y-1.5 mt-3">
           <Select value={motivo} onValueChange={(v) => onMotivoChange(v as MotivoNC)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-required><SelectValue /></SelectTrigger>
             <SelectContent>
               {MOTIVOS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
             </SelectContent>
           </Select>
-        </div>
+        </FormField>
         <div className="space-y-1.5 mt-3">
           <Label htmlFor="nc-desc">Descripción</Label>
           <Textarea id="nc-desc" value={descripcion} onChange={(e) => onDescripcionChange(e.target.value)} rows={3} />

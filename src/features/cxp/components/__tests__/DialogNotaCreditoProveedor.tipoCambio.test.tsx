@@ -37,11 +37,22 @@ function abrir() {
 }
 
 async function elegirMxn() {
-  fireEvent.keyDown(screen.getAllByRole("combobox")[0], { key: "ArrowDown" });
+  fireEvent.keyDown(screen.getByRole("combobox", { name: /Moneda de la NC/ }), { key: "ArrowDown" });
   fireEvent.click(await screen.findByRole("option", { name: "MXN" }));
 }
 
 describe("Preview y payload de la NC usan el mismo TC", () => {
+  it("identifica los selectores obligatorios de moneda y motivo y conserva el motivo elegido", async () => {
+    abrir();
+    expect(screen.getByRole("combobox", { name: /Moneda de la NC/ })).toHaveAttribute("aria-required", "true");
+    const motivo = screen.getByRole("combobox", { name: /Motivo/ });
+    expect(motivo).toHaveAttribute("aria-required", "true");
+
+    fireEvent.keyDown(motivo, { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("option", { name: "Bonificación" }));
+    expect(motivo).toHaveTextContent("Bonificación");
+  });
+
   it.each([
     { tc: "0.5", equivalente: "2.00" },
     { tc: "1", equivalente: "1.00" },

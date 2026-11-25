@@ -8,10 +8,10 @@ import { OrdenTarifarioMenu } from "./OrdenTarifarioMenu";
 import { OtrasTarifas, TarifaBaseCard } from "./TarifaBaseCard";
 import { importeTarifario, rutaTarifarioMultimodo } from "./presentacionTarifario";
 import { useOrdenTarifarioMovil } from "./useOrdenTarifarioMovil";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyStateInline } from "@/components/empty/EmptyStateInline";
 import { defineColumns } from "@/components/shared/DataTable";
+import SearchInput from "@/components/shared/SearchInput";
 import { ResponsiveDataTable } from "@/components/shared/dataTable/ResponsiveDataTable";
 import { TABLE_DENSITY } from "@/components/shared/dataTable/tableTokens";
 import { costeo } from "../queryKeys";
@@ -70,7 +70,8 @@ export function TarifasBaseTab({ puedeEditar }: { puedeEditar: boolean }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-start gap-2 md:gap-3">
-        <Input aria-label="Buscar origen, destino, agente o naviera" className="w-full md:max-w-xs" placeholder="Buscar origen, destino, agente o naviera" value={texto} onChange={(e) => setTexto(e.target.value)} />
+        <SearchInput aria-label="Buscar origen, destino, agente o naviera" className="w-full md:max-w-xs"
+          placeholder="Buscar origen, destino, agente o naviera" value={texto} onChange={setTexto} />
         <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroVigencia)}>
           <SelectTrigger className="min-w-32 flex-1 gap-1.5 md:w-auto md:flex-none" aria-label="Filtrar por vigencia">
             <span className="hidden text-body-sm text-muted-foreground md:inline">Vigencia:</span>

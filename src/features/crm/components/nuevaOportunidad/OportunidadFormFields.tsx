@@ -7,6 +7,7 @@ import { MSG_SIN_ETAPA_ABIERTA } from "@/features/crm/domain/oportunidadFormHelp
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FormField } from "@/components/shared/FormField";
 import VendedorSelect from "@/features/crm/components/VendedorSelect";
 import SelectorOrigenOportunidad from "./SelectorOrigenOportunidad";
 import OportunidadMetasFields from "./OportunidadMetasFields";
@@ -148,10 +149,9 @@ export default function OportunidadFormFields({
         />
       </div>
 
-      <div className="sm:col-span-2 space-y-1">
-        <Label>Notas</Label>
+      <FormField label="Notas" className="sm:col-span-2 space-y-1">
         <Textarea rows={3} value={form.notas} onChange={(e) => set("notas", e.target.value)} />
-      </div>
+      </FormField>
       {!isEdit && (
         <div className="sm:col-span-2 flex items-center gap-2 pt-1">
           <Checkbox
