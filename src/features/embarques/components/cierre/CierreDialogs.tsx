@@ -18,6 +18,7 @@ interface CerrarDialogProps {
   puedeConfirmar: boolean;
   isPending: boolean;
   onConfirm: () => void;
+  forzado?: boolean;
 }
 
 export function CerrarEmbarqueDialog({
@@ -28,17 +29,20 @@ export function CerrarEmbarqueDialog({
   puedeConfirmar,
   isPending,
   onConfirm,
+  forzado = false,
 }: CerrarDialogProps) {
+  const palabra = forzado ? "FORZAR CIERRE" : "CERRAR";
   return (
     <FormDialogShell
       open={open}
       onOpenChange={onOpenChange}
       icon={Lock}
-      title="Confirmar cierre del embarque"
+      title={forzado ? "Confirmar cierre forzado" : "Confirmar cierre del embarque"}
       description={
         <>
           El cierre bloqueará la edición del embarque. Un administrador autorizado podrá reabrirlo con un motivo que quedará registrado en bitácora.
-          Escribe <strong>CERRAR</strong> para confirmar.
+          {forzado && " Hay validaciones pendientes. La bitácora registrará el cierre como forzado. "}
+          Escribe <strong>{palabra}</strong> para confirmar.
         </>
       }
       size="md"
@@ -46,7 +50,7 @@ export function CerrarEmbarqueDialog({
         <>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button disabled={!puedeConfirmar || isPending} onClick={onConfirm}>
-            Cerrar embarque
+            {forzado ? "Forzar cierre" : "Cerrar embarque"}
           </Button>
         </>
       }
@@ -57,7 +61,7 @@ export function CerrarEmbarqueDialog({
           id="confirm-cerrar"
           value={confirmText}
           onChange={(e) => onConfirmTextChange(e.target.value)}
-          placeholder="CERRAR"
+          placeholder={palabra}
         />
       </div>
     </FormDialogShell>

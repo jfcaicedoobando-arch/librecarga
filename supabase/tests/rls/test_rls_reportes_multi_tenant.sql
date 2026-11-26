@@ -1,13 +1,13 @@
 -- ============================================================================
 -- Suite RLS — Reportes NUNCA mezclan datos entre organizaciones
 -- ============================================================================
--- Cubre las RPCs SECURITY DEFINER de reportes (aging CxC/CxP y libro de pagos)
+-- Cubre las RPCs de reportes (aging CxC/CxP y libro de pagos)
 -- desde varios roles y tenants:
 --   1. Un usuario de org_b sólo ve su propia cartera (aunque pase p_org ajeno).
 --   2. Roles no administrativos (contador, viewer) tampoco ven otra org.
 --   3. Un super_admin SIN organización activa recibe LC_ORG_REQUERIDA
 --      (fail-closed) en lugar de ver todos los tenants mezclados.
---   4. Un super_admin CON p_org sólo ve la organización elegida.
+--   4. El libro de pagos respeta el tenant activo, aunque se indique p_org.
 --
 -- Ejecución:
 --   psql "$DATABASE_URL" -f supabase/tests/rls/test_rls_reportes_multi_tenant.sql
@@ -217,6 +217,15 @@ BEGIN
       WHERE cliente_nombre = 'CLI REP A') = 1,
     'cxc_aging_clientes(org_a) como super_admin no devolvió el cliente de org_a'
   );
+
+  v_libro := public.libro_pagos(CURRENT_DATE - 5, CURRENT_DATE, org_a);
+  PERFORM pg_temp.assert(
+    jsonb_array_length(COALESCE(v_libro->'pagos', '[]'::jsonb)) = 0,
+    'libro_pagos(org_a) mostró pagos antes de activar la organización'
+  );
+  PERFORM pg_temp.as_postgres();
+  INSERT INTO public.super_admin_org_activa(user_id, organization_id) VALUES (u_sa, org_a);
+  PERFORM pg_temp.as_user(u_sa);
 
   v_libro := public.libro_pagos(CURRENT_DATE - 5, CURRENT_DATE, org_a);
   SELECT count(*) INTO v_ajenas

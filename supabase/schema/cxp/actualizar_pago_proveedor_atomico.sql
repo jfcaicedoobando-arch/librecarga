@@ -54,6 +54,14 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
+  IF v_pago.lote_id IS NOT NULL THEN
+    RAISE EXCEPTION 'LC_PAGO_LOTE_NO_EDITABLE: edita el lote completo para conservar sus aplicaciones'
+      USING ERRCODE = '23514';
+  END IF;
+  IF lower(btrim(p_metodo_pago)) IN ('efectivo','01') THEN
+    p_cuenta_bancaria_id := NULL;
+  END IF;
+
   -- Auditoría 23: una aplicación pertenece al flujo de anticipos. Rechazar
   -- ANTES de modificar pago, cuenta o movimientos, incluso con flag legacy.
   IF v_pago.es_anticipo_aplicado
@@ -88,7 +96,8 @@ BEGIN
   -- Reemplazo del movimiento: sólo la línea DERIVADA del sistema se da de baja.
   -- Una línea importada del estado de cuenta jamás se borra: se desvincula.
   UPDATE public.bbva_movimientos
-     SET pago_proveedor_id = NULL
+     SET pago_proveedor_id = NULL, estado_conciliacion = 'Pendiente',
+         conciliado_por = NULL, conciliado_at = NULL
    WHERE pago_proveedor_id = p_pago_id
      AND deleted_at IS NULL
      AND COALESCE(origen::text, '') <> 'sistema';

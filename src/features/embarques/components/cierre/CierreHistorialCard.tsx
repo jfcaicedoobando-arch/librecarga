@@ -19,6 +19,7 @@ export interface CierreLogEntry {
   created_at: string;
   motivo?: string | null;
   usuario_email?: string | null;
+  usuario_id?: string | null;
   origen?: "log" | "bitacora";
 }
 
@@ -57,8 +58,10 @@ export function CierreHistorialCard({ log, isLoading, falloConsulta }: Props) {
               <li key={entry.id} className="rounded-md border p-3 text-body">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Badge variant={entry.accion === "cerrar" ? "default" : "outline"}>
-                      {entry.accion === "cerrar" ? "Cerrado" : "Reabierto"}
+                    <Badge variant={entry.accion.startsWith("cerrar") ? "default" : "outline"}>
+                      {entry.accion === "cerrar_forzado" ? "Cerrado forzado"
+                        : entry.accion === "cerrar_automatico" ? "Cerrado automáticamente"
+                        : entry.accion === "cerrar" ? "Cerrado" : "Reabierto"}
                     </Badge>
                     {entry.origen === "bitacora" && (
                       <Badge variant="secondary" className="text-2xs">
@@ -72,7 +75,8 @@ export function CierreHistorialCard({ log, isLoading, falloConsulta }: Props) {
                 </div>
                 <p className="mt-1 text-body-sm text-muted-foreground">
                   Por <span className="font-medium text-foreground">
-                    {entry.usuario_email ?? "Usuario desconocido"}
+                    {entry.usuario_email || (entry.accion === "cerrar_automatico" ? "Sistema"
+                      : entry.usuario_id ? `Usuario ${entry.usuario_id.slice(0, 8)}` : "Usuario desconocido")}
                   </span>
                 </p>
                 {entry.origen === "bitacora" && (

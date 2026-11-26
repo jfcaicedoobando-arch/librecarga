@@ -1,8 +1,3 @@
-/**
- * Bloque S — Cierre Financiero del Embarque.
- * Envoltorios a las RPCs `validar_cierre_embarque`, `cerrar_embarque`,
- * `reabrir_embarque_con_motivo` y lectura de `cierre_embarque_log`.
- */
 import { supabase } from "@/integrations/supabase/client";
 
 export type ReglaCierre =
@@ -29,12 +24,13 @@ export interface CierreValidacion {
 export interface CierreLogEntry {
   id: string;
   embarque_id: string;
-  accion: "cerrar" | "reabrir";
+  accion: "cerrar" | "cerrar_forzado" | "cerrar_automatico" | "reabrir";
   usuario_id: string | null;
   usuario_email?: string | null;
   motivo: string | null;
   snapshot: Record<string, unknown> | null;
   created_at: string;
+  organization_id?: string | null;
   origen?: "log" | "bitacora";
 }
 
@@ -51,15 +47,16 @@ export async function validarCierre(embarqueId: string): Promise<CierreValidacio
 /** v13.823.292 — el cierre automático puede haber cerrado el embarque segundos antes. */
 const MSG_YA_CERRADO = "El embarque ya está cerrado";
 
-export async function cerrarEmbarque(embarqueId: string): Promise<{ yaCerrado: boolean }> {
-  const { error } = await supabase.rpc("cerrar_embarque" as never, {
-    p_embarque_id: embarqueId,
-  } as never);
+export async function cerrarEmbarque(embarqueId: string, confirmacion?: string): Promise<{ yaCerrado: boolean; forzado?: boolean }> {
+  const { data, error } = confirmacion
+    ? await supabase.rpc("forzar_cierre_embarque", { p_embarque_id: embarqueId, p_confirmacion: confirmacion })
+    : await supabase.rpc("cerrar_embarque", { p_embarque_id: embarqueId });
   if (error) {
     if ((error.message ?? "").includes(MSG_YA_CERRADO)) return { yaCerrado: true };
     throw new Error(error.message);
   }
-  return { yaCerrado: false };
+  return data && typeof data === "object" && "forzado_admin" in data && data.forzado_admin === true
+    ? { yaCerrado: false, forzado: true } : { yaCerrado: false };
 }
 
 /**
@@ -73,13 +70,14 @@ export async function reabrirEmbarque(
   motivo: string,
   /** @deprecated B-06: ignorado; el actor se deriva de la sesión en la BD. */
   _usuarioEmail?: string,
+  requestId: string = crypto.randomUUID(),
 ): Promise<{ pendiente: boolean }> {
   const { data, error } = await supabase.rpc("reabrir_embarque" as never, {
     p_embarque_id: embarqueId,
     // B-06: la RPC ignora este valor (era falsificable desde el cliente).
     p_usuario_email: "",
     p_motivo: motivo,
-    p_request_id: crypto.randomUUID(),
+    p_request_id: requestId,
   } as never);
   if (error) throw new Error(error.message);
   // v13.823.47 — un claim de idempotencia en vuelo (`__idempotency_pending`)
@@ -91,7 +89,7 @@ export async function reabrirEmbarque(
 export async function fetchCierreLog(embarqueId: string): Promise<CierreLogEntry[]> {
   const { data, error } = await supabase
     .from("cierre_embarque_log" as never)
-    .select("id, embarque_id, accion, usuario_id, motivo, snapshot, created_at")
+    .select("id, embarque_id, organization_id, accion, usuario_id, motivo, snapshot, created_at")
     .eq("embarque_id", embarqueId)
     .order("created_at", { ascending: false })
     // L1 (auditoría 3-3): desempate estable.
@@ -104,23 +102,33 @@ export async function fetchCierreLog(embarqueId: string): Promise<CierreLogEntry
 
   // Fallback: cierres/reaperturas históricos registrados solo en bitácora
   // (antes de que existiera cierre_embarque_log o ejecutados con UPDATE directo de estado).
-  const { data: bitacora } = await supabase
+  const organizacion = principal.find((entrada) => entrada.organization_id)?.organization_id;
+  let consultaBitacora = supabase
     .from("bitacora_actividad")
     .select("id, usuario_id, usuario_email, accion, detalles, created_at")
     .eq("entidad_id", embarqueId)
-    .eq("accion", "cambiar_estado")
+    .eq("modulo", "embarques");
+  if (organizacion) consultaBitacora = consultaBitacora.eq("organization_id", organizacion);
+  const { data: bitacora } = await consultaBitacora
+    .in("accion", ["cambiar_estado", "cerrar_embarque", "cerrar_embarque_forzado",
+      "cerrar_embarque_automatico", "reabrir_embarque"])
     .order("created_at", { ascending: false })
     // L1 (auditoría 3-3): desempate estable.
     .order("id", { ascending: false });
 
-  const fallback: CierreLogEntry[] = [];
-  for (const row of (bitacora ?? []) as Array<{
+  const eventos = (bitacora ?? []) as Array<{
     id: string;
     usuario_id: string | null;
     usuario_email: string | null;
+    accion: string;
     detalles: Record<string, unknown> | null;
     created_at: string;
-  }>) {
+  }>;
+  const emails = new Map(eventos.filter((row) => row.usuario_id && row.usuario_email?.trim())
+    .map((row) => [row.usuario_id, row.usuario_email]));
+  const fallback: CierreLogEntry[] = [];
+  for (const row of eventos) {
+    if (row.accion !== "cambiar_estado") continue;
     const det = (row.detalles ?? {}) as { estado_nuevo?: string; estado_anterior?: string };
     const nuevo = (det.estado_nuevo ?? "").toLowerCase();
     const anterior = (det.estado_anterior ?? "").toLowerCase();
@@ -144,21 +152,19 @@ export async function fetchCierreLog(embarqueId: string): Promise<CierreLogEntry
 
   // Evitar duplicar si ya hay un registro en cierre_embarque_log con el mismo timestamp aproximado.
   const principalKeys = new Set(
-    principal.map((p) => `${p.accion}-${p.created_at.slice(0, 16)}`),
+    principal.map((p) => `${p.accion === "reabrir" ? "reabrir" : "cerrar"}-${p.created_at.slice(0, 16)}`),
   );
   const fallbackUnico = fallback.filter(
     (f) => !principalKeys.has(`${f.accion}-${f.created_at.slice(0, 16)}`),
   );
 
-  return [...principal, ...fallbackUnico].sort((a, b) =>
+  return [...principal.map((p) => ({
+    ...p, usuario_email: p.usuario_id ? emails.get(p.usuario_id) : null,
+  })), ...fallbackUnico].sort((a, b) =>
     b.created_at.localeCompare(a.created_at),
   );
 }
 
-
-// ============================================================
-// v13.89.0 — Cierre administrativo: resumen por embarque y conteo global
-// ============================================================
 
 export interface AdminPendientesResumen {
   pendientes: number;

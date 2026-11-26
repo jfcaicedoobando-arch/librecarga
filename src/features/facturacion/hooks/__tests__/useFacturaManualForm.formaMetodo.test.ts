@@ -3,6 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mutate, validarLimite } = vi.hoisted(() => ({ mutate: vi.fn(), validarLimite: vi.fn() }));
+vi.mock("@tanstack/react-query", () => ({ useQuery: () => ({ isSuccess: true, isFetching: false }) }));
 vi.mock("@/hooks/shared/useOrgActiva", () => ({ useOrgActiva: () => ({ organizationId: "org-1" }) }));
 vi.mock("@/features/catalogos/hooks/useTasaIVA", () => ({ useTasaIVA: () => 0.16 }));
 vi.mock("@/features/facturacion/hooks/useCrearFacturaManual", () => ({ useCrearFacturaManual: () => ({ mutate, isPending: false }) }));

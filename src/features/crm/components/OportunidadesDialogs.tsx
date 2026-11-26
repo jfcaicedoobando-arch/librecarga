@@ -4,6 +4,7 @@
  */
 import NuevaActividadDialog from "@/features/crm/components/NuevaActividadDialog";
 import { DialogMotivoPerdida } from "@/features/crm/components/DialogMotivoPerdida";
+import { DialogMotivoReapertura } from "./DialogMotivoReapertura";
 import type {
   ProximoPasoTarget,
   PerdidaPendiente,
@@ -15,11 +16,15 @@ interface Props {
   perdidaPendiente: PerdidaPendiente | null;
   cerrarPerdida: () => void;
   confirmarPerdida: (motivoPerdidaId: string) => void;
+  reaperturaPendiente: PerdidaPendiente | null;
+  cerrarReapertura: () => void;
+  confirmarReapertura: (motivo: string) => void;
   moviendo: boolean;
 }
 
 export default function OportunidadesDialogs({
   proximoPaso, cerrarProximoPaso, perdidaPendiente, cerrarPerdida, confirmarPerdida, moviendo,
+  reaperturaPendiente, cerrarReapertura, confirmarReapertura,
 }: Props) {
   return (
     <>
@@ -43,6 +48,13 @@ export default function OportunidadesDialogs({
         loading={moviendo}
         onConfirm={({ motivo_perdida_id }) => confirmarPerdida(motivo_perdida_id)}
       />
+      {reaperturaPendiente && <DialogMotivoReapertura
+        key={reaperturaPendiente.id}
+        nombre={reaperturaPendiente.nombre}
+        loading={moviendo}
+        onCancel={cerrarReapertura}
+        onConfirm={confirmarReapertura}
+      />}
     </>
   );
 }

@@ -7,6 +7,7 @@ import { iconoDeEvento } from "./timelineIconos";
 
 export interface TimelineEvento {
   tipo: string;
+  etiqueta?: string;
   fecha: string;
   descripcion?: string | null;
   ubicacion?: string | null;
@@ -37,7 +38,7 @@ export function TimelineEventoItem({ evento, ultimo }: ItemProps) {
       </div>
       <div className="space-y-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-body font-medium text-foreground">{evento.tipo}</span>
+          <span className="text-body font-medium text-foreground">{evento.etiqueta ?? evento.tipo}</span>
           {ultimo && <Badge variant="secondary" className="text-2xs">Último</Badge>}
           <span className="text-body-sm text-muted-foreground flex items-center gap-1">
             <Clock className="h-3 w-3" />

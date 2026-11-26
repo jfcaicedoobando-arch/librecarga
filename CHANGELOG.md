@@ -1,5 +1,12 @@
 # Changelog
 
+## [13.824.106] - 2026-11-26
+
+- **Facturación y cobranza.** La vista previa muestra las retenciones antes del timbrado. La conversión de proformas valida el Uso CFDI del cliente. Los cobros respetan la fecha de negocio de México y verifican el contenido de los reintentos de lote.
+- **Compras y tesorería.** Cada lote conserva un solo cargo bancario. Los pagos en efectivo quedan fuera de conciliación y las sugerencias consideran la moneda de la cuenta.
+- **CRM y tarifas.** La reapertura registra el motivo y conserva el motivo de pérdida anterior en el historial. Se evita duplicar oportunidades por reintentos y se revisan vigencia y escalas de las tarifas.
+- **Embarques.** Los documentos recuperan cargas interrumpidas y refrescan el checklist. El seguimiento usa nombres acordes con el modo de transporte. El cierre forzado exige confirmación explícita y la utilidad agrupa costos de proveedor por su identificador.
+
 ## [13.824.105] - 2026-11-23
 
 - **Facturación y Embarques.** Las bandejas aclaran qué queda seleccionado al cambiar los filtros y mantienen visible la revisión de documentos faltantes.

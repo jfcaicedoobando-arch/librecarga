@@ -38,6 +38,9 @@ DECLARE
   -- Ola 11 · RNF-01: llave de idempotencia del cliente (opcional).
   v_request_id uuid := NULLIF(p_payload->>'request_id','')::uuid;
   v_cached jsonb;
+  v_intento jsonb;
+  v_intento_anterior jsonb;
+  v_reparto jsonb;
   v_resp jsonb;
   v_cuenta public.cuentas_bancarias;
   v_cliente_nombre text;
@@ -55,17 +58,6 @@ DECLARE
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'No autenticado' USING ERRCODE = '42501';
-  END IF;
-
-  -- Ola 11 · RNF-01: reclamo atómico de la llave. Reintento del mismo
-  -- submit → respuesta almacenada; ejecución aún en vuelo → rechazo claro.
-  v_cached := public.idempotency_claim(v_request_id, 'registrar_pago_cliente_lote');
-  IF v_cached IS NOT NULL THEN
-    IF COALESCE((v_cached->>'__idempotency_pending')::boolean, false) THEN
-      RAISE EXCEPTION 'LC_COBRO_LOTE_EN_PROCESO: Este cobro en lote ya está en proceso; espera unos segundos y verifica el historial antes de reintentar.'
-        USING ERRCODE = '42501';
-    END IF;
-    RETURN v_cached;
   END IF;
 
   SELECT organization_id, nombre INTO v_org, v_cliente_nombre
@@ -89,6 +81,40 @@ BEGIN
        v_org) THEN
     RAISE EXCEPTION 'LC_COBRO_LOTE_SIN_ROL: Sólo administración, contabilidad o tesorería pueden registrar cobros en lote.'
       USING ERRCODE = '42501';
+  END IF;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_array((r->>'factura_id')::uuid, ROUND(COALESCE((r->>'monto')::numeric, 0), 2))
+    ORDER BY (r->>'factura_id')::uuid, (r->>'monto')::numeric), '[]'::jsonb)
+  INTO v_reparto
+  FROM jsonb_array_elements(COALESCE(p_payload->'renglones', '[]'::jsonb)) r;
+  v_intento := jsonb_build_array(v_org, v_cliente_id, v_fecha, v_moneda, v_tc,
+    ROUND(v_importe, 2), v_forma, v_referencia, v_cuenta_id, v_notas, v_reparto);
+
+  v_cached := public.idempotency_claim(v_request_id, 'registrar_pago_cliente_lote');
+  IF v_cached IS NOT NULL THEN
+    IF COALESCE((v_cached->>'__idempotency_pending')::boolean, false) THEN
+      RAISE EXCEPTION 'LC_COBRO_LOTE_EN_PROCESO: Este cobro en lote ya está en proceso; verifica el historial antes de reintentar.'
+        USING ERRCODE = '42501';
+    END IF;
+    v_intento_anterior := v_cached->'intento';
+    IF v_intento_anterior IS NULL THEN
+      -- Antes de guardar la huella, recuperar sólo desde el lote y su reparto persistidos.
+      SELECT jsonb_build_array(l.organization_id, l.cliente_id, l.fecha_pago, l.moneda,
+        l.tipo_cambio_usd, ROUND(l.monto_total, 2), l.forma_pago, l.referencia, l.cuenta_bancaria_id, l.notas,
+        (SELECT jsonb_agg(jsonb_build_array(p.factura_id, ROUND(p.monto, 2)) ORDER BY p.factura_id)
+          FROM public.pagos_factura p
+          WHERE p.lote_id = l.id AND p.organization_id = v_org AND p.deleted_at IS NULL))
+      INTO v_intento_anterior
+      FROM public.pagos_factura_lote l
+      WHERE l.id = (v_cached->>'lote_id')::uuid AND l.organization_id = v_org
+        AND l.created_by = v_uid AND l.deleted_at IS NULL;
+    END IF;
+    IF v_intento_anterior IS DISTINCT FROM v_intento THEN
+      RAISE EXCEPTION 'LC_COBRO_LOTE_INTENTO_DISTINTO: Este intento ya se usó con otros datos. Revisa el lote en el historial antes de registrar otra operación.'
+        USING ERRCODE = '22023';
+    END IF;
+    RETURN v_cached - 'intento';
   END IF;
 
   -- Ola 11 · RFE-02/RNF-03: misma regla que el cobro individual (FE-03).
@@ -258,7 +284,7 @@ BEGIN
   v_resp := jsonb_build_object('lote_id', v_lote_id, 'monto_total', v_total, 'pagos', v_pagos);
   -- Ola 11 · RNF-01: almacena la respuesta para los reintentos con la
   -- misma llave (no-op cuando request_id viene NULL).
-  PERFORM public.idempotency_store(v_request_id, v_resp);
+  PERFORM public.idempotency_store(v_request_id, v_resp || jsonb_build_object('intento', v_intento));
   RETURN v_resp;
 END;
 $function$;

@@ -9,19 +9,11 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { captureAuthOperationScope } from '@/lib/auth/authOperationScope';
-import { uploadFile } from '@/services/storage/index';
+import { downloadFile, uploadFile } from '@/services/storage/index';
 import { sanitizeFileName, sanitizeStorageKey } from '@/lib/storage';
 import type { TablesInsert } from '@/integrations/supabase/types';
-import {
-  idempotencyClaimSchema,
-  isCachedClaim,
-} from '@/features/embarques/services/idempotencyClaimSchema';
 import { sha256Hex, hexToUuid } from '@/features/embarques/services/documentos/idempotencyHash';
 import { registrarActividad } from '@/services/bitacora/registrar';
-import {
-  limpiarBlobBestEffort,
-  limpiarBlobAnteriorTrasReemplazo,
-} from '@/lib/documentoStorage';
 
 type DocumentoEstado = TablesInsert<'documentos_embarque'>['estado'];
 
@@ -46,38 +38,44 @@ async function buildScopedRequestId(embarqueId: string, docId: string, hash: str
   return hexToUuid(scopedHex);
 }
 
-/** Sincroniza la fila con el `path` cacheado (ciclo A→B→A). */
-async function resincronizarDesdeCache(embarqueId: string, docId: string, path: string, organizationId: string | null): Promise<void> {
+async function leerSlot(embarqueId: string, docId: string, organizationId: string | null) {
   let query = supabase
     .from('documentos_embarque')
-    .update({ archivo: path, estado: 'Recibido' as DocumentoEstado })
+    .select('archivo, estado')
     .eq('id', docId).eq('embarque_id', embarqueId).is('deleted_at', null);
   if (organizationId) query = query.eq('organization_id', organizationId);
-  const { data: resynced, error } = await query.select('id');
+  const { data, error } = await query.maybeSingle();
   if (error) throw error;
-  if (!resynced || resynced.length === 0) {
-    throw new Error('No se pudo sincronizar el documento con la respuesta cacheada (sin permisos o el documento ya no existe).');
+  return data;
+}
+
+async function coincideContenido(path: string, hash: string): Promise<boolean> {
+  try {
+    return await sha256Hex(await downloadFile(path)) === hash;
+  } catch {
+    return false;
   }
 }
 
-/**
- * Commit del documento. Si falla (error o 0 filas) limpia el blob nuevo
- * best-effort y relanza el error ORIGINAL, sin enmascararlo.
- */
-async function commitDocumento(embarqueId: string, docId: string, path: string, organizationId: string | null): Promise<void> {
+async function commitDocumento(embarqueId: string, docId: string, path: string, scope: ReturnType<typeof captureAuthOperationScope>) {
   let query = supabase
     .from('documentos_embarque')
     .update({ archivo: path, estado: 'Recibido' as DocumentoEstado })
     .eq('id', docId).eq('embarque_id', embarqueId).is('deleted_at', null);
-  if (organizationId) query = query.eq('organization_id', organizationId);
-  const { data: updated, error } = await query.select('id');
-  if (error) {
-    await limpiarBlobBestEffort(path, 'upload_documento_embarque:commit_fallido');
-    throw error;
-  }
-  if (!updated || updated.length === 0) {
-    await limpiarBlobBestEffort(path, 'upload_documento_embarque:cero_filas');
+  if (scope.organizationId) query = query.eq('organization_id', scope.organizationId);
+  try {
+    const { data, error } = await query.select('id');
+    if (error) throw error;
+    if (data?.length) return;
     throw new Error('No se pudo actualizar el documento (sin permisos o el documento ya no existe).');
+  } catch (error) {
+    // Una respuesta perdida puede ocultar un commit. Retener el blob también
+    // permite que el mismo intento termine cuando la lectura siga fallando.
+    if (scope.isCurrent()) {
+      const slot = await leerSlot(embarqueId, docId, scope.organizationId).catch(() => null);
+      if (slot?.archivo === path && (slot.estado === 'Recibido' || slot.estado === 'Validado') && scope.isCurrent()) return;
+    }
+    throw error;
   }
 }
 
@@ -125,50 +123,35 @@ export async function uploadDocumentoEmbarque(
   const path = `embarques/${sanitizeStorageKey(embarqueId)}/${sanitizeStorageKey(docId)}/${hash.slice(0, 12)}-${sanitizeFileName(file.name)}`;
 
   // 1) Si la fila ya apunta al mismo archivo (mismo contenido), no hacer nada.
-  let read = supabase
-    .from('documentos_embarque')
-    .select('archivo')
-    .eq('id', docId).eq('embarque_id', embarqueId).is('deleted_at', null);
-  if (scope.organizationId) read = read.eq('organization_id', scope.organizationId);
-  const { data: actual, error: errSel } = await read.maybeSingle();
+  const actual = await leerSlot(embarqueId, docId, scope.organizationId);
   scope.assertCurrent();
-  if (errSel) throw errSel;
   if (!actual) throw Object.assign(new Error('El documento ya no existe o fue eliminado.'), { code: 'NOT_FOUND' });
-  if (actual.archivo === path) {
+  if (actual.archivo === path && (actual.estado === 'Recibido' || actual.estado === 'Validado')
+      && await coincideContenido(path, hash)) {
+    scope.assertCurrent();
     return { path, fileName: file.name, cached: true };
   }
 
-  // 2) Reclamar idempotencia.
+  // Un acuse cacheado no acredita que el blob exista o siga asociado al slot.
   const requestId = await buildScopedRequestId(embarqueId, docId, hash);
   scope.assertCurrent();
-  const { data: claim } = await supabase.rpc('idempotency_claim', {
+  const { error: errorClaim } = await supabase.rpc('idempotency_claim', {
     _key: requestId,
     _fn: 'upload_documento_embarque',
   });
   scope.assertCurrent();
-  const parsedClaim = idempotencyClaimSchema.safeParse(claim);
-  if (parsedClaim.success && isCachedClaim(parsedClaim.data)) {
-    const c = parsedClaim.data;
-    if (c.path !== actual.archivo) await resincronizarDesdeCache(embarqueId, docId, c.path, scope.organizationId);
-    return { path: c.path, fileName: c.fileName ?? file.name, cached: true };
-  }
+  if (errorClaim) throw errorClaim;
 
-  // 3) Upload y commit de la fila.
-  await uploadFile(path, file);
   try {
-    scope.assertCurrent();
+    await uploadFile(path, file);
   } catch (error) {
-    await limpiarBlobBestEffort(path, 'upload_documento_embarque:contexto_cambiado');
-    throw error;
+    scope.assertCurrent();
+    if (!await coincideContenido(path, hash)) throw error;
   }
-  const anterior = actual.archivo ?? null;
-  await commitDocumento(embarqueId, docId, path, scope.organizationId);
-
-  // v13.823.47 — reemplazo documental: con el UPDATE ya confirmado, el blob
-  // anterior queda huérfano. Se borra best-effort y sólo si difiere del nuevo.
-  if (scope.isCurrent() && anterior) {
-    await limpiarBlobAnteriorTrasReemplazo(anterior, path, 'upload_documento_embarque:reemplazo');
-  }
+  scope.assertCurrent();
+  // Otra sesión puede volver a usar el path anterior en cualquier momento.
+  // El cliente conserva las versiones por contenido para permitir recuperar el slot.
+  await commitDocumento(embarqueId, docId, path, scope);
 
   await postCommitBestEffort({ requestId, embarqueId, docId, path, fileName: file.name, scope });
   return { path, fileName: file.name, cached: false };

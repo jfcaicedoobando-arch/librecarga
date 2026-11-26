@@ -4,7 +4,7 @@
 -- DEFECTO 1 (P0, cross-tenant): el rol se valida EN LA ORG DEL EMBARQUE
 -- (v_emb.organization_id) tras el SELECT ... FOR UPDATE, no de forma global.
 
-CREATE OR REPLACE FUNCTION public.cerrar_embarque(p_embarque_id uuid) RETURNS jsonb
+CREATE OR REPLACE FUNCTION public._cerrar_embarque_confirmado(p_embarque_id uuid, p_forzar boolean) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -40,6 +40,9 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'No autorizado para cerrar embarques. Esta acción es responsabilidad del coordinador logístico.';
   END IF;
+  IF p_forzar AND NOT v_is_admin THEN
+    RAISE EXCEPTION 'Solo administración puede autorizar un cierre forzado' USING ERRCODE = '42501';
+  END IF;
   IF v_emb.estado::text = 'Cerrado' THEN
     RAISE EXCEPTION 'El embarque ya está cerrado';
   END IF;
@@ -50,7 +53,7 @@ BEGIN
   IF NOT COALESCE((v_validacion->>'puede_cerrar')::boolean, false) THEN
     IF v_automatico THEN
       RAISE EXCEPTION 'LC_CIERRE_AUTOMATICO_NO_APLICA';
-    ELSIF v_is_admin THEN
+    ELSIF v_is_admin AND p_forzar THEN
       v_forzado := true;
     ELSE
       RAISE EXCEPTION 'Validaciones de cierre no satisfechas: %', v_validacion::text;
@@ -140,6 +143,25 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public._cerrar_embarque_confirmado(uuid, boolean) FROM PUBLIC, anon, authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.cerrar_embarque(p_embarque_id uuid) RETURNS jsonb
+LANGUAGE sql SECURITY DEFINER SET search_path TO 'public' AS $$
+  SELECT public._cerrar_embarque_confirmado(p_embarque_id, false)
+$$;
+
 REVOKE ALL ON FUNCTION public.cerrar_embarque(p_embarque_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.cerrar_embarque(p_embarque_id uuid) TO authenticated;
 GRANT ALL ON FUNCTION public.cerrar_embarque(p_embarque_id uuid) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.forzar_cierre_embarque(p_embarque_id uuid, p_confirmacion text) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+BEGIN
+  IF p_confirmacion IS DISTINCT FROM 'FORZAR CIERRE' THEN
+    RAISE EXCEPTION 'Confirma el cierre forzado de forma explícita' USING ERRCODE = '22023';
+  END IF;
+  RETURN public._cerrar_embarque_confirmado(p_embarque_id, true);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.forzar_cierre_embarque(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.forzar_cierre_embarque(uuid, text) TO authenticated;

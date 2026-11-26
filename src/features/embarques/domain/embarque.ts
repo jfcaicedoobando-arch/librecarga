@@ -62,6 +62,13 @@ export function tipoEventoParaEstado(estado: string): string {
   return ESTADO_A_EVENTO_TRACKING[estado] ?? "Otro";
 }
 
+export function etiquetaEventoTracking(tipo: string, modo?: string | null): string {
+  if (modo !== "Terrestre" && modo !== "Aéreo") return tipo;
+  if (tipo === "Zarpe") return modo === "Aéreo" ? "Despegue" : "Salida";
+  if (tipo === "Arribo a Puerto") return modo === "Aéreo" ? "Arribo a aeropuerto" : "Llegada";
+  return tipo;
+}
+
 /**
  * Construye la descripción estándar del evento de tracking generado al cambiar
  * de estado un embarque.

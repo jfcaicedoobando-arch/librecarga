@@ -11,6 +11,8 @@ import { LC_CODE_MESSAGES_OPERATIVO_GENERICOS } from "./lcCodeMessages.operativo
 import { LC_CODE_MESSAGES_EMBARQUE_MARGEN } from './lcCodeMessages.embarqueMargen';
 
 export const LC_CODE_MESSAGES_OPERATIVO: Record<string, string> = {
+  LC_REAPERTURA_INTENTO_DISTINTO:
+    "La reapertura ya se guardó con otros datos. Revisa el estado y el historial del embarque.",
   ...LC_CODE_MESSAGES_OPERATIVO_AUTH,
   ...LC_CODE_MESSAGES_OPERATIVO_OPERACIONES,
   ...LC_CODE_MESSAGES_OPERATIVO_GARANTIAS,

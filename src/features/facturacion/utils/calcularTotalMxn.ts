@@ -24,8 +24,9 @@ export function calcularTotalMxn(
   moneda: Moneda,
   tipoCambio: number,
   tasaIva: number,
+  totalFiscal?: number,
 ): TotalFacturaMxn {
   const { subtotal, total } = calcularTotalesConceptos(conceptos, tasaIva);
-  const conv = aMxn(total || subtotal, moneda, tipoCambio);
+  const conv = aMxn(totalFiscal ?? (total || subtotal), moneda, tipoCambio);
   return { mxn: conv.monto, tcFaltante: !conv.completo };
 }

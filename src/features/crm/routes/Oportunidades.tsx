@@ -84,6 +84,7 @@ export default function Oportunidades() {
   const {
     handleMover, proximoPaso, cerrarProximoPaso,
     perdidaPendiente, cerrarPerdida, confirmarPerdida, moviendo,
+    reaperturaPendiente, cerrarReapertura, confirmarReapertura,
   } = useMoverOportunidadEtapa({
     etapas: etapas as CrmEtapaRow[],
     oportunidades: ops,
@@ -168,6 +169,9 @@ export default function Oportunidades() {
         perdidaPendiente={perdidaPendiente}
         cerrarPerdida={cerrarPerdida}
         confirmarPerdida={confirmarPerdida}
+        reaperturaPendiente={reaperturaPendiente}
+        cerrarReapertura={cerrarReapertura}
+        confirmarReapertura={confirmarReapertura}
         moviendo={moviendo}
       />
       {/* E-11: CTA del estado vacío de las columnas del Kanban. */}

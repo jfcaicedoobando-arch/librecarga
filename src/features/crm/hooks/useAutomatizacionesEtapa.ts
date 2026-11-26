@@ -31,6 +31,7 @@ export function useMoverEtapaConAutomatizacion() {
       id: string; etapa_id: string; probabilidad?: number;
       fecha_cierre_real?: string | null; valor_real?: number | null;
       motivo_perdida_id?: string | null; // Ola 4 · N49
+      motivo_reapertura?: string;
       /** Hallazgo 14: sello leído antes de mover; bloqueo optimista. */
       expectedUpdatedAt?: string | null;
     }) => {

@@ -14,7 +14,8 @@ import type { MovimientoBBVA } from "../conciliacion";
 
 const ajuste = { id: "ajuste", es_ajuste: true, monto: 1, moneda: "MXN", fecha_pago: "2026-10-07", referencia: "texto libre", cuenta_bancaria_id: null };
 // SAFE-CAST: el sugeridor sólo consume importe, cuenta, fecha y estado del fixture.
-const mov = { id: "mov", cargo: 1, abono: 0, fecha: "2026-10-07", cuenta_bancaria_id: "cuenta", estado_conciliacion: "Pendiente" } as MovimientoBBVA;
+const mov = { id: "mov", cargo: 1, abono: 0, fecha: "2026-10-07", cuenta_bancaria_id: "cuenta", estado_conciliacion: "Pendiente",
+  cuenta: { moneda: "MXN", deleted_at: null } } as MovimientoBBVA & { cuenta: { moneda: string; deleted_at: null } };
 beforeEach(() => { mock.resetResults(); mock.tableCalls.length = 0; bitacora.mockClear(); });
 const writes = () => mock.tableCalls.filter(c => c.ops.includes("update"));
 
@@ -43,6 +44,21 @@ describe("ajuste no monetario: servicio de vínculo", () => {
     await conciliarConPago("mov", "cxp", "p", "u");
     expect(writes()).toHaveLength(1); expect(bitacora).toHaveBeenCalledWith("mov", "cxp", "p");
   });
+  it("vincula un pago en USD al cargo equivalente en una cuenta MXN", async () => {
+    mock.setTableResult("pagos_proveedor", { data: { ...ajuste, es_ajuste: false, monto: 100, moneda: "USD", tipo_cambio_usd: 18 }, error: null });
+    const cargo = { ...mov, cargo: 1800 };
+    mock.setTableResultOnce("bbva_movimientos", { data: [], error: null });
+    mock.setTableResultOnce("bbva_movimientos", { data: cargo, error: null });
+    mock.setTableResultOnce("bbva_movimientos", { data: cargo, error: null });
+    mock.setTableResultOnce("bbva_movimientos", { data: [{ id: "mov" }], error: null });
+    await conciliarConPago("mov", "cxp", "p", "u");
+    expect(writes()).toHaveLength(1);
+  });
+  it.each([{ metodo_pago: "Efectivo" }, { lote_id: "lote" }])("descarta como vínculo individual %j", async (campos) => {
+    mock.setTableResult("pagos_proveedor", { data: { ...ajuste, es_ajuste: false, ...campos }, error: null });
+    await expect(conciliarConPago("mov", "cxp", "p", "u")).rejects.toMatchObject({ code: "LC_MOVIMIENTO_PAGO_NO_CONCILIABLE" });
+    expect(writes()).toEqual([]);
+  });
   it("traduce rechazo del trigger después de una lectura previa ordinaria", () => {
     expect(() => mapConciliacionError({ code: "23514", message: "LC_MOVIMIENTO_AJUSTE_NO_MONETARIO: un ajuste no mueve dinero" }))
       .toThrow(expect.objectContaining({ code: "LC_MOVIMIENTO_AJUSTE_NO_MONETARIO" }));
@@ -64,8 +80,16 @@ describe("ajustes fuera de los sugeridores en ambos sentidos", () => {
   });
   it("pago→banco conserva el control ordinario, sin clasificar por texto", async () => {
     mock.setTableResult("pagos_proveedor", { data: { ...ajuste, es_ajuste: false, referencia: "Ajuste" }, error: null });
+    mock.setTableResult("cuentas_bancarias", { data: [{ id: "cuenta", moneda: "MXN" }], error: null });
     mock.setTableResult("bbva_movimientos", { data: [mov], error: null });
     expect(await sugerirMovsParaPagoProveedor(ajuste)).toHaveLength(1);
+  });
+  it("pago→banco compara el cargo en USD convertido a la moneda de la cuenta", async () => {
+    mock.setTableResult("pagos_proveedor", { data: { ...ajuste, es_ajuste: false }, error: null });
+    mock.setTableResult("cuentas_bancarias", { data: [{ id: "cuenta", moneda: "MXN" }], error: null });
+    mock.setTableResult("bbva_movimientos", { data: [{ ...mov, cargo: 100 }, { ...mov, id: "convertido", cargo: 1800 }], error: null });
+    const resultados = await sugerirMovsParaPagoProveedor({ ...ajuste, monto: 100, moneda: "USD", tipo_cambio_usd: 18 });
+    expect(resultados).toMatchObject([{ id: "convertido", moneda_cuenta: "MXN", delta_monto: 0 }]);
   });
   it("banco→pago excluye ajustes antes de contar candidatos o match único", async () => {
     mock.setTableResult("pagos_proveedor", { data: [ajuste], error: null });

@@ -6,6 +6,9 @@
  * v13.313.0
  */
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query";
+import { consultarVistaFiscalManual, type CapturaFiscalManual } from "../services/facturaManualVistaFiscal";
 import { useTasaIVA } from "@/features/catalogos/hooks/useTasaIVA";
 import { useFacturaManualSubmit } from "./useFacturaManualSubmit";
 import { useClientesFiscalOpts } from "@/features/facturacion/hooks/useClientesFiscalOpts";
@@ -22,6 +25,31 @@ import { todayLocalISO } from "@/lib/date/today";
 import type { ConceptoManualInput } from "@/features/facturacion/services/facturaManual";
 import type { DatosFiscalesValue } from "@/features/facturacion/components/FacturaManualDatosFiscales";
 import { useOrgActiva } from "@/hooks/shared/useOrgActiva";
+
+function validarCapturaManual(conceptos: ConceptoManualInput[], fiscal: DatosFiscalesValue) {
+  const conceptosValidos = conceptos.every(
+    (c) => c.descripcion.trim().length > 0 && Number(c.cantidad) > 0 && Number(c.precio_unitario) >= 0,
+  );
+  const total = sumarSubtotales(conceptos, (c) => ({
+    cantidad: Number(c.cantidad), precioUnitario: Number(c.precio_unitario),
+  }));
+  const tcFueraDeBanda = fiscal.moneda === "MXN" ? null : validarTcMxn(fiscal.tipoCambio);
+  return {
+    conceptosValidos,
+    totalCero: conceptosValidos && total <= 0,
+    tcFueraDeBanda,
+    capturaValida: conceptosValidos && total > 0 && fiscal.tipoCambio > 0 && !tcFueraDeBanda,
+  };
+}
+
+function useVistaFiscalManual(open: boolean, captura: CapturaFiscalManual) {
+  return useQuery({
+    queryKey: queryKeys.facturas.vistaFiscalManual(captura),
+    enabled: open && !!captura.organizationId && !!captura.clienteId,
+    queryFn: ({ signal }) => consultarVistaFiscalManual(captura, signal),
+    staleTime: 0,
+  });
+}
 
 export function useFacturaManualForm(open: boolean, onClose?: () => void) {
   const { organizationId } = useOrgActiva();
@@ -60,19 +88,12 @@ export function useFacturaManualForm(open: boolean, onClose?: () => void) {
     });
 
   const clienteIncompleto = !!cliente && (!cliente.rfc || !cliente.codigo_postal || !cliente.regimen_fiscal);
-  const conceptosValidos = conceptos.every(
-    (c) => c.descripcion.trim().length > 0 && Number(c.cantidad) > 0 && Number(c.precio_unitario) >= 0,
-  );
-  // B-11: una factura con total 0 (todos los conceptos a $0) no es facturable.
-  const totalEstimado = sumarSubtotales(conceptos, (c) => ({
-    cantidad: Number(c.cantidad), precioUnitario: Number(c.precio_unitario),
-  }));
-  const totalPositivo = totalEstimado > 0;
-  const totalCero = conceptosValidos && !totalPositivo;
-  // M-14: banda de plausibilidad del T/C (sólo cuando la factura no es en MXN).
-  const tcFueraDeBanda = fiscal.moneda === "MXN" ? null : validarTcMxn(fiscal.tipoCambio);
-  const puedeGuardar =
-    !!cliente && conceptosValidos && fiscal.tipoCambio > 0 && totalPositivo && !tcFueraDeBanda;
+  const { conceptosValidos, totalCero, tcFueraDeBanda, capturaValida } = validarCapturaManual(conceptos, fiscal);
+  const clienteFiscalId = cliente?.id ?? "";
+  const vistaFiscal = useVistaFiscalManual(open && capturaValida, {
+    organizationId: organizationId ?? "", clienteId: clienteFiscalId, moneda: fiscal.moneda, conceptos, tasaIva,
+  });
+  const puedeGuardar = capturaValida && vistaFiscal.isSuccess && !vistaFiscal.isFetching;
   const errorFormaMetodo = validarFormaMetodoPago(fiscal.formaPago, fiscal.metodoPago)[0]?.message;
   const { receptor, issues: issuesUso, avisos: avisosUso } = validarUsoClienteManual(cliente, fiscal.usoCfdi);
   const puedeTimbrar = puedeGuardar && !clienteIncompleto && !errorFormaMetodo && issuesUso.length === 0;
@@ -105,7 +126,7 @@ export function useFacturaManualForm(open: boolean, onClose?: () => void) {
     };
   };
 
-  const submit = useFacturaManualSubmit({ buildInput, puedeGuardar, puedeTimbrar,
+  const submit = useFacturaManualSubmit({ buildInput, puedeGuardar, puedeTimbrar, totalFiscal: vistaFiscal.data?.total,
     onSuccess: () => { reset(); onClose?.(); } });
 
   return {
@@ -133,6 +154,8 @@ export function useFacturaManualForm(open: boolean, onClose?: () => void) {
     }),
     totalCero,
     tcFueraDeBanda,
+    vistaFiscal,
+    evaluandoFiscal: vistaFiscal.isFetching,
 
     ...submit,
   };

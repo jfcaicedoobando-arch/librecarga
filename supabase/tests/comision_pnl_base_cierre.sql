@@ -26,7 +26,7 @@ BEGIN;
 
 DO $b4$
 DECLARE
-  d text := pg_get_functiondef('public.cerrar_embarque(uuid)'::regprocedure);
+  d text := pg_get_functiondef('public._cerrar_embarque_confirmado(uuid,boolean)'::regprocedure);
   seg_com text;
   pos_recalc integer;
   pos_update integer;

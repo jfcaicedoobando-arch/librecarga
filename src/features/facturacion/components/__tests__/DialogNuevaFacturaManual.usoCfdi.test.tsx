@@ -15,6 +15,9 @@ vi.mock("@/features/facturacion/hooks/useBanxicoTipoCambio", () => ({ useBanxico
 vi.mock("@/features/configuracion", () => ({ useIvaFronteraHabilitada: () => false }));
 vi.mock("../CreditoExcesoConfirmDialog", () => ({ CreditoExcesoConfirmDialog: () => null }));
 vi.mock("@/features/facturacion/services/facturaManual", () => ({ crearFacturaManual: mocks.crear }));
+vi.mock("@/features/facturacion/services/facturaManualVistaFiscal", () => ({
+  consultarVistaFiscalManual: async () => null,
+}));
 vi.mock("@/features/facturacion/services/facturapi", () => ({ emitirFacturapi: mocks.emitir }));
 vi.mock("@/features/facturacion/services/datosFiscalesCliente", () => ({ fetchClienteFiscal: mocks.fiscal }));
 vi.mock("@/lib/ui/appFeedback", () => ({ notifySuccess: mocks.success, notifyError: mocks.error, notifyInfo: vi.fn() }));
@@ -27,7 +30,7 @@ beforeEach(() => {
 });
 
 describe("Nueva factura manual: receptor y acciones visibles", () => {
-  it("pide el cliente antes de evaluar compatibilidad y explica el bloqueo por total cero", () => {
+  it("pide el cliente antes de evaluar compatibilidad y explica el bloqueo por total cero", async () => {
     const client = new QueryClient();
     render(<QueryClientProvider client={client}><DialogNuevaFacturaManual open onOpenChange={vi.fn()} /></QueryClientProvider>);
     const ayuda = screen.getByRole("status");
@@ -53,7 +56,7 @@ describe("Nueva factura manual: receptor y acciones visibles", () => {
     fireEvent.change(precio, { target: { value: "100" } });
     fireEvent.blur(precio);
     expect(screen.queryByText("El total debe ser mayor a cero.")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Guardar borrador" })).toBeEnabled();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Guardar borrador" })).toBeEnabled());
     expect(screen.getByRole("button", { name: "Crear y timbrar" })).toBeEnabled();
     expect(mocks.crear).not.toHaveBeenCalled();
     expect(mocks.emitir).not.toHaveBeenCalled();
@@ -72,7 +75,7 @@ describe("Nueva factura manual: receptor y acciones visibles", () => {
     expect(screen.getByRole("combobox", { name: "Uso CFDI" })).toHaveTextContent("G03");
     expect(screen.getByText(/El uso G03 no es compatible con el régimen fiscal 616/, { selector: '[role="alert"]' })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Crear y timbrar" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Guardar borrador" })).toBeEnabled();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Guardar borrador" })).toBeEnabled());
     expect(mocks.crear).not.toHaveBeenCalled();
     fireEvent.keyDown(screen.getByRole("combobox", { name: "Uso CFDI" }), { key: "ArrowDown" });
     expect(screen.getAllByRole("option")).toHaveLength(1);

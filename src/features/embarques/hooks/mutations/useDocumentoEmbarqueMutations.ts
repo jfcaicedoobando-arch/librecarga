@@ -23,6 +23,8 @@ function invalidateDocumentosCaches(
   embarqueId: string,
 ) {
   queryClient.invalidateQueries({ queryKey: queryKeys.embarques.documentos(embarqueId) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.embarques.docsFaltantes(embarqueId) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.embarques.cierreValidacion(embarqueId) });
   queryClient.invalidateQueries({ queryKey: queryKeys.embarques.all });
   queryClient.invalidateQueries({ queryKey: queryKeys.auditoria.embarques });
   // B-1 (mismo mismatch del toggle de comisión): el badge de pendientes

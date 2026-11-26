@@ -61,6 +61,14 @@ describe("cierre service", () => {
       expect(mockedRpc).toHaveBeenCalledWith("cerrar_embarque", { p_embarque_id: "emb-2" });
     });
 
+    it("envía el cierre excepcional a la RPC de confirmación explícita", async () => {
+      mockedRpc.mockResolvedValue({ data: { forzado_admin: true }, error: null });
+      await expect(cerrarEmbarque("emb-2", "FORZAR CIERRE")).resolves.toMatchObject({ forzado: true });
+      expect(mockedRpc).toHaveBeenCalledWith("forzar_cierre_embarque", {
+        p_embarque_id: "emb-2", p_confirmacion: "FORZAR CIERRE",
+      });
+    });
+
     it("propaga el error de la RPC al cerrar embarque", async () => {
       mockedRpc.mockResolvedValue({ data: null, error: { message: "validaciones no satisfechas" } });
       await expect(cerrarEmbarque("emb-2")).rejects.toThrow("validaciones no satisfechas");
@@ -112,9 +120,11 @@ describe("cierre service", () => {
       const orderIdFn = vi.fn().mockReturnValue({ order: orderFn });
       const eqFn = vi.fn().mockReturnValue({ order: orderIdFn });
       const selectFn = vi.fn().mockReturnValue({ eq: eqFn });
-      // Bitácora fallback chain: select -> eq -> eq -> order
-      const bitacoraOrder = vi.fn().mockResolvedValue({ data: [], error: null });
-      const bitacoraEq2 = vi.fn().mockReturnValue({ order: () => ({ order: bitacoraOrder }) });
+      const bitacoraOrder = vi.fn().mockResolvedValue({
+        data: [{ id: "bit-1", accion: "cerrar_embarque", usuario_id: "u1", usuario_email: "operador@example.invalid" }],
+        error: null,
+      });
+      const bitacoraEq2 = vi.fn().mockReturnValue({ in: () => ({ order: () => ({ order: bitacoraOrder }) }) });
       const bitacoraEq1 = vi.fn().mockReturnValue({ eq: bitacoraEq2 });
       const bitacoraSelect = vi.fn().mockReturnValue({ eq: bitacoraEq1 });
       mockedFrom.mockImplementation((tabla: string) => {
@@ -129,6 +139,7 @@ describe("cierre service", () => {
       expect(orderFn).toHaveBeenCalledWith("id", { ascending: false });
       expect(log).toHaveLength(1);
       expect(log[0].accion).toBe("cerrar");
+      expect(log[0].usuario_email).toBe("operador@example.invalid");
     });
 
     it("retorna array vacío cuando no hay datos", async () => {
@@ -136,7 +147,7 @@ describe("cierre service", () => {
       const bitacoraOrder = vi.fn().mockResolvedValue({ data: null, error: null });
       mockedFrom.mockImplementation((tabla: string) => {
         if (tabla === "bitacora_actividad") {
-          return { select: () => ({ eq: () => ({ eq: () => ({ order: () => ({ order: bitacoraOrder }) }) }) }) };
+          return { select: () => ({ eq: () => ({ eq: () => ({ in: () => ({ order: () => ({ order: bitacoraOrder }) }) }) }) }) };
         }
         return { select: () => ({ eq: () => ({ order: () => ({ order: orderFn }) }) }) };
       });

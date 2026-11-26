@@ -9,6 +9,7 @@ import { formatCurrency, formatFechaDia } from "@/lib/formatters";
 import { ConciliacionPagoCell } from "./ConciliacionPagoCell";
 import { Hint } from "@/components/shared/Hint";
 import { esPagoAnticipo, origenPagoAnticipo, type PagoConOrigenAnticipo } from "../domain/pagoAnticipoOrigen";
+import type { PagoProveedorConMov } from "../services/pagosProveedorTypes";
 
 import { TableCell, TableRow } from "@/components/ui/table";
 export interface PagoRow extends PagoConOrigenAnticipo {
@@ -25,16 +26,9 @@ export interface PagoRow extends PagoConOrigenAnticipo {
   tipo_cambio_usd?: number | string | null;
   diferencia_cambiaria_mxn?: number | string | null;
   cuenta_bancaria_id?: string | null;
-  bbva_movimientos?: Array<{
-    id: string;
-    fecha: string;
-    concepto: string | null;
-    referencia: string | null;
-    cargo: number | string;
-    cuentas_bancarias?: { moneda: string } | null;
-    abono: number | string;
-    estado_conciliacion: "Pendiente" | "Conciliado" | "Ignorado";
-  }> | null;
+  lote_id?: string | null;
+  bbva_movimientos?: PagoProveedorConMov["bbva_movimientos"];
+  pagos_proveedor_lote?: PagoProveedorConMov["pagos_proveedor_lote"];
 }
 
 interface Props {
@@ -44,45 +38,37 @@ interface Props {
   onEditar?: (pago: PagoRow) => void;
 }
 
-export function PagoFila({ pago: p, canEdit, onEliminar, onEditar }: Props) {
-  const tc = p.tipo_cambio_usd ? Number(p.tipo_cambio_usd).toFixed(4) : "—";
-  const dif = p.diferencia_cambiaria_mxn != null
-    ? formatCurrency(Number(p.diferencia_cambiaria_mxn), "MXN")
-    : "—";
-  const mov = (p.bbva_movimientos ?? []).find(m => p.es_ajuste || m.estado_conciliacion === "Conciliado") ?? null;
-  const esAnticipo = esPagoAnticipo(p);
+function ConciliacionFila({ pago: p, canEdit }: Pick<Props, "pago" | "canEdit">) {
+  const movimientos = p.lote_id ? p.pagos_proveedor_lote?.bbva_movimientos : p.bbva_movimientos;
+  const mov = movimientos?.find(m => !m.deleted_at && (p.es_ajuste || m.estado_conciliacion === "Conciliado")) ?? null;
+  const esEfectivo = ["efectivo", "01"].includes(p.metodo_pago.trim().toLowerCase());
   return (
-    <TableRow className="hover:bg-muted/30 transition-colors">
-      <TableCell className="whitespace-nowrap text-foreground">
-        {formatFechaDia(p.fecha_pago)}
-      </TableCell>
-      <TableCell>
-        <div className="flex flex-col">
-          <span className="font-medium text-foreground">{p.metodo_pago}</span>
-          {p.referencia && (
-            <span className="text-label text-muted-foreground">Ref: {p.referencia}</span>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="text-right tabular-nums font-medium text-foreground">
-        {formatCurrency(Number(p.monto), p.moneda)}
-      </TableCell>
-      <TableCell className="text-right tabular-nums text-body-sm text-muted-foreground">{tc}</TableCell>
-      <TableCell className="text-right tabular-nums text-body-sm text-muted-foreground">{dif}</TableCell>
-      <TableCell>
-        <ConciliacionPagoCell
+    <TableCell>
+        {esEfectivo && !esPagoAnticipo(p) && !p.es_ajuste && !mov ? (
+          <span className="text-label text-muted-foreground">Efectivo · sin cargo bancario</span>
+        ) : <ConciliacionPagoCell
           esAjuste={p.es_ajuste === true}
           pagoId={p.id}
           fechaPago={p.fecha_pago}
           monto={Number(p.monto)}
+          moneda={p.moneda}
+          tipoCambio={Number(p.tipo_cambio_usd) || null}
           cuentaBancariaId={p.cuenta_bancaria_id ?? null}
           movimiento={mov}
           origenAnticipo={origenPagoAnticipo(p)}
-          disabled={!canEdit}
-        />
-      </TableCell>
+          disabled={!canEdit || !!p.lote_id || esEfectivo}
+        />}
+        {p.lote_id && <p className="text-label text-muted-foreground">Cargo compartido del lote</p>}
+    </TableCell>
+  );
+}
+
+function AccionesPagoFila({ pago: p, canEdit, onEliminar, onEditar }: Props) {
+  if (!canEdit || p.lote_id) return <TableCell />;
+  const esAnticipo = esPagoAnticipo(p);
+  return (
       <TableCell className="text-right">
-        {canEdit && onEditar && !esAnticipo && !p.es_ajuste && (
+        {onEditar && !esAnticipo && !p.es_ajuste && (
           <Hint label="Editar pago">
             <Button
               variant="ghost"
@@ -95,7 +81,6 @@ export function PagoFila({ pago: p, canEdit, onEliminar, onEditar }: Props) {
             </Button>
           </Hint>
         )}
-        {canEdit && (
           <Hint label={esAnticipo ? "Revertir aplicación de anticipo: conserva el cargo original" : "Eliminar pago"}>
             <Button
               variant="ghost"
@@ -107,8 +92,31 @@ export function PagoFila({ pago: p, canEdit, onEliminar, onEditar }: Props) {
               {esAnticipo ? <Undo2 className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
             </Button>
           </Hint>
-        )}
       </TableCell>
+  );
+}
+
+export function PagoFila(props: Props) {
+  const { pago: p, canEdit } = props;
+  const tc = p.tipo_cambio_usd ? Number(p.tipo_cambio_usd).toFixed(4) : "—";
+  const dif = p.diferencia_cambiaria_mxn != null
+    ? formatCurrency(Number(p.diferencia_cambiaria_mxn), "MXN") : "—";
+  return (
+    <TableRow className="hover:bg-muted/30 transition-colors">
+      <TableCell className="whitespace-nowrap text-foreground">{formatFechaDia(p.fecha_pago)}</TableCell>
+      <TableCell>
+        <div className="flex flex-col">
+          <span className="font-medium text-foreground">{p.metodo_pago}</span>
+          {p.referencia && <span className="text-label text-muted-foreground">Ref: {p.referencia}</span>}
+        </div>
+      </TableCell>
+      <TableCell className="text-right tabular-nums font-medium text-foreground">
+        {formatCurrency(Number(p.monto), p.moneda)}
+      </TableCell>
+      <TableCell className="text-right tabular-nums text-body-sm text-muted-foreground">{tc}</TableCell>
+      <TableCell className="text-right tabular-nums text-body-sm text-muted-foreground">{dif}</TableCell>
+      <ConciliacionFila pago={p} canEdit={canEdit} />
+      <AccionesPagoFila {...props} />
     </TableRow>
   );
 }

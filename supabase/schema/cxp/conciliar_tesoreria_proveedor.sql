@@ -115,9 +115,11 @@ BEGIN
              'estado', pf.estado::text,
              'pagos', (SELECT count(*) FROM public.pagos_proveedor pp
                         WHERE pp.proveedor_factura_id = pf.id AND pp.deleted_at IS NULL),
-             'movimientos', (SELECT count(*) FROM public.bbva_movimientos bm
-                              JOIN public.pagos_proveedor pp2 ON pp2.id = bm.pago_proveedor_id
+             'movimientos', (SELECT count(DISTINCT bm.id) FROM public.bbva_movimientos bm
+                              JOIN public.pagos_proveedor pp2
+                                ON pp2.id = bm.pago_proveedor_id OR pp2.lote_id = bm.pago_proveedor_lote_id
                               WHERE pp2.proveedor_factura_id = pf.id
+                                AND pp2.organization_id = v_org AND bm.organization_id = v_org
                                 AND pp2.deleted_at IS NULL
                                 AND bm.deleted_at IS NULL)
                             + (SELECT count(DISTINCT origen->>'movimiento_id')
@@ -152,19 +154,28 @@ BEGIN
              'moneda_cuenta', cb.moneda::text,
              'cargo_cuenta', ROUND(COALESCE(m.cargo, 0), 2),
              'monto_esperado_cuenta', ROUND(e.cargo, 2),
-             'motivo', CASE WHEN m.id IS NOT NULL AND e.cargo IS NULL THEN
+             'motivo', CASE WHEN pp.lote_id IS NOT NULL THEN 'Revisa el movimiento del lote completo.'
+               WHEN lower(btrim(pp.metodo_pago)) IN ('efectivo','01') THEN 'Un cobro en efectivo no debe tener cargo bancario.'
+               WHEN m.id IS NOT NULL AND e.cargo IS NULL THEN
                'No se puede comparar el importe: falta la moneda de cuenta o un tipo de cambio compatible.' END,
-             'tipo', CASE WHEN m.id IS NULL THEN 'sin_movimiento' ELSE 'descuadre' END
+             'tipo', CASE WHEN pp.lote_id IS NOT NULL THEN 'lote_inconsistente'
+               WHEN lower(btrim(pp.metodo_pago)) IN ('efectivo','01') THEN 'efectivo_inconsistente'
+               WHEN m.id IS NULL THEN 'sin_movimiento' ELSE 'descuadre' END
            ) AS x, pp.fecha_pago
     FROM public.pagos_proveedor pp
     JOIN public.proveedor_facturas pf ON pf.id = pp.proveedor_factura_id
+    LEFT JOIN public.pagos_proveedor_lote lote ON lote.id = pp.lote_id AND lote.organization_id = v_org
     LEFT JOIN public.bbva_movimientos m
-           ON m.pago_proveedor_id = pp.id AND m.deleted_at IS NULL AND m.organization_id = v_org
+           ON (CASE WHEN pp.lote_id IS NOT NULL THEN m.pago_proveedor_lote_id = pp.lote_id
+                ELSE m.pago_proveedor_id = pp.id END)
+          AND m.deleted_at IS NULL AND m.organization_id = v_org
     LEFT JOIN public.cuentas_bancarias cb
            ON cb.id = COALESCE(m.cuenta_bancaria_id, pp.cuenta_bancaria_id)
           AND cb.organization_id = v_org AND cb.deleted_at IS NULL
     CROSS JOIN LATERAL (
       SELECT CASE
+        WHEN pp.lote_id IS NOT NULL AND cb.moneda = lote.moneda THEN lote.monto_total
+        WHEN pp.lote_id IS NOT NULL THEN NULL
         WHEN cb.moneda::text = pp.moneda::text THEN pp.monto
         WHEN pp.moneda::text = 'USD' AND cb.moneda::text = 'MXN' AND pp.tipo_cambio_usd > 0
           AND pp.tipo_cambio_usd::text NOT IN ('NaN','Infinity','-Infinity')
@@ -184,8 +195,15 @@ BEGIN
       AND (p_factura_id IS NULL OR pf.id = p_factura_id)
       AND (p_proveedor_id IS NULL OR pf.proveedor_id = p_proveedor_id)
       AND (
-        (m.id IS NULL AND pp.cuenta_bancaria_id IS NOT NULL)
-        OR (m.id IS NOT NULL AND (e.cargo IS NULL OR abs(COALESCE(m.cargo,0) - ROUND(e.cargo, 2)) > 0.01))
+        (m.id IS NULL AND pp.cuenta_bancaria_id IS NOT NULL
+          AND lower(btrim(pp.metodo_pago)) NOT IN ('efectivo','01'))
+        OR (m.id IS NOT NULL AND (lower(btrim(pp.metodo_pago)) IN ('efectivo','01') OR
+            e.cargo IS NULL OR abs(COALESCE(m.cargo,0) - ROUND(e.cargo, 2)) > 0.01))
+        OR (pp.lote_id IS NOT NULL AND EXISTS (
+          SELECT 1 FROM public.bbva_movimientos individual
+          WHERE individual.pago_proveedor_id = pp.id AND individual.organization_id = v_org
+            AND individual.deleted_at IS NULL
+        ))
       )
   ) q2;
   v_incidencias := v_incidencias || v_incidencias_pagos;

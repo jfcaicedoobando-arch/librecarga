@@ -11,6 +11,7 @@ import {
 import { useCuentasBancarias } from "@/features/tesoreria/hooks";
 import { usePagoClienteLote } from "@/features/facturacion/hooks/usePagoClienteLote";
 import { todayLocalISO } from "@/lib/date/today";
+import { notifyError } from "@/lib/ui/appFeedback";
 import {
   erroresPorRenglon,
   obtenerFacturasConRep,
@@ -64,16 +65,10 @@ export function usePagoClienteLoteState(a: Args) {
   // La preparación previa también forma parte del envío y debe bloquear cierre.
   const envioEnCurso = useRef(false);
   const [preparando, setPreparando] = useState(false);
-  // Ola 11 · RNF-01: una llave por apertura del diálogo; los reintentos del
-  // mismo submit (timeout ambiguo, doble clic) la reutilizan y la RPC los
-  // deduplica server-side.
+  // La llave identifica una apertura y se conserva al reintentar.
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
 
-  // Ola v16 (3): inicializar UNA sola vez por apertura (mismo patrón que
-  // DialogRegistrarPago · FE-02). Antes cualquier refetch de `a.facturas`
-  // reconstruía el arreglo, re-ejecutaba este efecto, borraba la captura del
-  // usuario y regeneraba el `requestId`, rompiendo la idempotencia del
-  // reintento tras un timeout ambiguo.
+  // Un refetch de facturas conserva la captura y la llave de esta apertura.
   const inicializadoRef = useRef(false);
   useEffect(() => {
     if (!a.open) {
@@ -151,8 +146,10 @@ export function usePagoClienteLoteState(a: Args) {
     envioEnCurso.current = true;
     setPreparando(true);
     const aplicadas = renglones.filter((r) => r.monto > 0).map((r) => r.factura_id);
+    let consultaPrevia = true;
     try {
       const facturasConRep = await obtenerFacturasConRep(aplicadas);
+      consultaPrevia = false;
       if (!abiertoRef.current || errorRenglonPue(facturasActuales.current, renglones)) return;
       await registrar.mutateAsync({
         cliente_id: a.clienteId,
@@ -170,11 +167,14 @@ export function usePagoClienteLoteState(a: Args) {
         renglones,
         facturasConRep,
       });
-    } catch {
-      // RFE-08 (Ola 12): el onError del mutation ya notificó con
-      // traducirErrorCobroLote + notifyError; aquí sólo se cierra el rechazo
-      // de promesa no manejado y el diálogo queda abierto para reintentar
-      // (la RPC deduplica por request_id — RNF-01).
+    } catch (errorConsulta) {
+      if (consultaPrevia && abiertoRef.current) {
+        notifyError(undefined, {
+          title: "No se pudieron consultar las facturas que requieren REP",
+          description: "La captura sigue abierta. Reintenta cuando se restablezca la consulta.",
+          error: errorConsulta,
+        });
+      }
       return;
     } finally {
       envioEnCurso.current = false;

@@ -52,11 +52,15 @@ try {
   const journal = JSON.parse(fs.readFileSync(path.join(ROOT, "drizzle/migrations/meta/_journal.json"), "utf8")).entries;
   const historico = aplicarReplayMirrorAuditoria(indexarMigraciones(migraciones), migraciones);
   const index = aplicarDrizzle0035(historico, isolated, journal);
-  // Las definiciones forward nuevas se aplican después del historial de Supabase.
-  const forward = new Map([...isolated].filter(([file]) => Number(file.slice(0, 4)) >= 50));
-  for (const [signature, definition] of indexarMigraciones(forward)) index.set(signature, definition);
+  // Los parches históricos requieren las mismas preimágenes que tenían al ejecutarse.
+  const definitions = [...isolated].filter(([file]) => Number(file.slice(0, 4)) >= 50);
+  const anteriores = new Map(definitions.filter(([file]) => Number(file.slice(0, 4)) <= 114));
+  for (const [signature, definition] of indexarMigraciones(anteriores)) index.set(signature, definition);
   const permisos = aplicarReplayMirrorAuthority(index, isolated);
-  const result = auditarIndiceReplayMirror(espejos, aplicarReplayMirrorPricingFase5(permisos, isolated), baseline);
+  const efectivos = aplicarReplayMirrorPricingFase5(permisos, isolated);
+  const posteriores = new Map(definitions.filter(([file]) => Number(file.slice(0, 4)) > 114));
+  for (const [signature, definition] of indexarMigraciones(posteriores)) efectivos.set(signature, definition);
+  const result = auditarIndiceReplayMirror(espejos, efectivos, baseline);
   if (result.violaciones.length) {
     console.error("❌ audit:replay-mirror — divergencia o excepción fuera de su huella exacta:");
     for (const violation of result.violaciones) console.error(`  - ${violation}`);

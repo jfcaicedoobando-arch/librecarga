@@ -34,6 +34,10 @@ DECLARE
   v_cta_org  uuid;
   v_cta_activa boolean;
 BEGIN
+  IF lower(btrim(p_metodo_pago)) IN ('efectivo','01') THEN
+    p_cuenta_bancaria_id := NULL;
+  END IF;
+
   IF p_client_request_id IS NOT NULL THEN
     SELECT id INTO v_pago_id
       FROM public.pagos_proveedor

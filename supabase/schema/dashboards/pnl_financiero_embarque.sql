@@ -899,19 +899,21 @@ END credit132_convert_base;
     ),
     'por_proveedor', (
       SELECT coalesce(jsonb_agg(row_to_json(x)), '[]'::jsonb) FROM (
-        SELECT proveedor_id, proveedor_nombre,
+        SELECT u.proveedor_id, coalesce(max(p.nombre), max(u.proveedor_nombre)) AS proveedor_nombre,
                coalesce(sum(presup_mxn),0) AS presupuestado_mxn,
                coalesce(sum(real_mxn),0) AS real_mxn,
                coalesce(sum(facturas_count),0) AS facturas_count
         FROM (
           SELECT proveedor_id, proveedor_nombre,
                  public.a_mxn(monto, moneda, tc_doc, tc_doc) AS presup_mxn,
-                 0::numeric AS real_mxn, 0 AS facturas_count FROM cc
+                 0::numeric AS real_mxn, 0 AS facturas_count, false AS es_seguro FROM cc
           UNION ALL SELECT proveedor_id, proveedor_nombre, 0::numeric,
-                 monto_mxn, 1 FROM pf_neto
+                 monto_mxn, 1, false FROM pf_neto
           UNION ALL SELECT proveedor_id, proveedor_nombre, 0::numeric,
-                 public.a_mxn(monto, moneda, tc_doc, tc_doc), 1 FROM seg
-        ) u GROUP BY proveedor_id, proveedor_nombre
+                 public.a_mxn(monto, moneda, tc_doc, tc_doc), 1, true FROM seg
+        ) u LEFT JOIN public.proveedores p
+          ON p.id = u.proveedor_id AND p.organization_id = _org AND p.deleted_at IS NULL
+        GROUP BY u.proveedor_id, CASE WHEN u.proveedor_id IS NULL THEN u.proveedor_nombre END, u.es_seguro
       ) x
     )
   ) INTO _base FROM totales t;

@@ -69,6 +69,11 @@ function ClienteFacturaManualFields({ clientes, consultaClientes, cliente, clien
   );
 }
 
+function etiquetaTotalFiscal(evaluando: boolean, error: boolean, total: number, moneda: string) {
+  if (evaluando) return "Calculando…";
+  return error ? "Por confirmar" : formatCurrency(total, moneda);
+}
+
 export function DialogNuevaFacturaManual({ open, onOpenChange }: Props) {
   const {
     clientes, consultaClientes, cliente, receptor, clienteIncompleto, onClienteChange,
@@ -79,9 +84,10 @@ export function DialogNuevaFacturaManual({ open, onOpenChange }: Props) {
     creditoAlerta, setCreditoAlerta,
     puedeGuardar, puedeTimbrar, faltantesTimbrar, totalCero,
     handleSubmit, onConfirmarExceso, isPending,
+    vistaFiscal, evaluandoFiscal,
   } = useFacturaManualForm(open, () => onOpenChange(false));
 
-  const totales = calcularTotalesConceptos(conceptos, tasaIva);
+  const totales = vistaFiscal.data ?? calcularTotalesConceptos(conceptos, tasaIva);
   const handleOpenChange = (next: boolean) => {
     if (!next) reset();
     onOpenChange(next);
@@ -134,6 +140,12 @@ export function DialogNuevaFacturaManual({ open, onOpenChange }: Props) {
         <FacturaManualConceptosTable
           conceptos={conceptos} moneda={fiscal.moneda} onChange={setConceptos}
         />
+        {vistaFiscal.isError && <ErrorStateInline
+          title="No se pudo confirmar el cálculo fiscal"
+          message="Revisa la configuración fiscal y vuelve a consultar antes de guardar."
+          onRetry={() => void vistaFiscal.refetch()}
+          retrying={vistaFiscal.isFetching}
+        />}
 
         <div className="grid gap-5 md:grid-cols-2">
           <FormDialogSection flat title="Notas internas">
@@ -156,10 +168,18 @@ export function DialogNuevaFacturaManual({ open, onOpenChange }: Props) {
               <span>IVA total</span>
               <span className="tabular-nums">{formatCurrency(totales.iva, fiscal.moneda)}</span>
             </div>
+            {!!vistaFiscal.data?.ret_isr && <div className="flex justify-between text-body opacity-80">
+              <span>ISR retenido</span>
+              <span className="tabular-nums">{formatCurrency(vistaFiscal.data.ret_isr, fiscal.moneda)}</span>
+            </div>}
+            {!!vistaFiscal.data?.ret_iva && <div className="flex justify-between text-body opacity-80">
+              <span>IVA retenido</span>
+              <span className="tabular-nums">{formatCurrency(vistaFiscal.data.ret_iva, fiscal.moneda)}</span>
+            </div>}
             <div className="pt-3 border-t border-primary-foreground/20 flex justify-between items-baseline">
               <span className="text-base font-medium">Total</span>
               <span className="text-kpi tabular-nums">
-                {formatCurrency(totales.total, fiscal.moneda)}
+                {etiquetaTotalFiscal(evaluandoFiscal, vistaFiscal.isError, totales.total, fiscal.moneda)}
               </span>
             </div>
             {totalCero && <p className="text-body-sm">El total debe ser mayor a cero.</p>}

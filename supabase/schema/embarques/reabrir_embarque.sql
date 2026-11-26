@@ -26,8 +26,8 @@ BEGIN
     RAISE EXCEPTION 'Motivo de reapertura requerido (mínimo 20 caracteres)';
   END IF;
 
-  SELECT organization_id, estado::text
-    INTO v_org_id, v_estado_actual
+  SELECT organization_id
+    INTO v_org_id
     FROM embarques
    WHERE id = p_embarque_id
      AND deleted_at IS NULL;
@@ -42,12 +42,30 @@ BEGIN
 
   PERFORM public._assert_writer(v_org_id);
 
+  v_resp := public.idempotency_claim(p_request_id, 'reabrir_embarque');
+  IF v_resp IS NOT NULL THEN
+    IF v_resp ? 'id' AND (v_resp->>'id')::uuid IS DISTINCT FROM p_embarque_id THEN
+      RAISE EXCEPTION 'LC_REAPERTURA_INTENTO_DISTINTO: el intento corresponde a otro embarque'
+        USING ERRCODE = '22023';
+    END IF;
+    IF v_resp ? 'motivo' AND v_resp->>'motivo' IS DISTINCT FROM v_motivo THEN
+      RAISE EXCEPTION 'LC_REAPERTURA_INTENTO_DISTINTO: el intento se guardó con otro motivo'
+        USING ERRCODE = '22023';
+    END IF;
+    RETURN v_resp - 'motivo';
+  END IF;
+
+  SELECT estado::text INTO v_estado_actual
+  FROM embarques
+  WHERE id = p_embarque_id AND organization_id = v_org_id AND deleted_at IS NULL
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Embarque no encontrado';
+  END IF;
+
   IF v_estado_actual <> 'Cerrado' THEN
     RAISE EXCEPTION 'Solo embarques en estado Cerrado pueden reabrirse (estado actual: %)', v_estado_actual;
   END IF;
-
-  v_resp := public.idempotency_claim(p_request_id, 'reabrir_embarque');
-  IF v_resp IS NOT NULL THEN RETURN v_resp; END IF;
 
   PERFORM set_config('app.bypass_cierre','on', true);
   PERFORM set_config('app.bypass_transicion','on', true);
@@ -91,7 +109,7 @@ BEGIN
   );
 
   v_resp := jsonb_build_object('id', p_embarque_id, 'estado', 'Por liquidar');
-  PERFORM public.idempotency_store(p_request_id, v_resp);
+  PERFORM public.idempotency_store(p_request_id, v_resp || jsonb_build_object('motivo', v_motivo));
   RETURN v_resp;
 END;
 $function$;

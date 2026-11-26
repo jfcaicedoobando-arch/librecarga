@@ -174,7 +174,7 @@ export function TabTracking({ embarqueId, embarque, onDirtyChange, confirmarDesc
               onRetry={() => void refetch()}
               retrying={isFetching}
             />
-          ) : <TrackingEventTimeline eventos={eventos} isLoading={isLoading} />}
+          ) : <TrackingEventTimeline eventos={eventos} isLoading={isLoading} modo={embarque?.modo} />}
         </CardContent>
       </Card>
     </div>

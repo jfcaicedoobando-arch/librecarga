@@ -284,7 +284,7 @@ BEGIN
   INSERT INTO public.conceptos_venta(id, organization_id, embarque_id, proforma_id, descripcion)
   VALUES (v_portal_cv, v_org, v_e, v_portal, 'Valid token rejection service');
   PERFORM set_config('request.jwt.claims', jsonb_build_object('sub', v_uid)::text, true);
-  PERFORM public.cerrar_embarque(v_e);
+  PERFORM public.forzar_cierre_embarque(v_e, 'FORZAR CIERRE');
   SELECT cerrado_snapshot INTO v_snapshot FROM public.embarques WHERE id = v_e;
   PERFORM pg_temp.assert_proforma(v_snapshot IS NOT NULL, 'closure RPC produced a historical snapshot');
   PERFORM set_config('app.bypass_cierre', 'off', true);
@@ -414,7 +414,7 @@ BEGIN
     VALUES (v_cv1, v_org, v_e, v_p1, 'First consolidation service', 1, 100, 100, 'MXN', true, 'tasa_0', 0, 'en_proforma'),
       (v_cv2, v_org, v_e, v_p2, 'Second consolidation service', 1, 150, 150, 'MXN', true, 'tasa_0', 0, 'en_proforma');
     PERFORM set_config('request.jwt.claims', jsonb_build_object('sub', v_uid)::text, true);
-    PERFORM public.cerrar_embarque(v_e);
+    PERFORM public.forzar_cierre_embarque(v_e, 'FORZAR CIERRE');
     SELECT cerrado_snapshot INTO v_closure_before FROM public.embarques WHERE id = v_e;
     SELECT jsonb_agg(to_jsonb(p) ORDER BY id) INTO v_sources_before FROM public.proformas p WHERE id IN (v_p1, v_p2);
     SELECT jsonb_agg(to_jsonb(cv) ORDER BY id) INTO v_concepts_before FROM public.conceptos_venta cv WHERE id IN (v_cv1, v_cv2);

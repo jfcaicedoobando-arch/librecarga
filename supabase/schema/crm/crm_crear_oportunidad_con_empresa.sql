@@ -9,6 +9,9 @@ DECLARE
   v_datos public.crm_oportunidades%ROWTYPE;
   v_id uuid;
   v_cliente_empresa uuid;
+  v_request_id uuid;
+  v_intento jsonb;
+  v_resultado jsonb;
 BEGIN
   IF auth.uid() IS NULL OR v_org IS NULL THEN
     RAISE EXCEPTION 'Selecciona una organización e inicia sesión' USING ERRCODE = '42501';
@@ -24,6 +27,22 @@ BEGIN
     FOR SHARE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'La empresa no está disponible en esta organización' USING ERRCODE = '42501';
+  END IF;
+  v_request_id := NULLIF(p_datos->>'request_id', '')::uuid;
+  v_intento := jsonb_build_array(v_org, p_empresa_id, p_datos - 'request_id');
+  v_resultado := public.idempotency_claim(v_request_id, 'crm_crear_oportunidad_con_empresa');
+  IF v_resultado IS NOT NULL THEN
+    IF v_resultado->'intento' IS DISTINCT FROM v_intento THEN
+      RAISE EXCEPTION 'LC_OPORTUNIDAD_INTENTO_DISTINTO: revisa si el intento previo ya creó la oportunidad antes de cambiar sus datos'
+        USING ERRCODE = '22023';
+    END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM public.crm_oportunidades
+      WHERE id = (v_resultado->>'id')::uuid AND organization_id = v_org AND deleted_at IS NULL
+    ) THEN
+      RAISE EXCEPTION 'La oportunidad del intento previo ya no está disponible' USING ERRCODE = '42501';
+    END IF;
+    RETURN v_resultado - 'intento';
   END IF;
   SELECT * INTO v_datos FROM jsonb_populate_record(NULL::public.crm_oportunidades, p_datos);
   -- La empresa puede haberse convertido mientras el formulario estaba abierto.
@@ -55,6 +74,7 @@ BEGIN
   ) RETURNING id INTO v_id;
   INSERT INTO public.crm_oportunidad_empresa (organization_id, oportunidad_id, empresa_id)
     VALUES (v_org, v_id, p_empresa_id);
+  PERFORM public.idempotency_store(v_request_id, jsonb_build_object('id', v_id, 'intento', v_intento));
   RETURN jsonb_build_object('id', v_id);
 END;
 $$;

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { scopeDePayload, usePayloadRequestId } from "@/lib/idempotency";
 import { notifySuccess, notifyWarning } from "@/lib/ui/appFeedback";
 import { notifyError } from "@/lib/ui/appFeedback";
 
@@ -51,7 +52,7 @@ function invalidarTodo(qc: ReturnType<typeof useQueryClient>, embarqueId: string
 export function useCerrarEmbarque(embarqueId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => cerrarEmbarque(embarqueId),
+    mutationFn: (confirmacion?: string) => cerrarEmbarque(embarqueId, confirmacion),
     onSuccess: (resultado) => {
       invalidarTodo(qc, embarqueId);
       if (resultado.yaCerrado) {
@@ -61,7 +62,7 @@ export function useCerrarEmbarque(embarqueId: string) {
         });
         return;
       }
-      notifySuccess(undefined, { title: "Embarque cerrado" });
+      notifySuccess(undefined, { title: resultado.forzado ? "Cierre forzado registrado" : "Embarque cerrado" });
     },
     onError: (e: Error) => notifyError(undefined, { title: e.message ?? "No se pudo cerrar el embarque", error: e, method: "FEATURES_EMBARQUES_HOOKS_USECIERREEMBARQUE_1" }),
   });
@@ -70,9 +71,11 @@ export function useCerrarEmbarque(embarqueId: string) {
 export function useReabrirEmbarque(embarqueId: string) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const intento = usePayloadRequestId();
   return useMutation({
     mutationFn: (motivo: string) =>
-      reabrirEmbarque(embarqueId, motivo, user?.email ?? ""),
+      reabrirEmbarque(embarqueId, motivo, user?.email ?? "",
+        intento.get(scopeDePayload([embarqueId, user?.id, motivo.trim()]))),
     onSuccess: (resultado) => {
       if (resultado.pendiente) {
         notifyWarning(undefined, {
@@ -81,6 +84,7 @@ export function useReabrirEmbarque(embarqueId: string) {
         });
         return;
       }
+      intento.reset();
       invalidarTodo(qc, embarqueId);
       notifySuccess(undefined, { title: "Embarque reabierto" });
     },

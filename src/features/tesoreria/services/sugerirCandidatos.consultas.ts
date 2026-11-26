@@ -8,6 +8,7 @@ import { deltaDiasIso } from "../domain/tolerancia";
 import { CAP_LISTA } from "@/constants/queryCaps";
 import type { Candidato, MonedaSoportada, SugerenciasResultado } from "./sugerirCandidatos.tipos";
 import { acumularCandidatos } from "./sugerirCandidatos.paginado";
+import { esPagoProveedorConciliable } from "./conciliacionPagoProveedorGuard";
 
 export interface Ventana {
   desdeIso: string;
@@ -52,27 +53,6 @@ async function pagosYaVinculados(pagoIds: string[], tipo: "cxc" | "cxp"): Promis
   return set;
 }
 
-/**
- * MNY: un pago que forma parte de un lote CxP ya está representado por el
- * movimiento bancario del lote (`pago_proveedor_lote_id`). Sugerirlo como pago
- * individual permitiría que el mismo egreso quedara conciliado dos veces.
- */
-async function lotesYaVinculados(loteIds: string[]): Promise<Set<string>> {
-  if (loteIds.length === 0) return new Set();
-  const { data, error } = await supabase
-    .from("bbva_movimientos")
-    .select("pago_proveedor_lote_id")
-    .in("pago_proveedor_lote_id", loteIds)
-    .is("deleted_at", null)
-    .limit(CAP_LISTA);
-  if (error) throw error;
-  const set = new Set<string>();
-  for (const row of (data ?? []) as Array<{ pago_proveedor_lote_id: string | null }>) {
-    if (row.pago_proveedor_lote_id) set.add(row.pago_proveedor_lote_id);
-  }
-  return set;
-}
-
 /** Tamaño de página: uno más que el tope para detectar overflow. */
 const TAM_PAGINA = LIMITE_SUGERENCIAS + 1;
 
@@ -83,8 +63,9 @@ export async function candidatosCxp(v: Ventana): Promise<SugerenciasResultado> {
     (desde, hasta) =>
       supabase
         .from("pagos_proveedor")
-        .select("id, fecha_pago, monto, moneda, referencia, lote_id, es_ajuste, proveedor_facturas(proveedor_nombre)")
+        .select("id, fecha_pago, monto, moneda, referencia, lote_id, es_ajuste, metodo_pago, proveedor_facturas(proveedor_nombre)")
         .eq("es_ajuste", false)
+        .is("lote_id", null)
         .gte("fecha_pago", v.desdeIso)
         .lte("fecha_pago", v.hastaIso)
         .gte("monto", v.min)
@@ -106,23 +87,18 @@ interface FilaCxp {
   moneda: string;
   referencia: string | null;
   lote_id?: string | null;
+  metodo_pago?: string | null;
   proveedor_facturas?: { proveedor_nombre?: string } | null;
 }
 
 /** Descarta pagos ya conciliados (individuales y miembros de un lote vivo). */
 async function candidatosCxpDePagina(pagina: FilaCxp[], v: Ventana): Promise<Candidato[]> {
-  // Defensa adicional: sólo el false persistido entra al conteo de matches.
-  const filas = pagina.filter(p => p.es_ajuste === false);
+  const filas = pagina.filter(esPagoProveedorConciliable);
   if (filas.length === 0) return [];
   const vinculados = await pagosYaVinculados(filas.map((p) => p.id), "cxp");
-  const loteIds = Array.from(
-    new Set(filas.map((p) => p.lote_id).filter((id): id is string => Boolean(id))),
-  );
-  const lotesVivos = await lotesYaVinculados(loteIds);
   const out: Candidato[] = [];
   for (const p of filas) {
     if (vinculados.has(p.id)) continue;
-    if (p.lote_id && lotesVivos.has(p.lote_id)) continue;
     out.push({
       tipo: "cxp",
       pago_id: p.id,

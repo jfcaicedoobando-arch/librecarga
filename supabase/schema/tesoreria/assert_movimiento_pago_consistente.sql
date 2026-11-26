@@ -14,6 +14,8 @@ DECLARE
   v_pago_monto numeric;
   v_pago_tc numeric;
   v_pago_es_ajuste boolean;
+  v_lote_proveedor uuid;
+  v_metodo_proveedor text;
   v_cuenta_moneda text;
   v_vinculos int;
   v_mov numeric;
@@ -93,8 +95,8 @@ BEGIN
   END IF;
 
   IF NEW.pago_proveedor_id IS NOT NULL THEN
-    SELECT organization_id, moneda::text, COALESCE(monto,0), tipo_cambio_usd, es_ajuste
-      INTO v_pago_org, v_pago_moneda, v_pago_monto, v_pago_tc, v_pago_es_ajuste
+    SELECT organization_id, moneda::text, COALESCE(monto,0), tipo_cambio_usd, es_ajuste, lote_id, metodo_pago
+      INTO v_pago_org, v_pago_moneda, v_pago_monto, v_pago_tc, v_pago_es_ajuste, v_lote_proveedor, v_metodo_proveedor
     FROM public.pagos_proveedor
     WHERE id = NEW.pago_proveedor_id AND deleted_at IS NULL;
 
@@ -112,6 +114,14 @@ BEGIN
     -- locks cruzados ni escrituras al pago para impedir carreras de reclasificación.
     IF v_pago_es_ajuste THEN
       RAISE EXCEPTION 'LC_MOVIMIENTO_AJUSTE_NO_MONETARIO: un ajuste no monetario no puede vincularse a un movimiento bancario'
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    IF (v_lote_proveedor IS NOT NULL OR lower(btrim(v_metodo_proveedor)) IN ('efectivo','01'))
+       AND (TG_OP = 'INSERT' OR NEW.pago_proveedor_id IS DISTINCT FROM OLD.pago_proveedor_id
+            OR (OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NULL)
+            OR (OLD.estado_conciliacion IS DISTINCT FROM 'Conciliado' AND NEW.estado_conciliacion = 'Conciliado')) THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_PAGO_NO_CONCILIABLE: usa el cargo compartido para el lote y deja el efectivo fuera del banco'
         USING ERRCODE = 'P0001';
     END IF;
 

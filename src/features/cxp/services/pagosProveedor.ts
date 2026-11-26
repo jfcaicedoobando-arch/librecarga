@@ -1,7 +1,3 @@
-/**
- * Service de pagos a proveedor (CxP).
- * Incluye lógica de diferencia cambiaria cuando la factura es USD y el pago en MXN.
- */
 import { supabase } from "@/integrations/supabase/client";
 import { registrarActividad } from "@/services/bitacora/registrar";
 
@@ -14,10 +10,16 @@ import type {
 
 export type { PagoProveedor, PagoProveedorConMov, RegistrarPagoProveedorInput };
 
-// v13.56.1 — Columnas explícitas (auditoría: evita SELECT * en tablas financieras).
-// v13.190.0 — Incluye movimiento bancario vinculado (Ola 2 · Item 3) vía embed inverso.
-const PAGO_PROVEEDOR_COLUMNS =
-  "id, organization_id, proveedor_factura_id, fecha_pago, monto, moneda, tipo_cambio_usd, diferencia_cambiaria_mxn, metodo_pago, referencia, cuenta_bancaria_id, notas, created_by, created_at, updated_at, deleted_at, deleted_by, es_ajuste, es_anticipo_aplicado, bbva_movimientos!bbva_movimientos_pago_proveedor_id_fkey(id, fecha, concepto, referencia, cargo, abono, estado_conciliacion, cuentas_bancarias!bbva_movimientos_cuenta_bancaria_id_fkey(moneda)), anticipos_aplicaciones!anticipos_aplicaciones_pago_proveedor_id_fkey(id, anticipo_id, deleted_at, anticipos_proveedor!anticipos_aplicaciones_anticipo_id_fkey(id, deleted_at, estado, moneda, metodo_pago, cuenta_bancaria_id, bbva_movimientos!bbva_movimientos_anticipo_proveedor_id_fkey(id, fecha, referencia, cargo, abono, deleted_at)))";
+const MOVIMIENTO_COLUMNS = "id, fecha, concepto, referencia, cargo, abono, estado_conciliacion, deleted_at, cuentas_bancarias!bbva_movimientos_cuenta_bancaria_id_fkey(moneda)";
+const PAGO_PROVEEDOR_COLUMNS = `
+  id, organization_id, proveedor_factura_id, fecha_pago, monto, moneda, tipo_cambio_usd,
+  diferencia_cambiaria_mxn, metodo_pago, referencia, cuenta_bancaria_id, notas, created_by,
+  created_at, updated_at, deleted_at, deleted_by, es_ajuste, es_anticipo_aplicado, lote_id,
+  bbva_movimientos!bbva_movimientos_pago_proveedor_id_fkey(${MOVIMIENTO_COLUMNS}),
+  pagos_proveedor_lote!pagos_proveedor_lote_id_fkey(bbva_movimientos!bbva_movimientos_pago_proveedor_lote_id_fkey(${MOVIMIENTO_COLUMNS})),
+  anticipos_aplicaciones!anticipos_aplicaciones_pago_proveedor_id_fkey(id, anticipo_id, deleted_at,
+    anticipos_proveedor!anticipos_aplicaciones_anticipo_id_fkey(id, deleted_at, estado, moneda, metodo_pago,
+      cuenta_bancaria_id, bbva_movimientos!bbva_movimientos_anticipo_proveedor_id_fkey(id, fecha, referencia, cargo, abono, deleted_at)))`;
 
 export async function listarPagosProveedor(facturaId: string): Promise<PagoProveedorConMov[]> {
   const { data, error } = await supabase

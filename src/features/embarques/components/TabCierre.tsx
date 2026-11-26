@@ -65,6 +65,10 @@ export function TabCierre({ embarqueId, estatus, modo, expediente, docsRequerido
   const resultadoVigente = validando || validacion.isError ? undefined : validacion.data;
   const checks = resultadoVigente?.checks ?? [];
   const cierreDisponible = !esCerrado && puedeCerrar && resultadoVigente?.puede_cerrar === true;
+  const cierreForzado = !esCerrado && puedeCerrar && (isAdmin || isSuperAdmin)
+    && resultadoVigente?.puede_cerrar === false && checks.some((check) => !check.ok);
+  const puedeConfirmarCierre = cierreForzado
+    ? dlg.confirmText === "FORZAR CIERRE" : cierreDisponible && dlg.puedeConfirmarCerrar;
 
   return (
     <div className="space-y-6">
@@ -136,6 +140,9 @@ export function TabCierre({ embarqueId, estatus, modo, expediente, docsRequerido
             </TooltipProvider>
           );
         })()}
+        {cierreForzado && <Button variant="destructive" onClick={() => dlg.setOpenCerrar(true)} disabled={cerrarMut.isPending}>
+          Forzar cierre
+        </Button>}
         {!esCerrado && !canCerrarEmbarque && (
           <p className="text-body-sm text-muted-foreground">
             {CIERRE_PERMISO_COPY}
@@ -162,9 +169,12 @@ export function TabCierre({ embarqueId, estatus, modo, expediente, docsRequerido
         onOpenChange={dlg.setOpenCerrar}
         confirmText={dlg.confirmText}
         onConfirmTextChange={dlg.setConfirmText}
-        puedeConfirmar={dlg.puedeConfirmarCerrar && cierreDisponible}
+        forzado={cierreForzado}
+        puedeConfirmar={puedeConfirmarCierre}
         isPending={cerrarMut.isPending}
-        onConfirm={() => { if (cierreDisponible) cerrarMut.mutate(undefined, { onSuccess: dlg.resetCerrar }); }}
+        onConfirm={() => {
+          if (puedeConfirmarCierre) cerrarMut.mutate(cierreForzado ? dlg.confirmText : undefined, { onSuccess: dlg.resetCerrar });
+        }}
       />
 
       <ReabrirEmbarqueDialog

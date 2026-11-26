@@ -18,6 +18,8 @@ import type {
 } from "./_sections/embarqueDetalleTabsTypes";
 import { PnlViewSelector } from "./_sections/PnlViewSelector";
 import { usePermissions } from "@/hooks/shared/usePermissions";
+import { EDITAR_DOCUMENTOS_EMBARQUE } from "@/lib/access/permissionMatrix.operaciones";
+import { hasRole } from "@/lib/access/permissionMatrix";
 import { useGarantiasContenedor } from "@/features/embarques/hooks/useGarantiasContenedor";
 
 const TabResumen = lazy(() => import("./TabResumen").then((m) => ({ default: m.TabResumen })));
@@ -68,7 +70,8 @@ export function EmbarqueDetalleTabs({
   const [pnlView, setPnlView] = useState<PnlView>("global");
   // B1 (v13.823.395): «Cargar costos» exige la capacidad estrecha, no el
   // `canEdit` genérico que también cubre documentos y tracking.
-  const { canEditCostosEmbarque } = usePermissions();
+  const { canEditCostosEmbarque, role } = usePermissions();
+  const canEditDocumentos = canEdit && hasRole(EDITAR_DOCUMENTOS_EMBARQUE, role ?? null);
   const esMaritimo = embarque.modo === "Marítimo";
   const { conceptosVenta, conceptosCosto, documentos, facturas, financials, query } =
     useEmbarqueDetalleTabsData(embarque, activeTab);
@@ -106,7 +109,7 @@ export function EmbarqueDetalleTabs({
         </TabsContent>
 
         <TabsContent value="documentos">
-          <TabDocumentos embarque={embarque} documentos={documentos} canEdit={canEdit} />
+          <TabDocumentos embarque={embarque} documentos={documentos} canEdit={canEditDocumentos} />
         </TabsContent>
         {/* v13.347.0 — Costos y facturas de proveedor fusionados: el buzón CxP vive
             junto a los conceptos de costo que documenta. */}

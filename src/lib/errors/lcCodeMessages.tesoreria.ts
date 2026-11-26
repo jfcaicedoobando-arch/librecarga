@@ -6,6 +6,12 @@
  * Se consume desde `lcCodeMessages.ts` (índice).
  */
 export const LC_CODE_MESSAGES_TESORERIA: Record<string, string> = {
+  LC_PAGO_LOTE_NO_EDITABLE: "Esta aplicación pertenece a un lote y debe conservar su distribución.",
+  LC_PAGO_LOTE_NO_ELIMINABLE: "Esta aplicación pertenece a un lote y no se puede eliminar por separado.",
+  LC_PAGO_LOTE_REVISAR: "Revisa el cargo compartido del lote en Tesorería.",
+  LC_MOVIMIENTO_EFECTIVO: "El pago en efectivo queda fuera de la conciliación bancaria.",
+  LC_MOVIMIENTO_PAGO_NO_CONCILIABLE:
+    "Para el lote, revisa su cargo compartido. Los pagos en efectivo quedan fuera de la conciliación bancaria.",
   // ── App-raised (no vienen de la BD) ────────────────────────────────────
   LC_FACTURA_CON_REP_VIVO:
     "La factura tiene un complemento de pago (REP) vivo. Cancela primero el REP para continuar.",

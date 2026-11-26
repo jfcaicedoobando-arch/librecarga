@@ -8,18 +8,22 @@ import type { AplicacionAnticipoOrigen } from "../domain/pagoAnticipoOrigen";
 
 export type PagoProveedor = Tables<"pagos_proveedor">;
 
+type MovimientoPagoProveedor = {
+  id: string;
+  fecha: string;
+  concepto: string | null;
+  referencia: string | null;
+  cargo: number | string;
+  cuentas_bancarias?: { moneda: string } | null;
+  abono: number | string;
+  estado_conciliacion: "Pendiente" | "Conciliado" | "Ignorado";
+  deleted_at?: string | null;
+};
+
 export type PagoProveedorConMov = PagoProveedor & {
   anticipos_aplicaciones?: AplicacionAnticipoOrigen[] | null;
-  bbva_movimientos: Array<{
-    id: string;
-    fecha: string;
-    concepto: string | null;
-    referencia: string | null;
-    cargo: number | string;
-    cuentas_bancarias?: { moneda: string } | null;
-    abono: number | string;
-    estado_conciliacion: "Pendiente" | "Conciliado" | "Ignorado";
-  }> | null;
+  bbva_movimientos: MovimientoPagoProveedor[] | null;
+  pagos_proveedor_lote?: { bbva_movimientos: MovimientoPagoProveedor[] } | null;
 };
 
 export interface RegistrarPagoProveedorInput {

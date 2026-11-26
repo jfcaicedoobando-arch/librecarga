@@ -3,6 +3,9 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mutate, validarLimite, registrarExcesoCredito } = vi.hoisted(() => ({ mutate: vi.fn(), validarLimite: vi.fn(), registrarExcesoCredito: vi.fn() }));
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: () => ({ data: { total: 114.75 }, isSuccess: true, isFetching: false }),
+}));
 vi.mock("@/hooks/shared/useOrgActiva", () => ({ useOrgActiva: () => ({ organizationId: "org-1" }) }));
 vi.mock("@/features/catalogos/hooks/useTasaIVA", () => ({ useTasaIVA: () => 0.16 }));
 vi.mock("@/features/facturacion/hooks/useCrearFacturaManual", () => ({ useCrearFacturaManual: () => ({ mutate, isPending: false }) }));
@@ -38,6 +41,7 @@ describe("AUD110: bloqueo e identidad de captura manual", () => {
     });
     expect(result.current.isPending).toBe(true);
     expect(validarLimite).toHaveBeenCalledTimes(1);
+    expect(validarLimite).toHaveBeenCalledWith(expect.objectContaining({ montoAdicionalMxn: 114.75 }));
     expect(mutate).not.toHaveBeenCalled();
     await act(async () => { validacion.resolve(null); await submit; });
     expect(mutate).toHaveBeenCalledTimes(1);

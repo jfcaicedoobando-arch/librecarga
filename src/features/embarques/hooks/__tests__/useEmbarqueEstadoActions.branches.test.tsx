@@ -203,13 +203,14 @@ describe("useEmbarqueEstadoActions — gate de cierre", () => {
     expect(h.avanzar).not.toHaveBeenCalled();
   });
 
-  it("admin bypassea checklist incompleto y avanza a Cerrado", async () => {
+  it("admin debe revisar el checklist incompleto desde la cabecera", async () => {
     h.perms = permisosDeRol("admin_org");
     h.validacion = { data: { puede_cerrar: false } };
     const { result } = renderH({ estado: "Por liquidar" });
-    expect(result.current.cierrePuedeAvanzar).toBe(true);
+    expect(result.current.cierrePuedeAvanzar).toBe(false);
+    expect(result.current.cierreMotivoBloqueo).toBe("checklist");
     await act(async () => { await result.current.handleAvanzarEstado(); });
-    await waitFor(() => expect(h.avanzar).toHaveBeenCalledTimes(1));
+    expect(h.avanzar).not.toHaveBeenCalled();
   });
 
   it("confirmarCierreSinProforma cierra dialog y dispara avance a Cerrado", async () => {

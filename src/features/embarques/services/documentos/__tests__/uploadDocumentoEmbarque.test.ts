@@ -1,17 +1,14 @@
-/**
- * `uploadDocumentoEmbarque` — ciclo A→B→A del claim cacheado de idempotencia.
- * Bug: si el claim cacheado (`idempotency_claim`) trae un `path` distinto al
- * que ya tiene la fila `documentos_embarque.archivo`, la fila debe
- * resincronizarse ANTES de devolver `cached: true`, o fallar explícitamente
- * si el UPDATE afecta 0 filas.
- */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { uploadDocumentoEmbarque } from "@/features/embarques/services/documentos/uploadDocumentoEmbarque";
 
+import { sha256Hex } from "../idempotencyHash";
+
+const storage = vi.hoisted(() => ({ uploadFile: vi.fn(), downloadFile: vi.fn() }));
+
 const state: {
-  selectResult: { data: { archivo: string | null } | null; error: null };
+  selectResult: { data: { archivo: string | null; estado: string } | null; error: null };
   rpcClaim: unknown;
-  updateResult: { data: Array<{ id: string }> | null; error: null };
+  updateResult: { data: Array<{ id: string }> | null; error: Error | null };
   updateEqCalls: string[];
 } = {
   selectResult: { data: null, error: null },
@@ -20,9 +17,7 @@ const state: {
   updateEqCalls: [],
 };
 
-vi.mock("@/services/storage/index", () => ({
-  uploadFile: vi.fn().mockResolvedValue(undefined),
-}));
+vi.mock("@/services/storage/index", () => storage);
 vi.mock("@/services/bitacora/registrar", () => ({
   registrarActividad: vi.fn().mockResolvedValue(undefined),
 }));
@@ -73,36 +68,49 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("uploadDocumentoEmbarque — ciclo A→B→A del claim cacheado", () => {
-  it("resincroniza la fila cuando el claim cacheado difiere del archivo actual", async () => {
-    state.selectResult = { data: { archivo: "embarques/e1/d1/aaa-viejo.pdf" }, error: null };
-    state.rpcClaim = { path: "embarques/e1/d1/bbb-nuevo.pdf", fileName: "nuevo.pdf" };
+async function pathDe(file: File) {
+  const hash = await sha256Hex(file);
+  return `embarques/e1/d1/${hash.slice(0, 12)}-${file.name}`;
+}
 
-    const result = await uploadDocumentoEmbarque("e1", "d1", makeFile());
+describe("recuperación de carga documental", () => {
+  beforeEach(() => {
+    storage.uploadFile.mockReset().mockResolvedValue(undefined);
+    storage.downloadFile.mockReset().mockRejectedValue(new Error("archivo ausente"));
+  });
 
-    expect(result.cached).toBe(true);
-    expect(result.path).toBe("embarques/e1/d1/bbb-nuevo.pdf");
-    // El UPDATE de resincronización debe haberse ejecutado sobre docId "d1".
+  it("reutiliza el blob tras perder la respuesta de Storage", async () => {
+    const archivo = makeFile();
+    state.selectResult = { data: { archivo: null, estado: "Pendiente" }, error: null };
+    storage.uploadFile.mockRejectedValueOnce(new Error("respuesta perdida"));
+    storage.downloadFile.mockResolvedValueOnce(archivo);
+    const path = await pathDe(archivo);
+    await expect(uploadDocumentoEmbarque("e1", "d1", archivo)).resolves.toMatchObject({ path });
+    expect(storage.downloadFile).toHaveBeenCalledWith(path);
     expect(state.updateEqCalls).toContain("d1");
   });
 
-  it("no toca la fila si el claim cacheado ya coincide con el archivo actual", async () => {
-    state.selectResult = { data: { archivo: "embarques/e1/d1/ccc-igual.pdf" }, error: null };
-    state.rpcClaim = { path: "embarques/e1/d1/ccc-igual.pdf" };
-
-    const result = await uploadDocumentoEmbarque("e1", "d1", makeFile());
-
-    expect(result.cached).toBe(true);
-    expect(state.updateEqCalls).toHaveLength(0);
+  it("repara un blob ausente cuando la fila ya apunta a ese path", async () => {
+    const archivo = makeFile();
+    const path = await pathDe(archivo);
+    state.selectResult = { data: { archivo: path, estado: "Recibido" }, error: null };
+    await expect(uploadDocumentoEmbarque("e1", "d1", archivo)).resolves.toMatchObject({ path, cached: false });
+    expect(storage.uploadFile).toHaveBeenCalledWith(path, archivo);
   });
 
-  it("lanza error explícito en español si la resincronización afecta 0 filas", async () => {
-    state.selectResult = { data: { archivo: "embarques/e1/d1/aaa-viejo.pdf" }, error: null };
-    state.rpcClaim = { path: "embarques/e1/d1/bbb-nuevo.pdf" };
-    state.updateResult = { data: [], error: null };
+  it("recupera el acuse perdido de un UPDATE que sí quedó aplicado", async () => {
+    const archivo = makeFile();
+    const path = await pathDe(archivo);
+    state.selectResult = { data: { archivo: path, estado: "Recibido" }, error: null };
+    state.updateResult = { data: null, error: new Error("respuesta perdida") };
+    await expect(uploadDocumentoEmbarque("e1", "d1", archivo)).resolves.toMatchObject({ path });
+  });
 
-    await expect(uploadDocumentoEmbarque("e1", "d1", makeFile())).rejects.toThrow(
-      /No se pudo sincronizar el documento/,
-    );
+  it("rechaza una subida fallida cuando el archivo existente tiene otro contenido", async () => {
+    state.selectResult = { data: { archivo: null, estado: "Pendiente" }, error: null };
+    storage.uploadFile.mockRejectedValueOnce(new Error("conflicto de Storage"));
+    storage.downloadFile.mockResolvedValueOnce(makeFile("a.pdf", "otro contenido"));
+    await expect(uploadDocumentoEmbarque("e1", "d1", makeFile())).rejects.toThrow("conflicto de Storage");
+    expect(state.updateEqCalls).toHaveLength(0);
   });
 });

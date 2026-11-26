@@ -22,6 +22,8 @@ const ETIQUETA: Record<IncidenciaConciliacion["tipo"], string> = {
   sin_movimiento: "Sin movimiento en banco",
   descuadre: "Importe distinto al banco",
   anticipo_inconsistente: "Aplicación de anticipo por revisar",
+  lote_inconsistente: "Movimiento del lote por revisar",
+  efectivo_inconsistente: "Cargo de efectivo por revisar",
 };
 
 export function ConciliacionIncidencias({ incidencias, monedaFactura }: Props) {
@@ -59,6 +61,9 @@ export function ConciliacionIncidencias({ incidencias, monedaFactura }: Props) {
             {i.tipo === "anticipo_inconsistente" && <span className="text-body-sm text-muted-foreground">
               {i.motivo || "Revisa la aplicación y el movimiento original del anticipo."} Conserva el cargo original; esta aplicación no genera otro cargo bancario.
             </span>}
+            {(i.tipo === "lote_inconsistente" || i.tipo === "efectivo_inconsistente") && (
+              <span className="text-body-sm text-muted-foreground">{i.motivo}</span>
+            )}
             {i.tipo === "sin_movimiento" && (
               <Button
                 variant="outline"

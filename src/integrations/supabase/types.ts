@@ -4151,6 +4151,8 @@ export type Database = {
           etapa_destino_id: string
           etapa_origen_id: string | null
           id: string
+          motivo_perdida_anterior_id: string | null
+          motivo_reapertura: string | null
           oportunidad_id: string
           organization_id: string
           usuario_email: string | null
@@ -4162,6 +4164,8 @@ export type Database = {
           etapa_destino_id: string
           etapa_origen_id?: string | null
           id?: string
+          motivo_perdida_anterior_id?: string | null
+          motivo_reapertura?: string | null
           oportunidad_id: string
           organization_id: string
           usuario_email?: string | null
@@ -4173,6 +4177,8 @@ export type Database = {
           etapa_destino_id?: string
           etapa_origen_id?: string | null
           id?: string
+          motivo_perdida_anterior_id?: string | null
+          motivo_reapertura?: string | null
           oportunidad_id?: string
           organization_id?: string
           usuario_email?: string | null
@@ -4594,6 +4600,7 @@ export type Database = {
           monto_estimado: number
           monto_meta: number | null
           motivo_perdida_id: string | null
+          motivo_reapertura: string | null
           nombre: string
           notas: string
           organization_id: string
@@ -4645,6 +4652,7 @@ export type Database = {
           monto_estimado?: number
           monto_meta?: number | null
           motivo_perdida_id?: string | null
+          motivo_reapertura?: string | null
           nombre: string
           notas?: string
           organization_id?: string
@@ -4695,6 +4703,7 @@ export type Database = {
           monto_estimado?: number
           monto_meta?: number | null
           motivo_perdida_id?: string | null
+          motivo_reapertura?: string | null
           nombre?: string
           notas?: string
           organization_id?: string
@@ -13782,6 +13791,10 @@ export type Database = {
         Returns: Json
       }
       fecha_negocio_mx: { Args: never; Returns: string }
+      forzar_cierre_embarque: {
+        Args: { p_embarque_id: string; p_confirmacion: string }
+        Returns: Json
+      }
       finalizar_evento_facturapi_webhook: {
         Args: {
           p_accion?: string

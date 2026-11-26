@@ -58,7 +58,7 @@ export const embarques = {
   contenedores: (embarqueId?: string) => ['embarque-contenedores', embarqueId] as const,
   contenedoresInfoMap: (ids: string[]) => ['embarque-contenedores-info-map', ids] as const,
   docsFaltantes: (embarqueId?: string, estadoDestino?: string | null) =>
-    ['embarque_docs_faltantes', embarqueId, estadoDestino] as const,
+    ['embarque_docs_faltantes', embarqueId, ...(estadoDestino === undefined ? [] : [estadoDestino])] as const,
   dependenciasFinancieras: (embarqueId?: string, scope: readonly unknown[] = []) =>
     ['embarques', 'dependencias-financieras', embarqueId, ...scope] as const,
   tarifaInfo: (embarqueId?: string, scope: readonly unknown[] = []) => ['embarques', 'tarifa-info', embarqueId, ...scope] as const,

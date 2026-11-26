@@ -22,6 +22,7 @@ import { notifyError, notifySuccess, notifyWarning } from "@/lib/ui/appFeedback"
 import { avisoBitacoraFallida } from "@/features/crm/services/bitacoraNoBloqueante";
 import { getErrorMessage } from "@/lib/errors";
 import { esConflictoConcurrencia } from "@/lib/errors/concurrencia";
+import { useStableRequestId } from "@/lib/idempotency";
 
 export type { CrmOportunidadRow, Moneda } from "@/features/crm/services/oportunidades";
 export type OportunidadInput = ServiceOportunidadInput;
@@ -66,9 +67,11 @@ export function useOportunidad(id: string | undefined) {
 export function useCrearOportunidad() {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const intento = useStableRequestId();
   return useMutation({
-    mutationFn: (input: OportunidadInput) => crearOportunidad(input, user),
+    mutationFn: (input: OportunidadInput) => crearOportunidad(input, user, intento.get()),
     onSuccess: (data) => {
+      intento.reset();
       qc.invalidateQueries({ queryKey: queryKeys.crm.oportunidades.all });
       qc.invalidateQueries({ queryKey: queryKeys.crm.higiene.all });
       qc.invalidateQueries({ queryKey: queryKeys.crm.kpis });

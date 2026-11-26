@@ -15,6 +15,8 @@ import { LC_CODE_MESSAGES_BROKER } from "./lcCodeMessages.broker";
 const MSG_OPORTUNIDAD_INEXISTENTE =
   "La oportunidad ya no existe o pertenece a otra organización.";
 export const LC_CODE_MESSAGES_CRM: Record<string, string> = {
+  LC_OPORTUNIDAD_INTENTO_DISTINTO:
+    "Una oportunidad ya se guardó con este intento. Revisa el listado antes de volver a capturarla.",
   ...LC_CODE_MESSAGES_PRICING,
   ...LC_CODE_MESSAGES_BROKER,
   LC_CRM_EMPRESA_ES_CLIENTE: "Esta empresa ya es cliente y no se puede eliminar. Conserva su registro y sus vínculos.",

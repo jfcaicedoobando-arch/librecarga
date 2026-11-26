@@ -237,8 +237,7 @@ UPDATE public.tipos_contenedor SET name = '20'' Dry (Standard)' WHERE id=(SELECT
 -- partial fields: end focused regressions and coherent complements.
 
 
--- Real schema has NOT NULL type and date constraints. Do not weaken them to port
--- mocked cases: a missing tariff exercises the fail-closed catalog join instead.
+-- A missing tariff exercises the fail-closed catalog join.
 SELECT pg_temp.expect_pricing_guard('missing tariff rejects','40HC',NULL,'missing','LC_TARIFA_NO_VIGENTE');
 UPDATE public.costeo_tarifas SET vigente_hasta=current_date-1
   WHERE id=(SELECT id FROM pricing_guard_tariffs WHERE key='40HC');
@@ -263,14 +262,25 @@ SELECT pg_temp.expect_pricing_guard('responded request cannot select another com
 SELECT pg_temp.expect_pricing_guard('incompatible idempotent link rejects pricing user','40HC',NULL,'20GP','LC_TARIFA_CONTENEDOR_INCOMPATIBLE','respondida','20GP','pricing');
 
 DO $assert_count$
+DECLARE
+  v_tarifa uuid := (SELECT id FROM pricing_guard_tariffs WHERE key = '40HC');
+  v_constraint text;
 BEGIN
   IF (SELECT count(*) FROM pricing_guard_results) <> 57 THEN
     RAISE EXCEPTION 'Unexpected number of real-schema container guard cases';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid='public.costeo_tarifas'::regclass
-    AND attname='tipo_contenedor_id' AND attnotnull) THEN
-    RAISE EXCEPTION 'The real tariff type NOT NULL invariant was weakened';
-  END IF;
+  BEGIN
+    UPDATE public.costeo_tarifas SET tipo_contenedor_id = NULL WHERE id = v_tarifa;
+    RAISE EXCEPTION 'A maritime tariff without its container was accepted';
+  EXCEPTION WHEN check_violation THEN
+    GET STACKED DIAGNOSTICS v_constraint = CONSTRAINT_NAME;
+    IF v_constraint IS DISTINCT FROM 'costeo_tarifas_campos_por_modo' THEN RAISE; END IF;
+  END;
+  UPDATE public.costeo_tarifas SET
+    modo = 'Terrestre', tipo_contenedor_id = NULL, naviera_id = NULL, ruta_id = NULL,
+    submodalidad = 'FTL', origen_ciudad = 'Origen', destino_ciudad = 'Destino'
+  WHERE id = v_tarifa;
+  IF NOT FOUND THEN RAISE EXCEPTION 'The road tariff fixture is missing'; END IF;
   RAISE NOTICE 'pricing container RPC: 57 real-schema authenticated cases passed';
 END
 $assert_count$;

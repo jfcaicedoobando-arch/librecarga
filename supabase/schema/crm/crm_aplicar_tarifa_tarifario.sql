@@ -8,6 +8,7 @@ DECLARE
   v_tipo_code text;
   v_tipo_name text;
   v_compatible boolean;
+  v_fecha_carga date;
 BEGIN
   SELECT * INTO v FROM public.crm_solicitudes_pricing
    WHERE id = p_solicitud_id AND deleted_at IS NULL FOR UPDATE;
@@ -98,9 +99,11 @@ BEGIN
   IF v.estado NOT IN ('borrador','enviada','asignada','en_proceso','info_requerida') THEN
     RAISE EXCEPTION 'LC_PRICING_ESTADO_INVALIDO' USING ERRCODE = 'P0001';
   END IF;
+  v_fecha_carga := greatest(public.fecha_negocio_mx(), v.fecha_tentativa_carga);
   SELECT * INTO t FROM public.costeo_tarifas
    WHERE id = p_tarifa_id AND organization_id = v.organization_id AND estado = 'vigente'
-     AND (vigente_hasta IS NULL OR vigente_hasta >= current_date);
+     AND (vigente_desde IS NULL OR vigente_desde <= v_fecha_carga)
+     AND (vigente_hasta IS NULL OR vigente_hasta >= v_fecha_carga);
   IF t.id IS NULL THEN RAISE EXCEPTION 'LC_TARIFA_NO_VIGENTE' USING ERRCODE = 'P0001'; END IF;
   PERFORM set_config('lc.pricing_rpc', '1', true);
   UPDATE public.crm_solicitudes_pricing

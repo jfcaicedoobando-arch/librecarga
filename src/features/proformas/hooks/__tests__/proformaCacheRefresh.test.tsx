@@ -10,11 +10,12 @@ import { RespuestaClienteManualDialog } from "../../components/RespuestaClienteM
 // Only the I/O services are doubled. QueryClient, observers, mutations,
 // notifications and the manual dialog run their real implementations.
 const services = vi.hoisted(() => ({
-  serie: vi.fn(), convertir: vi.fn(), aprobar: vi.fn(), responder: vi.fn(),
+  serie: vi.fn(), usoCfdi: vi.fn(), convertir: vi.fn(), aprobar: vi.fn(), responder: vi.fn(),
   read: vi.fn<(name: string) => Promise<string>>(),
 }));
 vi.mock("@/features/proformas/services/convertirAFactura", () => ({
   fetchPrimeraSerieActiva: services.serie,
+  fetchUsoCfdiProforma: services.usoCfdi,
   convertirProformaAFactura: services.convertir,
 }));
 vi.mock("@/features/proformas/services/respuestaCliente", () => ({
@@ -111,6 +112,7 @@ function mountManual(initial: Projection, next: Projection, modo: "aceptada" | "
 beforeEach(() => {
   vi.resetAllMocks();
   services.serie.mockResolvedValue({ id: "synthetic-serie", prefijo: "SYN" });
+  services.usoCfdi.mockResolvedValue("S01");
   services.convertir.mockResolvedValue([{ facturaId: "synthetic-borrador", facturaNumero: "BORRADOR-SYN", moneda: "MXN" }]);
   services.aprobar.mockResolvedValue({ proforma_id: "synthetic-proforma", estado_cliente: "aceptada", sin_cambios: false });
   services.responder.mockResolvedValue({ id: "synthetic-proforma", estado_cliente: "aceptada" });
@@ -131,7 +133,7 @@ describe("proforma mutations refresh mounted consumers with fresh caches", () =>
     expect(result.current.views.data).toEqual(converted);
     expect(services.convertir).toHaveBeenCalledWith({
       proformaIds: ["synthetic-proforma"], serieId: "synthetic-serie", metodoPago: "PPD",
-      formaPago: "99", usoCfdi: "G03", diasCredito: null, notas: null, requestId: expect.any(String),
+      formaPago: "99", usoCfdi: "S01", diasCredito: null, notas: null, requestId: expect.any(String),
     });
   });
 

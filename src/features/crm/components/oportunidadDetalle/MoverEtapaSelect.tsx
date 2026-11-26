@@ -37,6 +37,9 @@ export function MoverEtapaSelect({ op, etapas }: Props) {
         perdidaPendiente={m.perdidaPendiente}
         cerrarPerdida={m.cerrarPerdida}
         confirmarPerdida={(id) => void m.confirmarPerdida(id)}
+        reaperturaPendiente={m.reaperturaPendiente}
+        cerrarReapertura={m.cerrarReapertura}
+        confirmarReapertura={(motivo) => void m.confirmarReapertura(motivo)}
         moviendo={m.moviendo}
       />
     </>
