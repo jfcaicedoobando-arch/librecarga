@@ -48,7 +48,8 @@ async function assertMontosCuadran(movId: string, tipo: "cxc" | "cxp", pagoId: s
   );
   const montoMov = importeMovimiento(mov);
   const moneda = tipo === "cxp" ? (mov.cuenta?.deleted_at === null ? mov.cuenta.moneda : null) : pago.moneda;
-  const tipoCambio = "tipo_cambio_usd" in pago ? pago.tipo_cambio_usd : null;
+  const tc = "tipo_cambio_usd" in pago ? pago.tipo_cambio_usd : null;
+  const tipoCambio = typeof tc === "number" ? tc : null;
   const cargo = cargoEnMonedaCuenta(Number(pago.monto ?? 0), pago.moneda, moneda, tipoCambio);
   if (!moneda || cargo === null || !Number.isFinite(cargo)) {
     throw new MovimientoVinculoError("LC_MOVIMIENTO_DIVISA_MISMATCH",
