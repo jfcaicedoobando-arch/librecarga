@@ -80,16 +80,25 @@ BEGIN
     RAISE EXCEPTION 'REGRESION P0: el embarque de la Org B quedó Cerrado tras el intento cross-org';
   END IF;
 
-  -- ── CASO 2 (positivo, mismo-org): el mismo usuario SÍ puede cerrar el
-  -- embarque de su propia org (admin_org fuerza el cierre aunque
-  -- validar_cierre_embarque no esté satisfecho, semántica ya existente).
-  v_res := public.cerrar_embarque(v_emb_a);
+  -- El cierre ordinario respeta el checklist incluso para administración.
+  BEGIN
+    PERFORM public.cerrar_embarque(v_emb_a);
+    RAISE EXCEPTION 'Se cerró un embarque con validaciones pendientes';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM NOT LIKE 'Validaciones de cierre no satisfechas:%' THEN RAISE; END IF;
+  END;
+  BEGIN
+    PERFORM public.forzar_cierre_embarque(v_emb_a, 'CERRAR');
+    RAISE EXCEPTION 'Se aceptó una confirmación ordinaria para el cierre forzado';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  END;
+  v_res := public.forzar_cierre_embarque(v_emb_a, 'FORZAR CIERRE');
   SELECT estado INTO v_estado_a FROM public.embarques WHERE id = v_emb_a;
   IF v_estado_a <> 'Cerrado' THEN
     RAISE EXCEPTION 'FALLO: admin_org de la Org A no pudo cerrar su propio embarque (estado=%)', v_estado_a;
   END IF;
   IF v_res IS NULL OR COALESCE((v_res->>'ok')::boolean, false) IS NOT TRUE
-     OR v_res->'snapshot' IS NULL THEN
+     OR v_res->'snapshot' IS NULL OR (v_res->>'forzado_admin')::boolean IS DISTINCT FROM true THEN
     RAISE EXCEPTION 'FALLO: cerrar_embarque no devolvió el snapshot esperado para %', v_emb_a;
   END IF;
 
