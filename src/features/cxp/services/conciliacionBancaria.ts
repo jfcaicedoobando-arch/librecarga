@@ -5,7 +5,7 @@
  *
  * v13.190.0 · Ola 2 · Item 3 — Conciliación bancaria en detalle de factura.
  */
-import { esPagoProveedorConciliablePersistido } from "@/features/tesoreria/services/conciliacionPagoProveedorGuard";
+import { esPagoProveedorConciliablePersistido } from "@/features/tesoreria/services";
 import { supabase } from "@/integrations/supabase/client";
 import {
   dentroDeTolerancia,
@@ -15,7 +15,7 @@ import {
   deltaDiasIso,
 } from "@/lib/domain/tolerancia";
 import { roundMoney } from "@/lib/financial/financialUtils";
-import { cargoEnMonedaCuenta } from "./pagoProveedorMovimiento";
+import { cargoEnMonedaCuenta } from "@/lib/financial/cargoEnMonedaCuenta";
 
 export interface MovimientoCandidato {
   id: string;

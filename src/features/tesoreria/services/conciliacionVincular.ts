@@ -17,7 +17,7 @@ import { assertPagoProveedorMonetario } from "./conciliacionPagoProveedorGuard";
 import { toleranciaMonto } from "@/features/tesoreria/domain/tolerancia";
 import { formatCurrency } from "@/lib/formatters/numbers";
 import { roundMoney } from "@/lib/financial/financialUtils";
-import { cargoEnMonedaCuenta } from "@/features/cxp/services/pagoProveedorMovimiento";
+import { cargoEnMonedaCuenta } from "@/lib/financial/cargoEnMonedaCuenta";
 
 function leerPagoParaConciliar(tipo: "cxc" | "cxp", pagoId: string) {
   return tipo === "cxp"

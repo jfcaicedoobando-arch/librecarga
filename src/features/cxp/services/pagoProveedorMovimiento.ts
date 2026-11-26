@@ -15,6 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { registrarActividad } from "@/services/bitacora/registrar";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import type { Moneda } from "@/types/db";
+import { cargoEnMonedaCuenta } from "@/lib/financial/cargoEnMonedaCuenta";
+
+export { cargoEnMonedaCuenta };
 
 /** Resultado del intento de crear el movimiento bancario espejo del pago. */
 export interface ResultadoMovimientoPago {
@@ -48,31 +51,6 @@ export function cargoEnMxn(
   if (moneda === "MXN") return monto;
   if (tipoCambioUsd && tipoCambioUsd > 0) return monto * tipoCambioUsd;
   return monto;
-}
-
-/**
- * v13.444.2 — El movimiento bancario SIEMPRE se registra en la moneda de la
- * cuenta. Antes se convertía todo a MXN, así que un pago de 23,650 USD desde
- * una cuenta en USD entraba como 406,938.45 y descuadraba el saldo.
- * Sólo se convierte cuando pago y cuenta difieren de verdad.
- *
- * MNY-NEW-04 — fail-closed real: si pago y cuenta son de distinta divisa y no
- * hay tipo de cambio, devuelve `null`. Antes devolvía el monto tal cual (1:1
- * silencioso), lo que metía dólares como pesos y descuadraba el banco.
- */
-export function cargoEnMonedaCuenta(
-  monto: number,
-  monedaPago: string,
-  monedaCuenta: string | null,
-  tipoCambioUsd: number | null,
-): number | null {
-  if (!monedaCuenta?.trim()) return null;
-  if (monedaCuenta === monedaPago) return monto;
-  const tc = tipoCambioUsd !== null && Number.isFinite(tipoCambioUsd) && tipoCambioUsd > 0 ? tipoCambioUsd : null;
-  if (!tc) return null;
-  if (monedaPago === "USD" && monedaCuenta === "MXN") return monto * tc;
-  if (monedaPago === "MXN" && monedaCuenta === "USD") return monto / tc;
-  return null;
 }
 
 /** Mensaje único para el rechazo por falta de tipo de cambio (MNY-NEW-04). */

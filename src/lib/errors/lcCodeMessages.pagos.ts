@@ -1,8 +1,5 @@
 /** Mensajes de pagos, REP, conciliación y anticipos; reexportados por lcCodeMessages.ts. */
 export const LC_CODE_MESSAGES_PAGOS: Record<string, string> = {
-  LC_PAGO_LOTE_NO_EDITABLE: "Esta aplicación pertenece a un lote y debe conservar su distribución.",
-  LC_PAGO_LOTE_NO_ELIMINABLE: "Esta aplicación pertenece a un lote y no se puede eliminar por separado.",
-  LC_PAGO_LOTE_REVISAR: "Revisa el cargo compartido del lote en Tesorería.",
   // ── Pagos (cliente y proveedor) ────────────────────────────────────────
   LC_PAGO_NO_ENCONTRADO: "El pago no existe o fue eliminado.",
   LC_PAGO_FACTURA_INEXISTENTE: "La factura del pago no existe.",
