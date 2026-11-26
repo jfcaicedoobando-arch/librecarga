@@ -907,7 +907,7 @@
   },
   {
     "file": "0115_correcciones_auditoria_negocio.sql",
-    "sha256": "c054767bfc93f4db44cbb542a97e157088c9a14dc06b6c1fd6b764c7df99abf4",
+    "sha256": "7d8e621253101972e0acca55f52d1459969bb50b3e69cbb99749590313bb65c9",
     "replays": [
       "0115_correcciones_auditoria_negocio.sql"
     ],

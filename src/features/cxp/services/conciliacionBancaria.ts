@@ -5,7 +5,7 @@
  *
  * v13.190.0 · Ola 2 · Item 3 — Conciliación bancaria en detalle de factura.
  */
-import { esAjusteProveedorPersistido } from "@/features/tesoreria/services";
+import { esPagoProveedorConciliablePersistido } from "@/features/tesoreria/services/conciliacionPagoProveedorGuard";
 import { supabase } from "@/integrations/supabase/client";
 import {
   dentroDeTolerancia,
@@ -38,7 +38,7 @@ export async function sugerirMovsParaPagoProveedor(pago: {
   cuenta_bancaria_id: string | null;
 }): Promise<MovimientoCandidato[]> {
   if (pago.monto <= 0) return [];
-  if (await esAjusteProveedorPersistido(pago.id)) return [];
+  if (!await esPagoProveedorConciliablePersistido(pago.id)) return [];
   const { desde, hasta } = rangoFechasIso(pago.fecha_pago, TOLERANCIA_DIAS);
   let cuentasQuery = supabase.from("cuentas_bancarias").select("id, moneda").is("deleted_at", null);
   if (pago.cuenta_bancaria_id) cuentasQuery = cuentasQuery.eq("id", pago.cuenta_bancaria_id);

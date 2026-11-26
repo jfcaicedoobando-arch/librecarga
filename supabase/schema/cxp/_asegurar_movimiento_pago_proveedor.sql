@@ -47,7 +47,7 @@ BEGIN
     END IF;
     RETURN v_mov_id;
   END IF;
-  IF lower(btrim(v_pago.metodo_pago)) = 'efectivo' THEN
+  IF lower(btrim(v_pago.metodo_pago)) IN ('efectivo','01') THEN
     RETURN NULL;
   END IF;
   SELECT id INTO v_mov_id

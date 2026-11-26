@@ -6,6 +6,9 @@
  * Se consume desde `lcCodeMessages.ts` (índice).
  */
 export const LC_CODE_MESSAGES_TESORERIA: Record<string, string> = {
+  LC_MOVIMIENTO_EFECTIVO: "El pago en efectivo queda fuera de la conciliación bancaria.",
+  LC_MOVIMIENTO_PAGO_NO_CONCILIABLE:
+    "Para el lote, revisa su cargo compartido. Los pagos en efectivo quedan fuera de la conciliación bancaria.",
   // ── App-raised (no vienen de la BD) ────────────────────────────────────
   LC_FACTURA_CON_REP_VIVO:
     "La factura tiene un complemento de pago (REP) vivo. Cancela primero el REP para continuar.",

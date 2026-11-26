@@ -4,6 +4,8 @@
  * respetar el límite Power-of-10 de 200 líneas por archivo.
  */
 export const LC_CODE_MESSAGES_COBRANZA: Record<string, string> = {
+  LC_COBRO_LOTE_INTENTO_DISTINTO:
+    "Este intento ya se guardó con otros importes o datos. Consulta el lote en el historial antes de registrar otro cobro.",
   LC_COBRO_LOTE_MINIMO_FACTURAS:
     "Selecciona al menos dos facturas para registrar un cobro en lote.",
   LC_COBRO_LOTE_MONTO_INVALIDO:

@@ -107,8 +107,9 @@ describe("conciliacion service", () => {
     });
     function prepararMovimiento(id: string, cargo: number, abono: number) {
       mock.setTableResultOnce("bbva_movimientos", { data: [], error: null });
-      mock.setTableResultOnce("bbva_movimientos", { data: { cargo, abono }, error: null });
-      mock.setTableResultOnce("bbva_movimientos", { data: { cargo, abono }, error: null });
+      const data = { cargo, abono, cuenta: { moneda: "MXN", deleted_at: null } };
+      mock.setTableResultOnce("bbva_movimientos", { data, error: null });
+      mock.setTableResultOnce("bbva_movimientos", { data, error: null });
       mock.setTableResult("bbva_movimientos", { data: [{ id }], error: null });
     }
     it("escribe pago_factura_id (no pago_proveedor_id) cuando tipo=cxc", async () => {

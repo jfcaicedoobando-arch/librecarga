@@ -155,11 +155,11 @@ BEGIN
              'cargo_cuenta', ROUND(COALESCE(m.cargo, 0), 2),
              'monto_esperado_cuenta', ROUND(e.cargo, 2),
              'motivo', CASE WHEN pp.lote_id IS NOT NULL THEN 'Revisa el movimiento del lote completo.'
-               WHEN lower(btrim(pp.metodo_pago)) = 'efectivo' THEN 'Un cobro en efectivo no debe tener cargo bancario.'
+               WHEN lower(btrim(pp.metodo_pago)) IN ('efectivo','01') THEN 'Un cobro en efectivo no debe tener cargo bancario.'
                WHEN m.id IS NOT NULL AND e.cargo IS NULL THEN
                'No se puede comparar el importe: falta la moneda de cuenta o un tipo de cambio compatible.' END,
              'tipo', CASE WHEN pp.lote_id IS NOT NULL THEN 'lote_inconsistente'
-               WHEN lower(btrim(pp.metodo_pago)) = 'efectivo' THEN 'efectivo_inconsistente'
+               WHEN lower(btrim(pp.metodo_pago)) IN ('efectivo','01') THEN 'efectivo_inconsistente'
                WHEN m.id IS NULL THEN 'sin_movimiento' ELSE 'descuadre' END
            ) AS x, pp.fecha_pago
     FROM public.pagos_proveedor pp
@@ -196,8 +196,8 @@ BEGIN
       AND (p_proveedor_id IS NULL OR pf.proveedor_id = p_proveedor_id)
       AND (
         (m.id IS NULL AND pp.cuenta_bancaria_id IS NOT NULL
-          AND lower(btrim(pp.metodo_pago)) <> 'efectivo')
-        OR (m.id IS NOT NULL AND (lower(btrim(pp.metodo_pago)) = 'efectivo' OR
+          AND lower(btrim(pp.metodo_pago)) NOT IN ('efectivo','01'))
+        OR (m.id IS NOT NULL AND (lower(btrim(pp.metodo_pago)) IN ('efectivo','01') OR
             e.cargo IS NULL OR abs(COALESCE(m.cargo,0) - ROUND(e.cargo, 2)) > 0.01))
         OR (pp.lote_id IS NOT NULL AND EXISTS (
           SELECT 1 FROM public.bbva_movimientos individual

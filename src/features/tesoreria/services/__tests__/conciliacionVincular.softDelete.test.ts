@@ -10,7 +10,11 @@ vi.mock("@/lib/observability/reportCaughtError", () => ({ reportCaughtError: vi.
 import { conciliarConPago } from "../conciliacionVincular";
 
 type Tipo = "cxc" | "cxp";
-const mov = (tipo: Tipo) => tipo === "cxc" ? { cargo: 0, abono: 100 } : { cargo: 100, abono: 0 };
+const mov = (tipo: Tipo) => ({
+  cargo: tipo === "cxc" ? 0 : 100,
+  abono: tipo === "cxc" ? 100 : 0,
+  cuenta: { moneda: "MXN", deleted_at: null },
+});
 const pago = { monto: 100, moneda: "MXN", es_ajuste: false };
 const tabla = (tipo: Tipo) => tipo === "cxc" ? "pagos_factura" : "pagos_proveedor";
 const deleted_at = "2026-10-01T00:00:00Z";
@@ -32,12 +36,12 @@ describe.each<Tipo>(["cxc", "cxp"])("conciliación %s sin registros de papelera"
     mock.queue(tabla(tipo), pago);
     mock.queue("bbva_movimientos", [{ id: "mov1" }]); // UPDATE confirmado.
     await conciliarConPago("mov1", tipo, "pago1", "user-test");
-    const readMov = mock.tableCalls.filter(call => call.table === "bbva_movimientos" && call.opArgs.some(args => args[0] === "cargo, abono"));
+    const readMov = mock.tableCalls.filter(call => call.table === "bbva_movimientos" && call.opArgs.some(args => String(args[0]).startsWith("cargo, abono")));
     expect(readMov).toHaveLength(2);
     for (const call of readMov) {
       expect(call.opArgs).toContainEqual(["deleted_at", null]); expect(call.opArgs).toContainEqual(["id", "mov1"]);
     }
-    const readPago = mock.tableCalls.find(call => call.table === tabla(tipo) && call.opArgs.some(args => args[0] === "monto, moneda"))!;
+    const readPago = mock.tableCalls.find(call => call.table === tabla(tipo) && call.opArgs.some(args => String(args[0]).startsWith("monto, moneda")))!;
     expect(readPago.opArgs).toContainEqual(["deleted_at", null]); expect(readPago.opArgs).toContainEqual(["id", "pago1"]);
     const write = mock.tableCalls.find(call => call.ops.includes("update"))!;
     expect(write.opArgs).toContainEqual(["estado_conciliacion", "Pendiente"]);

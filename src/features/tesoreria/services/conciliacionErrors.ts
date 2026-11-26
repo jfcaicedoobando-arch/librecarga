@@ -10,6 +10,7 @@ export class MovimientoVinculoError extends Error {
     public readonly code:
       | "LC_MOVIMIENTO_AJUSTE_NO_MONETARIO"
       | "LC_MOVIMIENTO_PAGO_NO_VERIFICABLE"
+      | "LC_MOVIMIENTO_PAGO_NO_CONCILIABLE"
       | "LC_MOVIMIENTO_ORG_MISMATCH"
       | "LC_MOVIMIENTO_DIVISA_MISMATCH"
       | "LC_MOVIMIENTO_DOBLE_VINCULO"
@@ -39,6 +40,7 @@ export function mapConciliacionError(err: { code?: string; message?: string } | 
   for (const code of [
     "LC_MOVIMIENTO_AJUSTE_NO_MONETARIO",
     "LC_MOVIMIENTO_PAGO_NO_VERIFICABLE",
+    "LC_MOVIMIENTO_PAGO_NO_CONCILIABLE",
     "LC_MOVIMIENTO_ORG_MISMATCH",
     "LC_MOVIMIENTO_DIVISA_MISMATCH",
     "LC_MOVIMIENTO_DOBLE_VINCULO",

@@ -58,7 +58,7 @@ BEGIN
     RAISE EXCEPTION 'LC_PAGO_LOTE_NO_EDITABLE: edita el lote completo para conservar sus aplicaciones'
       USING ERRCODE = '23514';
   END IF;
-  IF lower(btrim(p_metodo_pago)) = 'efectivo' THEN
+  IF lower(btrim(p_metodo_pago)) IN ('efectivo','01') THEN
     p_cuenta_bancaria_id := NULL;
   END IF;
 

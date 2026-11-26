@@ -108,7 +108,7 @@ export const HISTORY = [
   { file: '0112_pricing_recotizar_vigencia_columnas.sql', sha256: '8c2f7367c80ae13a0747c173c0005de23b890cc3305d072445615f1fc9b3095b', eligibleName: '20261123201700_replay_pricing_recotizar_vigencia_columnas.sql' },
   { file: '0113_pricing_motivo_perdida.sql', sha256: 'c0a04ba208d3e81a57df6bda6f4d10a4f56ebedc9126f30176949fb006bff261', eligibleName: '20261123201800_replay_pricing_motivo_perdida.sql' },
   { file: '0114_recargos_local_internacional.sql', sha256: '607db7123b62df949c0162ede35608a688ae0525b2d9fba1c37bb81b7397e850', eligibleName: '20261124200000_replay_recargos_local_internacional.sql' },
-  { file: '0115_correcciones_auditoria_negocio.sql', sha256: 'c054767bfc93f4db44cbb542a97e157088c9a14dc06b6c1fd6b764c7df99abf4', eligibleName: '20261126222900_replay_correcciones_auditoria_negocio.sql' },
+  { file: '0115_correcciones_auditoria_negocio.sql', sha256: '7d8e621253101972e0acca55f52d1459969bb50b3e69cbb99749590313bb65c9', eligibleName: '20261126222900_replay_correcciones_auditoria_negocio.sql' },
 ];
 const NONDEPLOYABLE_SQL = [
   ['archive/2026-11-23/0104_tarifa_aerea_escalas.sql', 'b4cc96958bfc3c374247d46a15bb0df8bb8fc97e08cae1dbd9ab47e30854589f'],

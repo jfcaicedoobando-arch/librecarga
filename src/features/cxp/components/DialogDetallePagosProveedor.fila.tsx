@@ -41,7 +41,7 @@ interface Props {
 function ConciliacionFila({ pago: p, canEdit }: Pick<Props, "pago" | "canEdit">) {
   const movimientos = p.lote_id ? p.pagos_proveedor_lote?.bbva_movimientos : p.bbva_movimientos;
   const mov = movimientos?.find(m => !m.deleted_at && (p.es_ajuste || m.estado_conciliacion === "Conciliado")) ?? null;
-  const esEfectivo = p.metodo_pago.trim().toLowerCase() === "efectivo";
+  const esEfectivo = ["efectivo", "01"].includes(p.metodo_pago.trim().toLowerCase());
   return (
     <TableCell>
         {esEfectivo && !esPagoAnticipo(p) && !p.es_ajuste && !mov ? (

@@ -2,8 +2,7 @@
  * MNY — Un pago a proveedor que pertenece a un lote CxP ya está representado
  * por el movimiento bancario del lote (`pago_proveedor_lote_id`). No debe
  * sugerirse otra vez como pago individual: el mismo egreso quedaría conciliado
- * dos veces. Si el movimiento del lote está en papelera, el pago vuelve a estar
- * disponible.
+ * dos veces. Si el movimiento compartido ya no está vivo, se revisa el lote.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
@@ -46,12 +45,11 @@ describe("sugerirCandidatos · miembros de lote CxP (MNY)", () => {
     expect(res).toEqual([]);
   });
 
-  it("sí sugiere el pago si el movimiento del lote está en papelera", async () => {
+  it("mantiene fuera al pago individual aunque falte el movimiento del lote", async () => {
     mock.setTableResult("pagos_proveedor", { data: [pagoEnLote], error: null });
     mock.setTableResult("bbva_movimientos", { data: [], error: null });
     const res = await sugerirCandidatos(mov({ cargo: 1000, abono: 0, fecha: "2026-06-10" }), "MXN");
-    expect(res).toHaveLength(1);
-    expect(res[0].pago_id).toBe("p1");
+    expect(res).toEqual([]);
   });
 
   it("mantiene intactos los pagos individuales sin lote", async () => {

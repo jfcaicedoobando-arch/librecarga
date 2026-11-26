@@ -34,7 +34,7 @@ DECLARE
   v_cta_org  uuid;
   v_cta_activa boolean;
 BEGIN
-  IF lower(btrim(p_metodo_pago)) = 'efectivo' THEN
+  IF lower(btrim(p_metodo_pago)) IN ('efectivo','01') THEN
     p_cuenta_bancaria_id := NULL;
   END IF;
 

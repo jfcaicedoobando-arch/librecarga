@@ -64,7 +64,7 @@ BEGIN
   IF v_pago.lote_id IS NOT NULL THEN
     RETURN public._asegurar_movimiento_pago_proveedor(p_pago_id);
   END IF;
-  IF lower(btrim(v_pago.metodo_pago)) = 'efectivo' THEN
+  IF lower(btrim(v_pago.metodo_pago)) IN ('efectivo','01') THEN
     RAISE EXCEPTION 'LC_MOVIMIENTO_EFECTIVO: un pago en efectivo no genera cargo bancario'
       USING ERRCODE = '23514';
   END IF;

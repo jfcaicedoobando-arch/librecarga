@@ -558,6 +558,55 @@ ALTER FUNCTION public.crm_vincular_cotizacion_cliente_pricing(uuid,uuid,uuid,uui
 
 --> statement-breakpoint
 
+-- supabase/schema/crm/oportunidad_motivo_reapertura.sql
+ALTER TABLE public.crm_oportunidades ADD COLUMN IF NOT EXISTS motivo_reapertura text
+  CHECK (motivo_reapertura IS NULL);
+ALTER TABLE public.crm_historial_etapas ADD COLUMN IF NOT EXISTS motivo_reapertura text;
+ALTER TABLE public.crm_historial_etapas ADD COLUMN IF NOT EXISTS motivo_perdida_anterior_id uuid;
+
+CREATE OR REPLACE FUNCTION public._crm_registrar_cambio_etapa() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_origen text;
+  v_destino text;
+  v_motivo text := nullif(btrim(NEW.motivo_reapertura), '');
+  v_motivo_perdida uuid;
+BEGIN
+  NEW.motivo_reapertura := NULL;
+  NEW.ultimo_movimiento_at := now();
+  IF NEW.etapa_id IS DISTINCT FROM OLD.etapa_id THEN
+    SELECT tipo INTO v_origen FROM public.crm_etapas_pipeline
+      WHERE id = OLD.etapa_id AND organization_id = OLD.organization_id;
+    SELECT tipo INTO v_destino FROM public.crm_etapas_pipeline
+      WHERE id = NEW.etapa_id AND organization_id = NEW.organization_id;
+    IF v_origen = 'perdida' AND v_destino = 'abierta' THEN
+      IF v_motivo IS NULL OR char_length(v_motivo) > 500 THEN
+        RAISE EXCEPTION 'Escribe un motivo de reapertura de hasta 500 caracteres.'
+          USING ERRCODE = '22023';
+      END IF;
+      v_motivo_perdida := OLD.motivo_perdida_id;
+      NEW.motivo_perdida_id := NULL;
+    ELSE
+      v_motivo := NULL;
+    END IF;
+    INSERT INTO public.crm_historial_etapas (
+      organization_id, oportunidad_id, etapa_origen_id, etapa_destino_id,
+      dias_en_etapa, usuario_id, usuario_email, motivo_reapertura, motivo_perdida_anterior_id
+    ) VALUES (
+      NEW.organization_id, NEW.id, OLD.etapa_id, NEW.etapa_id,
+      ROUND(EXTRACT(EPOCH FROM (now() - COALESCE(OLD.etapa_desde_at, OLD.created_at, now()))) / 86400.0, 2),
+      auth.uid(), NULLIF(current_setting('request.jwt.claims', true), '')::json ->> 'email',
+      v_motivo, v_motivo_perdida
+    );
+    NEW.etapa_desde_at := now();
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+--> statement-breakpoint
+
 -- supabase/schema/cxp/_asegurar_movimiento_pago_proveedor.sql
 -- Fuente canónica. Espejo 1:1 de la migración 20260907013703 (fix Sentry
 -- JAVASCRIPT-REACT-65/66: ON CONFLICT alineado al índice parcial vivo).
@@ -608,7 +657,7 @@ BEGIN
     END IF;
     RETURN v_mov_id;
   END IF;
-  IF lower(btrim(v_pago.metodo_pago)) = 'efectivo' THEN
+  IF lower(btrim(v_pago.metodo_pago)) IN ('efectivo','01') THEN
     RETURN NULL;
   END IF;
   SELECT id INTO v_mov_id
@@ -751,7 +800,7 @@ BEGIN
     RAISE EXCEPTION 'LC_PAGO_LOTE_NO_EDITABLE: edita el lote completo para conservar sus aplicaciones'
       USING ERRCODE = '23514';
   END IF;
-  IF lower(btrim(p_metodo_pago)) = 'efectivo' THEN
+  IF lower(btrim(p_metodo_pago)) IN ('efectivo','01') THEN
     p_cuenta_bancaria_id := NULL;
   END IF;
 
@@ -978,11 +1027,11 @@ BEGIN
              'cargo_cuenta', ROUND(COALESCE(m.cargo, 0), 2),
              'monto_esperado_cuenta', ROUND(e.cargo, 2),
              'motivo', CASE WHEN pp.lote_id IS NOT NULL THEN 'Revisa el movimiento del lote completo.'
-               WHEN lower(btrim(pp.metodo_pago)) = 'efectivo' THEN 'Un cobro en efectivo no debe tener cargo bancario.'
+               WHEN lower(btrim(pp.metodo_pago)) IN ('efectivo','01') THEN 'Un cobro en efectivo no debe tener cargo bancario.'
                WHEN m.id IS NOT NULL AND e.cargo IS NULL THEN
                'No se puede comparar el importe: falta la moneda de cuenta o un tipo de cambio compatible.' END,
              'tipo', CASE WHEN pp.lote_id IS NOT NULL THEN 'lote_inconsistente'
-               WHEN lower(btrim(pp.metodo_pago)) = 'efectivo' THEN 'efectivo_inconsistente'
+               WHEN lower(btrim(pp.metodo_pago)) IN ('efectivo','01') THEN 'efectivo_inconsistente'
                WHEN m.id IS NULL THEN 'sin_movimiento' ELSE 'descuadre' END
            ) AS x, pp.fecha_pago
     FROM public.pagos_proveedor pp
@@ -1019,8 +1068,8 @@ BEGIN
       AND (p_proveedor_id IS NULL OR pf.proveedor_id = p_proveedor_id)
       AND (
         (m.id IS NULL AND pp.cuenta_bancaria_id IS NOT NULL
-          AND lower(btrim(pp.metodo_pago)) <> 'efectivo')
-        OR (m.id IS NOT NULL AND (lower(btrim(pp.metodo_pago)) = 'efectivo' OR
+          AND lower(btrim(pp.metodo_pago)) NOT IN ('efectivo','01'))
+        OR (m.id IS NOT NULL AND (lower(btrim(pp.metodo_pago)) IN ('efectivo','01') OR
             e.cargo IS NULL OR abs(COALESCE(m.cargo,0) - ROUND(e.cargo, 2)) > 0.01))
         OR (pp.lote_id IS NOT NULL AND EXISTS (
           SELECT 1 FROM public.bbva_movimientos individual
@@ -1135,7 +1184,7 @@ BEGIN
   IF v_pago.lote_id IS NOT NULL THEN
     RETURN public._asegurar_movimiento_pago_proveedor(p_pago_id);
   END IF;
-  IF lower(btrim(v_pago.metodo_pago)) = 'efectivo' THEN
+  IF lower(btrim(v_pago.metodo_pago)) IN ('efectivo','01') THEN
     RAISE EXCEPTION 'LC_MOVIMIENTO_EFECTIVO: un pago en efectivo no genera cargo bancario'
       USING ERRCODE = '23514';
   END IF;
@@ -1191,7 +1240,7 @@ DECLARE
   v_cta_org  uuid;
   v_cta_activa boolean;
 BEGIN
-  IF lower(btrim(p_metodo_pago)) = 'efectivo' THEN
+  IF lower(btrim(p_metodo_pago)) IN ('efectivo','01') THEN
     p_cuenta_bancaria_id := NULL;
   END IF;
 
@@ -3024,6 +3073,301 @@ GRANT EXECUTE ON FUNCTION public.saldo_factura_bruto(uuid) TO authenticated, ser
 
 --> statement-breakpoint
 
+-- supabase/schema/tesoreria/assert_movimiento_pago_consistente.sql
+-- Fuente canónica de public.assert_movimiento_pago_consistente().
+-- AUD99/121: ajustes tipificados no representan un origen bancario.
+-- Al modificar: edita ESTE archivo y genera la migración con el mismo cuerpo.
+
+CREATE OR REPLACE FUNCTION public.assert_movimiento_pago_consistente()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_pago_org uuid;
+  v_pago_moneda text;
+  v_pago_monto numeric;
+  v_pago_tc numeric;
+  v_pago_es_ajuste boolean;
+  v_lote_proveedor uuid;
+  v_metodo_proveedor text;
+  v_cuenta_moneda text;
+  v_vinculos int;
+  v_mov numeric;
+  v_ant_estado text;
+  v_ant_devuelto numeric;
+  v_es_devolucion boolean := false;
+  v_tol numeric := 0; -- MNY P1.3: tolerancia según la MONEDA del movimiento
+BEGIN
+  IF NEW.pago_proveedor_id IS NOT NULL OR NEW.pago_proveedor_lote_id IS NOT NULL THEN
+    -- BEFORE se ejecuta antes del WITH CHECK de RLS. Validar el ámbito antes
+    -- de consultar clasificaciones que el caller podría no poder leer.
+    -- role/session_user conservan el caller SQL aun dentro de SECURITY DEFINER;
+    -- current_user aquí sería el owner y no sirve para reconocer llamadas internas.
+    IF COALESCE(NULLIF(NULLIF(current_setting('role', true), 'none'), ''), session_user::text)
+         NOT IN ('postgres', 'service_role', 'supabase_admin')
+       AND (public.org_scope() IS NULL OR NEW.organization_id IS DISTINCT FROM public.org_scope()) THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_ORG_MISMATCH: el movimiento está fuera de la organización activa'
+        USING ERRCODE = 'P0001';
+    END IF;
+  END IF;
+
+  v_vinculos :=
+      (CASE WHEN NEW.pago_factura_id IS NOT NULL THEN 1 ELSE 0 END)
+    + (CASE WHEN NEW.pago_proveedor_id IS NOT NULL THEN 1 ELSE 0 END)
+    + (CASE WHEN NEW.anticipo_proveedor_id IS NOT NULL THEN 1 ELSE 0 END)
+    + (CASE WHEN NEW.pago_proveedor_lote_id IS NOT NULL THEN 1 ELSE 0 END)
+    + (CASE WHEN NEW.pago_factura_lote_id IS NOT NULL THEN 1 ELSE 0 END)
+    + (CASE WHEN NEW.traspaso_id IS NOT NULL THEN 1 ELSE 0 END);
+
+  IF v_vinculos > 1 THEN
+    RAISE EXCEPTION 'LC_MOVIMIENTO_DOBLE_VINCULO: un movimiento no puede vincularse a más de un origen (pago de factura, pago de proveedor, lote de pago, anticipo o traspaso)'
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  IF NEW.cuenta_bancaria_id IS NOT NULL THEN
+    SELECT moneda::text INTO v_cuenta_moneda
+    FROM public.cuentas_bancarias
+    WHERE id = NEW.cuenta_bancaria_id AND deleted_at IS NULL;
+  END IF;
+
+  IF NEW.pago_factura_id IS NOT NULL THEN
+    SELECT organization_id, moneda::text, COALESCE(monto,0)
+      INTO v_pago_org, v_pago_moneda, v_pago_monto
+    FROM public.pagos_factura
+    WHERE id = NEW.pago_factura_id AND deleted_at IS NULL;
+
+    IF v_pago_org IS NULL THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_PAGO_INEXISTENTE: el pago de factura % no existe o está eliminado', NEW.pago_factura_id
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    IF v_pago_org IS DISTINCT FROM NEW.organization_id THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_ORG_MISMATCH: el pago de factura pertenece a otra organización'
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    IF v_cuenta_moneda IS NOT NULL AND v_pago_moneda IS DISTINCT FROM v_cuenta_moneda THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_DIVISA_MISMATCH: la moneda del pago (%) no coincide con la cuenta bancaria (%)',
+        v_pago_moneda, v_cuenta_moneda
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    -- N5: un cobro de cliente entra a la cuenta (abono), nunca sale.
+    IF COALESCE(NEW.abono, 0) <= 0 OR COALESCE(NEW.cargo, 0) <> 0 THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_SENTIDO_COBRO: un cobro de cliente sólo puede vincularse a un depósito (abono) en la cuenta, no a un cargo'
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    -- N11: cobro ⇒ abono en la cuenta.
+    v_tol := public.tolerancia_conciliacion_moneda(COALESCE(v_cuenta_moneda, v_pago_moneda));
+    v_mov := GREATEST(COALESCE(NEW.abono,0), COALESCE(NEW.cargo,0));
+    IF v_mov > 0 AND v_pago_monto > 0 AND abs(v_mov - v_pago_monto) > v_tol THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_MONTO_MISMATCH: el movimiento por % no coincide con el pago por % (tolerancia % %)',
+        v_mov, v_pago_monto, v_tol, COALESCE(v_cuenta_moneda, v_pago_moneda, 'moneda desconocida')
+        USING ERRCODE = 'P0001';
+    END IF;
+  END IF;
+
+  IF NEW.pago_proveedor_id IS NOT NULL THEN
+    SELECT organization_id, moneda::text, COALESCE(monto,0), tipo_cambio_usd, es_ajuste, lote_id, metodo_pago
+      INTO v_pago_org, v_pago_moneda, v_pago_monto, v_pago_tc, v_pago_es_ajuste, v_lote_proveedor, v_metodo_proveedor
+    FROM public.pagos_proveedor
+    WHERE id = NEW.pago_proveedor_id AND deleted_at IS NULL;
+
+    IF v_pago_org IS NULL THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_PAGO_INEXISTENTE: el pago de proveedor % no existe o está eliminado', NEW.pago_proveedor_id
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    IF v_pago_org IS DISTINCT FROM NEW.organization_id THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_ORG_MISMATCH: el pago de proveedor pertenece a otra organización'
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    -- AUD99/121: la clasificación es inmutable desde INSERT. No necesita
+    -- locks cruzados ni escrituras al pago para impedir carreras de reclasificación.
+    IF v_pago_es_ajuste THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_AJUSTE_NO_MONETARIO: un ajuste no monetario no puede vincularse a un movimiento bancario'
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    IF (v_lote_proveedor IS NOT NULL OR lower(btrim(v_metodo_proveedor)) IN ('efectivo','01'))
+       AND (TG_OP = 'INSERT' OR NEW.pago_proveedor_id IS DISTINCT FROM OLD.pago_proveedor_id
+            OR (OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NULL)
+            OR (OLD.estado_conciliacion IS DISTINCT FROM 'Conciliado' AND NEW.estado_conciliacion = 'Conciliado')) THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_PAGO_NO_CONCILIABLE: usa el cargo compartido para el lote y deja el efectivo fuera del banco'
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    -- AUD42: comparar en la moneda de la cuenta, igual que _asegurar_movimiento_pago_proveedor.
+    IF v_cuenta_moneda IS NOT NULL AND v_pago_moneda IS DISTINCT FROM v_cuenta_moneda THEN
+      IF NOT ((v_pago_moneda = 'USD' AND v_cuenta_moneda = 'MXN')
+              OR (v_pago_moneda = 'MXN' AND v_cuenta_moneda = 'USD')) THEN
+        RAISE EXCEPTION 'LC_MOVIMIENTO_DIVISA_MISMATCH: no hay conversión compatible entre pago (%) y cuenta (%)',
+          v_pago_moneda, v_cuenta_moneda USING ERRCODE = 'P0001';
+      END IF;
+      IF COALESCE(v_pago_tc, 0) <= 0 OR v_pago_tc::text IN ('NaN','Infinity','-Infinity') THEN
+        RAISE EXCEPTION 'LC_PAGO_TC_REQUERIDO: falta tipo de cambio para comparar el pago en % con la cuenta en %',
+          v_pago_moneda, v_cuenta_moneda USING ERRCODE = 'P0001';
+      END IF;
+      v_pago_monto := ROUND(CASE WHEN v_pago_moneda = 'USD' THEN v_pago_monto * v_pago_tc
+                               ELSE v_pago_monto / v_pago_tc END, 2);
+    END IF;
+
+    -- N5: un pago a proveedor sale de la cuenta (cargo), nunca entra.
+    IF COALESCE(NEW.cargo, 0) <= 0 OR COALESCE(NEW.abono, 0) <> 0 THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_SENTIDO_PAGO: un pago a proveedor sólo puede vincularse a un retiro (cargo) de la cuenta, no a un abono'
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    v_tol := public.tolerancia_conciliacion_moneda(COALESCE(v_cuenta_moneda, v_pago_moneda));
+    v_mov := GREATEST(COALESCE(NEW.cargo,0), COALESCE(NEW.abono,0));
+    IF v_mov > 0 AND v_pago_monto > 0 AND abs(v_mov - v_pago_monto) > v_tol THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_MONTO_MISMATCH: el movimiento por % no coincide con el pago por % (tolerancia % %)',
+        v_mov, v_pago_monto, v_tol, COALESCE(v_cuenta_moneda, v_pago_moneda, 'moneda desconocida')
+        USING ERRCODE = 'P0001';
+    END IF;
+  END IF;
+
+  IF NEW.pago_proveedor_lote_id IS NOT NULL THEN
+    SELECT organization_id, moneda::text INTO v_pago_org, v_pago_moneda
+    FROM public.pagos_proveedor_lote
+    WHERE id = NEW.pago_proveedor_lote_id AND deleted_at IS NULL;
+
+    IF v_pago_org IS NULL THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_LOTE_INEXISTENTE: el lote de pago % no existe o está eliminado', NEW.pago_proveedor_lote_id
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    IF v_pago_org IS DISTINCT FROM NEW.organization_id THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_ORG_MISMATCH: el lote de pago pertenece a otra organización'
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    IF v_cuenta_moneda IS NOT NULL AND v_pago_moneda IS DISTINCT FROM v_cuenta_moneda THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_DIVISA_MISMATCH: la moneda del lote (%) no coincide con la cuenta bancaria (%)',
+        v_pago_moneda, v_cuenta_moneda
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    -- Una composición histórica cruzada se rechaza por ámbito, sin revelar
+    -- si sus miembros inaccesibles son pagos o ajustes.
+    IF EXISTS (SELECT 1 FROM public.pagos_proveedor p
+               WHERE p.lote_id = NEW.pago_proveedor_lote_id
+                 AND p.organization_id IS DISTINCT FROM NEW.organization_id) THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_ORG_MISMATCH: el lote contiene registros de otra organización'
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    -- No convertir una composición histórica inconsistente en dinero nuevo.
+    -- El guard de pagos impide agregar o mover ajustes a lotes desde este forward.
+    IF EXISTS (SELECT 1 FROM public.pagos_proveedor p
+               WHERE p.lote_id = NEW.pago_proveedor_lote_id
+                 AND p.organization_id = NEW.organization_id AND p.es_ajuste) THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_AJUSTE_NO_MONETARIO: un lote con ajustes no monetarios no puede vincularse a un movimiento bancario'
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    -- N5: el lote de pago a proveedores también es salida de dinero.
+    IF COALESCE(NEW.cargo, 0) <= 0 OR COALESCE(NEW.abono, 0) <> 0 THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_SENTIDO_PAGO: un pago en lote a proveedores sólo puede vincularse a un retiro (cargo) de la cuenta, no a un abono'
+        USING ERRCODE = 'P0001';
+    END IF;
+  END IF;
+
+  IF NEW.pago_factura_lote_id IS NOT NULL THEN
+    SELECT organization_id, moneda::text INTO v_pago_org, v_pago_moneda
+    FROM public.pagos_factura_lote
+    WHERE id = NEW.pago_factura_lote_id AND deleted_at IS NULL;
+
+    IF v_pago_org IS NULL THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_LOTE_COBRO_INEXISTENTE: el lote de cobro % no existe o está eliminado', NEW.pago_factura_lote_id
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    IF v_pago_org IS DISTINCT FROM NEW.organization_id THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_ORG_MISMATCH: el lote de cobro pertenece a otra organización'
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    IF v_cuenta_moneda IS NOT NULL AND v_pago_moneda IS DISTINCT FROM v_cuenta_moneda THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_DIVISA_MISMATCH: la moneda del lote de cobro (%) no coincide con la cuenta bancaria (%)',
+        v_pago_moneda, v_cuenta_moneda
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    -- N5: el lote de cobro a clientes entra a la cuenta.
+    IF COALESCE(NEW.abono, 0) <= 0 OR COALESCE(NEW.cargo, 0) <> 0 THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_SENTIDO_COBRO: un cobro en lote a clientes sólo puede vincularse a un depósito (abono) en la cuenta, no a un cargo'
+        USING ERRCODE = 'P0001';
+    END IF;
+  END IF;
+
+  IF NEW.anticipo_proveedor_id IS NOT NULL THEN
+    SELECT organization_id, moneda::text, estado::text, COALESCE(monto_devuelto, 0)
+      INTO v_pago_org, v_pago_moneda, v_ant_estado, v_ant_devuelto
+    FROM public.anticipos_proveedor
+    WHERE id = NEW.anticipo_proveedor_id;
+
+    IF v_pago_org IS NULL THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_ANTICIPO_INEXISTENTE: el anticipo % no existe', NEW.anticipo_proveedor_id
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    IF v_pago_org IS DISTINCT FROM NEW.organization_id THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_ORG_MISMATCH: el anticipo pertenece a otra organización'
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    IF v_cuenta_moneda IS NOT NULL AND v_pago_moneda IS DISTINCT FROM v_cuenta_moneda THEN
+      RAISE EXCEPTION 'LC_MOVIMIENTO_DIVISA_MISMATCH: la moneda del anticipo (%) no coincide con la cuenta bancaria (%)',
+        v_pago_moneda, v_cuenta_moneda
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    -- MNY P1.1 (lote anticipos): la DEVOLUCIÓN de un anticipo sí es un abono
+    -- (el proveedor regresa el dinero). Se acepta sólo como devolución genuina:
+    -- anticipo en estado `devuelto`, hash de devolución esperado y abono igual
+    -- al monto_devuelto. El anticipo ORIGINAL sigue exigiendo cargo.
+    v_es_devolucion := NEW.hash_dedupe = 'devolucion-' || NEW.anticipo_proveedor_id::text;
+
+    IF v_es_devolucion THEN
+      IF v_ant_estado IS DISTINCT FROM 'devuelto' THEN
+        RAISE EXCEPTION 'LC_MOVIMIENTO_ANTICIPO_DEVOLUCION_INVALIDA: el anticipo % no está devuelto; un abono sólo procede como devolución registrada', NEW.anticipo_proveedor_id
+          USING ERRCODE = 'P0001';
+      END IF;
+
+      IF COALESCE(NEW.abono, 0) <= 0 OR COALESCE(NEW.cargo, 0) <> 0 THEN
+        RAISE EXCEPTION 'LC_MOVIMIENTO_SENTIDO_DEVOLUCION: la devolución de un anticipo sólo puede vincularse a un depósito (abono) en la cuenta, no a un cargo'
+          USING ERRCODE = 'P0001';
+      END IF;
+
+      v_tol := public.tolerancia_conciliacion_moneda(COALESCE(v_cuenta_moneda, v_pago_moneda));
+      IF abs(COALESCE(NEW.abono, 0) - v_ant_devuelto) > v_tol THEN
+        RAISE EXCEPTION 'LC_MOVIMIENTO_MONTO_MISMATCH: el depósito por % no coincide con el monto devuelto del anticipo % (tolerancia % %)',
+          COALESCE(NEW.abono, 0), v_ant_devuelto, v_tol, COALESCE(v_cuenta_moneda, v_pago_moneda, 'moneda desconocida')
+          USING ERRCODE = 'P0001';
+      END IF;
+    ELSE
+      -- N5: el anticipo a proveedor es salida de dinero.
+      IF COALESCE(NEW.cargo, 0) <= 0 OR COALESCE(NEW.abono, 0) <> 0 THEN
+        RAISE EXCEPTION 'LC_MOVIMIENTO_SENTIDO_PAGO: un anticipo a proveedor sólo puede vincularse a un retiro (cargo) de la cuenta, no a un abono'
+          USING ERRCODE = 'P0001';
+      END IF;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.assert_movimiento_pago_consistente() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.assert_movimiento_pago_consistente() TO authenticated, service_role;
+
+--> statement-breakpoint
+
 -- supabase/schema/tesoreria/eliminar_pago_proveedor.sql
 -- Fuente canónica de public.eliminar_pago_proveedor.
 -- v13.646.0 (BUG-07): al eliminar el pago se revierten también las
@@ -3159,55 +3503,6 @@ BEGIN
   );
 END;
 $function$;
-
---> statement-breakpoint
-
--- supabase/schema/crm/oportunidad_motivo_reapertura.sql
-ALTER TABLE public.crm_oportunidades ADD COLUMN IF NOT EXISTS motivo_reapertura text
-  CHECK (motivo_reapertura IS NULL);
-ALTER TABLE public.crm_historial_etapas ADD COLUMN IF NOT EXISTS motivo_reapertura text;
-ALTER TABLE public.crm_historial_etapas ADD COLUMN IF NOT EXISTS motivo_perdida_anterior_id uuid;
-
-CREATE OR REPLACE FUNCTION public._crm_registrar_cambio_etapa() RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
-AS $$
-DECLARE
-  v_origen text;
-  v_destino text;
-  v_motivo text := nullif(btrim(NEW.motivo_reapertura), '');
-  v_motivo_perdida uuid;
-BEGIN
-  NEW.motivo_reapertura := NULL;
-  NEW.ultimo_movimiento_at := now();
-  IF NEW.etapa_id IS DISTINCT FROM OLD.etapa_id THEN
-    SELECT tipo INTO v_origen FROM public.crm_etapas_pipeline
-      WHERE id = OLD.etapa_id AND organization_id = OLD.organization_id;
-    SELECT tipo INTO v_destino FROM public.crm_etapas_pipeline
-      WHERE id = NEW.etapa_id AND organization_id = NEW.organization_id;
-    IF v_origen = 'perdida' AND v_destino = 'abierta' THEN
-      IF v_motivo IS NULL OR char_length(v_motivo) > 500 THEN
-        RAISE EXCEPTION 'Escribe un motivo de reapertura de hasta 500 caracteres.'
-          USING ERRCODE = '22023';
-      END IF;
-      v_motivo_perdida := OLD.motivo_perdida_id;
-      NEW.motivo_perdida_id := NULL;
-    ELSE
-      v_motivo := NULL;
-    END IF;
-    INSERT INTO public.crm_historial_etapas (
-      organization_id, oportunidad_id, etapa_origen_id, etapa_destino_id,
-      dias_en_etapa, usuario_id, usuario_email, motivo_reapertura, motivo_perdida_anterior_id
-    ) VALUES (
-      NEW.organization_id, NEW.id, OLD.etapa_id, NEW.etapa_id,
-      ROUND(EXTRACT(EPOCH FROM (now() - COALESCE(OLD.etapa_desde_at, OLD.created_at, now()))) / 86400.0, 2),
-      auth.uid(), NULLIF(current_setting('request.jwt.claims', true), '')::json ->> 'email',
-      v_motivo, v_motivo_perdida
-    );
-    NEW.etapa_desde_at := now();
-  END IF;
-  RETURN NEW;
-END;
-$$;
 
 --> statement-breakpoint
 NOTIFY pgrst, 'reload schema';

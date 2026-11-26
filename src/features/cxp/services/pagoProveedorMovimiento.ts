@@ -68,7 +68,7 @@ export function cargoEnMonedaCuenta(
 ): number | null {
   if (!monedaCuenta?.trim()) return null;
   if (monedaCuenta === monedaPago) return monto;
-  const tc = tipoCambioUsd && tipoCambioUsd > 0 ? tipoCambioUsd : null;
+  const tc = tipoCambioUsd !== null && Number.isFinite(tipoCambioUsd) && tipoCambioUsd > 0 ? tipoCambioUsd : null;
   if (!tc) return null;
   if (monedaPago === "USD" && monedaCuenta === "MXN") return monto * tc;
   if (monedaPago === "MXN" && monedaCuenta === "USD") return monto / tc;

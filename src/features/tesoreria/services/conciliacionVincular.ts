@@ -16,6 +16,16 @@ import {
 import { assertPagoProveedorMonetario } from "./conciliacionPagoProveedorGuard";
 import { toleranciaMonto } from "@/features/tesoreria/domain/tolerancia";
 import { formatCurrency } from "@/lib/formatters/numbers";
+import { roundMoney } from "@/lib/financial/financialUtils";
+import { cargoEnMonedaCuenta } from "@/features/cxp/services/pagoProveedorMovimiento";
+
+function leerPagoParaConciliar(tipo: "cxc" | "cxp", pagoId: string) {
+  return tipo === "cxp"
+    ? supabase.from("pagos_proveedor").select("monto, moneda, tipo_cambio_usd")
+        .eq("id", pagoId).is("deleted_at", null).maybeSingle()
+    : supabase.from("pagos_factura").select("monto, moneda")
+        .eq("id", pagoId).is("deleted_at", null).maybeSingle();
+}
 
 /**
  * N11: el importe del movimiento debe coincidir con el del pago. Se valida
@@ -24,13 +34,10 @@ import { formatCurrency } from "@/lib/formatters/numbers";
  */
 async function assertMontosCuadran(movId: string, tipo: "cxc" | "cxp", pagoId: string) {
   const [{ data: mov, error: movErr }, { data: pago, error: pagoErr }] = await Promise.all([
-    supabase.from("bbva_movimientos").select("cargo, abono").eq("id", movId).is("deleted_at", null).maybeSingle(),
-    supabase
-      .from(tipo === "cxc" ? "pagos_factura" : "pagos_proveedor")
-      .select("monto, moneda")
-      .eq("id", pagoId)
-      .is("deleted_at", null)
-      .maybeSingle(),
+    supabase.from("bbva_movimientos")
+      .select("cargo, abono, cuenta:cuentas_bancarias!bbva_movimientos_cuenta_bancaria_id_fkey(moneda, deleted_at)")
+      .eq("id", movId).is("deleted_at", null).maybeSingle(),
+    leerPagoParaConciliar(tipo, pagoId),
   ]);
   if (movErr) throw movErr;
   if (pagoErr) throw pagoErr;
@@ -40,13 +47,19 @@ async function assertMontosCuadran(movId: string, tipo: "cxc" | "cxp", pagoId: s
     "El pago ya no está disponible. Recarga antes de conciliar el movimiento.",
   );
   const montoMov = importeMovimiento(mov);
-  const montoPago = Number(pago.monto ?? 0);
-  // MNY P1.2: la tolerancia se toma de la moneda del pago (= la de la cuenta).
-  if (montosCuadran(montoMov, montoPago, pago.moneda)) return;
-  const tol = toleranciaMonto(pago.moneda);
+  const moneda = tipo === "cxp" ? (mov.cuenta?.deleted_at === null ? mov.cuenta.moneda : null) : pago.moneda;
+  const tipoCambio = "tipo_cambio_usd" in pago ? pago.tipo_cambio_usd : null;
+  const cargo = cargoEnMonedaCuenta(Number(pago.monto ?? 0), pago.moneda, moneda, tipoCambio);
+  if (!moneda || cargo === null || !Number.isFinite(cargo)) {
+    throw new MovimientoVinculoError("LC_MOVIMIENTO_DIVISA_MISMATCH",
+      "Confirma la moneda de la cuenta y el tipo de cambio del pago antes de conciliar.");
+  }
+  const montoPago = roundMoney(cargo);
+  if (montosCuadran(montoMov, montoPago, moneda)) return;
+  const tol = toleranciaMonto(moneda);
   throw new MovimientoVinculoError(
     "LC_MOVIMIENTO_MONTO_MISMATCH",
-    `El movimiento por ${formatCurrency(montoMov, pago.moneda)} no coincide con el pago por ${formatCurrency(montoPago, pago.moneda)} (tolerancia ${formatCurrency(tol, pago.moneda)}). Registra un pago por el importe real o corrige el movimiento.`,
+    `El movimiento por ${formatCurrency(montoMov, moneda)} no coincide con el pago por ${formatCurrency(montoPago, moneda)} (tolerancia ${formatCurrency(tol, moneda)}). Registra un pago por el importe real o corrige el movimiento.`,
   );
 }
 
