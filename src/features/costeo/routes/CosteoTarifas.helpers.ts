@@ -81,6 +81,8 @@ type TarifaRow = {
     base?: string | null;
     minimo?: number | string | null;
     proveedor?: string | null;
+    ambito?: string | null;
+    aplica_impuesto?: boolean | null;
   }>;
 };
 
@@ -106,6 +108,8 @@ export function buildInitialFromTarifa(t: TarifaRow): Partial<TarifaInput> {
       base: r.base === "por_embarque" ? "por_embarque" : "por_unidad",
       minimo: r.minimo == null ? null : Number(r.minimo),
       proveedor: r.proveedor ?? null,
+      ambito: r.ambito === "local" ? "local" : r.ambito === "internacional" ? "internacional" : undefined,
+      aplica_impuesto: r.aplica_impuesto === true,
     })),
   };
 }
