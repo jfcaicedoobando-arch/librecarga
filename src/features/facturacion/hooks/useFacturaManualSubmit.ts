@@ -13,6 +13,7 @@ export function useFacturaManualSubmit(p: {
   buildInput: () => { input: CrearFacturaManualInput } | null;
   puedeGuardar: boolean;
   puedeTimbrar: boolean;
+  totalFiscal?: number;
   onSuccess: () => void;
 }) {
   const crear = useCrearFacturaManual();
@@ -45,7 +46,7 @@ export function useFacturaManualSubmit(p: {
     fase.current = "validando"; setOcupado(true);
     const input = { ...payload.input, requestId };
     captura.current = { input, timbrarAlGuardar };
-    const total = calcularTotalMxn(input.conceptos, input.moneda, input.tipoCambio, input.tasaIva);
+    const total = calcularTotalMxn(input.conceptos, input.moneda, input.tipoCambio, input.tasaIva, p.totalFiscal);
     if (total.tcFaltante) {
       notifyError(undefined, { title: "Captura un tipo de cambio válido", method: "FACTURA_MANUAL_TC" });
       liberar(); return;

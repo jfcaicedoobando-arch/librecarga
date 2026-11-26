@@ -14,7 +14,7 @@ DECLARE
   v_catalog jsonb;
   v_updated_at timestamptz;
   v_historical boolean;
-  v_today date := (now() AT TIME ZONE 'America/Mexico_City')::date;
+  v_fecha_carga date;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'LC_SIN_SESION' USING ERRCODE='42501';
@@ -36,7 +36,7 @@ BEGIN
     'volatility',p.provolatile) ORDER BY p.oid::regprocedure::text) INTO v_catalog
     FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
     WHERE n.nspname='public' AND p.proname IN ('_crm_es_pricing','current_agente_id','current_agente_org','current_user_client_ids','current_user_org_id','default_user_org_id','es_admin_catalogo','get_user_org_ids','has_role','is_org_admin','is_org_member','org_scope','puede_escribir_cotizaciones','rls_tenant_scope_ok','roles_jerarquia');
-  IF v_catalog IS DISTINCT FROM $helpers$[{"config":["search_path=public"],"signature":"_crm_es_pricing(uuid)","source_md5":"9712ff3986b38c8c69918c3b2bfd3d9e","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_agente_id()","source_md5":"e78c421a6384475f8ff90aad18e6a1ec","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_agente_org()","source_md5":"e1ae96bc348feaa34313802621c837e1","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_user_client_ids()","source_md5":"344c708ed02e90960553abd5219cc9b2","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_user_org_id()","source_md5":"8ae92929010ad9d586e7fcc033443c92","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"default_user_org_id()","source_md5":"86ebf4f6d06138fd93c9c201b3fde611","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"es_admin_catalogo(uuid)","source_md5":"3dcbffcd27fdccb6514d56edbb68e62a","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"get_user_org_ids(uuid)","source_md5":"a14933dceef9739a9e351dbdfcf4ea7c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"has_role(uuid,app_role)","source_md5":"978b46d0f372e2715710482b0e15247c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"is_org_admin(uuid,uuid)","source_md5":"c4c0810cc8a7060585fc96e20746d3b2","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"is_org_member(uuid)","source_md5":"cb3b222b94be33a45916863643576934","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"org_scope()","source_md5":"7c33bde220e8debd95ca9e3be3e8f30e","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"puede_escribir_cotizaciones(uuid)","source_md5":"1c14f940ee4f07e2710b5ff45b163c2c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"rls_tenant_scope_ok(uuid)","source_md5":"59dddd53956cd142cb142266bbe6430c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"roles_jerarquia(app_role)","source_md5":"0319faa0f75b5caa86e2eef8f6df157f","volatility":"i","security_definer":false}]$helpers$::jsonb THEN
+  IF v_catalog IS DISTINCT FROM $helpers$[{"config":["search_path=public"],"signature":"_crm_es_pricing(uuid)","source_md5":"9712ff3986b38c8c69918c3b2bfd3d9e","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_agente_id()","source_md5":"e78c421a6384475f8ff90aad18e6a1ec","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_agente_org()","source_md5":"e1ae96bc348feaa34313802621c837e1","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_user_client_ids()","source_md5":"344c708ed02e90960553abd5219cc9b2","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"current_user_org_id()","source_md5":"8ae92929010ad9d586e7fcc033443c92","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"default_user_org_id()","source_md5":"86ebf4f6d06138fd93c9c201b3fde611","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"es_admin_catalogo(uuid)","source_md5":"3dcbffcd27fdccb6514d56edbb68e62a","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"get_user_org_ids(uuid)","source_md5":"a14933dceef9739a9e351dbdfcf4ea7c","volatility":"s","security_definer":false},{"config":["search_path=public"],"signature":"has_role(uuid,app_role)","source_md5":"978b46d0f372e2715710482b0e15247c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"is_org_admin(uuid,uuid)","source_md5":"c4c0810cc8a7060585fc96e20746d3b2","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"is_org_member(uuid)","source_md5":"cb3b222b94be33a45916863643576934","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"org_scope()","source_md5":"7c33bde220e8debd95ca9e3be3e8f30e","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"puede_escribir_cotizaciones(uuid)","source_md5":"1c14f940ee4f07e2710b5ff45b163c2c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"rls_tenant_scope_ok(uuid)","source_md5":"59dddd53956cd142cb142266bbe6430c","volatility":"s","security_definer":true},{"config":["search_path=public"],"signature":"roles_jerarquia(app_role)","source_md5":"0319faa0f75b5caa86e2eef8f6df157f","volatility":"i","security_definer":false}]$helpers$::jsonb THEN
     RAISE EXCEPTION 'LC_PRICING_ACL_DRIFT' USING ERRCODE='42501';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
@@ -125,10 +125,11 @@ BEGIN
   IF v_o.moneda IS DISTINCT FROM v_c.moneda::text THEN
     RAISE EXCEPTION 'LC_CRM_MONEDA_INCOMPATIBLE' USING ERRCODE='22023';
   END IF;
-  -- Match direct tariff view: status, approval, active agent and inclusive end
-  -- in Mexico City. No invented start-date, Incoterm or FCL quantity rule.
+  -- La nueva vinculación comparte la ventana inclusiva de la solicitud.
+  v_fecha_carga := greatest(public.fecha_negocio_mx(), v_s.fecha_tentativa_carga);
   IF v_t.estado IS DISTINCT FROM 'vigente' OR v_t.estado_aprobacion IS DISTINCT FROM 'vigente'
-    OR (v_t.vigente_hasta IS NOT NULL AND v_t.vigente_hasta < v_today) THEN
+    OR (v_t.vigente_desde IS NOT NULL AND v_t.vigente_desde > v_fecha_carga)
+    OR (v_t.vigente_hasta IS NOT NULL AND v_t.vigente_hasta < v_fecha_carga) THEN
     RAISE EXCEPTION 'LC_TARIFA_NO_VIGENTE' USING ERRCODE='22023';
   END IF;
   PERFORM 1 FROM public.costeo_agentes WHERE id=v_t.agente_id
@@ -148,4 +149,4 @@ BEGIN
 END;
 $function$;
 ALTER FUNCTION public.crm_vincular_cotizacion_cliente_pricing(uuid,uuid,uuid,uuid) OWNER TO postgres;
-REVOKE ALL ON FUNCTION public.crm_vincular_cotizacion_cliente_pricing(uuid,uuid,uuid,uuid) FROM PUBLIC,anon,authenticated,service_role;
+-- Conservar los permisos de ejecución revisados del catálogo en cada entorno.

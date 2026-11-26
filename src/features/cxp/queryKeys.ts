@@ -22,8 +22,9 @@ export const cxp = {
     ["cxp", "sugerir_embarques", proveedorId ?? null, organizationId ?? null] as const,
   buscarEmbarques: (term: string, organizationId?: string | null) =>
     ["cxp", "buscar_embarques", term, organizationId ?? null] as const,
-  conciliacionCandidatos: (pagoId: string) =>
-    ["cxp", "conciliacion-candidatos", pagoId] as const,
+  conciliacionCandidatos: (pagoId: string, captura?: {
+    fechaPago: string; monto: number; moneda: string; tipoCambio: number | null; cuentaBancariaId: string | null;
+  }) => ["cxp", "conciliacion-candidatos", pagoId, ...(captura ? [captura] : [])] as const,
   conceptosCfdi: (facturaId?: string | null) =>
     ["cxp", "conceptos-cfdi", facturaId ?? null] as const,
   // Buzón de facturas de proveedor entregadas por operación.

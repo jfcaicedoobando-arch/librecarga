@@ -35,6 +35,21 @@ BEGIN
                 WHERE aa.pago_proveedor_id = p_pago_id AND aa.deleted_at IS NULL) THEN
     RETURN public._movimiento_original_anticipo_aplicado(p_pago_id);
   END IF;
+  IF v_pago.lote_id IS NOT NULL THEN
+    SELECT id INTO v_mov_id
+    FROM public.bbva_movimientos
+    WHERE pago_proveedor_lote_id = v_pago.lote_id
+      AND organization_id = v_pago.organization_id AND deleted_at IS NULL
+    ORDER BY id LIMIT 1;
+    IF v_mov_id IS NULL AND v_pago.cuenta_bancaria_id IS NOT NULL THEN
+      RAISE EXCEPTION 'LC_PAGO_LOTE_REVISAR: revisa el movimiento del lote completo'
+        USING ERRCODE = '23514';
+    END IF;
+    RETURN v_mov_id;
+  END IF;
+  IF lower(btrim(v_pago.metodo_pago)) = 'efectivo' THEN
+    RETURN NULL;
+  END IF;
   SELECT id INTO v_mov_id
     FROM public.bbva_movimientos
    WHERE pago_proveedor_id = p_pago_id AND deleted_at IS NULL

@@ -21,7 +21,8 @@ export interface FacturaConciliada {
   movimientos: number;
 }
 
-export type TipoIncidencia = "sin_movimiento" | "descuadre" | "anticipo_inconsistente";
+export type TipoIncidencia = "sin_movimiento" | "descuadre" | "anticipo_inconsistente"
+  | "lote_inconsistente" | "efectivo_inconsistente";
 
 export interface IncidenciaConciliacion {
   pagoId: string;
@@ -94,7 +95,8 @@ function mapIncidencia(i: Raw): IncidenciaConciliacion {
     monedaCuenta: str(i.moneda_cuenta) || undefined,
     montoEsperadoCuenta: i.monto_esperado_cuenta === null ? null : i.monto_esperado_cuenta === undefined ? undefined : num(i.monto_esperado_cuenta),
     cargoCuenta: i.cargo_cuenta === undefined ? undefined : num(i.cargo_cuenta),
-    tipo: i.tipo === "anticipo_inconsistente" ? "anticipo_inconsistente" : i.tipo === "descuadre" ? "descuadre" : "sin_movimiento",
+    tipo: i.tipo === "anticipo_inconsistente" || i.tipo === "lote_inconsistente"
+      || i.tipo === "efectivo_inconsistente" || i.tipo === "descuadre" ? i.tipo : "sin_movimiento",
     motivo: str(i.motivo).replace(/^LC_[A-Z_]+:\s*/, ""),
   };
 }

@@ -904,5 +904,13 @@
       "0114_recargos_local_internacional.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0115_correcciones_auditoria_negocio.sql",
+    "sha256": "c054767bfc93f4db44cbb542a97e157088c9a14dc06b6c1fd6b764c7df99abf4",
+    "replays": [
+      "0115_correcciones_auditoria_negocio.sql"
+    ],
+    "scope": "isolated-ci"
   }
 ]

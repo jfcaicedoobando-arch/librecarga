@@ -82,6 +82,7 @@ export const facturas = {
   notasCreditoRecientes: (filtros?: unknown) => ['factura_notas_credito', 'recientes', filtros ?? null] as const,
   envios: (facturaId?: string | null) => ['factura-envios', facturaId] as const,
   historial: (facturaId?: string | null) => ['facturas', 'historial', facturaId] as const,
+  vistaFiscalManual: (captura: unknown) => ['facturas', 'manual-vista-fiscal', captura] as const,
   clientesListado: (organizationId?: string | null) => ["facturas", "clientes-listado", organizationId ?? null] as const,
   listado: (filtros: {
     organizationId?: string | null;

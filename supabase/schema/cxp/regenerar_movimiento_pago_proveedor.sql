@@ -61,6 +61,13 @@ BEGIN
                 WHERE aa.pago_proveedor_id = p_pago_id AND aa.deleted_at IS NULL) THEN
     RETURN public._movimiento_original_anticipo_aplicado(p_pago_id);
   END IF;
+  IF v_pago.lote_id IS NOT NULL THEN
+    RETURN public._asegurar_movimiento_pago_proveedor(p_pago_id);
+  END IF;
+  IF lower(btrim(v_pago.metodo_pago)) = 'efectivo' THEN
+    RAISE EXCEPTION 'LC_MOVIMIENTO_EFECTIVO: un pago en efectivo no genera cargo bancario'
+      USING ERRCODE = '23514';
+  END IF;
   IF v_pago.cuenta_bancaria_id IS NULL THEN
     RAISE EXCEPTION 'LC_MOVIMIENTO_SIN_CUENTA: el pago no tiene cuenta bancaria, no hay movimiento que generar'
       USING ERRCODE = 'P0001';

@@ -23,10 +23,11 @@ DECLARE
   v_costos int := 0;
   v_anticipos int := 0;
 BEGIN
-  SELECT id, proveedor_factura_id, organization_id, deleted_at, monto, moneda
+  SELECT id, proveedor_factura_id, organization_id, deleted_at, monto, moneda, lote_id
     INTO v_pago
   FROM public.pagos_proveedor
-  WHERE id = _pago_id;
+  WHERE id = _pago_id
+  FOR UPDATE;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'LC_PAGO_NO_ENCONTRADO: el pago % no existe', _pago_id USING ERRCODE = 'P0002';
@@ -51,6 +52,11 @@ BEGIN
        v_pago.organization_id) THEN
     RAISE EXCEPTION 'LC_PAGO_SIN_PERMISO: tu rol no puede eliminar pagos'
       USING ERRCODE = '42501';
+  END IF;
+
+  IF v_pago.lote_id IS NOT NULL THEN
+    RAISE EXCEPTION 'LC_PAGO_LOTE_NO_ELIMINABLE: revierte el lote completo para conservar sus aplicaciones'
+      USING ERRCODE = '23514';
   END IF;
 
   UPDATE public.pagos_proveedor

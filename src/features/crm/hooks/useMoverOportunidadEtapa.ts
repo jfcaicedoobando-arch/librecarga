@@ -47,9 +47,13 @@ export function useMoverOportunidadEtapa({ etapas, oportunidades }: Params) {
   const [proximoPaso, setProximoPaso] = useState<ProximoPasoTarget | null>(null);
   // Ola A: mover a una etapa "perdida" exige motivo (la BD lo valida también).
   const [perdidaPendiente, setPerdidaPendiente] = useState<PerdidaPendiente | null>(null);
+  const [reaperturaPendiente, setReaperturaPendiente] = useState<PerdidaPendiente | null>(null);
 
   const ejecutarMover = useCallback(
-    async (id: string, etapaId: string, prob: number, motivoPerdidaId?: string | null) => {
+    async (id: string, etapaId: string, prob: number, motivos?: {
+      motivo_perdida_id?: string;
+      motivo_reapertura?: string;
+    }) => {
       const op = oportunidades.find((o) => o.id === id);
       const etapaPrev = op?.etapa_id;
       const probPrev = Number(op?.probabilidad ?? 0);
@@ -77,7 +81,7 @@ export function useMoverOportunidadEtapa({ etapas, oportunidades }: Params) {
           ...resolverCierreGanada(etapaDestino, op),
           // Ola 4 · N49: limpiar cierre real / motivo al salir de ganada/perdida.
           ...resolverLimpiezaCierre(etapaDestino, etapaOrigen),
-          ...(motivoPerdidaId ? { motivo_perdida_id: motivoPerdidaId } : {}),
+          ...motivos,
           expectedUpdatedAt: op?.updated_at ?? null,
         });
         const selloTrasMover = (resultado as { updated_at?: string } | undefined)?.updated_at ?? null;
@@ -102,6 +106,7 @@ export function useMoverOportunidadEtapa({ etapas, oportunidades }: Params) {
         // Disciplina de pipeline: al avanzar a una etapa ABIERTA se pide el
         // próximo paso (ninguna oportunidad viva sin siguiente acción).
         if (etapaDestino?.tipo === "abierta" && op) {
+          setReaperturaPendiente(null);
           setProximoPaso({ id, nombre: op.nombre });
         }
       } catch {
@@ -118,8 +123,13 @@ export function useMoverOportunidadEtapa({ etapas, oportunidades }: Params) {
         | (CrmEtapaRow & { tipo?: string })
         | undefined;
       const op = oportunidades.find((o) => o.id === id);
+      const pendiente = { id, nombre: op?.nombre ?? "la oportunidad", etapaId, prob };
       if (etapaDestino?.tipo === "perdida") {
-        setPerdidaPendiente({ id, nombre: op?.nombre ?? "la oportunidad", etapaId, prob });
+        setPerdidaPendiente(pendiente);
+        return;
+      }
+      if (etapaDestino?.tipo === "abierta" && etapas.find((e) => e.id === op?.etapa_id)?.tipo === "perdida") {
+        setReaperturaPendiente(pendiente);
         return;
       }
       await ejecutarMover(id, etapaId, prob);
@@ -132,7 +142,7 @@ export function useMoverOportunidadEtapa({ etapas, oportunidades }: Params) {
       const p = perdidaPendiente;
       if (!p) return;
       setPerdidaPendiente(null);
-      await ejecutarMover(p.id, p.etapaId, p.prob, motivoPerdidaId);
+      await ejecutarMover(p.id, p.etapaId, p.prob, { motivo_perdida_id: motivoPerdidaId });
     },
     [perdidaPendiente, ejecutarMover],
   );
@@ -144,6 +154,13 @@ export function useMoverOportunidadEtapa({ etapas, oportunidades }: Params) {
     perdidaPendiente,
     cerrarPerdida: () => setPerdidaPendiente(null),
     confirmarPerdida,
+    reaperturaPendiente,
+    cerrarReapertura: () => setReaperturaPendiente(null),
+    confirmarReapertura: async (motivo_reapertura: string) => {
+      const p = reaperturaPendiente;
+      if (!p || mover.isPending) return;
+      await ejecutarMover(p.id, p.etapaId, p.prob, { motivo_reapertura });
+    },
     moviendo: mover.isPending,
   };
 }

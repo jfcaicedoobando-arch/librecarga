@@ -13,12 +13,15 @@ vi.mock("@/features/catalogos/hooks/useTasaIVA", () => ({ useTasaIVA: () => 0.16
 vi.mock("@/features/facturacion/hooks/useClientesFiscalOpts", () => ({ useClientesFiscalOpts: () => ({ data: mocks.clientes }) }));
 vi.mock("@/features/cliente/hooks/useValidarLimiteCredito", () => ({ useValidarLimiteCredito: () => mocks.limite, registrarExcesoCredito: vi.fn() }));
 vi.mock("@/features/facturacion/services/facturaManual", () => ({ crearFacturaManual: mocks.crear }));
+vi.mock("@/features/facturacion/services/facturaManualVistaFiscal", () => ({
+  consultarVistaFiscalManual: async () => null,
+}));
 vi.mock("@/features/facturacion/services/facturapi", () => ({ emitirFacturapi: mocks.emitir }));
 vi.mock("@/features/facturacion/services/datosFiscalesCliente", () => ({ fetchClienteFiscal: mocks.fiscal }));
 vi.mock("@/lib/ui/appFeedback", () => ({ notifySuccess: mocks.success, notifyError: mocks.error, notifyInfo: vi.fn() }));
 import { useFacturaManualForm } from "../useFacturaManualForm";
 
-function setup() {
+async function setup() {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   const onClose = vi.fn();
   const hook = renderHook(() => useFacturaManualForm(true, onClose), {
@@ -28,6 +31,7 @@ function setup() {
     hook.result.current.onClienteChange("c1");
     hook.result.current.setConceptos([{ descripcion: "Servicio", cantidad: 1, precio_unitario: 100, clave_sat: "78101800", tipo_iva: "gravado_16" }]);
   });
+  await waitFor(() => expect(hook.result.current.puedeGuardar).toBe(true));
   return { ...hook, onClose, client };
 }
 const exito = { uuid: "12345678-uuid", folio: 1, serie: "A", facturapi_id: "remote", pdf_url: "pdf", xml_url: "xml",
@@ -43,7 +47,7 @@ beforeEach(() => {
 
 describe("Nueva factura manual → formulario → submit → mutación real", () => {
   it("616/G03 se bloquea antes de crédito, INSERT y PAC; sólo borrador sigue permitido", async () => {
-    const { result, client } = setup();
+    const { result, client } = await setup();
     expect(result.current.fiscal.usoCfdi).toBe("G03");
     expect(result.current.puedeTimbrar).toBe(false);
     expect(result.current.puedeGuardar).toBe(true);
@@ -59,7 +63,7 @@ describe("Nueva factura manual → formulario → submit → mutación real", ()
     client.clear();
   });
   it("S01/616 se elige explícitamente, valida antes del INSERT y emite una sola vez", async () => {
-    const { result, onClose, client } = setup();
+    const { result, onClose, client } = await setup();
     act(() => result.current.updateFiscal({ usoCfdi: "S01" }));
     expect(result.current.puedeTimbrar).toBe(true);
     await act(() => result.current.handleSubmit(true));
@@ -74,7 +78,7 @@ describe("Nueva factura manual → formulario → submit → mutación real", ()
   it("catálogo UI obsoleto: un cambio de régimen se rechaza al releer antes de crear", async () => {
     mocks.clientes[0] = { ...mocks.clientes[0], rfc: "AAAA010101AAA", regimen_fiscal: "612" };
     mocks.fiscal.mockResolvedValue({ ...mocks.clientes[0], regimen_fiscal: "616" });
-    const { result, client } = setup();
+    const { result, client } = await setup();
     expect(result.current.puedeTimbrar).toBe(true);
     await act(() => result.current.handleSubmit(true));
     await waitFor(() => expect(mocks.error).toHaveBeenCalled());
@@ -85,7 +89,7 @@ describe("Nueva factura manual → formulario → submit → mutación real", ()
   it("la validación usa RFC de la captura, aunque la consulta devuelva otro RFC", async () => {
     mocks.clientes[0].uso_cfdi_default = "S01";
     mocks.fiscal.mockResolvedValue({ ...mocks.clientes[0], rfc: "AAA010101AAA", regimen_fiscal: "601" });
-    const { result, client } = setup();
+    const { result, client } = await setup();
     await act(() => result.current.handleSubmit(true));
     await waitFor(() => expect(mocks.error).toHaveBeenCalled());
     expect(mocks.error.mock.calls[0][1].description).toContain("requiere régimen fiscal 616");
@@ -96,7 +100,7 @@ describe("Nueva factura manual → formulario → submit → mutación real", ()
   it("XML distinto conserva éxito e informa ambos usos en la ruta manual sin reemitir", async () => {
     mocks.clientes[0] = { ...mocks.clientes[0], rfc: "AAA010101AAA", regimen_fiscal: "601" };
     mocks.emitir.mockResolvedValue({ ...exito, uso_cfdi_solicitado: "G03" });
-    const { result, onClose, client } = setup();
+    const { result, onClose, client } = await setup();
     await act(() => result.current.handleSubmit(true));
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
     expect(mocks.success).toHaveBeenCalledWith(undefined, expect.objectContaining({
@@ -110,7 +114,7 @@ describe("Nueva factura manual → formulario → submit → mutación real", ()
   });
   it("borrador admite datos fiscales incompletos y nunca consulta ni llama al PAC", async () => {
     mocks.clientes[0] = { ...mocks.clientes[0], rfc: null, regimen_fiscal: null, codigo_postal: null };
-    const { result, onClose, client } = setup();
+    const { result, onClose, client } = await setup();
     expect(result.current.puedeGuardar).toBe(true);
     expect(result.current.puedeTimbrar).toBe(false);
     expect(result.current.faltantesTimbrar).toContain("datos fiscales del cliente (RFC · CP · régimen)");

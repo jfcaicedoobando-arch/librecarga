@@ -15,21 +15,23 @@ interface Params {
   pagoId: string;
   fechaPago: string;
   monto: number;
+  moneda: string;
+  tipoCambio: number | null;
   cuentaBancariaId: string | null;
   tieneMovimiento: boolean;
 }
 
 export function useConciliacionPagoCellController({
-  pagoId, fechaPago, monto, cuentaBancariaId, tieneMovimiento,
+  pagoId, fechaPago, monto, moneda, tipoCambio, cuentaBancariaId, tieneMovimiento,
 }: Params) {
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
   const { user } = useAuth();
 
   const candidatos = useQuery({
-    queryKey: queryKeys.cxp.conciliacionCandidatos(pagoId),
+    queryKey: queryKeys.cxp.conciliacionCandidatos(pagoId, { fechaPago, monto, moneda, tipoCambio, cuentaBancariaId }),
     queryFn: () => sugerirMovsParaPagoProveedor({
-      id: pagoId, fecha_pago: fechaPago, monto, cuenta_bancaria_id: cuentaBancariaId,
+      id: pagoId, fecha_pago: fechaPago, monto, moneda, tipo_cambio_usd: tipoCambio, cuenta_bancaria_id: cuentaBancariaId,
     }),
     enabled: open && !tieneMovimiento,
     staleTime: 60_000,

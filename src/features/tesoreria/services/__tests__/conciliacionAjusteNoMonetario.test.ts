@@ -64,8 +64,16 @@ describe("ajustes fuera de los sugeridores en ambos sentidos", () => {
   });
   it("pago→banco conserva el control ordinario, sin clasificar por texto", async () => {
     mock.setTableResult("pagos_proveedor", { data: { ...ajuste, es_ajuste: false, referencia: "Ajuste" }, error: null });
+    mock.setTableResult("cuentas_bancarias", { data: [{ id: "cuenta", moneda: "MXN" }], error: null });
     mock.setTableResult("bbva_movimientos", { data: [mov], error: null });
     expect(await sugerirMovsParaPagoProveedor(ajuste)).toHaveLength(1);
+  });
+  it("pago→banco compara el cargo en USD convertido a la moneda de la cuenta", async () => {
+    mock.setTableResult("pagos_proveedor", { data: { ...ajuste, es_ajuste: false }, error: null });
+    mock.setTableResult("cuentas_bancarias", { data: [{ id: "cuenta", moneda: "MXN" }], error: null });
+    mock.setTableResult("bbva_movimientos", { data: [{ ...mov, cargo: 100 }, { ...mov, id: "convertido", cargo: 1800 }], error: null });
+    const resultados = await sugerirMovsParaPagoProveedor({ ...ajuste, monto: 100, moneda: "USD", tipo_cambio_usd: 18 });
+    expect(resultados).toMatchObject([{ id: "convertido", moneda_cuenta: "MXN", delta_monto: 0 }]);
   });
   it("banco→pago excluye ajustes antes de contar candidatos o match único", async () => {
     mock.setTableResult("pagos_proveedor", { data: [ajuste], error: null });

@@ -137,6 +137,7 @@ describe("isolated Drizzle history is not deployment-eligible", () => {
       "0112_pricing_recotizar_vigencia_columnas.sql",
       "0113_pricing_motivo_perdida.sql",
       "0114_recargos_local_internacional.sql",
+      "0115_correcciones_auditoria_negocio.sql",
     ]);
     expect(readIsolatedDrizzleReplay().size).toBe(92);
     const archive = paths[1].replace("0022_refacturar_proforma_abre_edicion.sql", "meta/_journal.json");

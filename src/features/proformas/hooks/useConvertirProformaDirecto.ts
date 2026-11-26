@@ -2,7 +2,7 @@
  * useConvertirProformaDirecto — conversión Proforma(s) → Factura borrador
  * en un solo clic, sin diálogo intermedio.
  *
- * Toma la primera serie activa de la organización y aplica PPD, forma 99 y uso G03.
+ * Toma la primera serie activa, PPD, forma 99 y un uso compatible con el receptor.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/shared/useToast";
@@ -10,6 +10,7 @@ import { notifyError } from "@/lib/ui/appFeedback";
 import {
   convertirProformaAFactura,
   fetchPrimeraSerieActiva,
+  fetchUsoCfdiProforma,
 } from "@/features/proformas/services/convertirAFactura";
 import { queryKeys } from "@/lib/query";
 import { scopeDePayload, usePayloadRequestId } from "@/lib/idempotency";
@@ -35,7 +36,10 @@ export function useConvertirProformaDirecto() {
       if (!input.proformaIds.length) {
         throw new Error("Selecciona al menos una proforma");
       }
-      const serie = await fetchPrimeraSerieActiva(input.organizationId);
+      const [serie, usoCfdi] = await Promise.all([
+        fetchPrimeraSerieActiva(input.organizationId),
+        fetchUsoCfdiProforma(input.proformaIds[0], input.organizationId),
+      ]);
       if (!serie) {
         throw new Error(
           "Esta organización no tiene series de facturación activas. Crea una en Configuración → Facturación antes de continuar.",
@@ -46,11 +50,11 @@ export function useConvertirProformaDirecto() {
         serieId: serie.id,
         metodoPago: "PPD",
         formaPago: "99",
-        usoCfdi: "G03",
+        usoCfdi,
         diasCredito: input.diasCredito ?? null,
         notas: null,
         requestId: solicitud.get(scopeDePayload([
-          input.organizationId, serie.id, input.diasCredito, ...[...input.proformaIds].sort(),
+          input.organizationId, serie.id, input.diasCredito, usoCfdi, ...[...input.proformaIds].sort(),
         ])),
       });
     },

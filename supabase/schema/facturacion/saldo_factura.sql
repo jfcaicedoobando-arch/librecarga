@@ -113,9 +113,12 @@ BEGIN
   v_caller_org := public.current_user_org_id();
 
   IF v_uid IS NOT NULL
-     AND auth.role() <> 'service_role'
-     AND NOT public.has_role(v_uid, 'super_admin'::app_role) THEN
-    IF v_caller_org IS NULL OR v_org IS DISTINCT FROM v_caller_org THEN
+     AND auth.role() IS DISTINCT FROM 'service_role' THEN
+    IF NOT public.rls_tenant_scope_ok(v_org) THEN
+      RETURN 0;
+    END IF;
+    IF NOT public.has_role(v_uid, 'super_admin'::app_role)
+       AND (v_caller_org IS NULL OR v_org IS DISTINCT FROM v_caller_org) THEN
       -- Portal: el usuario cliente sí puede consultar el saldo de SU factura.
       IF v_cliente IS NULL
          OR v_cliente NOT IN (SELECT public.current_user_client_ids()) THEN
@@ -147,9 +150,10 @@ BEGIN
   v_uid := auth.uid();
   v_caller_org := public.current_user_org_id();
   IF v_uid IS NOT NULL
-     AND auth.role() <> 'service_role'
-     AND NOT public.has_role(v_uid, 'super_admin'::app_role) THEN
-    IF v_caller_org IS NULL OR v_org IS DISTINCT FROM v_caller_org THEN
+     AND auth.role() IS DISTINCT FROM 'service_role' THEN
+    IF NOT public.rls_tenant_scope_ok(v_org)
+       OR (NOT public.has_role(v_uid, 'super_admin'::app_role)
+           AND (v_caller_org IS NULL OR v_org IS DISTINCT FROM v_caller_org)) THEN
       RETURN 0;
     END IF;
   END IF;

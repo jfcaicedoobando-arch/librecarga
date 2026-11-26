@@ -101,7 +101,7 @@ export default function TrackingPublico() {
 
         <TrackingPublicoDocumentos documentos={documentos} />
 
-        <TrackingPublicoTimeline eventos={eventos} />
+        <TrackingPublicoTimeline eventos={eventos} modo={e.modo} />
       </main>
 
       <footer className="border-t bg-card mt-12">

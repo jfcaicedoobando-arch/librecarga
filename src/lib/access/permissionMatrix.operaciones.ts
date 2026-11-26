@@ -3,6 +3,11 @@
  */
 import type { AppRole } from "@/types/appRole";
 
+/** Roles con escritura en documentos_embarque según su política RLS. */
+export const EDITAR_DOCUMENTOS_EMBARQUE: readonly AppRole[] = [
+  "super_admin", "admin_org", "admin", "operador", "coordinador_logistico", "gerente_operaciones",
+];
+
 export const COTIZAR_SIN_DESGLOSE: readonly AppRole[] = [
   "super_admin",
   "admin_org",

@@ -22,12 +22,13 @@ export interface ResultadoMutacionOportunidad {
 export async function crearOportunidad(
   input: OportunidadInput,
   user: { id?: string; email?: string } | null,
+  requestId?: string,
 ): Promise<{ id: string; avisoActividad: string | null }> {
   if (!input.empresa_id) throw new Error("Selecciona la empresa asociada");
   const payload = buildOportunidadInsertPayload(input, user);
   const resultado = await unwrap(supabase.rpc("crm_crear_oportunidad_con_empresa", {
     p_empresa_id: input.empresa_id,
-    p_datos: payload,
+    p_datos: requestId ? { ...payload, request_id: requestId } : payload,
   }));
   if (!resultado || typeof resultado !== "object" || Array.isArray(resultado) ||
       !("id" in resultado) || typeof resultado.id !== "string") {
@@ -104,15 +105,10 @@ export async function moverEtapaOportunidad(input: {
   valor_real?: number | null;
   // Ola 4 · N49: limpieza al salir de "perdida".
   motivo_perdida_id?: string | null;
+  motivo_reapertura?: string;
   expectedUpdatedAt?: string | null;
 }): Promise<ResultadoMutacionOportunidad> {
-  const patch: {
-    etapa_id: string;
-    probabilidad?: number;
-    fecha_cierre_real?: string | null;
-    valor_real?: number | null;
-    motivo_perdida_id?: string | null;
-  } = { etapa_id: input.etapa_id };
+  const patch: TablesUpdate<"crm_oportunidades"> = { etapa_id: input.etapa_id };
   if (typeof input.probabilidad === "number") patch.probabilidad = input.probabilidad;
   // Ola 4 · N49: `null` explícito SÍ se escribe — al salir de "ganada" el
   // cierre real se limpia (antes el guard truthy lo ignoraba y quedaba una
@@ -120,6 +116,7 @@ export async function moverEtapaOportunidad(input: {
   if (input.fecha_cierre_real !== undefined) patch.fecha_cierre_real = input.fecha_cierre_real;
   if (input.valor_real !== undefined) patch.valor_real = input.valor_real;
   if (input.motivo_perdida_id !== undefined) patch.motivo_perdida_id = input.motivo_perdida_id;
+  if (input.motivo_reapertura !== undefined) patch.motivo_reapertura = input.motivo_reapertura.trim();
   const updatedAt = await actualizarOportunidadFilas(input.id, patch, input.expectedUpdatedAt);
   // La etapa YA cambió: si la bitácora falla se devuelve aviso, nunca error —
   // así el caller sigue con las automatizaciones y el refresco del pipeline.

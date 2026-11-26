@@ -30,6 +30,8 @@ interface Props {
   pagoId: string;
   fechaPago: string;
   monto: number;
+  moneda?: string;
+  tipoCambio?: number | null;
   cuentaBancariaId: string | null;
   movimiento: MovimientoVinculado | null;
   disabled?: boolean;
@@ -52,11 +54,11 @@ export function ConciliacionPagoCell({ origenAnticipo, esAjuste, ...props }: Pro
 }
 
 function ConciliacionPagoBancarioCell({
-  pagoId, fechaPago, monto, cuentaBancariaId, movimiento, disabled,
+  pagoId, fechaPago, monto, moneda = "MXN", tipoCambio = null, cuentaBancariaId, movimiento, disabled,
 }: Props) {
   const { open, setOpen, candidatos, vincular, desvincular } =
     useConciliacionPagoCellController({
-      pagoId, fechaPago, monto, cuentaBancariaId, tieneMovimiento: !!movimiento,
+      pagoId, fechaPago, monto, moneda, tipoCambio, cuentaBancariaId, tieneMovimiento: !!movimiento,
     });
 
 
@@ -108,7 +110,7 @@ function ConciliacionPagoBancarioCell({
         <div className="p-3 border-b bg-muted/30">
           <p className="text-body-sm font-medium">Movimientos bancarios candidatos</p>
           <p className="text-label text-muted-foreground">
-            Monto ±$1 · fecha ±5 días · sólo Pendientes
+            Tolerancia según la moneda de la cuenta · fecha ±5 días · sólo pendientes
           </p>
         </div>
         <div className="max-h-72 overflow-y-auto">
@@ -127,7 +129,7 @@ function ConciliacionPagoBancarioCell({
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <p className="text-body-sm font-medium tabular-nums">
-                        {formatFechaDia(m.fecha)} · {formatCurrency(m.cargo, "MXN")}
+                        {formatFechaDia(m.fecha)} · {formatCurrency(m.cargo, m.moneda_cuenta)}
                       </p>
                       {m.concepto && (
                         <p className="text-label text-muted-foreground truncate">{m.concepto}</p>
@@ -136,7 +138,7 @@ function ConciliacionPagoBancarioCell({
                         <p className="text-label text-muted-foreground">Ref: {m.referencia}</p>
                       )}
                       <p className="text-label text-muted-foreground/70 mt-0.5">
-                        Δ {formatCurrency(m.delta_monto, "MXN")} · {m.delta_dias}d
+                        Δ {formatCurrency(m.delta_monto, m.moneda_cuenta)} · {m.delta_dias}d
                       </p>
                     </div>
                     <Button

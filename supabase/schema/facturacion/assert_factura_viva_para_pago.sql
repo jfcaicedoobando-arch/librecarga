@@ -55,7 +55,7 @@ BEGIN
   -- Ola 1: espejo de LC_LOTE_FECHA_FUTURA (cobro en lote). Un cobro con fecha
   -- futura ensucia aging, REP y reportes de flujo.
   -- FIX3 (M-4): aplica también en UPDATE.
-  IF NEW.fecha_pago IS NOT NULL AND NEW.fecha_pago > CURRENT_DATE THEN
+  IF NEW.fecha_pago IS NOT NULL AND NEW.fecha_pago > public.fecha_negocio_mx() THEN
     RAISE EXCEPTION 'LC_PAGO_FECHA_FUTURA: la fecha del cobro no puede ser futura'
       USING ERRCODE = 'check_violation',
             HINT    = json_build_object('fecha_pago', NEW.fecha_pago)::text;

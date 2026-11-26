@@ -10,6 +10,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import type { Moneda } from "@/types/db";
+import { validarUsoCfdiIngreso } from "@/lib/financial/usoCfdiFiscal";
 
 export interface ConvertirProformaParams {
   proformaIds: string[];
@@ -34,6 +35,24 @@ export interface FacturaBorrador {
 }
 
 export type ConvertirProformaResult = FacturaBorrador[];
+
+export async function fetchUsoCfdiProforma(proformaId: string, organizationId: string): Promise<string> {
+  const { data: proforma, error: errorProforma } = await supabase.from("proformas")
+    .select("cliente_id").eq("id", proformaId).eq("organization_id", organizationId)
+    .is("deleted_at", null).maybeSingle();
+  if (errorProforma) throw errorProforma;
+  if (!proforma?.cliente_id) throw new Error("No se encontró el cliente de la proforma.");
+  const { data: cliente, error } = await supabase.from("clientes")
+    .select("rfc, regimen_fiscal, uso_cfdi_default")
+    .eq("id", proforma.cliente_id).eq("organization_id", organizationId).is("deleted_at", null).maybeSingle();
+  if (error) throw error;
+  const regimen = cliente?.regimen_fiscal ?? "";
+  const usoCfdi = cliente?.uso_cfdi_default?.trim() || (regimen === "616" ? "S01" : "G03");
+  if (!cliente?.rfc || validarUsoCfdiIngreso({ rfc: cliente.rfc, regimen, usoCfdi }).length) {
+    throw new Error("Configura un uso CFDI compatible con el régimen del receptor en la ficha del cliente antes de convertir la proforma.");
+  }
+  return usoCfdi;
+}
 
 export async function convertirProformaAFactura(
   params: ConvertirProformaParams,

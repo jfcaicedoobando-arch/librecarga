@@ -5,10 +5,11 @@ import { AvisoAccionable } from "@/components/shared/states/AvisoAccionable";
 import { COPY_VACIO } from "@/lib/copy/publicoCopy";
 import { TimelineLista } from "./TimelineLista";
 import { filtrarEventosVisiblesCliente } from "@/lib/domain/eventosVisiblesCliente";
+import { etiquetaEventoTracking } from "@/features/embarques/domain/embarque";
 
 type Evento = TrackingPublicoData["eventos"][number];
 
-export function TrackingPublicoTimeline({ eventos }: { eventos: Evento[] }) {
+export function TrackingPublicoTimeline({ eventos, modo }: { eventos: Evento[]; modo?: string }) {
   // RUX-01: defensa en profundidad — la RPC get_tracking_public ya filtra en SQL,
   // pero si el payload trae eventos internos/semilla nunca se pintan aquí.
   const visibles = filtrarEventosVisiblesCliente(eventos);
@@ -28,6 +29,7 @@ export function TrackingPublicoTimeline({ eventos }: { eventos: Evento[] }) {
           <TimelineLista
             eventos={visibles.map((ev) => ({
               tipo: ev.tipo,
+              etiqueta: etiquetaEventoTracking(ev.tipo, modo),
               fecha: ev.fecha,
               descripcion: ev.descripcion,
               ubicacion: ev.ubicacion,

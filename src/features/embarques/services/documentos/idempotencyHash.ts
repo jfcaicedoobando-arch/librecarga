@@ -7,7 +7,7 @@
  * SHA-256 del contenido del archivo en hex. Usado como huella estable para
  * idempotencia: dos uploads del mismo File siempre producen el mismo hash.
  */
-export async function sha256Hex(file: File): Promise<string> {
+export async function sha256Hex(file: Blob): Promise<string> {
   const buf = await file.arrayBuffer();
   const digest = await crypto.subtle.digest("SHA-256", buf);
   return Array.from(new Uint8Array(digest))
