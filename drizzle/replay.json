@@ -930,5 +930,11 @@
     "sha256": "b6f5ba0171bc53231ed49b5191a69e8bdea37c9f713d6ff8a22876e5a7baf858",
     "replays": ["0118_ct071_confirmacion_tesorero.sql"],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0119_cxp_alcance_aprobacion_edicion.sql",
+    "sha256": "16332a9972869e9d36d8a6209a6455e29530a47f3b1fdb8047b9a9a02d9cab0d",
+    "replays": ["0119_cxp_alcance_aprobacion_edicion.sql"],
+    "scope": "isolated-ci"
   }
 ]

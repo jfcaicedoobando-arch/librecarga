@@ -28,30 +28,26 @@ DECLARE
   v_org uuid;
   v_mov_id uuid;
 BEGIN
-  -- D5: todo en UNA transacción (pago + movimiento espejo). Antes eran tres
-  -- llamadas del navegador y un fallo dejaba la factura editada sin salida
-  -- bancaria (o con la salida vieja).
-  SELECT * INTO v_pago FROM public.pagos_proveedor
-   WHERE id = p_pago_id AND deleted_at IS NULL
-   FOR UPDATE;
-  IF v_pago.id IS NULL THEN
-    RAISE EXCEPTION 'LC_PAGO_NO_ENCONTRADO: el pago ya no existe o fue eliminado'
-      USING ERRCODE = 'P0002';
-  END IF;
-
   v_org := public.org_scope();
   IF v_org IS NULL THEN
     RAISE EXCEPTION 'LC_SIN_ORG: no hay organización activa para validar el pago'
       USING ERRCODE = '42501';
   END IF;
-  IF v_pago.organization_id IS DISTINCT FROM v_org THEN
-    RAISE EXCEPTION 'LC_ORG_MISMATCH: el pago pertenece a otra organización'
-      USING ERRCODE = '42501';
-  END IF;
-  IF NOT public.has_any_role(auth.uid(),
-        ARRAY['tesorero','contador','admin','admin_org','super_admin']::app_role[]) THEN
+  IF NOT public.has_any_role_in_org_exact(auth.uid(),
+        ARRAY['tesorero','contador','admin','admin_org','super_admin']::public.app_role[], v_org) THEN
     RAISE EXCEPTION 'LC_PAGO_SIN_PERMISO: se requiere permiso de tesorería para editar el pago'
       USING ERRCODE = '42501';
+  END IF;
+
+  -- D5: todo en UNA transacción (pago + movimiento espejo). Antes eran tres
+  -- llamadas del navegador y un fallo dejaba la factura editada sin salida
+  -- bancaria (o con la salida vieja).
+  SELECT * INTO v_pago FROM public.pagos_proveedor
+   WHERE id = p_pago_id AND organization_id = v_org AND deleted_at IS NULL
+   FOR UPDATE;
+  IF v_pago.id IS NULL THEN
+    RAISE EXCEPTION 'LC_PAGO_NO_ENCONTRADO: el pago ya no existe o fue eliminado'
+      USING ERRCODE = 'P0002';
   END IF;
 
   IF v_pago.lote_id IS NOT NULL THEN
