@@ -924,5 +924,11 @@
     "sha256": "e5446087622f73c236a5cfc1b428da294b8cb3c28a9e235e5d369cff89df7d77",
     "replays": ["0117_ct071_omitir_egreso_conciliado.sql"],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0118_ct071_confirmacion_tesorero.sql",
+    "sha256": "b6f5ba0171bc53231ed49b5191a69e8bdea37c9f713d6ff8a22876e5a7baf858",
+    "replays": ["0118_ct071_confirmacion_tesorero.sql"],
+    "scope": "isolated-ci"
   }
 ]

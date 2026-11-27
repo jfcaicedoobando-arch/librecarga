@@ -111,6 +111,7 @@ export const HISTORY = [
   { file: '0115_correcciones_auditoria_negocio.sql', sha256: '7d8e621253101972e0acca55f52d1459969bb50b3e69cbb99749590313bb65c9', eligibleName: '20261126222900_replay_correcciones_auditoria_negocio.sql' },
   { file: '0116_pricing_vinculo_repin_politicas.sql', sha256: '197429e356f262228762eb7148d69b91d64ed9689b9e67817163b33c8cc8cbe8', eligibleName: '20261127204631_replay_pricing_vinculo_repin_politicas.sql' },
   { file: '0117_ct071_omitir_egreso_conciliado.sql', sha256: 'e5446087622f73c236a5cfc1b428da294b8cb3c28a9e235e5d369cff89df7d77', eligibleName: '20261127220000_replay_ct071_omitir_egreso_conciliado.sql' },
+  { file: '0118_ct071_confirmacion_tesorero.sql', sha256: 'b6f5ba0171bc53231ed49b5191a69e8bdea37c9f713d6ff8a22876e5a7baf858', eligibleName: '20261127230000_replay_ct071_confirmacion_tesorero.sql' },
 ];
 const NONDEPLOYABLE_SQL = [
   ['archive/2026-11-23/0104_tarifa_aerea_escalas.sql', 'b4cc96958bfc3c374247d46a15bb0df8bb8fc97e08cae1dbd9ab47e30854589f'],
