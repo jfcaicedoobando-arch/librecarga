@@ -129,9 +129,7 @@ export function ProductoServicioSelect({ value, onSelect, placeholder = "Selecci
   const [creando, setCreando] = useState(false);
 
   const visible = quitarCodigoCargo(value);
-  const seleccionado = value
-    ? porNombre.get(value.toLowerCase()) ?? porNombre.get(visible.toLowerCase())
-    : undefined;
+  const seleccionado = value ? porNombre.get(value.toLowerCase()) ?? porNombre.get(visible.toLowerCase()) : undefined;
   const esLegacy = !!value && !seleccionado;
 
   const cerrarYResetear = () => {
