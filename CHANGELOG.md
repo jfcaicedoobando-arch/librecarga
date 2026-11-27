@@ -1,5 +1,9 @@
 # Changelog
 
+## [13.824.110] - 2026-11-27
+
+- **Embarques.** El aviso de guardado de una nota se muestra únicamente en la organización donde se inició el envío.
+
 ## [13.824.109] - 2026-11-27
 
 - **Cuentas por pagar.** Aprobar facturas de proveedor y editar pagos verifica el rol efectivo de la organización activa.

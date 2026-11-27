@@ -2,7 +2,7 @@
  * Tests de mutation hooks de embarques: orquestación service + invalidación.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import React from "react";
@@ -25,8 +25,9 @@ vi.mock("@/features/embarques/services/contenedores", () => ({
   crearMuchos: vi.fn().mockResolvedValue([]),
   sincronizarContenedores: vi.fn().mockResolvedValue([]),
 }));
+vi.mock("@/lib/ui/appFeedback", () => ({ notifySuccess: vi.fn(), notifyError: vi.fn() }));
 
-import { crearEmbarqueRpc, actualizarEmbarqueRpc } from "@/features/embarques/services";
+import { crearEmbarqueRpc, actualizarEmbarqueRpc, insertarNotaEmbarque } from "@/features/embarques/services";
 import { crearMuchos } from "@/features/embarques/services/contenedores";
 import { eliminarEmbarqueRpc } from "@/features/embarques/services";
 import { useCreateEmbarque } from "../useCreateEmbarque";
@@ -34,6 +35,9 @@ import { useUpdateEmbarque } from "../useUpdateEmbarque";
 import { useEliminarEmbarque } from "../useDeleteEmbarque";
 import { useCreateNotaEmbarque } from "../useNotaEmbarque";
 import { queryKeys } from "@/lib/query";
+import { captureAuthOperationScope, syncActiveOrganizationScope } from "@/lib/auth/authOperationScope";
+import { getAuthSnapshot, setAuthSnapshot } from "@/lib/auth/authSnapshot";
+import { notifySuccess, notifyError } from "@/lib/ui/appFeedback";
 
 // v13.137.41: registramos cada QueryClient creado para limpiarlo en
 // afterEach (cancelQueries → clear) y evitar leaks de subscripciones bajo
@@ -69,10 +73,52 @@ it("invalida las notas y la actividad del embarque, incluso sin observadores", a
   qc.setQueryData(queryKeys.embarques.actividad("emb-1"), []);
   qc.setQueryData(queryKeys.embarques.actividad("emb-2"), []);
   const { result } = renderHook(() => useCreateNotaEmbarque(), { wrapper });
-  await result.current.mutateAsync({ embarqueId: "emb-1", contenido: "Cita confirmada", usuario: "op@example.com" });
+  await act(() => result.current.mutateAsync({
+    embarqueId: "emb-1", contenido: "Cita confirmada", usuario: "op@example.com", authScope: captureAuthOperationScope(),
+  }));
   expect(qc.getQueryState(queryKeys.embarques.notas("emb-1"))?.isInvalidated).toBe(true);
   expect(qc.getQueryState(queryKeys.embarques.actividad("emb-1"))?.isInvalidated).toBe(true);
   expect(qc.getQueryState(queryKeys.embarques.actividad("emb-2"))?.isInvalidated).toBe(false);
+  expect(notifySuccess).toHaveBeenCalledWith(undefined, { title: "Nota agregada" });
+});
+
+it.each(["éxito", "error"])("descarta el aviso de %s cuando cambia la organización durante el envío", async (respuesta) => {
+  const anterior = getAuthSnapshot();
+  setAuthSnapshot({ ...anterior, userId: "admin-qa", effectiveRole: "super_admin" });
+  syncActiveOrganizationScope({ userId: "admin-qa", organizationId: "org-a" });
+  const authScope = captureAuthOperationScope();
+  const { wrapper, spy } = makeWrapper();
+  const { result } = renderHook(() => useCreateNotaEmbarque(), { wrapper });
+  const guardar = vi.mocked(insertarNotaEmbarque);
+  guardar.mockClear();
+  vi.mocked(notifySuccess).mockClear();
+  vi.mocked(notifyError).mockClear();
+  let completar!: () => void;
+  const error = new Error("Respuesta de la organización anterior");
+  guardar.mockImplementationOnce(() => new Promise<string>((resolve, reject) => {
+    completar = respuesta === "éxito" ? () => resolve("nota-1") : () => reject(error);
+  }));
+
+  try {
+    let resultado!: Promise<string | Error>;
+    act(() => {
+      resultado = result.current.mutateAsync({
+        embarqueId: "emb-1", contenido: "Nota sintética", usuario: "op@example.com", authScope,
+      }).catch((err: Error) => err);
+    });
+    await waitFor(() => expect(guardar).toHaveBeenCalledExactlyOnceWith("emb-1", "Nota sintética", "op@example.com", authScope));
+    syncActiveOrganizationScope({ userId: "admin-qa", organizationId: "org-b" });
+    await act(async () => {
+      completar();
+      expect(await resultado).toBe(respuesta === "éxito" ? "nota-1" : error);
+    });
+    expect(notifySuccess).not.toHaveBeenCalled();
+    expect(notifyError).not.toHaveBeenCalled();
+    expect(spy).not.toHaveBeenCalled();
+  } finally {
+    syncActiveOrganizationScope({ userId: null, organizationId: null });
+    setAuthSnapshot(anterior);
+  }
 });
 
 describe("useCreateEmbarque", () => {
