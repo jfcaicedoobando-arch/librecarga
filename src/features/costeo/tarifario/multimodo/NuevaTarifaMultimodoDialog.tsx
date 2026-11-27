@@ -19,6 +19,7 @@ import { notifyError } from "@/lib/ui/appFeedback";
 import { useCosteoAgentes } from "@/features/costeo/hooks/useCosteoAgentes";
 import { crearTarifaMultimodo } from "@/features/costeo/services/tarifas/crearMultimodo";
 import { MONEDAS_TARIFA_MULTIMODO, faltantesTarifaMultimodo, usaTramos, type TarifaMultimodoForm } from "@/features/costeo/domain/tarifaMultimodo";
+import { AgenteProvisionalDialog } from "@/features/costeo/components/AgenteProvisionalDialog";
 import { CamposRutaMultimodo } from "./CamposRutaMultimodo";
 import { TramosPesoEditor } from "./TramosPesoEditor";
 import { TarifaRecargosEditor } from "@/features/costeo/components/TarifaRecargosEditor";
@@ -107,6 +108,7 @@ export function NuevaTarifaMultimodoDialog({ open, onOpenChange, inicial, onSave
             <SelectContent>{agentes.map((a) => <SelectItem key={a.id} value={a.id}>{a.nombre}</SelectItem>)}</SelectContent>
           </Select>
           <EstadoAgentes consulta={consultaAgentes} />
+          {!m.isPending && <AgenteProvisionalDialog onCreado={(id) => set({ agente_id: id })} />}
         </div>
         <CamposRutaMultimodo f={f} set={set} />
       </FormDialogSection>
