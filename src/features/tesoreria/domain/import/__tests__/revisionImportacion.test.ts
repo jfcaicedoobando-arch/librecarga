@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 import { clasificarRevisionImportacion, firmaRevisionImportacion, moverDiaImportacion, type EspejoImportacion } from "../revisionImportacion";
 import type { MovimientoParseado } from "../bbva";
 const fila = (hash = "banco"): MovimientoParseado => ({ fecha: "2026-10-03", concepto: "Depósito", referencia: "R", cargo: 0, abono: 25, saldo: 100, hash_dedupe: hash });
-const espejo = (overrides: Partial<EspejoImportacion> = {}): EspejoImportacion => ({ id: "e1", cuenta_bancaria_id: "cuenta", fecha: "2026-10-02", cargo: 0, abono: 25, hash_dedupe: "cobro-p1", pago_factura_id: "p1", ...overrides });
+const espejo = (overrides: Partial<EspejoImportacion> = {}): EspejoImportacion => ({
+  id: "e1", cuenta_bancaria_id: "cuenta", fecha: "2026-10-02", cargo: 0, abono: 25,
+  hash_dedupe: "cobro-p1", pago_factura_id: "p1", pago_proveedor_id: null, estado_conciliacion: "Conciliado",
+  referencia: null, ...overrides,
+});
+const egreso = { ...fila(), cargo: 20, abono: 0 };
+const pago = espejo({ fecha: egreso.fecha, cargo: 20, abono: 0, hash_dedupe: "pago-cxp", pago_factura_id: null,
+  pago_proveedor_id: "cxp", referencia: egreso.referencia });
 describe("Revisión sin mutaciones del estado de cuenta", () => {
   it("distingue nueva, duplicada y vinculable sin duplicar importes", () => {
     const r = clasificarRevisionImportacion([fila("duplicada"), fila("vinculable"), { ...fila("nueva"), abono: 10 }], new Set(["duplicada"]), [espejo()]);
@@ -12,6 +19,21 @@ describe("Revisión sin mutaciones del estado de cuenta", () => {
   it("una coincidencia ambigua nunca se propone como vínculo automático", () => {
     const r = clasificarRevisionImportacion([fila()], new Set(), [espejo(), espejo({ id: "e2" })]);
     expect(r.filas[0]).toMatchObject({ estado: "Ambigua", espejo: null, coincidencias: 2 });
+  });
+  it("omite el egreso conciliado con referencia exacta y conserva las otras líneas del archivo", () => {
+    const otraFila = { ...egreso, referencia: "Otra transferencia", hash_dedupe: "otra" };
+    const r = clasificarRevisionImportacion([egreso, otraFila], new Set(), [pago]);
+    expect(r.filas.map((f) => f.estado)).toEqual(["Duplicada", "Nueva"]);
+    expect(r.filas[0].espejo).toBe(pago);
+    expect(r).toMatchObject({ duplicadas: 1, nuevas: 1, vinculables: 0 });
+  });
+  it.each([{ fecha: "2026-10-02" }, { estado_conciliacion: "Pendiente" }, { cargo: 20.01 },
+    { referencia: null }, { pago_proveedor_id: null }])("no omite egresos con diferencias (%j)", (overrides) => {
+    expect(clasificarRevisionImportacion([egreso], new Set(), [{ ...pago, ...overrides }]).nuevas).toBe(1);
+  });
+  it("no adivina cuando dos egresos conciliados coinciden o falta la referencia", () => {
+    expect(clasificarRevisionImportacion([egreso], new Set(), [pago, { ...pago, id: "e2" }]).ambiguas).toBe(1);
+    expect(clasificarRevisionImportacion([{ ...egreso, referencia: "" }], new Set(), [{ ...pago, referencia: "" }]).nuevas).toBe(1);
   });
   it("dos filas del archivo consumen un espejo como máximo una vez", () => {
     const r = clasificarRevisionImportacion([fila("uno"), fila("dos")], new Set(), [espejo()]);

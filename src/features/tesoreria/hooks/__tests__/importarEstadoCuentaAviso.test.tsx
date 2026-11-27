@@ -70,7 +70,10 @@ describe("Importación: revisar antes de persistir", () => {
   it("si aparece un cobro nuevo actualiza la revisión sin guardar", async () => {
     const { result } = renderHook(() => useImportarEstadoCuenta("cta-1"));
     await act(async () => { await result.current.handleFile(evento()); });
-    mocks.revisar.mockResolvedValueOnce({ ...lectura(), resumen: clasificarRevisionImportacion([fila], new Set(), [{ id: "e1", cuenta_bancaria_id: "cta-1", pago_factura_id: "p1", fecha: fila.fecha, cargo: 0, abono: 25, hash_dedupe: "cobro-p1" }]) });
+    mocks.revisar.mockResolvedValueOnce({ ...lectura(), resumen: clasificarRevisionImportacion([fila], new Set(), [{
+      id: "e1", cuenta_bancaria_id: "cta-1", pago_factura_id: "p1", fecha: fila.fecha, cargo: 0, abono: 25,
+      hash_dedupe: "cobro-p1", pago_proveedor_id: null, estado_conciliacion: "Conciliado", referencia: null,
+    }]) });
     await act(async () => { await result.current.confirmarRevision(); });
     expect(result.current.revision?.resumen.vinculables).toBe(1);
     expect(feedback.notifyWarning).toHaveBeenCalledTimes(1);

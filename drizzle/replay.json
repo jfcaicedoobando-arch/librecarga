@@ -912,5 +912,11 @@
       "0115_correcciones_auditoria_negocio.sql"
     ],
     "scope": "isolated-ci"
+  },
+  {
+    "file": "0116_ct071_omitir_egreso_conciliado.sql",
+    "sha256": "e5446087622f73c236a5cfc1b428da294b8cb3c28a9e235e5d369cff89df7d77",
+    "replays": ["0116_ct071_omitir_egreso_conciliado.sql"],
+    "scope": "isolated-ci"
   }
 ]

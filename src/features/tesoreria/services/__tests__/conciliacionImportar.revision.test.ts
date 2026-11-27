@@ -10,7 +10,8 @@ import { importarMovimientos, ImportacionParcialError } from "../conciliacionImp
 import { clasificarRevisionImportacion } from "../../domain/import/revisionImportacion";
 
 const fila = { fecha: "2026-10-03", concepto: "Cobro", referencia: "R", cargo: 0, abono: 25, saldo: 100, hash_dedupe: "banco" };
-const espejo = { id: "e1", cuenta_bancaria_id: "cta", pago_factura_id: "p1", fecha: "2026-10-02", cargo: 0, abono: 25, hash_dedupe: "cobro-p1" };
+const espejo = { id: "e1", cuenta_bancaria_id: "cta", pago_factura_id: "p1", fecha: "2026-10-02", cargo: 0, abono: 25,
+  hash_dedupe: "cobro-p1", pago_proveedor_id: null, estado_conciliacion: "Conciliado", referencia: null };
 beforeEach(() => { mock.resetResults(); mock.tableCalls.length = 0; mock.rpcCalls.length = 0; bitacora.mockClear(); });
 describe("Confirmación bancaria con vínculos revisados", () => {
   it("envía el candidato original y su huella completa; separa vínculo de duplicado", async () => {
@@ -26,6 +27,20 @@ describe("Confirmación bancaria con vínculos revisados", () => {
     mock.setTableResultOnce("bbva_movimientos", { data: [{ id: "m1" }], error: null });
     await importarMovimientos("cta", [fila], null, clasificarRevisionImportacion([fila], new Set(), []).filas);
     expect(mock.rpcCalls[0].args).toMatchObject({ p_filas: [{ espejo_revisado_id: null, espejo_revisado_huella: null }] });
+  });
+  it("omite el pago ya conciliado solamente cuando la RPC confirma la huella", async () => {
+    const egreso = { ...fila, cargo: 20, abono: 0 };
+    const pago = { ...espejo, fecha: egreso.fecha, cargo: 20, abono: 0, hash_dedupe: "pago-cxp",
+      pago_factura_id: null, pago_proveedor_id: "cxp", referencia: egreso.referencia };
+    const revision = clasificarRevisionImportacion([egreso], new Set(), [pago]);
+    mock.setTableResult("bbva_movimientos", { data: [], error: null });
+    mock.setRpcResult("absorber_espejos_importacion", { data: { absorbidos: 0, egresos_duplicados: [] }, error: null });
+    await expect(importarMovimientos("cta", [egreso], "u1", revision.filas)).rejects.toThrow("LC_IMPORTACION_REVISION_CAMBIO");
+    mock.setRpcResult("absorber_espejos_importacion", { data: { absorbidos: 0, egresos_duplicados: [egreso.hash_dedupe] }, error: null });
+    expect(await importarMovimientos("cta", [egreso], "u1", revision.filas)).toEqual({ total: 1, nuevos: 0, duplicados: 1 });
+    expect(mock.rpcCalls[0].args).toMatchObject({ p_filas: [{ espejo_revisado_id: pago.id,
+      espejo_revisado_huella: { pago_proveedor_id: pago.pago_proveedor_id, estado_conciliacion: pago.estado_conciliacion, referencia: "R" } }] });
+    expect(mock.tableCalls.some((c) => c.ops.includes("insert"))).toBe(false);
   });
   it("una carrera rechazada por SQL no inicia inserts", async () => {
     const error = { code: "23514", message: "LC_IMPORTACION_REVISION_CAMBIO" };

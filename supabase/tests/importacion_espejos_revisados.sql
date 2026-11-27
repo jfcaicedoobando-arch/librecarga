@@ -110,4 +110,65 @@ BEGIN
   RAISE NOTICE 'AUD40: revisión, carreras, lote atómico, consumo, ambigüedad, retry y legacy protegidos';
 END;
 $tests$;
+
+DO $ct071$
+DECLARE
+  v_orgs record;
+  v_cuenta uuid;
+  v_proveedor uuid;
+  v_categoria uuid;
+  v_factura uuid;
+  v_fecha date := public.fecha_negocio_mx();
+  v_pago jsonb;
+  v_mov uuid;
+  v_fila jsonb;
+  v_antes jsonb;
+  v_resultado jsonb;
+BEGIN
+  SELECT * INTO STRICT v_orgs FROM pg_temp.seed_org_pair('CT071');
+  UPDATE public.organization_members SET role = 'contador'
+    WHERE organization_id = v_orgs.org_a AND user_id = v_orgs.admin_a;
+  UPDATE public.user_roles SET role = 'contador' WHERE user_id = v_orgs.admin_a;
+  INSERT INTO public.cuentas_bancarias(organization_id, alias, moneda, saldo_inicial, fecha_saldo_inicial)
+    VALUES (v_orgs.org_a, 'CT071 BANCO', 'MXN', 100, v_fecha - 10) RETURNING id INTO v_cuenta;
+  INSERT INTO public.proveedores(organization_id, nombre, categoria, subtipo_gasto)
+    VALUES (v_orgs.org_a, 'CT071 PROVEEDOR', 'GastoOperativo', 'Otros') RETURNING id INTO v_proveedor;
+  INSERT INTO public.presupuesto_categorias(organization_id, nombre)
+    VALUES (v_orgs.org_a, 'CT071') RETURNING id INTO v_categoria;
+  INSERT INTO public.proveedor_facturas(organization_id, proveedor_id, categoria_presupuesto_id,
+    folio_proveedor, fecha_emision, moneda, tipo_cambio_usd, subtotal, total, estado, estado_aprobacion)
+    VALUES (v_orgs.org_a, v_proveedor, v_categoria, 'CT071-F', v_fecha, 'USD', 20, 1, 1, 'Vigente', 'aprobada')
+    RETURNING id INTO v_factura;
+  PERFORM pg_temp.as_user(v_orgs.admin_a);
+  v_pago := public.registrar_pago_proveedor_atomico(v_factura, v_fecha, 20, 'MXN',
+    'Transferencia', 'CT071-LIQUIDACION', v_cuenta, p_tipo_cambio_usd => 20);
+  v_mov := (v_pago->>'movimiento_id')::uuid;
+  SELECT pg_temp.audit40_fila(m.id, 'CT071-EXTRACTO') || jsonb_build_object(
+    'referencia', m.referencia,
+    'espejo_revisado_huella', (pg_temp.audit40_fila(m.id, 'CT071-EXTRACTO')->'espejo_revisado_huella')
+      || jsonb_build_object('pago_proveedor_id', m.pago_proveedor_id,
+        'estado_conciliacion', m.estado_conciliacion, 'referencia', m.referencia))
+    INTO STRICT v_fila
+    FROM public.bbva_movimientos m WHERE m.id = v_mov AND m.estado_conciliacion = 'Conciliado';
+  v_antes := pg_temp.audit40_estado(v_cuenta);
+
+  FOR i IN 1..2 LOOP
+    v_resultado := public.absorber_espejos_importacion(v_cuenta, jsonb_build_array(v_fila));
+    PERFORM pg_temp.assert(v_resultado = '{"absorbidos":0,"egresos_duplicados":["CT071-EXTRACTO"]}'::jsonb,
+      'CT071: la importación y su reintento deben omitir el mismo egreso de 20 MXN');
+  END LOOP;
+  PERFORM pg_temp.audit40_rechazo(v_cuenta, jsonb_build_array(
+    v_fila - 'espejo_revisado_id' - 'espejo_revisado_huella'), 'LC_IMPORTACION_REVISION_CAMBIO');
+  PERFORM pg_temp.audit40_rechazo(v_cuenta, jsonb_build_array(jsonb_set(v_fila, '{referencia}', '"OTRO-PAGO"')),
+    'LC_IMPORTACION_REVISION_CAMBIO');
+  v_resultado := public.absorber_espejos_importacion(v_cuenta, jsonb_build_array(
+    jsonb_set(v_fila - 'espejo_revisado_huella', '{espejo_revisado_id}', 'null') || '{"referencia":"OTRO-PAGO"}'));
+  PERFORM pg_temp.assert(v_resultado->'egresos_duplicados' = '[]'::jsonb,
+    'CT071: un pago distinto de la misma fecha e importe sigue siendo un egreso nuevo');
+  PERFORM pg_temp.assert(pg_temp.audit40_estado(v_cuenta) IS NOT DISTINCT FROM v_antes,
+    'CT071: el movimiento conciliado original y su vínculo deben quedar intactos');
+  PERFORM pg_temp.as_postgres();
+  RAISE NOTICE 'CT071: contador confirmó dos veces el egreso existente sin alterar su registro';
+END;
+$ct071$;
 ROLLBACK;

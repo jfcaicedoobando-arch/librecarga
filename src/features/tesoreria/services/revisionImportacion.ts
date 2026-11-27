@@ -26,9 +26,10 @@ async function leerEspejos(cuentaId: string, desde: string, hasta: string): Prom
   const espejos: EspejoImportacion[] = [];
   for (let inicio = 0; inicio < MAX_ESPEJOS; inicio += CHUNK) {
     const { data, error } = await supabase.from("bbva_movimientos")
-      .select("id,cuenta_bancaria_id,hash_dedupe,pago_factura_id,fecha,cargo,abono")
-      .eq("cuenta_bancaria_id", cuentaId).is("deleted_at", null).like("hash_dedupe", "cobro-%")
-      .not("pago_factura_id", "is", null).gte("fecha", moverDiaImportacion(desde, -3))
+      .select("id,cuenta_bancaria_id,hash_dedupe,pago_factura_id,pago_proveedor_id,estado_conciliacion,referencia,fecha,cargo,abono")
+      .eq("cuenta_bancaria_id", cuentaId).is("deleted_at", null)
+      .or("and(hash_dedupe.like.cobro-*,pago_factura_id.not.is.null),and(pago_proveedor_id.not.is.null,estado_conciliacion.eq.Conciliado)")
+      .gte("fecha", moverDiaImportacion(desde, -3))
       .lte("fecha", moverDiaImportacion(hasta, 3)).order("id").range(inicio, inicio + CHUNK - 1);
     if (error) throw error;
     espejos.push(...(data ?? []));
