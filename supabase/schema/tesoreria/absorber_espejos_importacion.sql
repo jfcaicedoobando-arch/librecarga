@@ -37,7 +37,14 @@ BEGIN
     RAISE EXCEPTION 'LC_CUENTA_NO_ENCONTRADA: la cuenta bancaria no existe o está dada de baja'
       USING ERRCODE = '22023';
   END IF;
-  PERFORM public._assert_writer(v_org);
+  -- La conciliación admite a Tesorería dentro de su organización activa.
+  -- Los demás roles conservan la autorización anterior.
+  IF public.org_scope() IS DISTINCT FROM v_org OR NOT EXISTS (
+    SELECT 1 FROM public.organization_members om
+    WHERE om.organization_id = v_org AND om.user_id = auth.uid() AND om.role = 'tesorero'
+  ) THEN
+    PERFORM public._assert_writer(v_org);
+  END IF;
   IF p_filas IS NOT NULL AND jsonb_typeof(p_filas) <> 'array' THEN
     RAISE EXCEPTION 'LC_IMPORTACION_REVISION_INVALIDA: las filas deben ser un arreglo'
       USING ERRCODE = '22023';

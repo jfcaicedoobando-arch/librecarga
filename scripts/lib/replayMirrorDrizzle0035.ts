@@ -143,6 +143,7 @@ const REVIEWED_FORWARD_FIXES: ReadonlyArray<readonly [string, string]> = [
   ["0115_correcciones_auditoria_negocio.sql", "7d8e621253101972e0acca55f52d1459969bb50b3e69cbb99749590313bb65c9"],
   ["0116_pricing_vinculo_repin_politicas.sql", "197429e356f262228762eb7148d69b91d64ed9689b9e67817163b33c8cc8cbe8"],
   ["0117_ct071_omitir_egreso_conciliado.sql", "e5446087622f73c236a5cfc1b428da294b8cb3c28a9e235e5d369cff89df7d77"],
+  ["0118_ct071_confirmacion_tesorero.sql", "b6f5ba0171bc53231ed49b5191a69e8bdea37c9f713d6ff8a22876e5a7baf858"],
 ];
 
 function verificarOrdenJournal(sources: ReadonlyMap<string, string>, journal: JournalEntry[]): void {

@@ -114,6 +114,7 @@ $tests$;
 DO $ct071$
 DECLARE
   v_orgs record;
+  v_tesorero uuid := gen_random_uuid();
   v_cuenta uuid;
   v_proveedor uuid;
   v_categoria uuid;
@@ -129,6 +130,11 @@ BEGIN
   UPDATE public.organization_members SET role = 'contador'
     WHERE organization_id = v_orgs.org_a AND user_id = v_orgs.admin_a;
   UPDATE public.user_roles SET role = 'contador' WHERE user_id = v_orgs.admin_a;
+  INSERT INTO auth.users(id, email) VALUES (v_tesorero, 'tesorero-ct071@example.invalid');
+  INSERT INTO public.organization_members(organization_id, user_id, role)
+    VALUES (v_orgs.org_a, v_tesorero, 'tesorero');
+  INSERT INTO public.user_roles(user_id, role) VALUES (v_tesorero, 'tesorero')
+    ON CONFLICT (user_id) DO UPDATE SET role = EXCLUDED.role;
   INSERT INTO public.cuentas_bancarias(organization_id, alias, moneda, saldo_inicial, fecha_saldo_inicial)
     VALUES (v_orgs.org_a, 'CT071 BANCO', 'MXN', 100, v_fecha - 10) RETURNING id INTO v_cuenta;
   INSERT INTO public.proveedores(organization_id, nombre, categoria, subtipo_gasto)
@@ -143,6 +149,7 @@ BEGIN
   v_pago := public.registrar_pago_proveedor_atomico(v_factura, v_fecha, 20, 'MXN',
     'Transferencia', 'CT071-LIQUIDACION', v_cuenta, p_tipo_cambio_usd => 20);
   v_mov := (v_pago->>'movimiento_id')::uuid;
+  PERFORM pg_temp.as_user(v_tesorero);
   SELECT pg_temp.audit40_fila(m.id, 'CT071-EXTRACTO') || jsonb_build_object(
     'referencia', m.referencia,
     'espejo_revisado_huella', (pg_temp.audit40_fila(m.id, 'CT071-EXTRACTO')->'espejo_revisado_huella')
@@ -155,7 +162,7 @@ BEGIN
   FOR i IN 1..2 LOOP
     v_resultado := public.absorber_espejos_importacion(v_cuenta, jsonb_build_array(v_fila));
     PERFORM pg_temp.assert(v_resultado = '{"absorbidos":0,"egresos_duplicados":["CT071-EXTRACTO"]}'::jsonb,
-      'CT071: la importación y su reintento deben omitir el mismo egreso de 20 MXN');
+      'CT071: Tesorero debe omitir el mismo egreso de 20 MXN al importar y reintentar');
   END LOOP;
   PERFORM pg_temp.audit40_rechazo(v_cuenta, jsonb_build_array(
     v_fila - 'espejo_revisado_id' - 'espejo_revisado_huella'), 'LC_IMPORTACION_REVISION_CAMBIO');
@@ -168,7 +175,7 @@ BEGIN
   PERFORM pg_temp.assert(pg_temp.audit40_estado(v_cuenta) IS NOT DISTINCT FROM v_antes,
     'CT071: el movimiento conciliado original y su vínculo deben quedar intactos');
   PERFORM pg_temp.as_postgres();
-  RAISE NOTICE 'CT071: contador confirmó dos veces el egreso existente sin alterar su registro';
+  RAISE NOTICE 'CT071: Contador registró el pago y Tesorero confirmó dos veces el extracto sin duplicar el egreso';
 END;
 $ct071$;
 ROLLBACK;

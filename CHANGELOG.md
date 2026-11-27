@@ -1,5 +1,9 @@
 # Changelog
 
+## [13.824.108] - 2026-11-27
+
+- **Tesorería.** El rol Tesorero puede confirmar extractos de su organización activa y omitir egresos de proveedor ya conciliados.
+
 ## [13.824.107] - 2026-11-27
 
 - **Tesorería.** Al importar un extracto, los egresos de proveedor ya conciliados con la misma fecha, importe y referencia se muestran como duplicados y se omiten.
