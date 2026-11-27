@@ -4,6 +4,7 @@
  * capturadas con el formulario anterior se muestran sólo para consulta.
  */
 import { useState } from "react";
+import { rutaCotizarRespuesta } from "@/features/crm/domain/pricing/rutaCotizarRespuesta";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AjustePlazoPricing } from "./AjustePlazoPricing";
@@ -99,9 +100,7 @@ export function SolicitudPricingDetalle({ solicitud: s }: Props) {
   const cotizarRespuesta = (tarifaId: string) => {
     if (!puedeCotizar) return;
     // La tarifa ya responde a esta solicitud; cotizar no vuelve a seleccionarla ni cambia su estado.
-    const q = new URLSearchParams({ tarifa: tarifaId, solicitud: s.id });
-    if (s.oportunidad_id) q.set("oportunidad", s.oportunidad_id);
-    navigate(`/cotizaciones/nueva?${q.toString()}`);
+    navigate(rutaCotizarRespuesta(tarifaId, s));
   };
 
   return (
