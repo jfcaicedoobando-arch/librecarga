@@ -11284,6 +11284,10 @@ export type Database = {
           monto_venta: number
         }[]
       }
+      _cerrar_embarque_confirmado: {
+        Args: { p_embarque_id: string; p_forzar: boolean }
+        Returns: Json
+      }
       _convertir_proformas_insertar_conceptos: {
         Args: {
           p_es_consolidada: boolean
@@ -11402,6 +11406,16 @@ export type Database = {
           p_tipo_iva: string
         }
         Returns: Json
+      }
+      _flete_unitario_revalidacion: {
+        Args: {
+          p_cantidad_original: number
+          p_org: string
+          p_peso: number
+          p_tarifa_id: string
+          p_volumen: number
+        }
+        Returns: number
       }
       _h14_assert_actor_baja_embarque: {
         Args: { p_embarque_id: string }
@@ -13791,10 +13805,6 @@ export type Database = {
         Returns: Json
       }
       fecha_negocio_mx: { Args: never; Returns: string }
-      forzar_cierre_embarque: {
-        Args: { p_embarque_id: string; p_confirmacion: string }
-        Returns: Json
-      }
       finalizar_evento_facturapi_webhook: {
         Args: {
           p_accion?: string
@@ -13840,6 +13850,10 @@ export type Database = {
           total_orgs: number
           total_users: number
         }[]
+      }
+      forzar_cierre_embarque: {
+        Args: { p_confirmacion: string; p_embarque_id: string }
+        Returns: Json
       }
       generar_expediente: { Args: { tipo_op: string }; Returns: string }
       generar_liquidacion_comision: {
