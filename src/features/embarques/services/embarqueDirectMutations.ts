@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { TablesInsert } from '@/integrations/supabase/types';
 import { notaSchema, parseOrThrow } from "@/lib/validation/mutationSchemas";
 import { run } from "@/lib/supabase/response";
+import { captureAuthOperationScope } from "@/lib/auth/authOperationScope";
 import { registrarBitacoraEmbarque } from "./bitacoraEmbarques";
 
 type EmbarqueInsert = TablesInsert<'embarques'>;
@@ -51,7 +52,9 @@ export async function insertarNotaEmbarque(
   embarqueId: string,
   contenido: string,
   usuario: string,
+  authScope = captureAuthOperationScope(),
 ): Promise<string> {
+  authScope.assertCurrent();
   parseOrThrow(notaSchema, { contenido, usuario }, "Nota");
   const notaId = crypto.randomUUID();
   await run(
@@ -67,6 +70,7 @@ export async function insertarNotaEmbarque(
     accion: "Agregó nota a embarque",
     entidadId: embarqueId,
     detalles: { usuario, notaId },
+    authScope,
   });
   return notaId;
 }

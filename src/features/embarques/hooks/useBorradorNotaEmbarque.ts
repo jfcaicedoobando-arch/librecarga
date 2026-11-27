@@ -31,7 +31,8 @@ export function useBorradorNotaEmbarque(embarqueId?: string, expediente?: string
     enviosRef.current.add(embarqueId);
     setEnvios([...enviosRef.current]);
     try {
-      const notaId = await crearNota.mutateAsync({ embarqueId, contenido, usuario: user?.email ?? "" });
+      const notaId = await crearNota.mutateAsync({ embarqueId, contenido, usuario: user?.email ?? "", authScope });
+      if (!authScope.isCurrent()) return;
       registrarActividad.mutate({
         accion: "agregar_nota", modulo: "embarques", entidad_id: embarqueId, entidad_nombre: expediente ?? "",
         detalles: { nota: contenido, notaId }, authScope,
