@@ -29,6 +29,7 @@ import { useOrgActiva } from "@/hooks/shared/useOrgActiva";
 import type { AppRole } from "@/types/appRole";
 import { useIvaFronteraHabilitada } from "@/features/configuracion/hooks/useIvaFrontera";
 import { ProductoServicioOptions } from "./ProductoServicioOptions";
+import { quitarCodigoCargo } from "@/features/costeo/domain/catalogoCargos";
 
 /**
  * R-04: roles puramente comerciales. El catálogo SAT es maestro contable, así
@@ -127,7 +128,10 @@ export function ProductoServicioSelect({ value, onSelect, placeholder = "Selecci
   const [search, setSearch] = useState("");
   const [creando, setCreando] = useState(false);
 
-  const seleccionado = value ? porNombre.get(value.toLowerCase()) : undefined;
+  const visible = quitarCodigoCargo(value);
+  const seleccionado = value
+    ? porNombre.get(value.toLowerCase()) ?? porNombre.get(visible.toLowerCase())
+    : undefined;
   const esLegacy = !!value && !seleccionado;
 
   const cerrarYResetear = () => {
@@ -157,7 +161,7 @@ export function ProductoServicioSelect({ value, onSelect, placeholder = "Selecci
         >
           <span className="truncate flex items-center gap-1">
             {esLegacy && <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-warning" />}
-            {value || placeholder}
+            {visible || placeholder}
           </span>
           <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
         </Button>

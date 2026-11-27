@@ -42,3 +42,10 @@ export function recargosPorGrupo(modo: ModoCargo): { grupo: string; nombre: stri
   }
   return [...grupos].map(([grupo, cargos]) => ({ grupo, nombre: GRUPOS_CARGO[grupo] ?? grupo, cargos }));
 }
+
+/** Nombre visible sin el código interno: «AGR-OA · Cargos en origen Agente» → «Cargos en origen Agente». */
+export function quitarCodigoCargo(texto: string | null | undefined): string {
+  const t = texto ?? "";
+  const codigo = codigoDeConcepto(t);
+  return codigo ? t.slice(codigo.length).replace(/^ ·\s*/, "") : t;
+}
