@@ -1,5 +1,9 @@
 # Changelog
 
+## [13.824.109] - 2026-11-27
+
+- **Cuentas por pagar.** Aprobar facturas de proveedor y editar pagos verifica el rol efectivo de la organización activa.
+
 ## [13.824.108] - 2026-11-27
 
 - **Tesorería.** El rol Tesorero puede confirmar extractos de su organización activa y omitir egresos de proveedor ya conciliados.

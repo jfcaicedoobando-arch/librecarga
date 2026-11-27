@@ -5,42 +5,28 @@ CREATE OR REPLACE FUNCTION public.aprobar_factura_proveedor(p_id uuid, p_aprobar
 DECLARE
   v_row public.proveedor_facturas;
   v_uid uuid := auth.uid();
+  v_org uuid;
   v_email text;
-  v_autorizado boolean;
-  v_puede_autoaprobar_cxp boolean;
   v_desvinculo jsonb := '{}'::jsonb;
   v_estado_actual text;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'No autenticado';
   END IF;
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_roles ur
-    WHERE ur.user_id = v_uid
-      AND ur.role::text = ANY (ARRAY['admin','admin_org','super_admin','contador'])
-  ) INTO v_autorizado;
-  IF NOT v_autorizado THEN
+  v_org := public.org_scope();
+  IF v_org IS NULL THEN
+    RAISE EXCEPTION 'Factura no encontrada' USING ERRCODE = '42501';
+  END IF;
+  -- Los roles locales autorizados también pueden aprobar sus propias capturas.
+  IF NOT public.has_any_role_in_org_exact(v_uid,
+         ARRAY['admin','admin_org','super_admin','contador']::public.app_role[], v_org) THEN
     RAISE EXCEPTION 'LC_SOD_VIOLATION: Tu rol no puede aprobar ni rechazar facturas de proveedor.';
   END IF;
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_roles ur
-    WHERE ur.user_id = v_uid
-      AND ur.role::text = ANY (ARRAY['admin','admin_org','super_admin','contador'])
-  ) INTO v_puede_autoaprobar_cxp;
   -- A-3: FOR UPDATE serializa dos clics simultáneos sobre la misma factura.
   SELECT * INTO v_row FROM public.proveedor_facturas
-   WHERE id = p_id AND deleted_at IS NULL
+   WHERE id = p_id AND organization_id = v_org AND deleted_at IS NULL
    FOR UPDATE;
   IF v_row.id IS NULL THEN
-    RAISE EXCEPTION 'Factura no encontrada';
-  END IF;
-  IF NOT public.has_role(v_uid, 'super_admin'::app_role)
-     AND NOT EXISTS (
-       SELECT 1 FROM public.organization_members om
-        WHERE om.organization_id = v_row.organization_id
-          AND om.user_id = v_uid
-     )
-  THEN
     RAISE EXCEPTION 'Factura no encontrada' USING ERRCODE = '42501';
   END IF;
   IF p_expected_updated_at IS NULL OR v_row.updated_at IS DISTINCT FROM p_expected_updated_at THEN
@@ -49,14 +35,6 @@ BEGIN
   END IF;
   IF v_row.estado_aprobacion <> 'pendiente' THEN
     RAISE EXCEPTION 'La factura ya fue %', v_row.estado_aprobacion;
-  END IF;
-  -- SoD CxP: administradores y contador pueden aprobar su propia factura.
-  IF p_aprobar
-     AND v_row.created_by IS NOT NULL
-     AND v_row.created_by = v_uid
-     AND NOT v_puede_autoaprobar_cxp
-  THEN
-    RAISE EXCEPTION 'LC_SOD_VIOLATION: No puedes aprobar una factura que tú mismo capturaste. Pide la aprobación a otra persona.';
   END IF;
   -- Ola 4 (H2): al aprobar, `p_motivo` es la justificación del gasto sin respaldo.
   IF p_aprobar THEN
