@@ -60,10 +60,10 @@ function isHostingAnalyticsNoise(
 ): boolean {
   const url = (exc as { request?: { url?: string } } | undefined)?.request?.url
     ?? (event.request?.url as string | undefined);
-  if (typeof url === "string" && url.includes("/~api/analytics")) return true;
+  if (typeof url === "string" && (url.includes("/~api/analytics") || url.includes("/__l5e/"))) return true;
   const values = event.exception?.values ?? [];
   return values.some((v) =>
-    v.stacktrace?.frames?.some((f) => (f.filename ?? "").includes("flock.js")),
+    v.stacktrace?.frames?.some((f) => /flock\.js|\/__l5e\//.test(f.filename ?? "")),
   );
 }
 

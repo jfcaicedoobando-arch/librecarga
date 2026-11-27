@@ -6,7 +6,7 @@ const DOMAIN_NAMES = new Set([
 // LC_COSTO_VINCULADO_CXP (Sentry 7T): candado de costo ligado a factura de proveedor.
 // LC_EMBARQUE_CERRADO: candado de cierre; el usuario ve el aviso y debe reabrir.
 // LC_COT_MARGEN_BAJO_MINIMO (Sentry 8V): la autorización pide motivo al usuario.
-const DOMAIN_CODES = /\bLC_(?:COT_TRANSICION_INVALIDA|TRANSICION_INVALIDA|CONFLICTO_CONCURRENCIA|(?:CRM_)?MONEDA_INCOMPATIBLE|CREDITO_TC_INVALIDO|COSTO_VINCULADO_CXP|EMBARQUE_CERRADO|COTIZACION_ACEPTACION_INCONSISTENTE|COT_MARGEN_BAJO_MINIMO|EMBARQUE_MARGEN_(?:PENDIENTE|CONFLICTO|NO_CALCULABLE|MOTIVO|SIN_SOLICITUD|SOLO_ADMIN|SIN_PERMISO|ESTADO_INVALIDO))\b/;
+const DOMAIN_CODES = /\bLC_(?:COT_TRANSICION_INVALIDA|TRANSICION_INVALIDA|CONFLICTO_CONCURRENCIA|(?:CRM_)?MONEDA_INCOMPATIBLE|CREDITO_TC_INVALIDO|COSTO_VINCULADO_CXP|EMBARQUE_CERRADO|COTIZACION_ACEPTACION_INCONSISTENTE|COT_MARGEN_BAJO_MINIMO|PRICING_INCOMPLETA|CONCEPTO_PROFORMADO|PERIODO_CERRADO|TRASPASO_CUENTA_INACTIVA|EMBARQUE_MARGEN_(?:PENDIENTE|CONFLICTO|NO_CALCULABLE|MOTIVO|SIN_SOLICITUD|SOLO_ADMIN|SIN_PERMISO|ESTADO_INVALIDO))\b/;
 // Guards de datos (Sentry 7Q/77): el usuario ve el mensaje; no es falla de código.
 const KNOWN_MESSAGES = [
   "ya está registrado en este embarque", "verifica el uuid en el sat",
@@ -17,6 +17,8 @@ const KNOWN_MESSAGES = [
   "unique constraint \"contenedores_numero_unico\"",
   // Sentry 8Z: destinatario fuera de los contactos del cliente; la UI muestra el aviso.
   "no pertenecen a los contactos del cliente",
+  // Sentry 93/96: faltantes de Pricing y proveedor provisional; la UI muestra el aviso.
+  "faltan campos obligatorios", "pendiente de aprobación por contabilidad",
 ];
 
 export function isExpectedTelemetryError(error: unknown): boolean {
@@ -26,6 +28,8 @@ export function isExpectedTelemetryError(error: unknown): boolean {
   if (typeof e.name === "string" && DOMAIN_NAMES.has(e.name)) return true;
   const message = typeof error === "string" ? error : typeof e.message === "string" ? e.message : "";
   if (DOMAIN_CODES.test(message)) return true;
+  // Sentry 97: liga de rastreo inválida; la página pública muestra su aviso.
+  if (message.trim() === "not_found") return true;
   // Preserve routine permission denials without swallowing all 42501 failures.
   if (e.code === "42501" && /permission denied|row.level security policy|no tienes permisos/i.test(message)) return true;
   return KNOWN_MESSAGES.some((known) => message.toLowerCase().includes(known));
