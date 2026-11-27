@@ -49,3 +49,26 @@ export function aplicarReplayMirrorPricingFase5(index: Index, history: ReadonlyM
   }
   return result;
 }
+
+/** Aplica los dos cambios exactos del bloque de políticas de la migración 0116. */
+export function aplicarRepinVinculoPricing(index: Index): void {
+  const firma = "crm_vincular_cotizacion_cliente_pricing(uuid,uuid,uuid,uuid)";
+  const previous = index.get(firma);
+  if (!previous || huellaDefinicion(previous.definicion) !== "21cbc81809c755449f70f0a8a0cdf6776011cb092c90b850f3c1f94d096eebc3") {
+    throw new Error("Pricing 0116: preimagen inesperada");
+  }
+  const partes: string[] = JSON.parse(previous.definicion.cuerpo);
+  const politicas = partes[1].split("$policies$");
+  const reemplazos = [
+    ["has_role(auth.uid(), 'cliente'::app_role) AND (cliente_id IN",
+      "has_role(( SELECT auth.uid() AS uid), 'cliente'::app_role) AND (cliente_id IN"],
+    ["(created_by = auth.uid()))", "(created_by = ( SELECT auth.uid() AS uid)))"],
+  ];
+  for (const [antes, despues] of reemplazos) {
+    if (politicas.length !== 3 || politicas[1].split(antes).length !== 2) throw new Error("Pricing 0116: reemplazo ambiguo");
+    politicas[1] = politicas[1].replace(antes, despues);
+  }
+  partes[1] = politicas.join("$policies$");
+  index.set(firma, { migracion: "drizzle/migrations/0116_pricing_vinculo_repin_politicas.sql",
+    definicion: { ...previous.definicion, cuerpo: JSON.stringify(partes) } });
+}

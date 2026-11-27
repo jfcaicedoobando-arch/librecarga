@@ -10,7 +10,7 @@
  * CREATE OR REPLACE FUNCTION public.<nombre sin comillas>: CREATE simple,
  * nombres entrecomillados y ALTER/DROP requieren replay real. El único SQL
  * dinámico modelado se limita al parche de Auditoría M-10 y a los de Drizzle0035,
- * Drizzle0094 y Drizzle0108. Drizzle0092 ajusta el modo de seguridad de un espejo. Las
+ * Drizzle0094, Drizzle0108 y Drizzle0116. Drizzle0092 ajusta el modo de seguridad de un espejo. Las
  * fuentes, preimágenes y ocurrencias se comprueban y se conserva el replay real.
  * Uso: bun run audit:replay-mirror.
  */
@@ -21,7 +21,7 @@ import { auditarIndiceReplayMirror, indexarMigraciones, leerBaseline } from "./l
 import { aplicarReplayMirrorAuditoria } from "./lib/replayMirrorAuditoria";
 import { aplicarDrizzle0035 } from "./lib/replayMirrorDrizzle0035";
 import { aplicarReplayMirrorAuthority } from "./lib/replayMirrorAuthority";
-import { aplicarReplayMirrorPricingFase5 } from "./lib/replayMirrorPricingFase5";
+import { aplicarReplayMirrorPricingFase5, aplicarRepinVinculoPricing } from "./lib/replayMirrorPricingFase5";
 import { readIsolatedDrizzleReplay } from "./ci/drizzle-history/control.mjs";
 
 const ROOT = process.cwd();
@@ -60,6 +60,7 @@ try {
   const efectivos = aplicarReplayMirrorPricingFase5(permisos, isolated);
   const posteriores = new Map(definitions.filter(([file]) => Number(file.slice(0, 4)) > 114));
   for (const [signature, definition] of indexarMigraciones(posteriores)) efectivos.set(signature, definition);
+  aplicarRepinVinculoPricing(efectivos);
   const result = auditarIndiceReplayMirror(espejos, efectivos, baseline);
   if (result.violaciones.length) {
     console.error("❌ audit:replay-mirror — divergencia o excepción fuera de su huella exacta:");
