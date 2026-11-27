@@ -1,5 +1,9 @@
 # Changelog
 
+## [13.824.107] - 2026-11-27
+
+- **Tesorería.** Al importar un extracto, los egresos de proveedor ya conciliados con la misma fecha, importe y referencia se muestran como duplicados y se omiten.
+
 ## [13.824.106] - 2026-11-26
 
 - **Facturación y cobranza.** La vista previa muestra las retenciones antes del timbrado. La conversión de proformas valida el Uso CFDI del cliente. Los cobros respetan la fecha de negocio de México y verifican el contenido de los reintentos de lote.

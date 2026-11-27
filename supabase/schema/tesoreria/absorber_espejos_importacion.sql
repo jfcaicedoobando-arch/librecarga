@@ -1,6 +1,6 @@
 -- Fuente canónica de public.absorber_espejos_importacion(uuid, jsonb).
 -- Auditoría40: ID y huella fijan el espejo revisado; firma/ACL conservadas.
--- JSON sin revisión mantiene legacy. Validar TODO el lote antes de escribir.
+-- Validar todo el lote antes de escribir. Los egresos conciliados se omiten.
 CREATE OR REPLACE FUNCTION public.absorber_espejos_importacion(
   p_cuenta_bancaria_id uuid,
   p_filas jsonb
@@ -21,6 +21,7 @@ DECLARE
   v_esperado uuid;
   v_usados uuid[] := ARRAY[]::uuid[];
   v_hashes text[] := ARRAY[]::text[];
+  v_egresos_duplicados text[] := ARRAY[]::text[];
   v_hash text;
   v_cuantos int;
   v_total int;
@@ -83,17 +84,23 @@ BEGIN
        AND hash_dedupe = v_hash AND deleted_at IS NULL;
     CONTINUE WHEN FOUND;
 
-    -- Sólo COBROS de cliente; nunca pagos, anticipos o devoluciones.
-    -- Cada espejo se consume una vez, en el orden revisado del archivo.
+    -- Cobros dentro de la ventana habitual o egresos CxP ya conciliados
+    -- con fecha y referencia exactas. Una fila existente sólo se usa una vez.
     SELECT count(*), (array_agg(m.id ORDER BY m.id))[1] INTO v_cuantos, v_cand
       FROM public.bbva_movimientos m
      WHERE m.cuenta_bancaria_id = p_cuenta_bancaria_id
        AND m.organization_id = v_org AND m.deleted_at IS NULL
-       AND m.hash_dedupe LIKE 'cobro-%' AND m.pago_factura_id IS NOT NULL
        AND NOT (m.id = ANY(v_usados))
        AND round(m.cargo, 2) = round(COALESCE((v_fila->>'cargo')::numeric, 0), 2)
        AND round(m.abono, 2) = round(COALESCE((v_fila->>'abono')::numeric, 0), 2)
-       AND abs(m.fecha - (v_fila->>'fecha')::date) <= 3;
+       AND (
+         (m.pago_proveedor_id IS NULL AND m.hash_dedupe LIKE 'cobro-%'
+           AND m.pago_factura_id IS NOT NULL AND abs(m.fecha - (v_fila->>'fecha')::date) <= 3)
+         OR
+         (m.pago_proveedor_id IS NOT NULL AND m.estado_conciliacion = 'Conciliado'
+           AND m.cargo > 0 AND m.abono = 0 AND m.fecha = (v_fila->>'fecha')::date
+           AND m.referencia = v_fila->>'referencia' AND m.referencia ~ '[^[:space:]]')
+       );
     IF v_revisado THEN
       IF jsonb_typeof(v_fila->'espejo_revisado_id') NOT IN ('null', 'string') THEN
         RAISE EXCEPTION 'LC_IMPORTACION_REVISION_INVALIDA: el identificador revisado no es válido'
@@ -117,7 +124,11 @@ BEGIN
         RAISE EXCEPTION 'LC_IMPORTACION_REVISION_INVALIDA: falta la huella del espejo revisado'
           USING ERRCODE = '22023';
       END IF;
-      SELECT * INTO v_mov FROM public.bbva_movimientos WHERE id = v_cand;
+    ELSE
+      CONTINUE WHEN v_cuantos <> 1;
+    END IF;
+    SELECT * INTO v_mov FROM public.bbva_movimientos WHERE id = v_cand;
+    IF v_revisado THEN
       IF v_mov.cuenta_bancaria_id IS DISTINCT FROM (v_huella->>'cuenta_bancaria_id')::uuid
          OR v_mov.hash_dedupe IS DISTINCT FROM v_huella->>'hash_dedupe'
          OR v_mov.pago_factura_id IS DISTINCT FROM (v_huella->>'pago_factura_id')::uuid
@@ -127,10 +138,18 @@ BEGIN
         RAISE EXCEPTION 'LC_IMPORTACION_REVISION_CAMBIO: el espejo ya no coincide con los datos revisados; vuelve a revisar el archivo'
           USING ERRCODE = '23514';
       END IF;
-    ELSE
-      CONTINUE WHEN v_cuantos <> 1;
     END IF;
     v_usados := array_append(v_usados, v_cand);
+    IF v_mov.pago_proveedor_id IS NOT NULL THEN
+      IF NOT v_revisado OR v_mov.pago_proveedor_id IS DISTINCT FROM (v_huella->>'pago_proveedor_id')::uuid
+         OR v_mov.estado_conciliacion::text IS DISTINCT FROM v_huella->>'estado_conciliacion'
+         OR v_mov.referencia IS DISTINCT FROM v_huella->>'referencia' THEN
+        RAISE EXCEPTION 'LC_IMPORTACION_REVISION_CAMBIO: revisa el egreso conciliado antes de importar'
+          USING ERRCODE = '23514';
+      END IF;
+      v_egresos_duplicados := array_append(v_egresos_duplicados, v_hash);
+      CONTINUE;
+    END IF;
     v_planes := v_planes || jsonb_build_array(jsonb_build_object('id', v_cand, 'fila', v_fila));
   END LOOP;
 
@@ -165,7 +184,7 @@ BEGIN
       v_org, auth.uid()
     );
   END LOOP;
-  RETURN jsonb_build_object('absorbidos', v_absorbidos);
+  RETURN jsonb_build_object('absorbidos', v_absorbidos, 'egresos_duplicados', v_egresos_duplicados);
 END;
 $$;
 

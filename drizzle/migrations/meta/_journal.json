@@ -820,6 +820,13 @@
       "when": 1795812391805,
       "tag": "0116_pricing_vinculo_repin_politicas",
       "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1795816800000,
+      "tag": "0117_ct071_omitir_egreso_conciliado",
+      "breakpoints": true
     }
   ]
 }

@@ -59,6 +59,21 @@ function filasParaAbsorcion(payload: TablesInsert<"bbva_movimientos">[], movimie
     espejo_revisado_huella: revision[i].espejo ? huellaEspejoImportacion(revision[i].espejo!) : null }));
 }
 
+async function confirmarEspejos(cuentaBancariaId: string, filas: ReturnType<typeof filasParaAbsorcion>) {
+  // El mismo RPC incorpora la fila bancaria a un cobro interno único y
+  // devuelve los egresos conciliados que deben omitirse sin tocar su cargo.
+  const { data, error } = await supabase.rpc("absorber_espejos_importacion", {
+    p_cuenta_bancaria_id: cuentaBancariaId,
+    // SAFE-CAST: la RPC recibe jsonb con las columnas del estado de cuenta.
+    p_filas: filas as unknown as never,
+  });
+  if (error) throw error;
+  const resultado = data && typeof data === "object" && !Array.isArray(data) ? data : null;
+  const vinculados = typeof resultado?.absorbidos === "number" ? resultado.absorbidos : 0;
+  const omitidos = Array.isArray(resultado?.egresos_duplicados) ? resultado.egresos_duplicados : [];
+  return { vinculados, vistos: new Set(omitidos.filter((hash): hash is string => typeof hash === "string")) };
+}
+
 export async function importarMovimientos(
   cuentaBancariaId: string,
   movimientos: MovimientoParseado[],
@@ -77,23 +92,8 @@ export async function importarMovimientos(
     hash_dedupe: m.hash_dedupe,
     importado_por: userId,
   }));
-  // MNY P1.1: un cobro con cuenta bancaria ya creó su movimiento espejo
-  // (`cobro-<pago_id>`). Si el estado de cuenta trae esa MISMA operación con
-  // otro hash, antes se insertaba aparte y el saldo la contaba dos veces. La
-  // RPC hace que la línea real del banco SUSTITUYA al espejo cuando la
-  // coincidencia es inequívoca (misma cuenta, mismo importe, ±3 días y un solo
-  // candidato); nunca fusiona coincidencias ambiguas. Tras absorberlo, el hash
-  // del archivo ya existe y la deduplicación de abajo lo reconoce, así que
-  // re-importar el mismo archivo sigue siendo idempotente.
   const filasRevisadas = filasParaAbsorcion(payload, movimientos, revision);
-  const { data: absorcion, error: errorAbsorcion } = await supabase.rpc("absorber_espejos_importacion", {
-    p_cuenta_bancaria_id: cuentaBancariaId,
-    // SAFE-CAST: la RPC recibe jsonb con las columnas del estado de cuenta.
-    p_filas: filasRevisadas as unknown as never,
-  });
-  if (errorAbsorcion) throw errorAbsorcion;
-  const vinculados = absorcion && typeof absorcion === "object" && !Array.isArray(absorcion)
-    && typeof absorcion.absorbidos === "number" ? absorcion.absorbidos : 0;
+  const { vinculados, vistos } = await confirmarEspejos(cuentaBancariaId, filasRevisadas);
   // Ola 11 · RNF-11: el UNIQUE pasó a índice parcial (sólo vivos,
   // uq_bbva_movimientos_hash_dedupe_vivo) y un índice parcial no sirve de
   // árbitro para ON CONFLICT vía PostgREST. Se deduplica contra los hashes
@@ -104,7 +104,6 @@ export async function importarMovimientos(
   // (~410 KB en query string) revienta contra el proxy (400/414) y el insert
   // masivo puede exceder límites de payload. Select e insert van troceados.
   const hashes = payload.map((p) => p.hash_dedupe as string);
-  const vistos = new Set<string>();
   for (const trozo of trocear(hashes)) {
     const existentes = await unwrap(
       supabase
@@ -117,6 +116,9 @@ export async function importarMovimientos(
     // Sin límite implícito: cada trozo devuelve a lo sumo CHUNK filas, así que
     // el max-rows de PostgREST (1000) no puede truncar la deduplicación.
     for (const e of existentes) vistos.add(e.hash_dedupe);
+  }
+  if (revision?.some((r) => r.espejo?.pago_proveedor_id && !vistos.has(r.movimiento.hash_dedupe))) {
+    throw new Error("LC_IMPORTACION_REVISION_CAMBIO: no se pudo comprobar el egreso conciliado");
   }
   const nuevosPayload = payload.filter((p) => {
     const hash = p.hash_dedupe as string;

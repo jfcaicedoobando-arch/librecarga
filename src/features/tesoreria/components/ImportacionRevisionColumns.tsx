@@ -16,7 +16,8 @@ export function columnasRevisionImportacion(moneda: string) {
       cell: ({ row }) => <span className="tabular-nums">{formatCurrency(row.original.movimiento.abono, moneda)}</span> },
     { id: "estado", header: "Revisión", accessorFn: (r) => r.estado,
       cell: ({ row }) => <div className="text-body-sm space-y-1"><Badge variant="outline">{row.original.estado}</Badge>
-        {row.original.espejo && <p>Cobro existente {row.original.espejo.pago_factura_id?.slice(0, 8)} · {formatDate(row.original.espejo.fecha)}</p>}
+        {row.original.espejo?.pago_proveedor_id && <p>Pago a proveedor ya conciliado</p>}
+        {row.original.espejo?.pago_factura_id && <p>Cobro existente {row.original.espejo.pago_factura_id.slice(0, 8)} · {formatDate(row.original.espejo.fecha)}</p>}
         {row.original.estado === "Ambigua" && <p className="text-warning">{row.original.coincidencias} coincidencias; se importa sin vínculo.</p>}
       </div> },
   ]);

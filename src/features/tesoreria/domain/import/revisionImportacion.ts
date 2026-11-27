@@ -7,6 +7,9 @@ export interface EspejoImportacion {
   cuenta_bancaria_id: string;
   hash_dedupe: string;
   pago_factura_id: string | null;
+  pago_proveedor_id: string | null;
+  estado_conciliacion: string;
+  referencia: string | null;
   fecha: string;
   cargo: number;
   abono: number;
@@ -44,12 +47,17 @@ export function clasificarRevisionImportacion(
   const filas = movimientos.map((movimiento): FilaRevisionImportacion => {
     if (hashesVistos.has(movimiento.hash_dedupe)) return { movimiento, estado: "Duplicada", espejo: null, coincidencias: 0 };
     hashesVistos.add(movimiento.hash_dedupe);
-    const matches = espejos.filter((e) => !consumidos.has(e.id) && e.pago_factura_id && e.hash_dedupe.startsWith("cobro-")
+    const matches = espejos.filter((e) => !consumidos.has(e.id)
       && roundMoney(e.cargo) === roundMoney(movimiento.cargo) && roundMoney(e.abono) === roundMoney(movimiento.abono)
-      && Math.abs(diffDiasCalendario(e.fecha, movimiento.fecha)) <= 3);
+      && (e.pago_proveedor_id
+        ? e.estado_conciliacion === "Conciliado" && e.cargo > 0 && e.abono === 0
+          && e.fecha === movimiento.fecha && movimiento.referencia.trim() !== "" && e.referencia === movimiento.referencia
+        : e.pago_factura_id && e.hash_dedupe.startsWith("cobro-")
+          && Math.abs(diffDiasCalendario(e.fecha, movimiento.fecha)) <= 3));
     if (matches.length === 1) {
       consumidos.add(matches[0].id);
-      return { movimiento, estado: "Vinculable", espejo: matches[0], coincidencias: 1 };
+      const espejo = matches[0];
+      return { movimiento, estado: espejo.pago_proveedor_id ? "Duplicada" : "Vinculable", espejo, coincidencias: 1 };
     }
     return { movimiento, estado: matches.length > 1 ? "Ambigua" : "Nueva", espejo: null, coincidencias: matches.length };
   });
@@ -66,8 +74,9 @@ export function clasificarRevisionImportacion(
 
 /** La huella permite detectar cambios del candidato incluso si sigue coincidiendo. */
 export function huellaEspejoImportacion(espejo: EspejoImportacion) {
-  const { cuenta_bancaria_id, hash_dedupe, pago_factura_id, fecha, cargo, abono } = espejo;
-  return { cuenta_bancaria_id, hash_dedupe, pago_factura_id, fecha, cargo, abono };
+  const { cuenta_bancaria_id, hash_dedupe, pago_factura_id, pago_proveedor_id, estado_conciliacion, referencia, fecha, cargo, abono } = espejo;
+  const huella = { cuenta_bancaria_id, hash_dedupe, pago_factura_id, fecha, cargo, abono };
+  return pago_proveedor_id ? { ...huella, pago_proveedor_id, estado_conciliacion, referencia } : huella;
 }
 
 export function firmaRevisionImportacion(revision: ResumenRevisionImportacion): string {

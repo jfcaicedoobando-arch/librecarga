@@ -5,7 +5,9 @@ import { clasificarRevisionImportacion } from "../../domain/import/revisionImpor
 import type { ImportacionPendiente } from "../../hooks/useImportarEstadoCuenta";
 const fila = { fecha: "2026-10-03", concepto: "Depósito proveedor", referencia: "R-123", cargo: 0, abono: 25, saldo: 100, hash_dedupe: "banco" };
 const revision: ImportacionPendiente = { archivo: "movimientos.csv", cuenta: { id: "cta", alias: "Operativa", banco: "Banorte", moneda: "MXN" }, movimientos: [fila], sinImporte: 1,
-  resumen: clasificarRevisionImportacion([fila], new Set(), [{ id: "e1", cuenta_bancaria_id: "cta", hash_dedupe: "cobro-p1", pago_factura_id: "p1", fecha: fila.fecha, cargo: 0, abono: 25 }]) };
+  resumen: clasificarRevisionImportacion([fila], new Set(), [{ id: "e1", cuenta_bancaria_id: "cta",
+    hash_dedupe: "cobro-p1", pago_factura_id: "p1", fecha: fila.fecha, cargo: 0, abono: 25,
+    pago_proveedor_id: null, estado_conciliacion: "Conciliado", referencia: null }]) };
 describe("Revisión de archivo bancario", () => {
   it("muestra archivo, destino, fechas, montos y exige reconocer el vínculo", () => {
     const confirmar = vi.fn();
