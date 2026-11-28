@@ -5694,6 +5694,126 @@ export type Database = {
         }
         Relationships: []
       }
+      cxc_aperturas: {
+        Row: {
+          conciliado_en: string
+          conciliado_por: string
+          desde: string
+          evidencia: string
+          organization_id: string
+        }
+        Insert: {
+          conciliado_en?: string
+          conciliado_por: string
+          desde: string
+          evidencia: string
+          organization_id: string
+        }
+        Update: {
+          conciliado_en?: string
+          conciliado_por?: string
+          desde?: string
+          evidencia?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cxc_aperturas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cxc_cortes: {
+        Row: {
+          conciliado_en: string
+          conciliado_por: string
+          datos: Json
+          evidencia: string
+          fecha: string
+          fingerprint: string
+          id: string
+          organization_id: string
+          reabierto_en: string | null
+          revision: number
+        }
+        Insert: {
+          conciliado_en?: string
+          conciliado_por: string
+          datos: Json
+          evidencia: string
+          fecha: string
+          fingerprint: string
+          id: string
+          organization_id: string
+          reabierto_en?: string | null
+          revision: number
+        }
+        Update: {
+          conciliado_en?: string
+          conciliado_por?: string
+          datos?: Json
+          evidencia?: string
+          fecha?: string
+          fingerprint?: string
+          id?: string
+          organization_id?: string
+          reabierto_en?: string | null
+          revision?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cxc_cortes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "cxc_aperturas"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
+      cxc_versiones: {
+        Row: {
+          datos: Json | null
+          factura_id: string
+          fecha_efectiva: string
+          fuente: string
+          fuente_id: string
+          id: number
+          organization_id: string
+          registrada_en: string
+        }
+        Insert: {
+          datos?: Json | null
+          factura_id: string
+          fecha_efectiva: string
+          fuente: string
+          fuente_id: string
+          id?: never
+          organization_id: string
+          registrada_en?: string
+        }
+        Update: {
+          datos?: Json | null
+          factura_id?: string
+          fecha_efectiva?: string
+          fuente?: string
+          fuente_id?: string
+          id?: never
+          organization_id?: string
+          registrada_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cxc_versiones_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "cxc_aperturas"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
       demo_leads: {
         Row: {
           created_at: string
@@ -6164,6 +6284,82 @@ export type Database = {
           },
           {
             foreignKeyName: "embarque_facturas_entrantes_conceptos_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      embarque_fechas_entrega: {
+        Row: {
+          documento_archivo: string | null
+          documento_id: string | null
+          documento_nombre: string | null
+          embarque_id: string
+          estado: string
+          fecha_anterior: string | null
+          fecha_propuesta: string
+          id: string
+          motivo: string
+          motivo_resolucion: string | null
+          organization_id: string
+          resuelto_en: string | null
+          resuelto_por: string | null
+          solicitado_en: string
+          solicitado_por: string
+        }
+        Insert: {
+          documento_archivo?: string | null
+          documento_id?: string | null
+          documento_nombre?: string | null
+          embarque_id: string
+          estado: string
+          fecha_anterior?: string | null
+          fecha_propuesta: string
+          id: string
+          motivo: string
+          motivo_resolucion?: string | null
+          organization_id: string
+          resuelto_en?: string | null
+          resuelto_por?: string | null
+          solicitado_en?: string
+          solicitado_por: string
+        }
+        Update: {
+          documento_archivo?: string | null
+          documento_id?: string | null
+          documento_nombre?: string | null
+          embarque_id?: string
+          estado?: string
+          fecha_anterior?: string | null
+          fecha_propuesta?: string
+          id?: string
+          motivo?: string
+          motivo_resolucion?: string | null
+          organization_id?: string
+          resuelto_en?: string | null
+          resuelto_por?: string | null
+          solicitado_en?: string
+          solicitado_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "embarque_fechas_entrega_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_embarque"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "embarque_fechas_entrega_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "embarques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "embarque_fechas_entrega_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -11126,39 +11322,6 @@ export type Database = {
       }
     }
     Functions: {
-      activar_historial_cxc: { Args: { p_org: string; p_evidencia: string }; Returns: string }
-      consultar_apertura_cxc: { Args: { p_org: string }; Returns: string | null }
-      consultar_corte_cxc: { Args: { p_org: string; p_fecha: string }; Returns: Json }
-      previsualizar_corte_cxc: { Args: { p_org: string; p_fecha: string }; Returns: Json }
-      certificar_corte_cxc: {
-        Args: { p_org: string; p_fecha: string; p_fingerprint: string; p_evidencia: string; p_request_id: string }
-        Returns: string
-      }
-      entregar_embarque_con_fecha: {
-        Args: { p_embarque: string; p_fecha: string; p_tipo_evento: string; p_descripcion_evento: string; p_request_id: string }
-        Returns: Json
-      }
-      historial_fecha_entrega: {
-        Args: { p_embarque: string }
-        Returns: {
-          id: string
-          fecha_anterior: string | null
-          fecha_propuesta: string
-          motivo: string
-          documento_nombre: string | null
-          estado: string
-          solicitante: string
-          solicitado_en: string
-          responsable: string | null
-          resuelto_en: string | null
-          motivo_resolucion: string | null
-        }[]
-      }
-      solicitar_fecha_entrega: {
-        Args: { p_embarque: string; p_fecha: string; p_motivo: string; p_documento: string; p_request_id: string }
-        Returns: string
-      }
-      resolver_fecha_entrega: { Args: { p_solicitud: string; p_aprobar: boolean; p_motivo: string }; Returns: string }
       _asegurar_movimiento_pago_proveedor: {
         Args: { p_pago_id: string }
         Returns: string
@@ -11397,6 +11560,23 @@ export type Database = {
         }
         Returns: Json
       }
+      _cxc_calcular_corte: {
+        Args: { p_fecha: string; p_org: string }
+        Returns: Json
+      }
+      _cxc_dato_fuente: {
+        Args: { p_dato: Json; p_fuente: string }
+        Returns: Json
+      }
+      _cxc_fecha_fuente: {
+        Args: { p_dato: Json; p_fuente: string }
+        Returns: string
+      }
+      _cxc_filas_al_corte: {
+        Args: { p_fecha: string; p_org: string }
+        Returns: Json
+      }
+      _cxc_org_contador: { Args: { p_org: string }; Returns: string }
       _cxp_anchor_fase_o: { Args: never; Returns: undefined }
       _cxp_desvincular_por_rechazo: {
         Args: { p_id: string; p_motivo: string }
@@ -11439,6 +11619,10 @@ export type Database = {
           p_tipo_iva: string
         }
         Returns: Json
+      }
+      _fecha_entrega_efectiva: {
+        Args: { p_embarque: string; p_org: string }
+        Returns: string
       }
       _flete_unitario_revalidacion: {
         Args: {
@@ -11752,6 +11936,10 @@ export type Database = {
           subtotal: number
         }[]
       }
+      _validar_fecha_entrega: {
+        Args: { p_fecha: string; p_llegada: string }
+        Returns: undefined
+      }
       _venta_facturada_por_embarque: {
         Args: { p_org: string }
         Returns: {
@@ -11800,6 +11988,10 @@ export type Database = {
       aceptar_proforma_sin_autorizacion: {
         Args: { p_proforma_id: string }
         Returns: Json
+      }
+      activar_historial_cxc: {
+        Args: { p_evidencia: string; p_org: string }
+        Returns: string
       }
       actividad_embarque: {
         Args: { p_embarque_id: string }
@@ -12458,6 +12650,16 @@ export type Database = {
         Args: { p_comentario?: string; p_factura_id: string; p_motivo: string }
         Returns: string
       }
+      certificar_corte_cxc: {
+        Args: {
+          p_evidencia: string
+          p_fecha: string
+          p_fingerprint: string
+          p_org: string
+          p_request_id: string
+        }
+        Returns: string
+      }
       check_ratelimit: {
         Args: { p_key: string; p_max?: number; p_window_seconds?: number }
         Returns: Json
@@ -12649,6 +12851,11 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      consultar_apertura_cxc: { Args: { p_org: string }; Returns: string }
+      consultar_corte_cxc: {
+        Args: { p_fecha: string; p_org: string }
+        Returns: Json
       }
       convertir_a_mxn: {
         Args: {
@@ -13726,6 +13933,16 @@ export type Database = {
       }
       enmascarar_costos_jsonb: { Args: { p_in: Json }; Returns: Json }
       ensure_demo_membership: { Args: { _user_id: string }; Returns: undefined }
+      entregar_embarque_con_fecha: {
+        Args: {
+          p_descripcion_evento: string
+          p_embarque: string
+          p_fecha: string
+          p_request_id: string
+          p_tipo_evento: string
+        }
+        Returns: Json
+      }
       es_admin_catalogo: { Args: { _uid: string }; Returns: boolean }
       es_escritor_financiero: { Args: { _uid: string }; Returns: boolean }
       estado_cuenta_agregados: {
@@ -14151,6 +14368,22 @@ export type Database = {
           usuario_id: string
         }[]
       }
+      historial_fecha_entrega: {
+        Args: { p_embarque: string }
+        Returns: {
+          documento_nombre: string
+          estado: string
+          fecha_anterior: string
+          fecha_propuesta: string
+          id: string
+          motivo: string
+          motivo_resolucion: string
+          responsable: string
+          resuelto_en: string
+          solicitado_en: string
+          solicitante: string
+        }[]
+      }
       historial_proveedor_factura: {
         Args: { p_id: string }
         Returns: {
@@ -14475,6 +14708,10 @@ export type Database = {
       }
       prevalidar_emision_isr_factura: {
         Args: { p_factura_id: string }
+        Returns: Json
+      }
+      previsualizar_corte_cxc: {
+        Args: { p_fecha: string; p_org: string }
         Returns: Json
       }
       profit_por_cliente: {
@@ -15012,6 +15249,10 @@ export type Database = {
         Args: { _bl_master: string; _tipo_op: string }
         Returns: string
       }
+      resolver_fecha_entrega: {
+        Args: { p_aprobar: boolean; p_motivo: string; p_solicitud: string }
+        Returns: string
+      }
       resolver_porcentaje_comision: {
         Args: {
           p_cliente_id: string
@@ -15226,6 +15467,16 @@ export type Database = {
       solicitar_autorizacion_cotizacion: {
         Args: { p_id: string }
         Returns: Json
+      }
+      solicitar_fecha_entrega: {
+        Args: {
+          p_documento: string
+          p_embarque: string
+          p_fecha: string
+          p_motivo: string
+          p_request_id: string
+        }
+        Returns: string
       }
       solicitar_reaprobacion_tarifa: {
         Args: { p_cotizacion_id: string; p_delta_jsonb: Json }
