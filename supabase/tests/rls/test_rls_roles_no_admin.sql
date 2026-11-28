@@ -16,6 +16,9 @@
 
 BEGIN;
 
+-- CURRENT_DATE debe coincidir con la fecha de negocio de los cobros.
+SET LOCAL TIME ZONE 'America/Mexico_City';
+
 \i supabase/tests/rls/_helpers.sql
 
 

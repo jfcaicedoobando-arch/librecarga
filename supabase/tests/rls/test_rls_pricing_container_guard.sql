@@ -2,6 +2,9 @@
 -- Only test fixtures/temp helpers are created; never replace auth or public helpers.
 -- Execute only in CI's disposable PostgreSQL 17.9 database; all data rolls back.
 BEGIN;
+-- Keep fixture validity dates aligned with the Mexico business day.
+SET LOCAL TIME ZONE 'America/Mexico_City';
+
 \i supabase/tests/rls/_helpers.sql
 
 CREATE TEMP TABLE pricing_guard_fixture (
