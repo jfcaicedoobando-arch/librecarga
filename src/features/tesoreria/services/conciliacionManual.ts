@@ -16,12 +16,8 @@ export interface MovimientoManualPayload {
   abono: number;
   userId: string | null;
   /**
-   * N4 (v13.823.386): llave estable generada al ABRIR el diálogo. Antes el
-   * hash se generaba en cada llamada (`crypto.randomUUID()` dentro del
-   * servicio), así que un doble click o un reintento por red lenta creaba dos
-   * movimientos y duplicaba el dinero. Con la llave estable el índice único
-   * (cuenta + hash de movimientos vivos) rechaza el segundo intento y aquí se
-   * trata como éxito.
+   * Llave de la captura y sus reintentos. El índice único por cuenta y hash
+   * impide insertar dos veces el mismo movimiento.
    */
   claveIdempotencia?: string;
 }
@@ -56,7 +52,7 @@ export const MSG_MANUAL_LLAVE_REUSADA =
 
 export async function registrarMovimientoManual(
   input: MovimientoManualPayload,
-): Promise<void> {
+): Promise<"registrado" | "recuperado"> {
   const invalido = validarCargoAbono(input.cargo, input.abono);
   if (invalido) throw new Error(invalido);
   const hashDedupe = `manual-${input.claveIdempotencia ?? crypto.randomUUID()}`;
@@ -83,16 +79,15 @@ export async function registrarMovimientoManual(
       .is("deleted_at", null)
       .maybeSingle();
     if (existente) {
-      // MNY: sólo es "el mismo movimiento" si el contenido coincide. Antes se
-      // cerraba el diálogo como éxito aunque el reintento traía otra fecha,
-      // concepto o importe que nunca se guardaron.
+      // La referencia puede variar en el reintento. Se conserva la que quedó
+      // guardada y se cotejan la fecha, el concepto y los importes.
       const mismoContenido =
         existente.fecha === input.fecha &&
         existente.concepto === input.concepto &&
         Number(existente.cargo) === Number(input.cargo) &&
         Number(existente.abono) === Number(input.abono);
       if (!mismoContenido) throw new Error(MSG_MANUAL_LLAVE_REUSADA);
-      return;
+      return "recuperado";
     }
     throw error;
   }
@@ -109,6 +104,7 @@ export async function registrarMovimientoManual(
       hash_dedupe: hashDedupe,
     },
   });
+  return "registrado";
 }
 
 /**

@@ -12,6 +12,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: mock.supabase }));
 vi.mock("@/services/bitacora/registrar", () => ({ registrarActividad: vi.fn() }));
 
 import { registrarMovimientoManual } from "../conciliacionManual";
+import { registrarActividad } from "@/services/bitacora/registrar";
 
 const payload = {
   cuentaBancariaId: "c1",
@@ -27,17 +28,18 @@ describe("registrarMovimientoManual · idempotencia (N4)", () => {
   beforeEach(() => {
     mock.resetResults();
     mock.tableCalls.length = 0;
+    vi.mocked(registrarActividad).mockClear();
   });
 
   it("usa la llave estable recibida como hash de deduplicación", async () => {
     mock.setTableResult("bbva_movimientos", { data: [{ id: "m1" }], error: null });
-    await registrarMovimientoManual(payload);
+    await expect(registrarMovimientoManual(payload)).resolves.toBe("registrado");
     expect(mock.getMutationPayload("bbva_movimientos")).toMatchObject({
       hash_dedupe: "manual-clave-fija",
     });
   });
 
-  it("trata el conflicto de duplicado como éxito si el movimiento ya existe igual", async () => {
+  it("recupera el movimiento original al reintentar con otra referencia", async () => {
     // MNY: dos consultas a la misma tabla — primero el INSERT en conflicto y
     // luego el SELECT `.maybeSingle()`, que devuelve UN objeto (no un arreglo).
     mock.setTableResultOnce("bbva_movimientos", {
@@ -45,10 +47,11 @@ describe("registrarMovimientoManual · idempotencia (N4)", () => {
       error: { code: "23505", message: "duplicate key" },
     });
     mock.setTableResultOnce("bbva_movimientos", {
-      data: { id: "m1", fecha: payload.fecha, concepto: payload.concepto, cargo: 100, abono: 0 },
+      data: { id: "m1", fecha: payload.fecha, concepto: payload.concepto, referencia: "Original", cargo: 100, abono: 0 },
       error: null,
     });
-    await expect(registrarMovimientoManual(payload)).resolves.toBeUndefined();
+    await expect(registrarMovimientoManual({ ...payload, referencia: "Editada" })).resolves.toBe("recuperado");
+    expect(registrarActividad).not.toHaveBeenCalled();
   });
 
   it("MNY: avisa conflicto si la llave ya se usó con otro contenido", async () => {

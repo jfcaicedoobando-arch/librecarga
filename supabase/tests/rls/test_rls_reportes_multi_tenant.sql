@@ -15,6 +15,9 @@
 
 BEGIN;
 
+-- Usa el mismo día de negocio para los cobros y los cortes del reporte.
+SET LOCAL TIME ZONE 'America/Mexico_City';
+
 \i supabase/tests/rls/_helpers.sql
 
 -- OJO: `SELECT count(*) FROM (SELECT rpc(...)) _t` NO ejecuta la RPC — el
