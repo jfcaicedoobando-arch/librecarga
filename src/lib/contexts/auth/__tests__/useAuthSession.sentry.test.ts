@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 
 const sentryMock = vi.hoisted(() => ({ captureException: vi.fn() }));
-vi.mock("@sentry/react", () => sentryMock);
+vi.mock("@/lib/observability/captureExceptionOnce", () => ({ captureExceptionOnce: sentryMock.captureException }));
 
 const { mockSubscribe, mockGetSession } = vi.hoisted(() => ({
   mockSubscribe: vi.fn(() => ({ unsubscribe: vi.fn() })),

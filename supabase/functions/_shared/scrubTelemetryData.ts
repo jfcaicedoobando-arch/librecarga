@@ -3,7 +3,9 @@ import { scrubPii, scrubUrl } from "./piiScrub.ts";
 
 const PRIVATE_KEYS = new Set(["pass", "auth", "rfc", "curp", "email", "phone", "telefono", "ssn", "ipaddress",
   "taxid", "phonenumber", "pan", "cardnumber", "cvv", "clabe", "iban", "accountnumber",
-  "direccion", "domicilio", "address", "billingaddress", "firstname", "lastname", "customername", "contactname"]);
+  "direccion", "domicilio", "address", "billingaddress", "firstname", "lastname", "customername", "contactname",
+  "clientenombre", "nombrecliente", "proveedornombre", "nombreproveedor", "nombrereceptor", "nombreemisor",
+  "razonsocial", "organizationname", "pgdetails", "pghint"]);
 const UUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const MAX_DEPTH = 8;
 const MAX_NODES = 1000;

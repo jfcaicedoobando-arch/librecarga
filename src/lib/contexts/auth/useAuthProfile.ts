@@ -42,26 +42,9 @@ export function useAuthProfile(userId: string | null) {
     refetchOnWindowFocus: false,
     retry: 1,
     queryFn: async ({ queryKey }) => {
-      try {
-        const payload = await fetchUserContext();
-        if (!payload) {
-          // Paridad con la versión TTL: mantener el perfil previo si el
-          // contexto no está disponible transitoriamente (evita parpadeos y
-          // falsos "sin organización" durante eventos de auth).
-          return queryClient.getQueryData<AuthProfile>(queryKey) ?? EMPTY_PROFILE;
-        }
-
-        return payload;
-      } catch (err) {
-        // No envenenar el perfil: el listener de auth puede reintentar.
-        console.error("[useAuthProfile] fetchUserContext failed", err);
-        void import("@sentry/react")
-          .then(({ captureException }) =>
-            captureException(err, { tags: { feature: "auth", phase: "fetchUserContext" }, extra: { uid: userId } }),
-          )
-          .catch(() => undefined);
-        throw err;
-      }
+      const payload = await fetchUserContext();
+      // QueryCache reporta el fallo terminal tras agotar los reintentos.
+      return payload ?? queryClient.getQueryData<AuthProfile>(queryKey) ?? EMPTY_PROFILE;
     },
   });
 

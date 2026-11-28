@@ -2,12 +2,18 @@ import { invalidateSessionCacheEntries } from "@/lib/auth/sessionCacheRegistry";
 import { QueryClient, QueryCache, MutationCache } from "@tanstack/react-query";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { getStorageRef, STORAGE_KEYS } from "@/lib/browserStorage";
+import { reportCaughtError } from "@/lib/observability/reportCaughtError";
 import { reportQueryError, notifyQueryFailure, rootOf, opOf } from "./queryErrorReporting";
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (err, query) => {
-      reportQueryError(err, "query", rootOf(query.queryKey), { queryKey: query.queryKey });
+      const [root, operation] = query.queryKey;
+      if (root === "auth" && operation === "user-context") {
+        reportCaughtError(err, { feature: "auth", phase: "fetchUserContext" });
+      } else {
+        reportQueryError(err, "query", rootOf(query.queryKey), { queryKey: query.queryKey });
+      }
       notifyQueryFailure(err, query, (queryKey) => {
         void queryClient.refetchQueries({ queryKey });
       });

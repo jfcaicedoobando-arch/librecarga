@@ -1,32 +1,40 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import * as Sentry from '@sentry/react';
 
 vi.mock('@sentry/react', () => ({
   getClient: vi.fn(),
+  isEnabled: vi.fn(),
 }));
 
 import { useSentryInfo, maskDsn } from '../useSentryInfo';
 
 const getClientMock = vi.mocked(Sentry.getClient);
+const enabledMock = vi.mocked(Sentry.isEnabled);
 
 describe('useSentry Hooks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    enabledMock.mockImplementation(() => Boolean(getClientMock()));
   });
+
+  afterEach(() => vi.unstubAllEnvs());
 
   it('useSentryInfo returns client options', () => {
     getClientMock.mockReturnValue({
-      getOptions: () => ({ dsn: 'https://key@host/123', release: '1.0', environment: 'prod' }),
+      getOptions: () => ({ dsn: 'https://key@host/123', release: '1.0', environment: 'prod', tracesSampler: () => 0.1 }),
     } as never);
 
     const { result } = renderHook(() => useSentryInfo());
     expect(result.current.active).toBe(true);
     expect(result.current.status).toBe('active');
     expect(result.current.environment).toBe('prod');
+    expect(result.current.traceSampling).toBe('Por ruta');
   });
 
   it('detecta al cliente cuando aparece después del primer render (carga diferida)', async () => {
+    vi.stubEnv("MODE", "production");
+    vi.stubEnv("VITE_SENTRY_DSN", "https://test@mock.invalid/1");
     getClientMock.mockReturnValue(undefined as never);
     const { result } = renderHook(() => useSentryInfo());
     expect(result.current.active).toBe(false);
@@ -51,6 +59,16 @@ describe('useSentry Hooks', () => {
     if (result.current.status === 'pending') {
       expect(result.current.dsnConfigured).toBe(true);
     }
+  });
+
+  it('keeps a client without transport inactive', () => {
+    vi.stubEnv("MODE", "production");
+    vi.stubEnv("VITE_SENTRY_DSN", "invalid");
+    enabledMock.mockReturnValue(false);
+    getClientMock.mockReturnValue({ getOptions: () => ({ dsn: "invalid" }) } as never);
+    const { result } = renderHook(() => useSentryInfo());
+    expect(result.current.active).toBe(false);
+    expect(result.current.status).toBe("unavailable");
   });
 
   it('maskDsn hides sensitive part of DSN', () => {

@@ -32,4 +32,11 @@ if [ -n "$REFS" ]; then
   exit 1
 fi
 
-echo "✓ Sourcemaps OK: ningún .map ni referencia sourceMappingURL en $DIST_DIR"
+# Verificar el JS que carga index.html, incluso cuando CI compila sin token.
+MAIN_JS=$(sed -nE 's|.*<script[^>]*src="/?(assets/[^"]+\.js)"[^>]*>.*|\1|p' "$DIST_DIR/index.html")
+if [ -z "$MAIN_JS" ] || ! grep -qE '_sentryDebugIds|_sentryDebugIdIdentifier|sentry-dbid-' "$DIST_DIR/$MAIN_JS"; then
+  echo "::error::El bundle de entrada debe incluir un Debug ID de Sentry."
+  exit 1
+fi
+
+echo "✓ Sourcemaps OK: Debug ID de entrada presente y mapas privados"

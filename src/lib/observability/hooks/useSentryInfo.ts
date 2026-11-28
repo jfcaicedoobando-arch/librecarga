@@ -11,7 +11,7 @@
 import { useEffect, useState } from "react";
 import * as Sentry from "@sentry/react";
 
-export type SentryStatus = "active" | "disabled_dev" | "missing_dsn" | "pending";
+export type SentryStatus = "active" | "disabled_dev" | "missing_dsn" | "pending" | "unavailable";
 
 export interface SentryRuntimeInfo {
   active: boolean;
@@ -21,35 +21,34 @@ export interface SentryRuntimeInfo {
   dsn: string | undefined;
   release: string | undefined;
   environment: string | undefined;
-  tracesSampleRate: number | undefined;
+  traceSampling: string;
 }
 
 /** Intervalo y tope del poll: cubre la carga diferida sin girar indefinidamente. */
 const POLL_MS = 300;
 const MAX_ATTEMPTS = 20; // ~6 s
 
-const DSN_CONFIGURED = Boolean(
-  (import.meta.env.VITE_SENTRY_DSN as string | undefined) ?? "",
-);
-const IS_DEV = import.meta.env.MODE === "development";
-
 function readSnapshot(attempt: number): SentryRuntimeInfo {
+  const dsnConfigured = Boolean(import.meta.env.VITE_SENTRY_DSN);
+  const isDev = import.meta.env.MODE === "development";
   const client = Sentry.getClient();
   const options = client?.getOptions();
+  const active = Sentry.isEnabled();
   let status: SentryStatus;
-  if (client) status = "active";
-  else if (IS_DEV) status = "disabled_dev";
-  else if (!DSN_CONFIGURED) status = "missing_dsn";
-  else status = attempt >= MAX_ATTEMPTS ? "missing_dsn" : "pending";
+  if (active) status = "active";
+  else if (isDev) status = "disabled_dev";
+  else if (!dsnConfigured) status = "missing_dsn";
+  else status = client || attempt >= MAX_ATTEMPTS ? "unavailable" : "pending";
 
   return {
-    active: Boolean(client),
+    active,
     status,
-    dsnConfigured: DSN_CONFIGURED,
+    dsnConfigured,
     dsn: options?.dsn,
     release: options?.release,
     environment: options?.environment,
-    tracesSampleRate: options?.tracesSampleRate,
+    traceSampling: options?.tracesSampler ? "Por ruta"
+      : options?.tracesSampleRate === undefined ? "—" : `${options.tracesSampleRate * 100}%`,
   };
 }
 
@@ -57,16 +56,16 @@ export function useSentryInfo(): SentryRuntimeInfo {
   const [info, setInfo] = useState<SentryRuntimeInfo>(() => readSnapshot(0));
 
   useEffect(() => {
-    if (info.active) return;
+    if (info.status !== "pending") return;
     let attempt = 0;
     const id = setInterval(() => {
       attempt += 1;
       const next = readSnapshot(attempt);
       setInfo(next);
-      if (next.active || attempt >= MAX_ATTEMPTS) clearInterval(id);
+      if (next.status !== "pending") clearInterval(id);
     }, POLL_MS);
     return () => clearInterval(id);
-  }, [info.active]);
+  }, [info.status]);
 
   return info;
 }

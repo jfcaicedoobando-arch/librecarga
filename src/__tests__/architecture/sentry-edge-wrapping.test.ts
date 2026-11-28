@@ -49,6 +49,7 @@ const CRITICAL = [
   "supabase/functions/rep-retry-nocturno/index.ts",
   // 13.301.0 — Reconciliación async de cancelaciones CFDI (cron 30 min)
   "supabase/functions/facturapi-reconciliar-cancelaciones/index.ts",
+  "supabase/functions/tc-dof-diario/index.ts",
   // 13.301.11 — Consulta en vivo + reconciliación puntual de una factura
   "supabase/functions/facturapi-consultar/index.ts",
   // 13.594.7 — Consulta puntual de REP timbrado (sincronización manual)
@@ -74,16 +75,16 @@ const CRITICAL = [
 ];
 
 describe("Edge functions críticas envueltas con wrapEdgeHandler", () => {
-  it.each(CRITICAL)("%s usa Deno.serve(wrapEdgeHandler(...))", (rel) => {
+  it.each(CRITICAL)("%s usa el wrapper compartido en Deno.serve", (rel) => {
     const full = path.join(ROOT, rel);
     expect(fs.existsSync(full), `Falta archivo ${rel}`).toBe(true);
     const src = fs.readFileSync(full, "utf-8");
 
     // 1) Importa el wrapper desde el shared.
     expect(src).toMatch(/from\s+["']\.\.\/_shared\/sentry\.ts["']/);
-    expect(src).toMatch(/import\s+\{[^}]*wrapEdgeHandler[^}]*\}/);
+    expect(src).toMatch(/import\s+\{[^}]*(?:wrapEdgeHandler|withCronMonitor)[^}]*\}/);
 
     // 2) El handler se monta a través de wrapEdgeHandler(fnName, ...).
-    expect(src).toMatch(/Deno\.serve\(\s*wrapEdgeHandler\(/);
+    expect(src).toMatch(/Deno\.serve\(\s*(?:wrapEdgeHandler|withCronMonitor)\(/);
   });
 });

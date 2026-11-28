@@ -173,12 +173,41 @@ Deno.test({ name: "Sentry: offline real SDK contracts",
       await new Promise((resolve) => setTimeout(resolve, 60));
     });
 
+    await t.step("Edge background delivery does not delay the HTTP response", async () => {
+      const hold = { entered: deferred(), release: deferred() };
+      harness.holdNextSend(hold);
+      const pending: Promise<unknown>[] = [];
+      const previous = Object.getOwnPropertyDescriptor(globalThis, "EdgeRuntime");
+      Object.defineProperty(globalThis, "EdgeRuntime", {
+        configurable: true,
+        value: { waitUntil: (task: Promise<unknown>) => pending.push(task) },
+      });
+      try {
+        const wrapped = wrapEdgeHandler("background", () => new Response("ok"));
+        const response = await wrapped(new Request("https://mock.invalid/background", {
+          headers: { "sentry-trace": `${"1".repeat(32)}-${"2".repeat(16)}-1` },
+        }));
+        assertEquals(response.status, 200);
+        await hold.entered.promise;
+        assertEquals(pending.length, 1);
+      } finally {
+        hold.release.resolve();
+        await Promise.all(pending);
+        if (previous) Object.defineProperty(globalThis, "EdgeRuntime", previous);
+        else Reflect.deleteProperty(globalThis, "EdgeRuntime");
+      }
+    });
+
     await t.step("cron allowlist, paired check-ins and terminal delivery preserve HTTP/throw behavior", async () => {
       const config = { schedule: { type: "interval" as const, value: 1, unit: "hour" as const } };
       const beforeDisabled = payloads(delivered).filter((p) => p.monitor_slug).length;
       const disabled = await withCronMonitor("disabled", "not-enabled", () => new Response("skip", { status: 202 }),
         config)(new Request("https://mock.invalid/cron"));
       assertEquals(disabled.status, 202);
+      assertEquals(payloads(delivered).filter((p) => p.monitor_slug).length, beforeDisabled);
+      const rejected = await withCronMonitor("cron", "mock-cron", () => new Response(null, { status: 401 }),
+        { ...config, shouldCheckIn: () => false })(new Request("https://mock.invalid/cron"));
+      assertEquals(rejected.status, 401);
       assertEquals(payloads(delivered).filter((p) => p.monitor_slug).length, beforeDisabled);
       for (const terminal of ["ok", "error", "throw"] as const) {
         const before = delivered.length;

@@ -17,8 +17,7 @@
  * `reportCaughtError` agrega siempre:
  *   - tags: organization_id, effective_role, route, app_version, error_kind,
  *     pg_code (cuando aplica).
- *   - contexts: payload sanitizado, pg_hint, pg_details, organization_name,
- *     request_id.
+ *   - extra: contexto sanitizado de la operación y request_id.
  *
  * 13.141.8 — auditoría Sentry.
  */
@@ -26,7 +25,7 @@ import { classifyError } from "./classifyError";
 import { getErrorContext } from "./errorContextStore";
 import { sanitizePayload } from "./sanitizePayload";
 import { isExpectedTelemetryError } from "./expectedTelemetryError";
-import { captureExceptionOnce, toTelemetryError } from "./captureExceptionOnce";
+import { captureExceptionOnce } from "./captureExceptionOnce";
 import { scrubTelemetryData } from "./scrubTelemetryData";
 
 export interface ReportTags {
@@ -48,15 +47,6 @@ export interface ReportExtra {
 }
 
 
-/** Convierte cualquier `unknown` en un Error real para que Sentry
- *  agrupe por mensaje en vez de mostrar el título minificado
- *  "Object captured as exception with keys". */
-function toError(err: unknown): { error: Error; original: unknown } {
-  if (err instanceof Error) return { error: err, original: undefined };
-  return { error: toTelemetryError(err), original: err };
-}
-
-
 function buildEnrichedTags(
   tags: ReportTags,
   ctx: ReturnType<typeof getErrorContext>,
@@ -74,18 +64,13 @@ function buildEnrichedTags(
   return scrubTelemetryData(enriched) as Record<string, string>;
 }
 
-function buildEnrichedExtra(
-  extra: ReportExtra | undefined,
-  ctx: ReturnType<typeof getErrorContext>,
-  classified: ReturnType<typeof classifyError>,
-): Record<string, unknown> {
-  const enriched: Record<string, unknown> = { ...(extra ?? {}) };
-  if (extra && "payload" in extra && extra.payload !== undefined) {
-    enriched.payload = sanitizePayload(extra.payload);
+function buildEnrichedExtra(extra: ReportExtra | undefined, dbError: boolean): Record<string, unknown> {
+  if (dbError) {
+    const id = extra?.requestId;
+    return typeof id === "string" && /^[a-f0-9-]{16,64}$/i.test(id) ? { requestId: id } : {};
   }
-  if (classified.pgHint) enriched.pg_hint = classified.pgHint;
-  if (classified.pgDetails) enriched.pg_details = classified.pgDetails;
-  if (ctx.organizationName) enriched.organization_name = ctx.organizationName;
+  const enriched: Record<string, unknown> = { ...(extra ?? {}) };
+  if (extra?.payload !== undefined) enriched.payload = sanitizePayload(extra.payload);
   return enriched;
 }
 
@@ -108,12 +93,9 @@ export function reportCaughtError(
   if (!forceReport && (isExpectedTelemetryError(err) || isExpectedTelemetryError(source))) return;
 
   const enrichedTags = buildEnrichedTags(tags, ctx, classified);
-  const enrichedExtra = buildEnrichedExtra(extra, ctx, classified);
+  const enrichedExtra = buildEnrichedExtra(extra, Boolean(classified.pgCode));
 
-  const { error, original } = toError(err);
-  if (original !== undefined) enrichedExtra.original = original;
-
-  void captureExceptionOnce(error, {
+  void captureExceptionOnce(err, {
     tags: enrichedTags,
     extra: scrubTelemetryData(enrichedExtra) as typeof enrichedExtra,
     ...(level ? { level } : {}),

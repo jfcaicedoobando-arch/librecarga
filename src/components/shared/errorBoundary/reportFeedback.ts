@@ -86,15 +86,6 @@ export async function openReportFeedback(
     logger.warn("ErrorBoundary.feedback.widgetFailed", { err: String(err) });
   }
 
-  try {
-    if (eventId && typeof Sentry.showReportDialog === "function") {
-      Sentry.showReportDialog({ eventId });
-      return;
-    }
-  } catch (err) {
-    logger.warn("ErrorBoundary.feedback.dialogFailed", { err: String(err) });
-  }
-
   if (eventId) {
     notifyError(undefined, {
       title: "No se pudo abrir el formulario de reporte",

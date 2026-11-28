@@ -1,19 +1,52 @@
 import { describe, expect, it } from "vitest";
+import { BrowserClient, Scope, captureFeedback } from "@sentry/react";
+import { serializeEnvelope } from "@sentry/core";
+import { scrubFeedbackEvent } from "../feedbackConfig";
 import type { StreamedSpanJSON } from "@sentry/core";
 import { scrubEventPii } from "../helpers";
 import { scrubSpanPii } from "../spanPrivacy";
 import { scrubTelemetryData } from "../../scrubTelemetryData";
 
 describe("Sentry manual metadata privacy", () => {
+  it("redacts feedback and strips attachments in the real SDK envelope", async () => {
+    const sent: string[] = [];
+    const client = new BrowserClient({
+      dsn: "https://mock@mock.invalid/1", integrations: [], stackParser: () => [],
+      transport: () => ({
+        send: async (envelope) => {
+          const data = serializeEnvelope(envelope);
+          sent.push(typeof data === "string" ? data : new TextDecoder().decode(data));
+          return { statusCode: 200 };
+        },
+        flush: async () => true,
+      }),
+    });
+    const scope = new Scope();
+    scope.setClient(client);
+    client.init();
+    client.addEventProcessor(scrubFeedbackEvent);
+
+    captureFeedback({
+      message: "Validar mock@example.invalid y RFC xaxx010101000",
+      name: "Nombre ficticio", email: "mock@example.invalid",
+    }, { attachments: [{ filename: "sensitive.png", data: "mock attachment" }] }, scope);
+
+    await client.flush(1000);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toContain("Validar [EMAIL] y RFC [RFC]");
+    expect(sent[0]).not.toMatch(/mock@example.invalid|Nombre ficticio|sensitive\.png|mock attachment/i);
+    await client.close();
+  });
+
   it("cleans extra, contexts, cause metadata and camelCase credentials", () => {
     const out = scrubEventPii({
       type: undefined,
-      extra: { original: { accessToken: "MOCK_TOKEN", customerEmail: "mock@example.invalid" },
+      extra: { original: { accessToken: "MOCK_TOKEN", customerEmail: "mock@example.invalid", cliente_nombre: "Cliente ficticio" },
         queryKey: ["clientes", { filter: "RFC XAXX010101000 / mock@example.invalid" }] },
       contexts: { Error: { details: "mock@example.invalid", cause: { apiKey: "MOCK_API_KEY" } } },
     });
     const json = JSON.stringify(out);
-    expect(json).not.toMatch(/MOCK_TOKEN|MOCK_API_KEY|mock@example.invalid|XAXX010101000/);
+    expect(json).not.toMatch(/MOCK_TOKEN|MOCK_API_KEY|mock@example.invalid|XAXX010101000|Cliente ficticio/);
     expect(json).toContain("clientes");
   });
 

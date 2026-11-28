@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { serializeEnvelope } from "@sentry/core";
-import { handleEnvelopeRequest } from "../../../../../supabase/functions/sentry-tunnel/index";
+import { handleEnvelopeRequest } from "../../../../../supabase/functions/sentry-tunnel/handler";
 import { leerEnvelopeAcotado, MAX_ENVELOPE_BYTES } from "../../../../../supabase/functions/sentry-tunnel/envelope";
 
 const envelope = () => serializeEnvelope([
@@ -58,9 +58,14 @@ describe("Sentry binary tunnel contract", () => {
   });
 
   it("returns a safe gateway error when the upstream aborts", async () => {
+    const log = vi.spyOn(console, "info").mockImplementation(() => undefined);
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new DOMException("mock timeout", "TimeoutError")));
     const response = await handleEnvelopeRequest(request(envelope() as BodyInit));
     expect(response.status).toBe(502);
     expect(await response.text()).toBe('{"error":"tunnel_failed"}');
+    expect(JSON.parse(log.mock.calls[0][0])).toEqual({
+      fn: "sentry-tunnel", outcome: "tunnel_failed", status: 502, latency_ms: expect.any(Number),
+    });
+    log.mockRestore();
   });
 });

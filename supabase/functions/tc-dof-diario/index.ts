@@ -14,14 +14,12 @@ import { createClient } from "npm:@supabase/supabase-js@2.119.2";
 import { timingSafeEqual } from "../_shared/timingSafe.ts";
 import { buildCors, handlePreflightStrict } from "../_shared/cors.ts";
 import { createLogger } from "../_shared/logger.ts";
-import { initSentryEdge, captureEdgeException } from "../_shared/sentry.ts";
+import { withCronMonitor, captureEdgeException } from "../_shared/sentry.ts";
 import {
   fetchEurBanxico,
   fetchUsdDof,
   isoDiaMexico,
 } from "../_shared/banxicoDof.ts";
-
-initSentryEdge("tc-dof-diario");
 
 const FETCH_TIMEOUT_MS = 10_000;
 const MAX_DIAS_BACKFILL = 90;
@@ -85,7 +83,7 @@ export async function construirRegistro(
   };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(withCronMonitor("tc-dof-diario", "tc-dof-diario", async (req) => {
   const preflight = handlePreflightStrict(req);
   if (preflight) return preflight;
   const corsHeaders = buildCors(req);
@@ -154,4 +152,9 @@ Deno.serve(async (req) => {
   } finally {
     clearTimeout(timer);
   }
-});
+}, {
+  schedule: { type: "crontab", value: "5 13 * * *" },
+  timezone: "UTC",
+  shouldCheckIn: (req) => req.method !== "OPTIONS" &&
+    checkCronSecret(Deno.env.get("CRON_SECRET"), req.headers.get("X-Cron-Secret")),
+}));

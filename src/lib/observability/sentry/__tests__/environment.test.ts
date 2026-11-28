@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const sentryMock = vi.hoisted(() => ({
   init: vi.fn(),
-  getClient: vi.fn(() => ({})),
+  getClient: vi.fn(() => ({ addEventProcessor: vi.fn() })),
   isEnabled: vi.fn(() => true),
   setTag: vi.fn(),
   reactRouterV7BrowserTracingIntegration: vi.fn(() => ({ name: "tracing" })),

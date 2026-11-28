@@ -1,5 +1,10 @@
 # Changelog
 
+## [13.824.113] - 2026-11-28
+
+- **Monitoreo.** El feedback y los errores de base de datos filtran información sensible. El diagnóstico distingue configuración, transporte y muestreo por ruta.
+- **Operación.** Los crons de tipo de cambio y cancelaciones reportan su ejecución. El túnel registra resultados técnicos y las funciones Edge envían telemetría en segundo plano.
+
 ## [13.824.112] - 2026-11-28
 
 - **Operaciones.** La fecha efectiva de entrega se captura al entregar y se corrige con evidencia y aprobación. Rentabilidad por cliente usa la fecha efectiva como periodo.
