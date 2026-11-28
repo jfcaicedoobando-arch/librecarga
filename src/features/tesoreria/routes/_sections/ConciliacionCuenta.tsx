@@ -49,9 +49,8 @@ export function ConciliacionCuenta({ cuentaId: cuentaSolicitada, cambiarCuenta }
   const [manualForm, setManualForm] = useState<Partial<MovimientoManualInput>>({
     tipo: "cargo",
   });
-  // N4 + MNY: llave ligada al CONTENIDO del movimiento. Doble click o reintento
-  // por red lenta reutilizan la misma llave y no duplican el movimiento; si el
-  // usuario edita fecha, concepto o importe, la llave cambia.
+  // La referencia es descriptiva. Incluso si cambia al reintentar, se conserva
+  // la llave del cargo o abono original dentro de esta captura.
   const claveManual = usePayloadRequestId();
 
   const { data: movs = [], isLoading, isError: movsError, refetch: refetchMovs } = useMovimientos(cuentaId ? { cuenta_bancaria_id: cuentaId, estado } : null);
@@ -72,9 +71,9 @@ export function ConciliacionCuenta({ cuentaId: cuentaSolicitada, cambiarCuenta }
   const setManualField = <K extends keyof MovimientoManualInput>(key: K, value: MovimientoManualInput[K]) =>
     setManualForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleGuardarManual = async () => {
+  const handleGuardarManual = () => {
     const { cuentaBancariaId, fecha, concepto, referencia, tipo, monto } = manualForm as MovimientoManualInput;
-    await registrarManual.mutateAsync({
+    registrarManual.mutate({
       cuentaBancariaId,
       fecha,
       concepto,
@@ -82,11 +81,14 @@ export function ConciliacionCuenta({ cuentaId: cuentaSolicitada, cambiarCuenta }
       cargo: tipo === "cargo" ? monto : 0,
       abono: tipo === "abono" ? monto : 0,
       claveIdempotencia: claveManual.get(
-        scopeDePayload([cuentaBancariaId, fecha, concepto, referencia, tipo, monto]),
+        scopeDePayload([cuentaBancariaId, fecha, concepto, tipo, monto]),
       ),
+    }, {
+      onSuccess: () => {
+        claveManual.reset();
+        setManualOpen(false);
+      },
     });
-    claveManual.reset();
-    setManualOpen(false);
   };
 
   const pendientesCount = movs.filter((m) => m.estado_conciliacion === "Pendiente").length;

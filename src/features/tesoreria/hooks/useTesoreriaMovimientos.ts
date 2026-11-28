@@ -14,6 +14,7 @@ import {
 import type { MovimientoParseado } from "@/features/tesoreria/domain/import/bbva";
 import type { FilaRevisionImportacion } from "@/features/tesoreria/domain/import/revisionImportacion";
 import { useMutationWithFeedback } from "@/hooks/shared";
+import { notifySuccess } from "@/lib/ui/appFeedback";
 
 export function useMovimientos(filtros: FiltrosMovimientos | null) {
   return useQuery({
@@ -112,7 +113,11 @@ export function useRegistrarMovimientoManual() {
     mutationFn: (v: Omit<MovimientoManualPayload, "userId">) =>
       registrarMovimientoManual({ ...v, userId: user?.id ?? null }),
     invalidate: queryKeys.tesoreria.all,
-    successTitle: "Movimiento registrado",
+    onSuccess: (resultado) => {
+      notifySuccess(undefined, resultado === "recuperado"
+        ? { title: "Movimiento recuperado", description: "Se conservó la referencia del registro original." }
+        : { title: "Movimiento registrado" });
+    },
     errorTitle: "Error al registrar movimiento",
     errorMethod: "REGISTRAR_MOVIMIENTO_MANUAL",
   });

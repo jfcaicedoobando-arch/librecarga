@@ -37,6 +37,7 @@ const mockUseConciliacionResumen = vi.fn();
 const mockUseMovimientos = vi.fn();
 const mockUseImportarMovimientos = vi.fn();
 const mockUseConciliarPago = vi.fn();
+const mockRegistrarManual = vi.fn();
 
 vi.mock("@/features/tesoreria/hooks", () => ({
   useCuentasBancarias: () => mockUseCuentasBancarias(),
@@ -44,7 +45,7 @@ vi.mock("@/features/tesoreria/hooks", () => ({
   useMovimientos: (filtros: unknown) => mockUseMovimientos(filtros),
   useImportarMovimientos: () => mockUseImportarMovimientos(),
   useConciliarPago: () => mockUseConciliarPago(),
-  useRegistrarMovimientoManual: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
+  useRegistrarMovimientoManual: () => ({ mutate: mockRegistrarManual, isPending: false }),
   useConciliacionResumen: (...args: unknown[]) => mockUseConciliacionResumen(...args),
 }));
 
@@ -115,6 +116,7 @@ describe("TesoreriaConciliacion — VirtualDataTable (P3)", () => {
     mockUseMovimientos.mockReturnValue({ data: movimientos, isLoading: false });
     mockUseImportarMovimientos.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
     mockUseConciliarPago.mockReturnValue({ mutateAsync: vi.fn() });
+    mockRegistrarManual.mockReset();
     mockUseConciliacionResumen.mockReturnValue({
       data: {
         total_movimientos: 2, pendientes: 1, conciliados: 1, ignorados: 0,
@@ -177,6 +179,37 @@ describe("TesoreriaConciliacion — VirtualDataTable (P3)", () => {
     expect(screen.getByText("Abono")).toBeInTheDocument();
     expect(screen.getByText("Estado")).toBeInTheDocument();
     expect(screen.getByText(/2 movimientos · Principal/)).toBeInTheDocument();
+  });
+
+  it("reusa la llave del cargo si solo cambia la referencia tras un guardado incierto", () => {
+    renderPage();
+    seleccionarCuenta();
+    const abrir = screen.getByRole("button", { name: "Movimiento manual" });
+    const llenar = (referencia: string) => {
+      fireEvent.click(abrir);
+      const dialogo = within(screen.getByRole("dialog", { name: "Registrar movimiento manual" }));
+      fireEvent.change(dialogo.getByRole("textbox", { name: /Fecha/ }), { target: { value: "10/09/2026" } });
+      fireEvent.change(dialogo.getByRole("textbox", { name: /Concepto/ }), { target: { value: "Comisión" } });
+      fireEvent.change(dialogo.getByRole("textbox", { name: /Importe/ }), { target: { value: "4.25" } });
+      const campoReferencia = dialogo.getByRole("textbox", { name: "Referencia" });
+      fireEvent.change(campoReferencia, { target: { value: referencia } });
+      return { campoReferencia, guardar: dialogo.getByRole("button", { name: "Guardar" }) };
+    };
+
+    const { campoReferencia, guardar } = llenar("Original");
+    // El primer guardado quedó incierto, por lo que no se ejecuta onSuccess.
+    fireEvent.click(guardar);
+    const primerEnvio = mockRegistrarManual.mock.calls[0][0];
+    expect(primerEnvio).toMatchObject({ referencia: "Original", cargo: 4.25 });
+
+    mockRegistrarManual.mockImplementationOnce((_payload, opciones) => opciones.onSuccess());
+    fireEvent.change(campoReferencia, { target: { value: "Editada" } });
+    fireEvent.click(guardar);
+    expect(mockRegistrarManual.mock.lastCall?.[0]).toEqual({ ...primerEnvio, referencia: "Editada" });
+    expect(screen.queryByRole("dialog", { name: "Registrar movimiento manual" })).not.toBeInTheDocument();
+
+    fireEvent.click(llenar("Otro cargo").guardar);
+    expect(mockRegistrarManual.mock.lastCall?.[0].claveIdempotencia).not.toBe(primerEnvio.claveIdempotencia);
   });
 
   it("el panel de conciliación arranca sin selección (setSel sigue disponible como onRowClick)", () => {

@@ -1,5 +1,9 @@
 # Changelog
 
+## [13.824.111] - 2026-11-27
+
+- **Tesorería.** Si se pierde la confirmación de un movimiento manual, el reintento recupera el registro original aunque se haya cambiado la referencia.
+
 ## [13.824.110] - 2026-11-27
 
 - **Embarques.** El aviso de guardado de una nota se muestra únicamente en la organización donde se inició el envío.
