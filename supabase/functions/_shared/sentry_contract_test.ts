@@ -24,6 +24,31 @@ import { assertConcurrentReports, createSentryContractHarness, deferred, payload
 
 // No --allow-net is needed. Use Sentry's actual envelope/buffer transport with
 // an in-memory request executor; never replace fetch, Deno.serve, or OTEL APIs.
+async function assertEdgeBackgroundDelivery(harness: Awaited<ReturnType<typeof createSentryContractHarness>>) {
+  const hold = { entered: deferred(), release: deferred() };
+  harness.holdNextSend(hold);
+  const pending: Promise<unknown>[] = [];
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "EdgeRuntime");
+  Object.defineProperty(globalThis, "EdgeRuntime", {
+    configurable: true,
+    value: { waitUntil: (task: Promise<unknown>) => pending.push(task) },
+  });
+  try {
+    const wrapped = wrapEdgeHandler("background", () => new Response("ok"));
+    const response = await wrapped(new Request("https://mock.invalid/background", {
+      headers: { "sentry-trace": `${"1".repeat(32)}-${"2".repeat(16)}-1` },
+    }));
+    assertEquals(response.status, 200);
+    await hold.entered.promise;
+    assertEquals(pending.length, 1);
+  } finally {
+    hold.release.resolve();
+    await Promise.all(pending);
+    if (previous) Object.defineProperty(globalThis, "EdgeRuntime", previous);
+    else Reflect.deleteProperty(globalThis, "EdgeRuntime");
+  }
+}
+
 Deno.test({ name: "Sentry: offline real SDK contracts",
   permissions: { net: false, env: "inherit", read: "inherit" }, fn: async (t) => {
   const harness = await createSentryContractHarness();
@@ -77,6 +102,17 @@ Deno.test({ name: "Sentry: offline real SDK contracts",
       assert(!/MOCK_EXCEPTION_TOKEN|MOCK_EXCEPTION_ACCESS|mock@example.invalid|XAXX010101000/.test(JSON.stringify(event)),
         "Error event includes sensitive synthetic data");
       assert(captured.value?.includes("Bearer [REDACTED]"));
+    });
+
+    await t.step("database errors omit raw row details and retain their code", async () => {
+      await captureEdgeException({
+        code: "22P02", message: "fila privada MOCK_ROW_NAME", details: "MOCK_PRIVATE_DETAILS",
+      }, { fn: "db-error", extra: { payload: "MOCK_EXTRA_ROW" } });
+      const event = payloads(delivered).find((item) => item.tags?.fn === "db-error");
+      assert(event);
+      const serialized = JSON.stringify(event);
+      assert(serialized.includes("22P02"));
+      assert(!/MOCK_ROW_NAME|MOCK_PRIVATE_DETAILS|MOCK_EXTRA_ROW/.test(serialized));
     });
 
     await t.step("overlapping requests retain separate tags, traces and child parents", async () => {
@@ -173,30 +209,7 @@ Deno.test({ name: "Sentry: offline real SDK contracts",
       await new Promise((resolve) => setTimeout(resolve, 60));
     });
 
-    await t.step("Edge background delivery does not delay the HTTP response", async () => {
-      const hold = { entered: deferred(), release: deferred() };
-      harness.holdNextSend(hold);
-      const pending: Promise<unknown>[] = [];
-      const previous = Object.getOwnPropertyDescriptor(globalThis, "EdgeRuntime");
-      Object.defineProperty(globalThis, "EdgeRuntime", {
-        configurable: true,
-        value: { waitUntil: (task: Promise<unknown>) => pending.push(task) },
-      });
-      try {
-        const wrapped = wrapEdgeHandler("background", () => new Response("ok"));
-        const response = await wrapped(new Request("https://mock.invalid/background", {
-          headers: { "sentry-trace": `${"1".repeat(32)}-${"2".repeat(16)}-1` },
-        }));
-        assertEquals(response.status, 200);
-        await hold.entered.promise;
-        assertEquals(pending.length, 1);
-      } finally {
-        hold.release.resolve();
-        await Promise.all(pending);
-        if (previous) Object.defineProperty(globalThis, "EdgeRuntime", previous);
-        else Reflect.deleteProperty(globalThis, "EdgeRuntime");
-      }
-    });
+    await t.step("Edge background delivery does not delay the HTTP response", () => assertEdgeBackgroundDelivery(harness));
 
     await t.step("cron allowlist, paired check-ins and terminal delivery preserve HTTP/throw behavior", async () => {
       const config = { schedule: { type: "interval" as const, value: 1, unit: "hour" as const } };

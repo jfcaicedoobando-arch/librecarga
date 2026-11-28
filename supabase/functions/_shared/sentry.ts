@@ -1,7 +1,7 @@
 /** Scoped, bounded Sentry reporting for Supabase Edge. No DSN = no-op. */
 import { loadSentryEdge } from "./sentryRuntime.ts";
 import { applyEdgeContext, cleanEdgeException, type EdgeErrorContext } from "./sentryContext.ts";
-import { scrubTelemetryText } from "./scrubTelemetryData.ts";
+import { safePostgresTelemetryError, scrubTelemetryText } from "./scrubTelemetryData.ts";
 import { getEdgeScope, runWithEdgeScope } from "./sentryRequestScope.ts";
 
 export type { EdgeErrorContext } from "./sentryContext.ts";
@@ -31,8 +31,10 @@ export async function captureEdgeException(error: unknown, ctx: EdgeErrorContext
   if (!sdk) return;
   try {
     sdk.withScope(getEdgeScope(), (scope) => {
-      applyEdgeContext(scope, ctx);
-      sdk.captureException(cleanEdgeException(error));
+      const dbError = safePostgresTelemetryError(error);
+      applyEdgeContext(scope, dbError ? { ...ctx, extra: undefined } : ctx);
+      if (dbError) scope.setTag("pg_code", dbError.code);
+      sdk.captureException(dbError ?? cleanEdgeException(error));
     });
     await deliverTelemetry(sdk);
   } catch {

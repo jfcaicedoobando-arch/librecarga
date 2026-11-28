@@ -26,6 +26,30 @@ export function scrubTelemetryText(value: string): string {
   return (isUrl ? scrubUrl(withoutSecrets) : scrubPii(withoutSecrets)) ?? "";
 }
 
+interface TelemetryDatabaseError {
+  code?: unknown;
+  expected?: boolean;
+  cause?: { code?: unknown; expected?: boolean };
+}
+
+export function postgresTelemetryCode(error: unknown): string | undefined {
+  const value = error as TelemetryDatabaseError | null;
+  const code = value?.code ?? value?.cause?.code;
+  return typeof code === "string" && /^(?:[A-Z0-9]{5}|PGRST\d{3})$/i.test(code) && /\d/.test(code)
+    ? code.toUpperCase()
+    : undefined;
+}
+
+export function safePostgresTelemetryError(error: unknown): (Error & { code: string }) | undefined {
+  const code = postgresTelemetryCode(error);
+  if (!code) return;
+  const safe = new Error(`Error de base de datos (${code})`);
+  const frames = error instanceof Error ? error.stack?.split("\n").filter((line) => /^\s+at\s/.test(line)) : undefined;
+  if (frames?.length) safe.stack = [safe.toString(), ...frames].join("\n");
+  const source = error as TelemetryDatabaseError;
+  return Object.assign(safe, { code, expected: source.expected ?? source.cause?.expected });
+}
+
 export function scrubTelemetryData(value: unknown): unknown {
   const ancestors = new WeakSet<object>();
   let visited = 0;
