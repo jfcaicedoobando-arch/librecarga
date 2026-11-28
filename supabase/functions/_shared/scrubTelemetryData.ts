@@ -3,7 +3,9 @@ import { scrubPii, scrubUrl } from "./piiScrub.ts";
 
 const PRIVATE_KEYS = new Set(["pass", "auth", "rfc", "curp", "email", "phone", "telefono", "ssn", "ipaddress",
   "taxid", "phonenumber", "pan", "cardnumber", "cvv", "clabe", "iban", "accountnumber",
-  "direccion", "domicilio", "address", "billingaddress", "firstname", "lastname", "customername", "contactname"]);
+  "direccion", "domicilio", "address", "billingaddress", "firstname", "lastname", "customername", "contactname",
+  "clientenombre", "nombrecliente", "proveedornombre", "nombreproveedor", "nombrereceptor", "nombreemisor",
+  "razonsocial", "organizationname", "pgdetails", "pghint"]);
 const UUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const MAX_DEPTH = 8;
 const MAX_NODES = 1000;
@@ -22,6 +24,30 @@ export function scrubTelemetryText(value: string): string {
     .replace(/([?&](?:api[_-]?key|password|secret|(?:access[_-]?|refresh[_-]?)?token|signature)=)[^\s&#"']*/gi, "$1[REDACTED]");
   const isUrl = /^(?:https?:\/\/|\/)/i.test(withoutSecrets);
   return (isUrl ? scrubUrl(withoutSecrets) : scrubPii(withoutSecrets)) ?? "";
+}
+
+interface TelemetryDatabaseError {
+  code?: unknown;
+  expected?: boolean;
+  cause?: { code?: unknown; expected?: boolean };
+}
+
+export function postgresTelemetryCode(error: unknown): string | undefined {
+  const value = error as TelemetryDatabaseError | null;
+  const code = value?.code ?? value?.cause?.code;
+  return typeof code === "string" && /^(?:[A-Z0-9]{5}|PGRST\d{3})$/i.test(code) && /\d/.test(code)
+    ? code.toUpperCase()
+    : undefined;
+}
+
+export function safePostgresTelemetryError(error: unknown): (Error & { code: string }) | undefined {
+  const code = postgresTelemetryCode(error);
+  if (!code) return;
+  const safe = new Error(`Error de base de datos (${code})`);
+  const frames = error instanceof Error ? error.stack?.split("\n").filter((line) => /^\s+at\s/.test(line)) : undefined;
+  if (frames?.length) safe.stack = [safe.toString(), ...frames].join("\n");
+  const source = error as TelemetryDatabaseError;
+  return Object.assign(safe, { code, expected: source.expected ?? source.cause?.expected });
 }
 
 export function scrubTelemetryData(value: unknown): unknown {

@@ -1,7 +1,7 @@
 /** Scoped, bounded Sentry reporting for Supabase Edge. No DSN = no-op. */
 import { loadSentryEdge } from "./sentryRuntime.ts";
 import { applyEdgeContext, cleanEdgeException, type EdgeErrorContext } from "./sentryContext.ts";
-import { scrubTelemetryText } from "./scrubTelemetryData.ts";
+import { safePostgresTelemetryError, scrubTelemetryText } from "./scrubTelemetryData.ts";
 import { getEdgeScope, runWithEdgeScope } from "./sentryRequestScope.ts";
 
 export type { EdgeErrorContext } from "./sentryContext.ts";
@@ -15,15 +15,28 @@ export function debeReportarStatus(status: number): boolean {
   return status !== 401 && status >= 400;
 }
 
+/** Keep the isolate alive while sending telemetry without delaying its HTTP response. */
+function deliverTelemetry(sdk: NonNullable<Awaited<ReturnType<typeof loadSentryEdge>>>): Promise<unknown> | void {
+  const delivery = sdk.flush(2000).catch(() => undefined);
+  const runtime = (globalThis as { EdgeRuntime?: { waitUntil(task: Promise<unknown>): void } }).EdgeRuntime;
+  if (runtime?.waitUntil) {
+    runtime.waitUntil(delivery);
+    return;
+  }
+  return delivery;
+}
+
 export async function captureEdgeException(error: unknown, ctx: EdgeErrorContext): Promise<void> {
   const sdk = await loadSentryEdge();
   if (!sdk) return;
   try {
     sdk.withScope(getEdgeScope(), (scope) => {
-      applyEdgeContext(scope, ctx);
-      sdk.captureException(cleanEdgeException(error));
+      const dbError = safePostgresTelemetryError(error);
+      applyEdgeContext(scope, dbError ? { ...ctx, extra: undefined } : ctx);
+      if (dbError) scope.setTag("pg_code", dbError.code);
+      sdk.captureException(dbError ?? cleanEdgeException(error));
     });
-    await sdk.flush(2000);
+    await deliverTelemetry(sdk);
   } catch {
     console.warn("[sentry-edge] capture failed");
   }
@@ -40,7 +53,7 @@ export async function captureEdgeMessage(
       scope.setLevel(level);
       sdk.captureMessage(scrubTelemetryText(message));
     });
-    await sdk.flush(2000);
+    await deliverTelemetry(sdk);
   } catch {
     console.warn("[sentry-edge] message capture failed");
   }
@@ -83,7 +96,7 @@ export function wrapEdgeHandler(
         throw error;
       } finally {
         span.end();
-        await sdk.flush(2000).catch(() => undefined);
+        await deliverTelemetry(sdk);
       }
     });
   };
@@ -94,6 +107,7 @@ export interface CronMonitorConfig {
   checkinMargin?: number;
   maxRuntime?: number;
   timezone?: string;
+  shouldCheckIn?: (req: Request) => boolean;
 }
 
 export function withCronMonitor(
@@ -101,22 +115,23 @@ export function withCronMonitor(
   monitorConfig: CronMonitorConfig,
 ): (req: Request) => Promise<Response> {
   const wrapped = wrapEdgeHandler(fnName, handler);
+  const { shouldCheckIn, ...config } = monitorConfig;
   return async (req) => {
     const sdk = await loadSentryEdge();
-    // Comma-separated allowlist: opt in by actual slug, never create all monitors.
-    const enabled = (Deno.env.get("SENTRY_CRON_MONITOR_SLUG") ?? "").split(",").map((s) => s.trim());
-    if (!sdk || !enabled.includes(monitorSlug)) return wrapped(req);
+    const enabled = (Deno.env.get("SENTRY_CRON_MONITOR_SLUG") ??
+      "tc-dof-diario,facturapi-reconciliar-cancelaciones").split(",").map((s) => s.trim());
+    if (!sdk || !enabled.includes(monitorSlug) || shouldCheckIn?.(req) === false) return wrapped(req);
     const id = sdk.withScope(getEdgeScope(), () =>
-      sdk.captureCheckIn({ monitorSlug, status: "in_progress" }, monitorConfig));
+      sdk.captureCheckIn({ monitorSlug, status: "in_progress" }, config));
     let status: "ok" | "error" = "error";
     try {
       const response = await wrapped(req);
-      status = response.status >= 500 ? "error" : "ok";
+      status = response.ok ? "ok" : "error";
       return response;
     } finally {
       // Preserve HTTP responses and exceptions; observability does not rewrite the workflow.
       sdk.withScope(getEdgeScope(), () => sdk.captureCheckIn({ checkInId: id, monitorSlug, status }));
-      await sdk.flush(2000).catch(() => undefined);
+      await deliverTelemetry(sdk);
     }
   };
 }

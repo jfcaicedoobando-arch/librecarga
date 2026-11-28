@@ -70,7 +70,7 @@ function scrubBreadcrumb(b: { data?: unknown; message?: unknown }): void {
   if (data) b.data = scrubTelemetryData(data);
 }
 
-export function scrubEventPii<T extends Sentry.ErrorEvent>(event: T): T {
+export function scrubEventPii<T extends Sentry.Event>(event: T): T {
   if (event.user) {
     event.user = { id: event.user.id };
   }

@@ -41,12 +41,11 @@ Fuente de la verdad para on-call y para futuras auditorías.
 - `DENO_ENV` / `SUPABASE_ENV` — determina `environment`.
 - `SENTRY_RELEASE_EDGE` — commit/build de despliegue; alternativa `DENO_DEPLOYMENT_ID`.
   Sin ambos se etiqueta `release_versioned=false`; no confundirlo con una release verificable.
-- `SENTRY_CRON_MONITOR_SLUG` — allowlist de slugs separados por comas; vacío desactiva check-ins.
+- `SENTRY_CRON_MONITOR_SLUG` — lista de slugs separados por comas. Por defecto incluye `tc-dof-diario` y `facturapi-reconciliar-cancelaciones`. Una cadena vacía desactiva los check-ins.
 
 **Build:** `SENTRY_AUTH_TOKEN` es secreto de build, nunca `VITE_*`.
 Se usa `@sentry/bundler-plugins/vite`; release coincide con runtime.
-Sin token no se generan maps de producción. `BUILD_SOURCEMAPS=false` también
-los desactiva; verificar subida real antes de prometer stack legible.
+El build de producción incluye Debug IDs. Con el token del proyecto en el build de Lovable, el plugin sube los mapas del mismo artefacto y borra los archivos `.map` del directorio público. `BUILD_SOURCEMAPS=false` desactiva la generación y subida. Verifica la resolución con un evento de la versión desplegada.
 Lovable Build Secrets requiere Enterprise; los secretos de Cloud son de
 runtime Edge, no de build. En el plan Pro, sin token de build, se acepta el
 stack minificado como limitación conocida, no como un mapa verificado.
@@ -65,9 +64,7 @@ El test `src/__tests__/architecture/sentry-edge-wrapping.test.ts` bloquea CI si
 faltas al contrato. Cuando agregues una función crítica nueva, agrégala al array
 `CRITICAL` del test.
 
-Para funciones programadas usar `withCronMonitor(fn, slug, handler, cfg)` y
-habilitar su slug por env. Envía check-in inicial/final y hace flush después
-del final. Un HTTP 5xx marca error sin alterar la respuesta HTTP del handler.
+Para funciones programadas usa `withCronMonitor(fn, slug, handler, cfg)` con el horario de pg_cron. Los check-ins de los crons autenticados se programan junto con la entrega en segundo plano. Un HTTP de error marca la ejecución como fallida y conserva la respuesta del handler. Verifica destinatarios y primer check-in en Sentry.
 
 ## 4. Trazas distribuidas front → edge
 
@@ -207,8 +204,7 @@ pruebas CLI no acreditan ese estado.
 
 - Confirmar DSN/release/dist del deploy; Debug IDs/maps sólo si existe build token.
 - Verificar trace front→edge, tenant/rol del usuario actual y ninguno anterior al logout.
-- Probar feedback/screenshot y Replay; túnel conserva bytes y expone Retry-After /
-  X-Sentry-Rate-Limits, con timeout de upstream de 5 s y body máximo de 1 MiB.
+- Probar feedback con texto sintético. Se redacta el texto y se excluyen los adjuntos. El túnel conserva bytes, expone Retry-After y X-Sentry-Rate-Limits y registra `fn`, `outcome`, `status` y `latency_ms` en los logs de Edge. Tiene timeout de 5 s y body máximo de 1 MiB.
 - Medir descartes/rate limiting del túnel (60 requests/min/IP); no ampliar cuota
   ni muestreo a ciegas, especialmente en una oficina con IP compartida.
 - El contrato Deno usa SDK real y transporte falso: valida aislamiento, privacidad,

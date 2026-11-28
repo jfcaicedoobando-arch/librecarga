@@ -13,7 +13,8 @@ import { reactRouterBrowserTracingIntegration } from "@sentry/react/react-router
 import { APP_VERSION } from "@/constants/appVersion";
 import { sampleByRoute, scrubEventPii, computePostgrestFingerprint } from "./helpers";
 import { shouldDropSentryEvent, resolveSentryEnvironment } from "./dropPredicate";
-import { FEEDBACK_INTEGRATION_OPTIONS } from "./feedbackConfig";
+import { FEEDBACK_INTEGRATION_OPTIONS, scrubFeedbackEvent } from "./feedbackConfig";
+import { scrubPostgresError } from "./postgresPrivacy";
 import { scrubSpanPii } from "./spanPrivacy";
 import { markSentryReady } from "./runtimeState";
 import { connectSentryScope } from "./user";
@@ -103,17 +104,13 @@ export function initSentry(): void {
         typeof window !== "undefined" ? window.location?.pathname : undefined,
       );
       if (fp) event.fingerprint = fp;
-      return scrubEventPii(event);
+      return scrubEventPii(scrubPostgresError(event, hint?.originalException));
     },
     beforeSendSpan: scrubSpanPii,
     beforeBreadcrumb: scrubBreadcrumb,
     integrations: [
       reactRouterBrowserTracingIntegration(),
       Sentry.browserProfilingIntegration(),
-      // 13.312.10 (audit Sentry PR-C): captura `Error.cause` y propiedades
-      // enumerables (útil para `PostgrestError` que trae `code/hint/details`
-      // como campos, no como parte del stack). Depth 5 alineado a normalizeDepth.
-      Sentry.extraErrorDataIntegration({ depth: 5, captureErrorCause: true }),
       // Query/UI owns REST/Edge errors after retries; automatic capture remains
       // for other HTTP failures. Breadcrumbs/tracing still cover all requests.
       Sentry.httpClientIntegration({
@@ -132,6 +129,7 @@ export function initSentry(): void {
   });
   initialized = Sentry.isEnabled();
   if (initialized) {
+    Sentry.getClient()?.addEventProcessor(scrubFeedbackEvent);
     connectSentryScope(Sentry);
     markSentryReady();
   }

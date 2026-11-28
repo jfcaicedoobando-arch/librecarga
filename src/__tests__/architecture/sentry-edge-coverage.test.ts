@@ -28,7 +28,6 @@ const MANUAL_COVERAGE = [
   "supabase/functions/demo-access/index.ts",
   "supabase/functions/client-error-log/index.ts",
   // 13.335.0 — Cron diario de tipo de cambio DOF (Banxico)
-  "supabase/functions/tc-dof-diario/index.ts",
 ];
 
 // Sincronizado con CRITICAL en sentry-edge-wrapping.test.ts.
@@ -59,6 +58,7 @@ const WRAPPED_COVERAGE = [
   "supabase/functions/rep-retry-nocturno/index.ts",
   // 13.301.0 — Reconciliación async de cancelaciones CFDI
   "supabase/functions/facturapi-reconciliar-cancelaciones/index.ts",
+  "supabase/functions/tc-dof-diario/index.ts",
   // 13.301.11 — Consulta en vivo + reconciliación puntual
   "supabase/functions/facturapi-consultar/index.ts",
   // 13.594.7 — Consulta puntual de REP timbrado

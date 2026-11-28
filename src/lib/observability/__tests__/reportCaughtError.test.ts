@@ -54,7 +54,7 @@ describe("reportCaughtError", () => {
     expect(call[1].tags.app_version).toBeTruthy();
   });
 
-  it("clasifica db_error y agrega pg_code/pg_hint", async () => {
+  it("clasifica db_error y conserva sólo el código técnico", async () => {
     const pgError = {
       code: "42703",
       message: 'column "user_id" does not exist',
@@ -67,8 +67,8 @@ describe("reportCaughtError", () => {
     const call = calls[calls.length - 1];
     expect(call[1].tags.error_kind).toBe("db_error");
     expect(call[1].tags.pg_code).toBe("42703");
-    expect(call[1].extra.pg_hint).toBe("use usuario_id");
-    expect(call[1].extra.pg_details).toBe("in bitacora_actividad");
+    expect((call[0] as Error).message).toBe("Error de base de datos (42703)");
+    expect(call[1].extra).toEqual({});
   });
 
   it("sanitiza el payload (redacta claves sensibles)", async () => {
@@ -101,8 +101,9 @@ describe("reportCaughtError", () => {
     const calls = mocks.captureException.mock.calls;
     const call = calls[calls.length - 1];
     expect(call[0]).toBeInstanceOf(Error);
-    expect((call[0] as Error).message).toBe('invalid input syntax for type date: ""');
-    expect(call[1].extra.original).toEqual(pgError);
+    expect((call[0] as Error).message).toBe("Error de base de datos (22007)");
+    expect(call[0].cause).toBeUndefined();
+    expect(call[1].extra).toEqual({});
   });
 
   it("descarta violaciones 23514 (validaciones de negocio esperadas)", async () => {

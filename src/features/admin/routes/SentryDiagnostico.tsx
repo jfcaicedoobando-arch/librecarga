@@ -31,6 +31,11 @@ const STATUS_META: Record<
     badge: "Deshabilitado en dev",
     variant: "secondary",
   },
+  unavailable: {
+    title: "El transporte de Sentry no está disponible",
+    badge: "Transporte inactivo",
+    variant: "destructive",
+  },
   missing_dsn: {
     title: "Sentry NO está inicializado — falta el DSN en el build",
     badge: "Sin DSN",
@@ -78,7 +83,6 @@ function handleTestMessage() {
 function RuntimeCard({ sentryInfo }: { sentryInfo: ReturnType<typeof useSentryInfo> }) {
   const release = sentryInfo.release ?? `libre-carga@${APP_VERSION}`;
   const environment = sentryInfo.environment ?? import.meta.env.MODE;
-  const tracesRate = sentryInfo.tracesSampleRate !== undefined ? String(sentryInfo.tracesSampleRate) : "—";
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -98,7 +102,8 @@ function RuntimeCard({ sentryInfo }: { sentryInfo: ReturnType<typeof useSentryIn
         <Row label="Release" value={release} />
         <Row label="APP_VERSION" value={APP_VERSION} />
         <Row label="Environment" value={environment} />
-        <Row label="Traces sample rate" value={tracesRate} />
+        <Row label="Muestreo de trazas" value={sentryInfo.traceSampling} />
+        <Row label="Transporte" value={sentryInfo.active ? "Disponible" : "Inactivo"} />
         <Row
           label="DSN configurado en el build"
           value={sentryInfo.dsnConfigured ? "Sí (VITE_SENTRY_DSN)" : "No — falta VITE_SENTRY_DSN"}

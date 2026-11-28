@@ -10,7 +10,7 @@
  * (`resumen.diferidos`) y son los primeros de la corrida siguiente.
  */
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
-import { wrapEdgeHandler, captureEdgeException } from "../_shared/sentry.ts";
+import { withCronMonitor, captureEdgeException } from "../_shared/sentry.ts";
 import { getFacturapiClient } from "../_shared/facturapiClient.ts";
 import type { FacturapiAmbiente } from "../_shared/facturapiAuth.ts";
 import { registrarBitacoraEdge } from "../_shared/bitacora.ts";
@@ -132,7 +132,7 @@ async function resolverCliente(supabase: SupabaseClient, orgId: string, ambiente
   };
 }
 
-Deno.serve(wrapEdgeHandler("facturapi-reconciliar-cancelaciones", async (req) => {
+Deno.serve(withCronMonitor("facturapi-reconciliar-cancelaciones", "facturapi-reconciliar-cancelaciones", async (req) => {
   const corte = validarRequest(req, CRON_SECRET);
   if (corte) return corte;
 
@@ -163,4 +163,8 @@ Deno.serve(wrapEdgeHandler("facturapi-reconciliar-cancelaciones", async (req) =>
   } finally {
     if (lock === "tomado") await soltarCronLock(supabase, "facturapi-reconciliar-cancelaciones");
   }
+}, {
+  schedule: { type: "crontab", value: "*/30 * * * *" },
+  timezone: "UTC",
+  shouldCheckIn: (req) => validarRequest(req, CRON_SECRET) === null,
 }));

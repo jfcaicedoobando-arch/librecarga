@@ -5,8 +5,9 @@
  * Run: deno test --no-check supabase/functions/sentry-tunnel/index_test.ts
  */
 // @ts-nocheck — Deno runtime.
-import { assert, assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { excedeContentLength, MAX_ENVELOPE_BYTES } from "./index.ts";
+import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { excedeContentLength, MAX_ENVELOPE_BYTES } from "./envelope.ts";
+import { handleEnvelopeRequest } from "./handler.ts";
 
 Deno.test("P3: excedeContentLength corta bodies declarados > 1 MB", () => {
   const grande = new Request("https://x/", {
@@ -24,9 +25,9 @@ Deno.test("P3: excedeContentLength corta bodies declarados > 1 MB", () => {
 });
 
 Deno.test("P3: el handler responde 413 y no usa req.text() sin tope", async () => {
-  const src = await Deno.readTextFile(new URL("./index.ts", import.meta.url));
-  assertStringIncludes(src, "payload_too_large");
-  assertStringIncludes(src, "413");
-  assert(!src.includes("await req.text()"), "quedó lectura sin límite");
-  assertStringIncludes(src, "leerEnvelopeAcotado");
+  const response = await handleEnvelopeRequest(new Request("https://mock.invalid/tunnel", {
+    method: "POST", body: new Uint8Array(MAX_ENVELOPE_BYTES + 1),
+  }));
+  assertEquals(response.status, 413);
+  assertEquals(await response.text(), "payload_too_large");
 });

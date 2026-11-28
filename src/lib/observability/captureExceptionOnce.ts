@@ -1,6 +1,7 @@
 import type { CaptureContext } from "@sentry/react";
 import { loadInitializedSentry } from "./sentry/runtime";
 import { isExpectedTelemetryError, isOfflineTelemetryError } from "./expectedTelemetryError";
+import { safePostgresTelemetryError } from "./scrubTelemetryData";
 
 const captures = new WeakMap<object, Promise<string | undefined>>();
 
@@ -13,6 +14,8 @@ function identityOf(error: unknown): object | null {
 }
 
 export function toTelemetryError(error: unknown): Error {
+  const dbError = safePostgresTelemetryError(error);
+  if (dbError) return dbError;
   if (error instanceof Error) return error;
   const raw = error as { message?: unknown; code?: unknown; expected?: unknown } | undefined;
   const message = typeof error === "string" ? error

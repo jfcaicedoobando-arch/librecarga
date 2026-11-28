@@ -26,6 +26,8 @@ function verifyHtmlBundlePlugin(): Plugin {
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
+  const uploadSourceMaps = mode === "production" && Boolean(process.env.SENTRY_AUTH_TOKEN) &&
+    process.env.BUILD_SOURCEMAPS !== "false";
   // F3 (13.65.0): si build prod sin SENTRY_AUTH_TOKEN, log warning para que
   // operaciones detecte que los sourcemaps NO se subirán a Sentry (los stack
   // traces de prod quedarán minificados). No rompemos el build — forks/CI
@@ -75,19 +77,26 @@ export default defineConfig(({ mode }) => {
       brotliSize: true,
       open: false,
     }),
-    mode === "production" && process.env.SENTRY_AUTH_TOKEN ? sentryVitePlugin({
+    mode === "production" && sentryVitePlugin({
       org: "elogistix",
       project: "javascript-react",
       authToken: process.env.SENTRY_AUTH_TOKEN,
       telemetry: false,
       // Empata con `release` runtime en src/lib/observability/sentry/core.ts.
-      release: { name: `libre-carga@${readAppVersion(__dirname)}` },
+      release: {
+        name: `libre-carga@${readAppVersion(__dirname)}`,
+        inject: false,
+        create: uploadSourceMaps,
+        finalize: uploadSourceMaps,
+      },
       sourcemaps: {
+        injectDebugIds: true,
+        upload: uploadSourceMaps,
         // Borrar .map del dist tras subirlos: nunca queremos servir sourcemaps
         // al cliente en producción (filtración de código fuente).
         filesToDeleteAfterUpload: ["./dist/**/*.map"],
       },
-    }) : null,
+    }),
     mode === "production" && verifyHtmlBundlePlugin(),
   ].filter(Boolean),
   resolve: {
@@ -113,12 +122,7 @@ export default defineConfig(({ mode }) => {
     // dentro del `dist` que el hosting sirve públicamente (no referenciado,
     // pero descargable adivinando el nombre). El guard de CI es
     // `scripts/check-sourcemaps.sh`.
-    sourcemap:
-      mode === "production"
-        ? (process.env.BUILD_SOURCEMAPS === "false" || !process.env.SENTRY_AUTH_TOKEN
-            ? false
-            : "hidden")
-        : true,
+    sourcemap: mode === "production" ? (uploadSourceMaps ? "hidden" : false) : true,
     minify: "terser",
     terserOptions: {
       compress: {

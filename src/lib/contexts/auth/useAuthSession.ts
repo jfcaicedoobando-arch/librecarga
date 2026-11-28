@@ -1,3 +1,4 @@
+import { captureExceptionOnce } from "@/lib/observability/captureExceptionOnce";
 import { readAuthSessionIdentity } from "@/lib/auth/authSessionIdentity";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { syncAuthSessionUser } from "@/lib/auth/authSnapshot";
@@ -73,10 +74,7 @@ export function useAuthSession(): AuthSession {
           // Si Supabase falla aquí no debe romper la UI: dejamos user/session
           // en null y `loading=false`. El listener subscribirá los siguientes.
           console.error("[useAuthSession] getCurrentSession failed", err);
-          // Reportar a Sentry sin bloquear (lazy import para no inflar bundle).
-          void import("@sentry/react").then(({ captureException }) =>
-            captureException(err, { tags: { feature: "auth", phase: "getCurrentSession" } }),
-          ).catch(() => undefined);
+          void captureExceptionOnce(err, { tags: { feature: "auth", phase: "getCurrentSession" } });
           setLoading(false);
         });
     }
