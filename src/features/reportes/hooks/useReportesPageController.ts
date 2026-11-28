@@ -102,14 +102,14 @@ export function useReportesPageController() {
         { key: "costo_usd", label: "Costo equivalente (USD)" },
         { key: "profit_usd", label: "Utilidad equivalente (USD)" },
         { key: "margen", label: "Margen %" },
-        { key: "desde_eta", label: "Desde (ETA)" },
-        { key: "hasta_eta", label: "Hasta (ETA)" },
+        { key: "desde_entrega", label: "Entrega desde" },
+        { key: "hasta_entrega", label: "Entrega hasta" },
         { key: "modo", label: "Modo" },
         { key: "base", label: "Base" },
       ],
       sorted.map((c) => ({
         ...c, margen: c.venta_usd === 0 ? "No calculable" : c.margen.toFixed(1),
-        desde_eta: filtros.fechaDesde, hasta_eta: filtros.fechaHasta,
+        desde_entrega: filtros.fechaDesde, hasta_entrega: filtros.fechaHasta,
         modo: modo === "all" ? "Todos los modos" : modo, base: BASE_CSV_RENTABILIDAD,
       })),
     );

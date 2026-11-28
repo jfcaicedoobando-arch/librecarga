@@ -841,6 +841,20 @@
       "when": 1795824000000,
       "tag": "0119_cxp_alcance_aprobacion_edicion",
       "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1795827600000,
+      "tag": "0120_co068_fecha_efectiva_entrega",
+      "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1795831200000,
+      "tag": "0121_or041_cartera_cxc_al_corte",
+      "breakpoints": true
     }
   ]
 }

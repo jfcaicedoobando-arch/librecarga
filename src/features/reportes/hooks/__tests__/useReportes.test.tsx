@@ -123,7 +123,7 @@ describe('useReportes Hooks', () => {
     expect(result.current.sorted[0].cliente_nombre).toBe('A');
   });
 
-  it('CSV carries ETA period, mode and base without changing financial precision', () => {
+  it('CSV carries the effective delivery period, mode and base without changing financial precision', () => {
     mockUseRentabilidad.mockReturnValue({ ...mockRentabilidad, clientes: [{ ...clientes[0], venta_usd: 12.3693, costo_usd: 12.1185, profit_usd: 0.2508, margen: 2.0276 }] });
     const { result } = renderHook(() => useReportesPageController(), { wrapper: createWrapper() });
     act(() => result.current.applyFilters({ fechaDesde: new Date(2026, 9, 5), fechaHasta: new Date(2026, 9, 5), modo: 'Terrestre' }));
@@ -134,12 +134,12 @@ describe('useReportes Hooks', () => {
         { key: 'venta_usd', label: 'Venta equivalente (USD)' },
         { key: 'costo_usd', label: 'Costo equivalente (USD)' },
         { key: 'profit_usd', label: 'Utilidad equivalente (USD)' },
-        { key: 'desde_eta', label: 'Desde (ETA)' },
-        { key: 'hasta_eta', label: 'Hasta (ETA)' },
+        { key: 'desde_entrega', label: 'Entrega desde' },
+        { key: 'hasta_entrega', label: 'Entrega hasta' },
         { key: 'modo', label: 'Modo' },
         { key: 'base', label: 'Base' },
       ]),
-      [expect.objectContaining({ venta_usd: 12.3693, costo_usd: 12.1185, profit_usd: 0.2508, margen: '2.0', desde_eta: '2026-10-05', hasta_eta: '2026-10-05', modo: 'Terrestre', base: BASE_CSV_RENTABILIDAD })],
+      [expect.objectContaining({ venta_usd: 12.3693, costo_usd: 12.1185, profit_usd: 0.2508, margen: '2.0', desde_entrega: '2026-10-05', hasta_entrega: '2026-10-05', modo: 'Terrestre', base: BASE_CSV_RENTABILIDAD })],
     );
   });
 

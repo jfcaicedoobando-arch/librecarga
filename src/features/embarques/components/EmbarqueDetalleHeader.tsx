@@ -17,6 +17,8 @@ import type { EmbarqueRow } from "@/features/embarques/hooks";
 import { EstadoDivergenteHint } from "./header/EstadoDivergenteHint";
 import { SalidaPendienteAlert } from "./header/SalidaPendienteAlert";
 import { Hint } from "@/components/shared/Hint";
+import { useState } from "react";
+import { ConfirmarFechaEntrega } from "./tracking/ConfirmarFechaEntrega";
 
 /**
  * v13.309.50 · PR-S2-B: el header ahora consume internamente
@@ -50,6 +52,7 @@ export function EmbarqueDetalleHeader({
 }: Props) {
 
   const volver = useVolver("/embarques");
+  const [capturaEntrega, setCapturaEntrega] = useState(false);
   const { isAdmin, role } = usePermissions();
   const puedeReabrir = isAdmin && estadoVisual === "Cerrado";
   const puedeConsultarCotizacion = hasRouteAccess(role, "/cotizaciones");
@@ -144,7 +147,7 @@ export function EmbarqueDetalleHeader({
             }}
             cierre={{ cierreEsSiguiente, rolPuedeCerrar, cierrePuedeAvanzar, cierreMotivoBloqueo }}
             acciones={{
-              onAvanzarEstado: handleAvanzarEstado,
+              onAvanzarEstado: () => siguienteEstado === "Entregado" ? setCapturaEntrega(true) : void handleAvanzarEstado(),
               onCompartirTracking,
               onRevocarTracking,
               onAbrirEliminar,
@@ -160,6 +163,11 @@ export function EmbarqueDetalleHeader({
       />
 
       <SalidaPendienteAlert estado={embarque.estado} etd={embarque.etd} />
+      {capturaEntrega && <ConfirmarFechaEntrega
+        fechaLlegada={embarque.fecha_llegada_real ?? undefined}
+        cerrar={() => setCapturaEntrega(false)}
+        confirmar={(fecha) => { setCapturaEntrega(false); void handleAvanzarEstado(fecha); }}
+      />}
 
       <EmbarqueHeaderDialogs
         siguienteEstado={siguienteEstado}

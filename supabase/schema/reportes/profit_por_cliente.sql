@@ -82,11 +82,12 @@ BEGIN
         (SELECT d.eur_mxn FROM public.tc_dof_vigente(COALESCE(e.eta, e.etd, e.created_at::date)) d)
       ) AS tc_eur
     FROM public.embarques e
+    CROSS JOIN LATERAL (SELECT public._fecha_entrega_efectiva(e.id,e.organization_id) AS fecha) entrega
     WHERE e.deleted_at IS NULL
       -- AUD-ANALISIS-1: alineado con Utilidad/Tablero/Cierre.
       AND e.estado NOT IN ('Cotización'::estado_embarque, 'Borrador'::estado_embarque, 'Cancelado'::estado_embarque)
-      AND (_fecha_desde IS NULL OR e.eta >= _fecha_desde)
-      AND (_fecha_hasta IS NULL OR e.eta <= _fecha_hasta)
+      AND (_fecha_desde IS NULL OR entrega.fecha >= _fecha_desde)
+      AND (_fecha_hasta IS NULL OR entrega.fecha <= _fecha_hasta)
       AND (_modo IS NULL OR e.modo::text = _modo)
       AND (_cliente_id IS NULL OR e.cliente_id = _cliente_id)
       AND (e.organization_id = v_org)

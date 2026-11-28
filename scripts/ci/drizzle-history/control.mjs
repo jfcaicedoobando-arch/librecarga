@@ -113,6 +113,8 @@ export const HISTORY = [
   { file: '0117_ct071_omitir_egreso_conciliado.sql', sha256: 'e5446087622f73c236a5cfc1b428da294b8cb3c28a9e235e5d369cff89df7d77', eligibleName: '20261127220000_replay_ct071_omitir_egreso_conciliado.sql' },
   { file: '0118_ct071_confirmacion_tesorero.sql', sha256: 'b6f5ba0171bc53231ed49b5191a69e8bdea37c9f713d6ff8a22876e5a7baf858', eligibleName: '20261127230000_replay_ct071_confirmacion_tesorero.sql' },
   { file: '0119_cxp_alcance_aprobacion_edicion.sql', sha256: '16332a9972869e9d36d8a6209a6455e29530a47f3b1fdb8047b9a9a02d9cab0d', eligibleName: '20261128000000_replay_cxp_alcance_aprobacion_edicion.sql' },
+  { file: '0120_co068_fecha_efectiva_entrega.sql', sha256: '662cd4fe22e2d41870521807f600082014059f1dc05be2b2acaed3b3dc68218f', eligibleName: '20261128010000_replay_co068_fecha_efectiva_entrega.sql' },
+  { file: '0121_or041_cartera_cxc_al_corte.sql', sha256: '843a338b8b2f9b7126345fb4a767b9d7ac9d90569a870b5e802c7ddf6069375a', eligibleName: '20261128020000_replay_or041_cartera_cxc_al_corte.sql' },
 ];
 const NONDEPLOYABLE_SQL = [
   ['archive/2026-11-23/0104_tarifa_aerea_escalas.sql', 'b4cc96958bfc3c374247d46a15bb0df8bb8fc97e08cae1dbd9ab47e30854589f'],

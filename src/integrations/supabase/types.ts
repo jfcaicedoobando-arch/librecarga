@@ -11126,6 +11126,39 @@ export type Database = {
       }
     }
     Functions: {
+      activar_historial_cxc: { Args: { p_org: string; p_evidencia: string }; Returns: string }
+      consultar_apertura_cxc: { Args: { p_org: string }; Returns: string | null }
+      consultar_corte_cxc: { Args: { p_org: string; p_fecha: string }; Returns: Json }
+      previsualizar_corte_cxc: { Args: { p_org: string; p_fecha: string }; Returns: Json }
+      certificar_corte_cxc: {
+        Args: { p_org: string; p_fecha: string; p_fingerprint: string; p_evidencia: string; p_request_id: string }
+        Returns: string
+      }
+      entregar_embarque_con_fecha: {
+        Args: { p_embarque: string; p_fecha: string; p_tipo_evento: string; p_descripcion_evento: string; p_request_id: string }
+        Returns: Json
+      }
+      historial_fecha_entrega: {
+        Args: { p_embarque: string }
+        Returns: {
+          id: string
+          fecha_anterior: string | null
+          fecha_propuesta: string
+          motivo: string
+          documento_nombre: string | null
+          estado: string
+          solicitante: string
+          solicitado_en: string
+          responsable: string | null
+          resuelto_en: string | null
+          motivo_resolucion: string | null
+        }[]
+      }
+      solicitar_fecha_entrega: {
+        Args: { p_embarque: string; p_fecha: string; p_motivo: string; p_documento: string; p_request_id: string }
+        Returns: string
+      }
+      resolver_fecha_entrega: { Args: { p_solicitud: string; p_aprobar: boolean; p_motivo: string }; Returns: string }
       _asegurar_movimiento_pago_proveedor: {
         Args: { p_pago_id: string }
         Returns: string

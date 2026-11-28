@@ -29,17 +29,22 @@ export interface BloqueCartera {
   total: TotalesCartera;
 }
 
-function assertCorteActual(fechaCorte: string): void {
-  if (fechaCorte !== todayLocalISO()) {
+function assertCorteActual(fechaCorte: string, revisionCorte?: number): void {
+  if (!revisionCorte && fechaCorte !== todayLocalISO()) {
     throw new Error("Cambió el día del reporte. Espera a que se actualice la cartera y vuelve a exportar.");
   }
+}
+
+function nombreCorte(fecha: string, extension: "pdf" | "csv", filtrado: boolean, revision?: number) {
+  const nombre = nombreArchivoCartera(fecha, extension, filtrado);
+  return revision ? nombre.replace(`.${extension}`, `-r${revision}.${extension}`) : nombre;
 }
 
 function armarFilas(bloques: readonly BloqueCartera[]): FilaCarteraExport[] {
   return bloques.flatMap((b) => filasCarteraExport(b.titulo, b.filas));
 }
 
-export function descargarCarteraCsv(fechaCorte: string, bloques: readonly BloqueCartera[], dataScope: CarteraDataScope, busqueda = ""): void {
+export function descargarCarteraCsv(fechaCorte: string, bloques: readonly BloqueCartera[], dataScope: CarteraDataScope, busqueda = "", revisionCorte?: number): void {
   const detalle = armarFilas(bloques);
   if (detalle.length === 0) {
     notifyWarning(undefined, {
@@ -50,7 +55,7 @@ export function descargarCarteraCsv(fechaCorte: string, bloques: readonly Bloque
   }
   try {
     assertCarteraScopeCurrent(dataScope);
-    assertCorteActual(fechaCorte);
+    assertCorteActual(fechaCorte, revisionCorte);
     const csv = carteraACsv(
       detalle,
       bloques.map((b) => ({
@@ -59,7 +64,7 @@ export function descargarCarteraCsv(fechaCorte: string, bloques: readonly Bloque
       })),
     );
     const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8;" });
-    descargarBlob(blob, nombreArchivoCartera(fechaCorte, "csv", !!busqueda.trim()));
+    descargarBlob(blob, nombreCorte(fechaCorte, "csv", !!busqueda.trim(), revisionCorte));
     notifySuccess(undefined, {
       title: "Cartera descargada en CSV",
       description: `${detalle.length} fila(s) de detalle`,
@@ -78,16 +83,16 @@ export async function descargarCarteraPdf(
   leyendaTc: string,
   bloques: readonly BloqueCartera[],
   dataScope: CarteraDataScope,
-  opciones: { busqueda?: string; sigueVigente?: () => boolean; signal?: AbortSignal } = {},
+  opciones: { busqueda?: string; sigueVigente?: () => boolean; signal?: AbortSignal; revisionCorte?: number } = {},
 ): Promise<void> {
-  const { busqueda = "", sigueVigente = () => true, signal } = opciones;
+  const { busqueda = "", sigueVigente = () => true, signal, revisionCorte } = opciones;
   // El loader de identidad y toBlob no aceptan señales: se descartan sus
   // continuaciones, sin afirmar que se interrumpe el trabajo ya iniciado.
   const cancelado = () => signal?.aborted || !sigueVigente();
   try {
     if (cancelado()) return;
     assertCarteraScopeCurrent(dataScope);
-    assertCorteActual(fechaCorte);
+    assertCorteActual(fechaCorte, revisionCorte);
     const [{ pdf }, { ReporteCarteraDocument }, emisor] = await Promise.all([
       import("@react-pdf/renderer"),
       import("@/pdf/documents/ReporteCarteraDocument"),
@@ -95,7 +100,7 @@ export async function descargarCarteraPdf(
     ]);
     if (cancelado()) return;
     assertCarteraScopeCurrent(dataScope);
-    assertCorteActual(fechaCorte);
+    assertCorteActual(fechaCorte, revisionCorte);
     const blob = await pdf(
       <ReporteCarteraDocument
         fechaCorte={fechaCorte}
@@ -112,8 +117,8 @@ export async function descargarCarteraPdf(
     ).toBlob();
     if (cancelado()) return;
     assertCarteraScopeCurrent(dataScope);
-    assertCorteActual(fechaCorte);
-    descargarBlob(blob, nombreArchivoCartera(fechaCorte, "pdf", !!busqueda.trim()));
+    assertCorteActual(fechaCorte, revisionCorte);
+    descargarBlob(blob, nombreCorte(fechaCorte, "pdf", !!busqueda.trim(), revisionCorte));
     notifySuccess(undefined, { title: "Cartera descargada en PDF" });
   } catch (error) {
     if (cancelado()) return;
