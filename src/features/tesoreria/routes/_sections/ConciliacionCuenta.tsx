@@ -49,8 +49,7 @@ export function ConciliacionCuenta({ cuentaId: cuentaSolicitada, cambiarCuenta }
   const [manualForm, setManualForm] = useState<Partial<MovimientoManualInput>>({
     tipo: "cargo",
   });
-  // La referencia es descriptiva. Incluso si cambia al reintentar, se conserva
-  // la llave del cargo o abono original dentro de esta captura.
+  // Editar la referencia durante un reintento conserva la llave del movimiento.
   const claveManual = usePayloadRequestId();
 
   const { data: movs = [], isLoading, isError: movsError, refetch: refetchMovs } = useMovimientos(cuentaId ? { cuenta_bancaria_id: cuentaId, estado } : null);
@@ -80,9 +79,7 @@ export function ConciliacionCuenta({ cuentaId: cuentaSolicitada, cambiarCuenta }
       referencia,
       cargo: tipo === "cargo" ? monto : 0,
       abono: tipo === "abono" ? monto : 0,
-      claveIdempotencia: claveManual.get(
-        scopeDePayload([cuentaBancariaId, fecha, concepto, tipo, monto]),
-      ),
+      claveIdempotencia: claveManual.get(scopeDePayload([cuentaBancariaId, fecha, concepto, tipo, monto])),
     }, {
       onSuccess: () => {
         claveManual.reset();
