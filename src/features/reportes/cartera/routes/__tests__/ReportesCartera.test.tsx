@@ -5,8 +5,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { construirFilasCartera, totalCartera, totalesPorBucket, type TcCorte } from "../../domain/agingCartera";
 import ReportesCartera from "../ReportesCartera";
 
-const mocks = vi.hoisted(() => ({ hook: vi.fn(), pdf: vi.fn(), csv: vi.fn() }));
+const mocks = vi.hoisted(() => ({ hook: vi.fn(), corte: vi.fn(), pdf: vi.fn(), csv: vi.fn() }));
 vi.mock("../../hooks/useCarteraAging", () => ({ useCarteraAging: mocks.hook }));
+vi.mock("../../hooks/useCortesCxc", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../hooks/useCortesCxc")>(),
+  useCorteCxc: mocks.corte,
+}));
 vi.mock("../../services/carteraDescargas", () => ({ descargarCarteraPdf: mocks.pdf, descargarCarteraCsv: mocks.csv }));
 vi.mock("@/hooks/shared/useDiaNegocio", () => ({ useDiaNegocio: () => "2026-09-30" }));
 
@@ -30,6 +34,37 @@ beforeEach(() => {
 });
 
 describe("Cartera — exportaciones completas y estados", () => {
+  it("muestra y exporta el mismo saldo y revisión del corte certificado", async () => {
+    const fila = { id: "cxc-1", folio: "F-100", contraparte: "Corte cliente", expediente: "QA",
+      moneda: "MXN", saldo: 1000, tipoCambio: 1, fechaEmision: "2026-08-20", fechaVencimiento: "2026-08-30" };
+    mocks.corte.mockReturnValue({ listo: true, scope: dataScope, corte: { data: {
+      estado: "certificado", id: "corte-2", revision: 2, fecha: "2026-08-31", filas: [fila], tipoCambio: null,
+    } } });
+    montar();
+    fireEvent.click(screen.getByRole("button", { name: "Consultar cortes mensuales de CxC" }));
+    fireEvent.change(screen.getByLabelText("Mes del corte"), { target: { value: "2026-08" } });
+    expect(mocks.corte).toHaveBeenLastCalledWith("2026-08-31");
+    expect(screen.getByText("F-100")).toBeInTheDocument();
+    expect(screen.queryByText("FP-000007")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Exportar CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Exportar PDF" }));
+    await waitFor(() => expect(mocks.pdf).toHaveBeenCalledOnce());
+    const [fecha, bloques, scope, , revision] = mocks.csv.mock.calls[0];
+    expect(bloques[0].filas).toMatchObject([{ folio: fila.folio, saldo: 1000 }]);
+    expect(mocks.pdf).toHaveBeenCalledWith(fecha, expect.stringContaining("Revisión 2"), bloques, scope,
+      expect.objectContaining({ revisionCorte: revision }));
+  });
+
+  it("indica periodo reabierto y bloquea sus exportaciones", () => {
+    mocks.corte.mockReturnValue({ listo: true, scope: dataScope, corte: { data: { estado: "reabierto" } } });
+    montar();
+    fireEvent.click(screen.getByRole("button", { name: "Consultar cortes mensuales de CxC" }));
+    fireEvent.change(screen.getByLabelText("Mes del corte"), { target: { value: "2026-08" } });
+    expect(screen.getByText("Periodo reabierto. Pendiente de recertificación.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Exportar PDF" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeDisabled();
+  });
+
   it("apila títulos y resumen financiero en móvil sin ceder el ancho a las acciones", () => {
     montar();
     for (const name of ["Cuentas por cobrar", "Cuentas por pagar"]) {

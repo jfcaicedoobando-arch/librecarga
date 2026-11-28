@@ -48,7 +48,7 @@ BACKEND="auto"          # auto | docker | local
 
 
 # Suite mínima: cubre aislamiento multi-tenant, dinero, roles y anon.
-SUITES_MIN=(isolation financiero cross_tenant_mutations roles_no_admin anon_deny_all policy_linter flujos_atomicos brokers_tenant_scope auditoria_negocio pricing_container_guard reportes_multi_tenant)
+SUITES_MIN=(isolation financiero cross_tenant_mutations roles_no_admin anon_deny_all policy_linter flujos_atomicos brokers_tenant_scope auditoria_negocio pricing_container_guard reportes_multi_tenant entrega_y_cartera_al_corte)
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -391,6 +391,13 @@ for s in "${SUITES[@]}"; do
 done
 
 if [ "$REUSE" = "0" ]; then
+  step "Certificación concurrente de cartera"
+  if CXC_CORTE_LOCAL=1 node scripts/db/test-cxc-corte-concurrency.mjs > "$LOGDIR/corte_cxc_concurrente.log" 2>&1; then
+    cat "$LOGDIR/corte_cxc_concurrente.log"
+  else
+    cat "$LOGDIR/corte_cxc_concurrente.log" >&2
+    FAILED+=("concurrencia:corte_cxc")
+  fi
   step "Aprovisionamiento concurrente de organizaciones"
   if ISOLATED_QA_DB=1 bash scripts/ci/concurrencia-provision-organizacion.sh > "$LOGDIR/provision_concurrente.log" 2>&1; then
     cat "$LOGDIR/provision_concurrente.log"

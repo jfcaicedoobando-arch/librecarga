@@ -12,6 +12,7 @@ import { FasesEmbarqueStepper } from "./tracking/FasesEmbarqueStepper";
 import { TrackingEventTimeline } from "./tracking/TrackingEventTimeline";
 import { TrackingNuevoEventoForm } from "./tracking/TrackingNuevoEventoForm";
 import { TrackingNavieraActions } from "./tracking/TrackingNavieraActions";
+import { FechaEntregaCard } from "./tracking/FechaEntregaCard";
 import { formatDate } from "@/lib/formatters";
 import { esEmbarqueArribado, esEtaVencida } from "@/features/embarques/domain/embarqueFases";
 import type { EmbarqueTracking } from "@/features/embarques/types/tracking";
@@ -70,7 +71,7 @@ function FreshnessHeader({
 // eslint-disable-next-line complexity -- Render de alto nivel con múltiples secciones condicionales opcionales; extraer más subcomponentes fragmentaría el layout.
 export function TabTracking({ embarqueId, embarque, onDirtyChange, confirmarDescarte }: Props) {
   const { data: eventos = [], isLoading, isError, isFetching, refetch } = useEventosEmbarque(embarqueId);
-  const { canEdit } = usePermissions();
+  const { canEdit, role } = usePermissions();
   const [formAbierto, setFormAbierto] = useState(false);
   const formId = useId();
   const trigger = useRef<HTMLButtonElement>(null);
@@ -133,6 +134,9 @@ export function TabTracking({ embarqueId, embarque, onDirtyChange, confirmarDesc
       )}
 
       {showEtaBanner && <EtaVencidaBanner eta={embarque.eta!} />}
+      {embarque && ["Entregado", "EIR", "Por liquidar", "Cerrado"].includes(embarque.estado) &&
+        ["coordinador_logistico", "gerente_operaciones", "admin", "admin_org", "contador", "gerente_visor", "super_admin"].some((r) => r === role) &&
+        <FechaEntregaCard key={embarqueId} embarqueId={embarqueId} llegada={embarque.fecha_llegada_real} />}
 
       <FreshnessHeader
         freshness={isLoading

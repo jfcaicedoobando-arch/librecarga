@@ -9,11 +9,12 @@ type SeleccionCartera = {
   dataScope: CarteraDataScope | undefined;
   puedeExportar: boolean;
   busqueda: string;
+  revisionCorte?: number;
 };
 
 /** Una selección sustituida o desmontada nunca recupera su trabajo pendiente. */
 export function useCarteraPdfExport(seleccion: SeleccionCartera) {
-  const { fechaCorte, leyenda, bloques, dataScope, puedeExportar, busqueda } = seleccion;
+  const { fechaCorte, leyenda, bloques, dataScope, puedeExportar, busqueda, revisionCorte } = seleccion;
   const [generandoPdf, setGenerandoPdf] = useState(false);
   const montado = useRef(false);
   const secuencia = useRef(0);
@@ -31,7 +32,7 @@ export function useCarteraPdfExport(seleccion: SeleccionCartera) {
       trabajo.current?.controller.abort();
       trabajo.current = null;
     };
-  }, [fechaCorte, leyenda, bloques, dataScope, puedeExportar, busqueda]);
+  }, [fechaCorte, leyenda, bloques, dataScope, puedeExportar, busqueda, revisionCorte]);
 
   const exportarPdf = async () => {
     // El ref evita dos inicios en el mismo turno, antes del siguiente render.
@@ -45,11 +46,11 @@ export function useCarteraPdfExport(seleccion: SeleccionCartera) {
       return montado.current && secuencia.current === id && trabajo.current?.id === id
         && !controller.signal.aborted && actual.puedeExportar
         && actual.fechaCorte === fechaCorte && actual.bloques === bloques
-        && actual.dataScope === dataScope && actual.busqueda === busqueda;
+        && actual.dataScope === dataScope && actual.busqueda === busqueda && actual.revisionCorte === revisionCorte;
     };
     try {
       await descargarCarteraPdf(fechaCorte, leyenda, bloques, dataScope, {
-        busqueda, sigueVigente, signal: controller.signal,
+        busqueda, sigueVigente, signal: controller.signal, ...(revisionCorte ? { revisionCorte } : {}),
       });
     } finally {
       // Una finalización obsoleta no libera los controles de un trabajo nuevo.

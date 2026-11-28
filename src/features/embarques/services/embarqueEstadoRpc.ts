@@ -8,6 +8,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabase/response";
 import { getErrorMessage } from "@/lib/errors";
+import { newRequestId } from "@/lib/idempotency";
 import { registrarBitacoraEmbarque } from "./bitacoraEmbarques";
 
 
@@ -23,6 +24,7 @@ export interface AvanzarEstadoEmbarqueInput {
   tipoEvento: string;
   descripcionEvento: string;
   requestId?: string;
+  fechaEntrega?: string;
 }
 
 /**
@@ -39,7 +41,15 @@ export async function avanzarEstadoEmbarqueRpc(
   input: AvanzarEstadoEmbarqueInput,
 ): Promise<AvanzarEstadoResultado> {
   const data: unknown = await unwrap(
-    supabase.rpc("avanzar_estado_embarque", {
+    input.nuevoEstado === "Entregado" && input.fechaEntrega
+      ? supabase.rpc("entregar_embarque_con_fecha", {
+          p_embarque: input.embarqueId,
+          p_fecha: input.fechaEntrega,
+          p_tipo_evento: input.tipoEvento,
+          p_descripcion_evento: input.descripcionEvento,
+          p_request_id: input.requestId ?? newRequestId(),
+        })
+      : supabase.rpc("avanzar_estado_embarque", {
       p_embarque_id: input.embarqueId,
       p_nuevo_estado: input.nuevoEstado,
       // B-06: la RPC ignora este valor y usa auth.uid() -> auth.users.email.

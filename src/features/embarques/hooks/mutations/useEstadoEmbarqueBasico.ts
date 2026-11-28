@@ -18,7 +18,9 @@ import { newRequestId } from '@/lib/idempotency';
 export function useAvanzarEstadoEmbarque() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ embarqueId, nuevoEstado, usuarioEmail, requestId }: { embarqueId: string; nuevoEstado: string; usuarioEmail: string; requestId?: string }) => {
+    mutationFn: async ({ embarqueId, nuevoEstado, usuarioEmail, requestId, fechaEntrega }: {
+      embarqueId: string; nuevoEstado: string; usuarioEmail: string; requestId?: string; fechaEntrega?: string;
+    }) => {
       await avanzarEstadoEmbarqueRpc({
         embarqueId,
         nuevoEstado,
@@ -28,6 +30,7 @@ export function useAvanzarEstadoEmbarque() {
           ? "Salida real confirmada por el operador (hora de confirmación)"
           : descripcionEventoCambioEstado(nuevoEstado),
         requestId: requestId ?? newRequestId(),
+        ...(fechaEntrega ? { fechaEntrega } : {}),
       });
     },
     onSuccess: (_resultado, vars) => {

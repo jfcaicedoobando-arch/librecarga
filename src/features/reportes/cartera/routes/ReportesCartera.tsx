@@ -22,8 +22,20 @@ import { useCarteraAging } from "@/features/reportes/cartera/hooks/useCarteraAgi
 import { CarteraBloque } from "@/features/reportes/cartera/components/CarteraBloque";
 import { descargarCarteraCsv } from "@/features/reportes/cartera/services/carteraDescargas";
 import { useCarteraPdfExport } from "@/features/reportes/cartera/hooks/useCarteraPdfExport";
+import { CarteraCxcHistorica } from "@/features/reportes/cartera/components/CarteraCxcHistorica";
 
 export default function ReportesCartera() {
+  const [historica, setHistorica] = useState(false);
+  return <PageContainer>
+    {historica && <PageHeader title="Cartera y antigüedad" description="Cortes certificados de cuentas por cobrar." />}
+    <Button variant="outline" onClick={() => setHistorica(!historica)}>
+      {historica ? "Ver cartera de hoy" : "Consultar cortes mensuales de CxC"}
+    </Button>
+    {historica ? <CarteraCxcHistorica /> : <CarteraActual />}
+  </PageContainer>;
+}
+
+function CarteraActual() {
   useDocumentTitle("Cartera y antigüedad");
   // Ola 4 · N25: los saldos que alimentan este reporte son "a hoy" (RPCs de
   // cobranza/CxP), así que una fecha de corte pasada mostraría saldos actuales
@@ -46,7 +58,7 @@ export default function ReportesCartera() {
   });
 
   return (
-    <PageContainer>
+    <>
       <PageHeader
         icon={<LayoutList className="h-6 w-6 text-accent" />}
         title="Cartera y antigüedad"
@@ -128,7 +140,7 @@ export default function ReportesCartera() {
         isError={isError}
         onRetry={refetch}
       />
-    </PageContainer>
+    </>
   );
 }
 

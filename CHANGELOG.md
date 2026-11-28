@@ -1,5 +1,10 @@
 # Changelog
 
+## [13.824.112] - 2026-11-28
+
+- **Operaciones.** La fecha efectiva de entrega se captura al entregar y se corrige con evidencia y aprobación. Rentabilidad por cliente usa la fecha efectiva como periodo.
+- **Contabilidad.** Los cortes mensuales certificados de cuentas por cobrar se consultan y exportan con sus saldos y revisión.
+
 ## [13.824.111] - 2026-11-27
 
 - **Tesorería.** Si se pierde la confirmación de un movimiento manual, el reintento recupera el registro original aunque se haya cambiado la referencia.

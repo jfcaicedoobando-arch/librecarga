@@ -2,6 +2,7 @@ import FacturapiCredencialesCard from "@/features/configuracion/components/Factu
 import DatosFiscalesEmisorCard from "@/features/configuracion/components/DatosFiscalesEmisorCard";
 import { CatalogoClavesSATCard } from "@/features/configuracion/components/CatalogoClavesSATCard";
 import CierrePeriodoCard from "@/features/configuracion/components/CierrePeriodoCard";
+import { CertificacionCxcCard } from "@/features/reportes";
 import IvaFronteraCard from "@/features/configuracion/components/IvaFronteraCard";
 
 
@@ -18,6 +19,7 @@ export default function TabFacturacion() {
       <FacturapiCredencialesCard />
       <DatosFiscalesEmisorCard />
       <CierrePeriodoCard />
+      <CertificacionCxcCard />
       <IvaFronteraCard />
 
       <CatalogoClavesSATCard />

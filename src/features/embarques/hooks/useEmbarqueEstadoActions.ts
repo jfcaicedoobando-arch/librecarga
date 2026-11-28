@@ -107,7 +107,7 @@ export function useEmbarqueEstadoActions(embarque: EmbarqueRow | undefined, id: 
     notifyError(undefined, { title: "Error al cambiar estado", description: msg, error: err, method: "HANDLE_AVANZAR_ESTADO" });
   }, []);
 
-  const ejecutarAvance = useCallback(async (siguiente: string) => {
+  const ejecutarAvance = useCallback(async (siguiente: string, fechaEntrega?: string) => {
     if (!embarque || !id) return;
     try {
       // O1.11: la llave viaja estable entre reintentos; si la red falla y el
@@ -118,6 +118,7 @@ export function useEmbarqueEstadoActions(embarque: EmbarqueRow | undefined, id: 
         nuevoEstado: siguiente,
         usuarioEmail,
         requestId: reqIdAvance.get(),
+        ...(fechaEntrega ? { fechaEntrega } : {}),
       });
       reqIdAvance.reset();
       registrarActividad.mutate({
@@ -131,7 +132,7 @@ export function useEmbarqueEstadoActions(embarque: EmbarqueRow | undefined, id: 
     }
   }, [embarque, id, avanzarEstado, usuarioEmail, registrarActividad, notificarErrorAvance, reqIdAvance]);
 
-  const handleAvanzarEstado = async () => {
+  const handleAvanzarEstado = async (fechaEntrega?: string) => {
     if (!embarque || !id) return;
     const siguiente = getSiguienteEstado(embarque.estado);
     if (!siguiente) return;
@@ -164,7 +165,7 @@ export function useEmbarqueEstadoActions(embarque: EmbarqueRow | undefined, id: 
       });
       return;
     }
-    await ejecutarAvance(siguiente);
+    await ejecutarAvance(siguiente, fechaEntrega);
   };
 
   const confirmarCierreSinProforma = useCallback(async () => {
