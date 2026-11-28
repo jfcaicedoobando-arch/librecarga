@@ -38,7 +38,7 @@ export function useFechasEntrega(embarque: string) {
     },
     onError: (error) => {
       if (scope.isCurrent()) notifyError(undefined, {
-        title: "No se pudo guardar la corrección", description: getErrorMessage(error),
+        title: "No se pudo guardar la corrección", description: getErrorMessage(error), error,
       });
     },
   });

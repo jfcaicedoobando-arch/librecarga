@@ -80,7 +80,7 @@ export function useCertificarCorteCxc(fecha: string) {
     },
     onError: (error) => {
       if (scope.isCurrent()) notifyError(undefined, {
-        title: "No se pudo guardar el corte", description: getErrorMessage(error),
+        title: "No se pudo guardar el corte", description: getErrorMessage(error), error,
       });
     },
   });
