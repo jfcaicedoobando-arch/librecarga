@@ -19,7 +19,8 @@ export function toTelemetryError(error: unknown): Error {
     const safe = new Error(`Error de base de datos (${pgCode})`);
     const stack = error instanceof Error ? error.stack?.split("\n").slice(1) : undefined;
     if (stack?.length) safe.stack = [safe.toString(), ...stack].join("\n");
-    return Object.assign(safe, { code: pgCode, expected: (error as { expected?: boolean }).expected });
+    const source = error as { expected?: boolean; cause?: { expected?: boolean } };
+    return Object.assign(safe, { code: pgCode, expected: source.expected ?? source.cause?.expected });
   }
   if (error instanceof Error) return error;
   const raw = error as { message?: unknown; code?: unknown; expected?: unknown } | undefined;
