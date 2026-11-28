@@ -19,6 +19,8 @@ const KNOWN_MESSAGES = [
   "no pertenecen a los contactos del cliente",
   // Sentry 93/96: faltantes de Pricing y proveedor provisional; la UI muestra el aviso.
   "faltan campos obligatorios", "pendiente de aprobación por contabilidad",
+  // Sentry 9A: uso CFDI incompatible con el régimen; la UI pide corregir la ficha.
+  "configura un uso cfdi compatible con el régimen del receptor",
 ];
 
 export function isExpectedTelemetryError(error: unknown): boolean {

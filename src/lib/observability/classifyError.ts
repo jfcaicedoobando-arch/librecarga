@@ -67,7 +67,9 @@ function detectValidation(e: MaybePgError, name: string): boolean {
 
 function detectNetwork(name: string, message: string): boolean {
   if (name === "AbortError") return true;
-  return name === "TypeError" && /fetch|network/i.test(message);
+  if (name === "TypeError" && /fetch|network/i.test(message)) return true;
+  // Sentry 91/9E: fallas de red envueltas ("TypeError: Failed to fetch (host)").
+  return /^TypeError: Failed to fetch\b|Failed to send a request to the Edge Function/i.test(message);
 }
 
 export function classifyError(err: unknown): ClassifiedError {
